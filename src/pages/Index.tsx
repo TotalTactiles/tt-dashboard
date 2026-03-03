@@ -10,17 +10,28 @@ import DashboardLayout from "@/components/DashboardLayout";
 import GoalsDashboardWidgets from "@/components/goals/GoalsDashboardWidgets";
 import { useGoals } from "@/hooks/useGoals";
 import { useFormulas } from "@/hooks/useFormulas";
+import { useDataSources } from "@/hooks/useDataSources";
 import { kpiStats } from "@/data/mockData";
+import { Badge } from "@/components/ui/badge";
 
 const Index = () => {
   const { goals } = useGoals();
   const { formulas } = useFormulas();
+  const { hasLiveData, connectedCount } = useDataSources();
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold">Business Dashboard</h1>
-        <p className="text-sm text-muted-foreground font-mono">FY 2025 Overview — Quotes · Cashflow · Revenue · Expenses</p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Business Dashboard</h1>
+          <p className="text-sm text-muted-foreground font-mono">FY 2025 Overview — Quotes · Cashflow · Revenue · Expenses</p>
+        </div>
+        <Badge
+          variant={hasLiveData ? "default" : "secondary"}
+          className={`font-mono text-xs ${hasLiveData ? "bg-chart-green/20 text-chart-green border-chart-green/30" : ""}`}
+        >
+          {hasLiveData ? `● Live — ${connectedCount} source${connectedCount !== 1 ? "s" : ""}` : "Mock Data"}
+        </Badge>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
