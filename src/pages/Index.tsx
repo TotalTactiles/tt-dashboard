@@ -5,9 +5,15 @@ import DealPipeline from "@/components/dashboard/DealPipeline";
 import CashflowChart from "@/components/dashboard/CashflowChart";
 import FundPerformanceChart from "@/components/dashboard/FundPerformanceChart";
 import DashboardLayout from "@/components/DashboardLayout";
+import GoalsDashboardWidgets from "@/components/goals/GoalsDashboardWidgets";
+import { useGoals } from "@/hooks/useGoals";
+import { useFormulas } from "@/hooks/useFormulas";
 import { kpiStats } from "@/data/mockData";
 
 const Index = () => {
+  const { goals } = useGoals();
+  const { formulas } = useFormulas();
+
   return (
     <DashboardLayout>
       <div className="mb-6">
@@ -20,6 +26,8 @@ const Index = () => {
           <StatCard key={stat.label} {...stat} index={i} />
         ))}
       </div>
+
+      <GoalsDashboardWidgets goals={goals} formulas={formulas} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         <PortfolioChart />
