@@ -1,95 +1,112 @@
 
 
-## Plan: Align Dashboard Data Model to Actual Google Sheets Structure
+## Plan: Live Auto-Syncing Data Sources + Zoho Setup Instructions
 
-### The Problem
-The current dashboard uses generic mock data (Revenue MRR, Consulting/Licensing service lines) that doesn't match your actual business data. Your Google Sheets have 4 distinct tabs with specific structures that need to be mirrored exactly.
+### Problem
+The Settings page toggles and Save/Sync buttons are cosmetic — they update local React state but don't persist webhook URLs, don't actually fetch data from n8n, and don't auto-poll. The dashboard always shows hardcoded mock data regardless of settings.
 
-### Your Actual Data Structure (from the sheets)
+### What This Plan Delivers
 
-| Sheet Tab | Key Data | Dashboard Mapping |
-|-----------|----------|-------------------|
-| **Quotes** | Quoted jobs list, company, project, value, status (won/lost/yellow), conversion rates, forecasted revenue | KPI stats, Deal Pipeline, Conversion funnel chart |
-| **Cashflow** | Monthly: Opening Balance, Sales/Income, Cost of Sales, Gross Profit, Employment Expenses, Operating Expenses, GST, Balance Sheet, Cash Surplus/Deficit | Cashflow chart, Profitability chart |
-| **Expected Revenue (Revenue & COGS)** | Per-project: Company, Project, Value (incl GST), Invoice Date, Due Date, Labour Cost, Tactile Cost, Other Products | Revenue trend chart, Project-level revenue table |
-| **Business Expenses** | Essentials, Office & Misc, Shared Expenses, Employee Expenses — weekly/monthly/yearly costs | Expense breakdown chart, Operating cost cards |
+1. **Persistent webhook configuration** saved to `localStorage` so settings survive page refreshes
+2. **Real data fetching** — Save + toggle-on triggers an actual `fetch()` to the webhook URL
+3. **Auto-polling every 5 minutes** when a source is enabled, running 24/7 with no human intervention
+4. **Dashboard consumes live data** when available, falling back to mock data when not
+5. **Detailed Zoho CRM & Zoho Projects n8n setup instructions** embedded in the Settings UI as expandable guides (with correct homepage URLs, OAuth redirect URIs, and scope requirements)
 
-### What Changes
+### Architecture
 
-**1. Replace mock data with sheet-aligned interfaces (`mockData.ts`)**
+```text
+Settings page
+  ├── User enters webhook URL + clicks Save
+  ├── Config saved to localStorage
+  ├── Toggle ON → immediate fetch + starts 5-min interval
+  └── Toggle OFF → stops interval, clears live data
 
-Define TypeScript interfaces matching each tab exactly:
-- `QuotedJob` — id, value, company, project, totalPOs, status (won/lost/pending/yellow)
-- `QuoteSummary` — totalQuoted, totalWon, totalLost, quotedRemaining, conversionRate, grossRevenue, costOfGoods, labourCost, netRevenue
-- `CashflowMonth` — month, openingBalance, totalIncome, costOfSales (labour/tactile/other), grossProfit, employmentExpenses (per person), operatingExpenses (itemised), totalOutgoings, cashSurplus, closingBalance
-- `RevenueProject` — company, project, valueInclGST, invoiceDate, dueDate, labourCost, tactileCost, otherProducts
-- `ExpenseCategory` — category, items (name, paymentDate, weeklyCost, monthlyCost, yearlyCost)
-
-KPI stats updated to: **Total Quoted**, **Gross Revenue (excl GST)**, **Net Revenue (excl GST)**, **Cash Surplus/Deficit**
-
-**2. Update dashboard components**
-
-| Component | New Purpose |
-|-----------|------------|
-| `StatCard` row | Total Quoted, Net Revenue, Cash Surplus, Conversion Rate |
-| `PortfolioChart` | Monthly Total Income vs Total Outgoings (from Cashflow tab) |
-| `SectorAllocationChart` | Expense breakdown by category (Essentials, Office, Shared, Employee) |
-| `CashflowChart` | Monthly Cash Surplus/Deficit with opening/closing balances |
-| `FundPerformanceChart` | Gross Profit margin trend by month |
-| `DealPipeline` | Quoted Jobs table with status colour coding (green=won, yellow=90%, red=lost, white=pending) |
-
-**3. Add new components**
-
-- `RevenueProjectsTable` — table from the Expected Revenue tab showing per-project revenue, costs, and due dates
-- `ExpenseBreakdown` — categorised expense view from Business Expenses tab
-
-**4. Update Settings data mapping per Google Sheets tab**
-
-The Google Sheets data source in Settings will show **per-tab mapping** so the user knows exactly which sheet tab maps to which dashboard section. Each tab gets its own webhook URL field if desired, or one webhook returns all tabs.
-
-**5. n8n Workflow Design for Dynamic Growth**
-
-The n8n workflow will be designed to handle growing data by:
-- Reading **all rows** from each tab (not a fixed range) — the Google Sheets node's "Read Rows" operation returns all populated rows automatically
-- Using the **header row** as JSON keys, so new columns are automatically included
-- The webhook response returns a structured JSON object with one key per tab: `{ quotes: [...], cashflow: [...], expectedRevenue: [...], expenses: [...] }`
-- The dashboard parses whatever fields exist and gracefully ignores unknown ones
-- A `lastUpdated` timestamp and `sheetMetadata` (tab names, row counts) are included so the dashboard can show data freshness
-
-### Technical Detail: n8n Setup for Multi-Tab Sheets
-
-In the Settings info banner, we'll add clear guidance:
-
-```
-n8n Workflow Structure:
-1. Webhook Trigger (POST)
-2. Google Sheets node — "Quotes" tab → Read All Rows
-3. Google Sheets node — "Cashflow" tab → Read All Rows  
-4. Google Sheets node — "Revenue & COGS" tab → Read All Rows
-5. Google Sheets node — "Business Expenses" tab → Read All Rows
-6. Merge node (Append) → Combine into structured JSON
-7. Respond to Webhook → Return { quotes, cashflow, revenue, expenses }
+useDataSources hook (new)
+  ├── Reads saved configs from localStorage
+  ├── On mount: for each enabled source, fetch webhook + start setInterval(300000)
+  ├── Stores fetched data in React state + localStorage cache
+  ├── Exposes: liveData, lastSync timestamps, loading/error states
+  └── Dashboard components consume liveData ?? mockData
 ```
 
-Each Google Sheets node uses "Read Rows" with no row limit, meaning as the business adds more quoted jobs or expense lines, they're automatically included on the next sync.
+### New Files
 
-### Files Modified
-
-| File | Change |
-|------|--------|
-| `src/data/mockData.ts` | Replace with sheet-aligned interfaces and realistic mock data |
-| `src/pages/Index.tsx` | Updated layout with new component arrangement |
-| `src/components/dashboard/StatCard.tsx` | No change (reused) |
-| `src/components/dashboard/PortfolioChart.tsx` | Income vs Outgoings trend |
-| `src/components/dashboard/SectorAllocationChart.tsx` | Expense category breakdown |
-| `src/components/dashboard/CashflowChart.tsx` | Cash surplus/deficit with balances |
-| `src/components/dashboard/FundPerformanceChart.tsx` | Gross profit margin trend |
-| `src/components/dashboard/DealPipeline.tsx` | Quoted jobs table with status colours |
-| `src/pages/Settings.tsx` | Per-tab mapping display and n8n workflow guidance |
-
-**New files:**
 | File | Purpose |
 |------|---------|
-| `src/components/dashboard/RevenueProjectsTable.tsx` | Expected Revenue tab as a sortable table |
-| `src/components/dashboard/ExpenseBreakdown.tsx` | Categorised expense summary cards |
+| `src/hooks/useDataSources.ts` | Core hook: loads saved webhook configs, fetches data from n8n endpoints, runs auto-poll intervals, caches results in localStorage, exposes live data with fallback to mock |
+| `src/components/settings/ZohoCrmSetupGuide.tsx` | Expandable step-by-step guide for Zoho CRM n8n workflow setup |
+| `src/components/settings/ZohoProjectsSetupGuide.tsx` | Expandable step-by-step guide for Zoho Projects n8n workflow setup |
+| `src/components/settings/GoogleSheetsSetupGuide.tsx` | Expandable step-by-step guide for Google Sheets n8n workflow (already partially shown, will be a proper component) |
+
+### Modified Files
+
+| File | Changes |
+|------|---------|
+| `src/pages/Settings.tsx` | Rewrite to use `useDataSources` hook for persistence + real fetching. Toggle actually enables/disables polling. Save validates URL then persists. Show real last-sync timestamps, loading spinners, error states. Include setup guide components per source. Add polling interval indicator ("Next sync in X:XX"). |
+| `src/pages/Index.tsx` | Use `useDataSources` hook. Pass live data (or mock fallback) to all dashboard components. Show "Live" / "Mock Data" badge in header. |
+| `src/data/mockData.ts` | Add data parser functions that normalize raw n8n webhook JSON responses into the existing TypeScript interfaces (QuotedJob[], CashflowMonth[], etc.) so dashboard components don't need changes. |
+
+### Settings Page Fixes
+- **Toggle doesn't work**: Currently `toggleConnection` only flips a boolean in React state. Will be rewritten to: persist to localStorage, trigger immediate fetch if turning on, start/stop polling interval.
+- **Save doesn't persist**: Currently just shows a toast. Will be rewritten to: validate URL format, save to localStorage, trigger test fetch, show success/error result.
+- **Sync Now doesn't fetch**: Currently just updates a timestamp string. Will be rewritten to: actually call `fetch(webhookUrl, { method: 'POST' })`, parse response, update dashboard data, show real result.
+
+### Auto-Polling Implementation (useDataSources hook)
+```typescript
+// On mount and when sources change:
+// For each enabled source with a webhook URL:
+//   1. Fetch immediately
+//   2. Set up setInterval(fetchData, 5 * 60 * 1000)
+//   3. Store interval ID for cleanup
+// On unmount or source disabled: clearInterval
+// Data cached in localStorage so it persists across page loads
+```
+
+### Zoho CRM n8n Setup Guide (embedded in Settings)
+
+The guide will include these exact steps:
+
+1. **Create a Zoho API Console app**
+   - Go to `https://api-console.zoho.com/`
+   - Click "Add Client" → select "Server-based Applications"
+   - **Client Name**: `n8n Integration`
+   - **Homepage URL**: `https://your-n8n-instance.app.n8n.cloud` (or `http://localhost:5678` for self-hosted)
+   - **Authorized Redirect URI**: `https://your-n8n-instance.app.n8n.cloud/rest/oauth2-credential/callback` (this is the critical URL users missed before)
+   - Copy the **Client ID** and **Client Secret**
+
+2. **Create n8n workflow**
+   - Add **Webhook** node (POST trigger) → copy Production URL
+   - Add **Zoho CRM** node → create new OAuth2 credential using Client ID/Secret from step 1
+   - Set **Scopes**: `ZohoCRM.modules.ALL, ZohoCRM.settings.ALL`
+   - Operations: Get Many → Resource: Deal, Contact, Account (one node per resource, or multiple nodes)
+   - Add **Code** node to merge into `{ deals: [...], contacts: [...], accounts: [...] }`
+   - Add **Respond to Webhook** node → return the merged JSON
+
+3. **Paste webhook URL** into the Zoho CRM field in Settings and toggle on
+
+### Zoho Projects n8n Setup Guide (embedded in Settings)
+
+1. **Create Zoho API Console app** (same process as CRM if not already done)
+   - **Homepage URL**: `https://your-n8n-instance.app.n8n.cloud`
+   - **Authorized Redirect URI**: `https://your-n8n-instance.app.n8n.cloud/rest/oauth2-credential/callback`
+   - **Scopes**: `ZohoProjects.portals.READ, ZohoProjects.projects.READ, ZohoProjects.tasks.READ, ZohoProjects.milestones.READ`
+
+2. **Find your Portal ID**
+   - Call `https://projectsapi.zoho.com/restapi/portals/` with your OAuth token to get your portal ID
+
+3. **Create n8n workflow**
+   - Add **Webhook** node (POST trigger)
+   - Add **HTTP Request** nodes (no native Zoho Projects node in n8n):
+     - `GET https://projectsapi.zoho.com/restapi/portal/{portalId}/projects/` → all projects
+     - `GET https://projectsapi.zoho.com/restapi/portal/{portalId}/projects/{projectId}/tasks/` → tasks per project
+     - `GET https://projectsapi.zoho.com/restapi/portal/{portalId}/projects/{projectId}/milestones/` → milestones
+   - Auth: OAuth2 → use same Zoho credentials with Projects scopes
+   - Add **Code** node → merge into `{ projects: [...], tasks: [...], milestones: [...] }`
+   - Add **Respond to Webhook** → return JSON
+
+4. **Paste webhook URL** into Zoho Projects field in Settings and toggle on
+
+### Dashboard Components — No Changes Needed
+All chart/table components (`PortfolioChart`, `DealPipeline`, `RevenueProjectsTable`, etc.) already consume data from `mockData.ts` exports. The `useDataSources` hook will provide live data that's normalized into the same interfaces, so components work unchanged. The Index page will simply pass `liveData.quotes ?? quotedJobs` etc.
 
