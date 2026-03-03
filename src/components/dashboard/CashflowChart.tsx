@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
-import { cashflowData } from "@/data/mockData";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
+import { cashflowChartData } from "@/data/mockData";
 
 const CashflowChart = () => {
   return (
@@ -10,12 +10,19 @@ const CashflowChart = () => {
       transition={{ duration: 0.5, delay: 0.5 }}
       className="chart-container"
     >
-      <h3 className="text-sm font-medium text-muted-foreground mb-4">Company Cash Flow</h3>
+      <h3 className="text-sm font-medium text-muted-foreground mb-1">Cash Surplus / Deficit</h3>
+      <p className="text-xs text-muted-foreground font-mono mb-4">Monthly closing balance trend</p>
       <ResponsiveContainer width="100%" height={220}>
-        <BarChart data={cashflowData}>
+        <AreaChart data={cashflowChartData}>
+          <defs>
+            <linearGradient id="surplusGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="hsl(160, 70%, 45%)" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="hsl(160, 70%, 45%)" stopOpacity={0} />
+            </linearGradient>
+          </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
           <XAxis dataKey="month" stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" />
-          <YAxis stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" tickFormatter={(v) => `$${Math.abs(v)}M`} />
+          <YAxis stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`} />
           <Tooltip
             contentStyle={{
               backgroundColor: "hsl(220, 18%, 10%)",
@@ -24,12 +31,14 @@ const CashflowChart = () => {
               fontFamily: "JetBrains Mono",
               fontSize: "12px",
             }}
-            formatter={(value: number) => [`$${Math.abs(value)}M`, value >= 0 ? "Inflow" : "Outflow"]}
+            formatter={(value: number, name: string) => {
+              const labels: Record<string, string> = { surplus: "Surplus/Deficit", closingBalance: "Closing Balance" };
+              return [`$${value.toLocaleString()}`, labels[name] || name];
+            }}
           />
           <ReferenceLine y={0} stroke="hsl(220, 14%, 22%)" />
-          <Bar dataKey="inflow" fill="hsl(160, 70%, 45%)" radius={[3, 3, 0, 0]} animationDuration={1500} />
-          <Bar dataKey="outflow" fill="hsl(0, 72%, 55%)" radius={[0, 0, 3, 3]} animationDuration={1500} />
-        </BarChart>
+          <Area type="monotone" dataKey="closingBalance" stroke="hsl(160, 70%, 45%)" fill="url(#surplusGrad)" strokeWidth={2} animationDuration={2000} />
+        </AreaChart>
       </ResponsiveContainer>
     </motion.div>
   );

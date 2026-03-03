@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { revenueData } from "@/data/mockData";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { cashflowChartData } from "@/data/mockData";
 
 const PortfolioChart = () => {
   return (
@@ -12,35 +12,27 @@ const PortfolioChart = () => {
     >
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-sm font-medium text-muted-foreground">Revenue Trend</h3>
-          <p className="text-xl font-mono font-bold text-foreground">$3.6M <span className="text-sm text-chart-green">MRR</span></p>
+          <h3 className="text-sm font-medium text-muted-foreground">Income vs Outgoings</h3>
+          <p className="text-xl font-mono font-bold text-foreground">
+            Monthly Cash Flow
+          </p>
         </div>
         <div className="flex items-center gap-4 text-xs font-mono">
           <div className="flex items-center gap-2">
-            <span className="w-3 h-0.5 bg-chart-green rounded" />
-            <span className="text-muted-foreground">Revenue</span>
+            <span className="w-3 h-3 rounded-sm bg-chart-green" />
+            <span className="text-muted-foreground">Income</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-3 h-0.5 bg-chart-blue rounded" />
-            <span className="text-muted-foreground">Target</span>
+            <span className="w-3 h-3 rounded-sm bg-chart-red" />
+            <span className="text-muted-foreground">Outgoings</span>
           </div>
         </div>
       </div>
       <ResponsiveContainer width="100%" height={260}>
-        <AreaChart data={revenueData}>
-          <defs>
-            <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="hsl(160, 70%, 45%)" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="hsl(160, 70%, 45%)" stopOpacity={0} />
-            </linearGradient>
-            <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="hsl(200, 80%, 50%)" stopOpacity={0.15} />
-              <stop offset="95%" stopColor="hsl(200, 80%, 50%)" stopOpacity={0} />
-            </linearGradient>
-          </defs>
+        <BarChart data={cashflowChartData} barGap={2}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
           <XAxis dataKey="month" stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" />
-          <YAxis stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" tickFormatter={(v) => `$${v}M`} />
+          <YAxis stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`} />
           <Tooltip
             contentStyle={{
               backgroundColor: "hsl(220, 18%, 10%)",
@@ -49,11 +41,14 @@ const PortfolioChart = () => {
               fontFamily: "JetBrains Mono",
               fontSize: "12px",
             }}
-            formatter={(value: number) => [`$${value}M`, ""]}
+            formatter={(value: number, name: string) => [
+              `$${value.toLocaleString()}`,
+              name === "income" ? "Income" : "Outgoings",
+            ]}
           />
-          <Area type="monotone" dataKey="revenue" stroke="hsl(160, 70%, 45%)" fill="url(#greenGrad)" strokeWidth={2} animationDuration={2000} />
-          <Area type="monotone" dataKey="target" stroke="hsl(200, 80%, 50%)" fill="url(#blueGrad)" strokeWidth={1.5} strokeDasharray="4 4" animationDuration={2000} />
-        </AreaChart>
+          <Bar dataKey="income" fill="hsl(160, 70%, 45%)" radius={[3, 3, 0, 0]} animationDuration={1500} />
+          <Bar dataKey="outgoings" fill="hsl(0, 72%, 55%)" radius={[3, 3, 0, 0]} animationDuration={1500} />
+        </BarChart>
       </ResponsiveContainer>
     </motion.div>
   );
