@@ -1,59 +1,68 @@
 
 
-## Plan: Refocus Dashboard to Single Business & Rework Settings for n8n-based Integrations
+## Plan: Goals & Targets Tab with Custom Metric Formulas
 
-### What Changes
+### Overview
+Add a new "Goals & Targets" sidebar tab with two sections: (1) a goal management system with numeric values and date ranges, and (2) a custom business metric formula database. Goals and formulas are stored in local state (localStorage) and reflected on the main dashboard.
 
-**1. Dashboard — Single Business Focus**
+### New Files
 
-The current dashboard presents a multi-company fund view (AUM across sectors, deal pipeline with multiple companies, fund performance multiples). We'll refocus it to show operational and financial data for **one business entity**:
+| File | Purpose |
+|------|---------|
+| `src/pages/GoalsTargets.tsx` | Main page with two tabs: Goals list and Formula database |
+| `src/components/goals/GoalCard.tsx` | Individual goal display with progress bar, date range, current vs target value |
+| `src/components/goals/GoalForm.tsx` | Dialog form to create/edit goals (name, description, target value, current value, unit, start date, end date, category) |
+| `src/components/goals/GoalProgressChart.tsx` | Recharts visualization showing goal progress over time |
+| `src/components/goals/FormulaCard.tsx` | Displays a custom formula with name, expression, description, and computed result |
+| `src/components/goals/FormulaForm.tsx` | Dialog form to create/edit formulas (name, expression string like `Revenue - Expenses`, description, category) |
+| `src/components/goals/GoalsDashboardWidgets.tsx` | Exportable summary components (goal completion ring, top goals progress bars) for use on the main dashboard |
+| `src/hooks/useGoals.ts` | React state + localStorage hook managing goals CRUD |
+| `src/hooks/useFormulas.ts` | React state + localStorage hook managing formulas CRUD, with a simple expression evaluator that references KPI values |
 
-- **KPI Stats** → Revenue, Gross Profit, Operating Expenses, Net Profit (single company metrics)
-- **Portfolio Chart** → Revenue Trend (monthly revenue vs target)
-- **Sector Allocation Chart** → Revenue by Product/Service Line (or Department Cost Breakdown)
-- **Cashflow Chart** → Company Cash Inflows vs Outflows
-- **Fund Performance Chart** → Profitability Metrics (Gross Margin %, Net Margin %, EBITDA Margin %)
-- **Deal Pipeline** → Key Projects / Active Deals tracker (the company's own deals, not fund-level)
-- **Header** updated from "Fund III — Q4 2025 Overview" to the company name and period
-- **Sidebar** branding updated to reflect single business context
-
-**2. Mock Data Overhaul (`mockData.ts`)**
-
-Replace all fund-level mock data with single-company business data: monthly revenue, expense categories, project pipeline, margin trends, cash position.
-
-**3. Settings — n8n-Mediated Data Sources**
-
-Replace the current 8 generic financial data sources (Bloomberg, PitchBook, etc.) with 3 specific integrations using **n8n as middleware**:
-
-| Source | Purpose | n8n Role |
-|--------|---------|----------|
-| **Google Sheets** | Financial data, reports, KPIs | n8n workflow fetches sheet data via API |
-| **Zoho CRM** | Deals, contacts, pipeline | n8n workflow pulls CRM data |
-| **Zoho Projects** | Project timelines, tasks, milestones | n8n workflow syncs project data |
-
-Each data source card will show:
-- Connection status
-- n8n Webhook URL configuration field
-- Data mapping description (what data flows from this source)
-- Last sync timestamp
-- Manual sync trigger button
-
-A top-level note will explain n8n acts as the integration layer, with a link to n8n setup docs.
-
-**4. Files Modified**
+### Modified Files
 
 | File | Change |
-|------|--------|
-| `src/data/mockData.ts` | Replace fund data with single-business data |
-| `src/pages/Index.tsx` | Update heading and layout |
-| `src/pages/Settings.tsx` | Rebuild with 3 n8n-based sources |
-| `src/components/dashboard/PortfolioChart.tsx` | → Revenue Trend chart |
-| `src/components/dashboard/SectorAllocationChart.tsx` | → Revenue by Service Line |
-| `src/components/dashboard/CashflowChart.tsx` | Update labels for company cashflow |
-| `src/components/dashboard/FundPerformanceChart.tsx` | → Profitability Margins chart |
-| `src/components/dashboard/DealPipeline.tsx` | → Active Projects/Deals table |
-| `src/components/dashboard/StatCard.tsx` | No structural change (reused) |
-| `src/components/AppSidebar.tsx` | Update branding |
+|------|---------|
+| `src/components/AppSidebar.tsx` | Add `Target` icon entry for `/goals` route |
+| `src/App.tsx` | Add `/goals` route |
+| `src/pages/Index.tsx` | Import `GoalsDashboardWidgets` and render a goals summary section showing top active goals and any formula-derived metrics |
 
-No new files needed. No route changes.
+### Goals Data Model
+```typescript
+interface Goal {
+  id: string;
+  name: string;
+  description: string;
+  targetValue: number;
+  currentValue: number;
+  unit: string; // "$", "%", "#"
+  startDate: string;
+  endDate: string;
+  category: string; // "Revenue", "Operations", "Growth", etc.
+  createdAt: string;
+}
+```
+
+### Formula Data Model
+```typescript
+interface MetricFormula {
+  id: string;
+  name: string; // e.g. "Burn Rate"
+  expression: string; // e.g. "Operating Expenses / Revenue * 100"
+  description: string;
+  unit: string;
+  category: string;
+}
+```
+
+The formula evaluator will parse simple arithmetic expressions referencing known KPI variable names (Revenue, GrossProfit, OpEx, NetProfit) from `mockData.ts` and compute a result. This keeps it frontend-only without needing `eval()` — a basic tokenizer handles `+`, `-`, `*`, `/` with named variables.
+
+### Goals Page Layout
+- **Tab 1 — Goals**: Filter/sort bar (by category, status, date) + grid of GoalCards + "Add Goal" button opening GoalForm dialog. Each card shows a progress bar (currentValue/targetValue), date range, days remaining, and category badge.
+- **Tab 2 — Formulas**: List of FormulaCards showing name, expression, computed value, and description + "Add Formula" button. Each formula shows its live computed result based on current KPI data.
+
+### Dashboard Integration
+On `Index.tsx`, add a new row below the KPI stats showing:
+- A compact "Goals Progress" card with the top 3-5 active goals as mini progress bars
+- Any custom formula results displayed as additional stat cards alongside existing KPIs
 
