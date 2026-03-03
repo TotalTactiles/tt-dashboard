@@ -10,7 +10,7 @@ const CashflowChart = () => {
       transition={{ duration: 0.5, delay: 0.5 }}
       className="chart-container"
     >
-      <h3 className="text-sm font-medium text-muted-foreground mb-4">Cash Flow (Capital Calls vs Distributions)</h3>
+      <h3 className="text-sm font-medium text-muted-foreground mb-4">Company Cash Flow</h3>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={cashflowData}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />

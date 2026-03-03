@@ -43,7 +43,7 @@ export function AppSidebar() {
             {!collapsed && (
               <div>
                 <p className="text-sm font-semibold text-foreground">Meridian Capital</p>
-                <p className="text-[10px] text-muted-foreground font-mono">Fund III</p>
+                <p className="text-[10px] text-muted-foreground font-mono">Business Operations</p>
               </div>
             )}
           </div>
