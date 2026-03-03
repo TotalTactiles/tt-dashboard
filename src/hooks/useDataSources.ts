@@ -130,23 +130,45 @@ export function useDataSources() {
     saveSources(updated);
   }, []);
 
-  const fetchSource = useCallback(async (source: DataSourceConfig) => {
-    if (!source.webhookUrl) return;
+  const fetchSource = useCallback(async (source: DataSourceConfig): Promise<{ success: boolean; data?: any; error?: string }> => {
+    if (!source.webhookUrl) return { success: false, error: "No webhook URL" };
 
     setSources((prev) =>
       prev.map((s) => (s.id === source.id ? { ...s, loading: true, lastError: "" } : s))
     );
 
     try {
-      const res = await fetch(source.webhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source: source.id, timestamp: new Date().toISOString() }),
-      });
+      // Try POST first, fall back to GET if 405
+      let res: Response;
+      try {
+        res = await fetch(source.webhookUrl, {
+          method: "POST",
+          mode: "cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ source: source.id, timestamp: new Date().toISOString() }),
+        });
+      } catch (postErr: any) {
+        // If POST fails with TypeError (CORS or network), try GET as fallback
+        if (postErr instanceof TypeError) {
+          try {
+            res = await fetch(source.webhookUrl, { method: "GET", mode: "cors" });
+          } catch (getErr: any) {
+            // Both failed — likely CORS
+            throw new TypeError("Failed to fetch");
+          }
+        } else {
+          throw postErr;
+        }
+      }
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      // If POST returned 405, retry with GET
+      if (res!.status === 405) {
+        res = await fetch(source.webhookUrl, { method: "GET", mode: "cors" });
+      }
 
-      const data = await res.json();
+      if (!res!.ok) throw new Error(`HTTP ${res!.status}: ${res!.statusText}`);
+
+      const data = await res!.json();
       const now = new Date().toLocaleString();
 
       setLiveData((prev) => {
@@ -162,8 +184,16 @@ export function useDataSources() {
         saveSources(updated);
         return updated;
       });
+
+      return { success: true, data };
     } catch (err: any) {
-      const errorMsg = err.message || "Failed to fetch";
+      let errorMsg = err.message || "Failed to fetch";
+
+      // Detect CORS errors
+      if (err instanceof TypeError && (errorMsg === "Failed to fetch" || errorMsg.includes("NetworkError"))) {
+        errorMsg = "CORS error: Your n8n webhook is blocking browser requests. In your n8n Webhook node, go to Options → enable \"Allow Cross-Origin Requests\", or add Access-Control-Allow-Origin: * header in your Respond to Webhook node.";
+      }
+
       setSources((prev) => {
         const updated = prev.map((s) =>
           s.id === source.id ? { ...s, loading: false, lastError: errorMsg } : s
@@ -171,6 +201,8 @@ export function useDataSources() {
         saveSources(updated);
         return updated;
       });
+
+      return { success: false, error: errorMsg };
     }
   }, []);
 
@@ -266,12 +298,10 @@ export function useDataSources() {
       }
 
       saveSources(sources);
-      await fetchSource(source);
+      const result = await fetchSource(source);
 
-      // Check if fetch succeeded
-      const updated = loadSavedSources().find((s) => s.id === id);
-      if (updated?.lastError) {
-        return { success: false, error: updated.lastError };
+      if (!result.success) {
+        return { success: false, error: result.error };
       }
 
       // Auto-enable if not already
