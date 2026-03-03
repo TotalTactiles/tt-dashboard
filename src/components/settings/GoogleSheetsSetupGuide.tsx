@@ -59,16 +59,21 @@ return [{
         </div>
 
         <div className="p-2 rounded bg-chart-orange/10 border border-chart-orange/20">
-          <p className="font-semibold text-chart-orange text-[11px] mb-1">⚠️ Step 5: Enable CORS (Required!)</p>
-          <ul className="list-disc list-inside text-muted-foreground text-[11px] space-y-1">
+          <p className="font-semibold text-chart-orange text-[11px] mb-2">⚠️ Step 5: Enable CORS (Required!)</p>
+          <p className="text-muted-foreground text-[11px] font-semibold mb-1">n8n Cloud:</p>
+          <ul className="list-disc list-inside text-muted-foreground text-[11px] space-y-1 mb-2">
             <li>Select your <strong>Webhook</strong> node → click <strong>Options</strong> → enable <strong>"Allow Cross-Origin Requests"</strong></li>
-            <li>For self-hosted n8n: in the <strong>Respond to Webhook</strong> node, add these response headers:</li>
           </ul>
+          <p className="text-chart-orange text-[11px] font-semibold mb-1">Self-hosted n8n (Docker / PM2 / systemd):</p>
+          <p className="text-muted-foreground text-[10px] mb-1">The Webhook node checkbox does <strong>not</strong> work for self-hosted. You must set this environment variable on your n8n server:</p>
           <div className="bg-background/60 p-2 rounded border border-border mt-1">
-            <pre className="text-[10px] text-muted-foreground whitespace-pre-wrap">{`Access-Control-Allow-Origin: *
-Access-Control-Allow-Methods: GET, POST, OPTIONS
-Access-Control-Allow-Headers: Content-Type`}</pre>
+            <pre className="text-[10px] text-muted-foreground whitespace-pre-wrap">{`N8N_ADDITIONAL_ALLOWED_ORIGINS=https://*.lovable.app,https://*.lovableproject.com`}</pre>
           </div>
+          <ul className="list-disc list-inside text-muted-foreground text-[10px] space-y-1 mt-1">
+            <li><strong>Docker:</strong> add <code className="bg-background/60 px-1 rounded">-e N8N_ADDITIONAL_ALLOWED_ORIGINS=...</code> to your docker run or docker-compose.yml</li>
+            <li><strong>PM2/systemd:</strong> add it to your <code className="bg-background/60 px-1 rounded">.env</code> file</li>
+            <li>Then <strong>restart n8n</strong></li>
+          </ul>
           <p className="text-muted-foreground text-[10px] mt-1">Without this, your browser will block the request (CORS error).</p>
         </div>
 
