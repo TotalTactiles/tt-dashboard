@@ -3,6 +3,7 @@ import {
   Settings,
   TrendingUp,
   Activity,
+  CalendarDays,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -20,6 +21,7 @@ import {
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Calendar", url: "/calendar", icon: CalendarDays },
   { title: "Portfolio", url: "/portfolio", icon: TrendingUp },
   { title: "Deal Flow", url: "/deals", icon: Activity },
   { title: "Settings", url: "/settings", icon: Settings },
