@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { serviceAllocation } from "@/data/mockData";
+import { expenseAllocation } from "@/data/mockData";
 
 const SectorAllocationChart = () => {
   return (
@@ -10,11 +10,11 @@ const SectorAllocationChart = () => {
       transition={{ duration: 0.5, delay: 0.4 }}
       className="chart-container"
     >
-      <h3 className="text-sm font-medium text-muted-foreground mb-4">Revenue by Service Line</h3>
+      <h3 className="text-sm font-medium text-muted-foreground mb-4">Expense Breakdown by Category</h3>
       <ResponsiveContainer width="100%" height={200}>
         <PieChart>
           <Pie
-            data={serviceAllocation}
+            data={expenseAllocation}
             cx="50%"
             cy="50%"
             innerRadius={55}
@@ -24,7 +24,7 @@ const SectorAllocationChart = () => {
             animationBegin={500}
             animationDuration={1200}
           >
-            {serviceAllocation.map((entry, index) => (
+            {expenseAllocation.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.fill} />
             ))}
           </Pie>
@@ -36,16 +36,16 @@ const SectorAllocationChart = () => {
               fontFamily: "JetBrains Mono",
               fontSize: "12px",
             }}
-            formatter={(value: number) => [`${value}%`, ""]}
+            formatter={(value: number) => [`$${value.toLocaleString()}/mo`, ""]}
           />
         </PieChart>
       </ResponsiveContainer>
       <div className="flex flex-wrap gap-3 mt-2">
-        {serviceAllocation.map((s) => (
+        {expenseAllocation.map((s) => (
           <div key={s.name} className="flex items-center gap-1.5 text-xs">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.fill }} />
             <span className="text-muted-foreground">{s.name}</span>
-            <span className="font-mono text-foreground">{s.value}%</span>
+            <span className="font-mono text-foreground">${s.value.toLocaleString()}</span>
           </div>
         ))}
       </div>

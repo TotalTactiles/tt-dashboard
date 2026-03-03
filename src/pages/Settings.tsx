@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, ExternalLink, RefreshCw, Zap, ArrowRight } from "lucide-react";
+import { Check, ExternalLink, RefreshCw, Zap, ArrowRight, FileSpreadsheet } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,6 +84,51 @@ const Settings = () => {
               </a>{" "}
               and paste the webhook URL below.
             </p>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Google Sheets tab mapping guide */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="chart-container mb-6 border border-chart-green/20"
+      >
+        <div className="flex items-start gap-3">
+          <FileSpreadsheet className="w-5 h-5 text-chart-green mt-0.5 shrink-0" />
+          <div className="w-full">
+            <p className="text-sm font-medium mb-2">Google Sheets Tab → Dashboard Mapping</p>
+            <div className="space-y-2 text-xs">
+              <div className="flex items-start gap-2">
+                <Badge variant="secondary" className="text-xs font-mono shrink-0">Quotes</Badge>
+                <span className="text-muted-foreground">→ KPI stat cards (Total Quoted, Conversion Rate) + Quoted Jobs table</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Badge variant="secondary" className="text-xs font-mono shrink-0">Cashflow</Badge>
+                <span className="text-muted-foreground">→ Income vs Outgoings chart + Cash Surplus/Deficit chart + Gross Margin trend</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Badge variant="secondary" className="text-xs font-mono shrink-0">Revenue & COGS</Badge>
+                <span className="text-muted-foreground">→ Expected Revenue table with per-project labour, tactile, and other costs</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Badge variant="secondary" className="text-xs font-mono shrink-0">Business Expenses</Badge>
+                <span className="text-muted-foreground">→ Expense category breakdown pie chart + Categorised expense cards</span>
+              </div>
+            </div>
+            <div className="mt-3 p-3 rounded-md bg-secondary/50 border border-border">
+              <p className="text-xs font-mono text-muted-foreground leading-relaxed">
+                <strong className="text-foreground">n8n Workflow Structure:</strong><br />
+                1. Webhook Trigger (POST)<br />
+                2. Google Sheets → "Quotes" tab → Read All Rows<br />
+                3. Google Sheets → "Cashflow" tab → Read All Rows<br />
+                4. Google Sheets → "Revenue & COGS" tab → Read All Rows<br />
+                5. Google Sheets → "Business Expenses" tab → Read All Rows<br />
+                6. Code node → Combine into {`{ quotes, cashflow, revenue, expenses }`}<br />
+                7. Respond to Webhook → Return structured JSON
+              </p>
+            </div>
           </div>
         </div>
       </motion.div>

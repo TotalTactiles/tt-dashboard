@@ -11,15 +11,18 @@ export interface MetricFormula {
 
 const STORAGE_KEY = "meridian_formulas";
 
-// KPI variables available for formulas
+// KPI variables available for formulas (aligned to Google Sheets data)
 const KPI_VARIABLES: Record<string, number> = {
-  Revenue: 3.6,
-  GrossProfit: 2.5,
-  OpEx: 1.8,
-  NetProfit: 0.94,
-  GrossMargin: 70,
-  NetMargin: 26,
-  EBITDA: 37,
+  TotalQuoted: 399900,
+  TotalWon: 109700,
+  TotalLost: 12400,
+  GrossRevenue: 109700,
+  CostOfGoods: 43880,
+  LabourCost: 27425,
+  NetRevenue: 38395,
+  ConversionRate: 27.4,
+  CashPosition: 75500,
+  MonthlyExpenses: 35000,
 };
 
 function loadFormulas(): MetricFormula[] {
