@@ -65,6 +65,20 @@ return [{
           </ul>
         </div>
 
+        <div className="p-2 rounded bg-chart-orange/10 border border-chart-orange/20">
+          <p className="font-semibold text-chart-orange text-[11px] mb-1">⚠️ Step 5: Enable CORS (Required!)</p>
+          <ul className="list-disc list-inside text-muted-foreground text-[11px] space-y-1">
+            <li>Select your <strong>Webhook</strong> node → click <strong>Options</strong> → enable <strong>"Allow Cross-Origin Requests"</strong></li>
+            <li>For self-hosted n8n: in the <strong>Respond to Webhook</strong> node, add these response headers:</li>
+          </ul>
+          <div className="bg-background/60 p-2 rounded border border-border mt-1">
+            <pre className="text-[10px] text-muted-foreground whitespace-pre-wrap">{`Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: GET, POST, OPTIONS
+Access-Control-Allow-Headers: Content-Type`}</pre>
+          </div>
+          <p className="text-muted-foreground text-[10px] mt-1">Without this, your browser will block the request (CORS error).</p>
+        </div>
+
         <div className="p-2 rounded bg-chart-blue/10 border border-chart-blue/20">
           <p className="text-chart-blue text-[11px]">
             ✅ Paste the Production webhook URL into the Zoho CRM field above, click Save, and toggle on.
