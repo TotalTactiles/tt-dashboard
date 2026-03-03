@@ -191,7 +191,7 @@ export function useDataSources() {
 
       // Detect CORS errors
       if (err instanceof TypeError && (errorMsg === "Failed to fetch" || errorMsg.includes("NetworkError"))) {
-        errorMsg = "CORS error: Your n8n webhook is blocking browser requests. For self-hosted n8n, add this environment variable and restart: N8N_ADDITIONAL_ALLOWED_ORIGINS=https://*.lovable.app,https://*.lovableproject.com — For n8n Cloud, enable \"Allow Cross-Origin Requests\" in the Webhook node Options.";
+        errorMsg = "CORS error: Your self-hosted n8n is blocking browser requests. Add this environment variable to your n8n server and restart: N8N_ADDITIONAL_ALLOWED_ORIGINS=https://*.lovable.app,https://*.lovableproject.com";
       }
 
       setSources((prev) => {
