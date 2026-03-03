@@ -1,43 +1,39 @@
 
 
-## Plan: Fix Data Source Fetching
+## Plan: Fix CORS for Self-Hosted n8n
 
-### Root Causes
+### Root Cause
 
-**1. CORS blocking browser→n8n requests**
-The browser sends `fetch(webhookUrl, { method: "POST" })` directly to an external n8n URL. Most n8n webhook endpoints don't include `Access-Control-Allow-Origin` headers, so the browser blocks the response. This is the primary reason for "Failed to fetch" errors.
+Your n8n is **self-hosted** at `n8n.srv1437130.hstgr.cloud`. The "Allow Cross-Origin Requests" checkbox in the Webhook node **only works on n8n Cloud**. For self-hosted n8n, the OPTIONS preflight request is handled by n8n's core server — not the webhook node — so adding headers in "Respond to Webhook" does not fix it either.
 
-**2. Race condition in `saveAndTest`**
-After calling `await fetchSource(source)`, the function reads back from `loadSavedSources()` to check for errors. But `fetchSource` updates React state (async) which then triggers `saveSources` — so localStorage may not yet reflect the result when checked. This makes Save & Test unreliable.
+The correct fix for self-hosted n8n is to set the **`N8N_ADDITIONAL_ALLOWED_ORIGINS`** environment variable on your n8n server.
 
-**3. n8n webhooks may expect GET, not POST**
-Default n8n Webhook nodes accept specific HTTP methods. If the user configured a GET-based webhook, our POST request would return 404/405.
+### What Changes
 
-### Fix
+**1. Update setup guides** with the correct self-hosted n8n CORS fix:
 
-**`src/hooks/useDataSources.ts`** — Two changes:
+All three guides (`GoogleSheetsSetupGuide.tsx`, `ZohoCrmSetupGuide.tsx`, `ZohoProjectsSetupGuide.tsx`) will have their CORS step rewritten to clearly distinguish:
 
-1. **Make `fetchSource` return a result object** (`{ success, data?, error? }`) instead of returning void and writing to state. `saveAndTest` can then use the return value directly — no race condition.
+- **n8n Cloud**: Enable "Allow Cross-Origin Requests" in Webhook node Options (existing instruction — this works)
+- **Self-hosted n8n** (your case): Add this environment variable to your n8n server:
+  ```
+  N8N_ADDITIONAL_ALLOWED_ORIGINS=https://id-preview--2b58916e-a43c-476b-81e7-9c64344bda0b.lovable.app,https://*.lovable.app,https://*.lovableproject.com
+  ```
+  Then restart n8n. This tells n8n's core server to respond to OPTIONS preflight requests with the correct CORS headers.
 
-2. **Add `mode: "cors"` with fallback handling, and support both GET and POST methods.** Also add better error messages that specifically detect CORS failures (TypeError with "Failed to fetch" message = CORS) and guide the user.
+  For Docker: add `-e N8N_ADDITIONAL_ALLOWED_ORIGINS=...` to your `docker run` command or `docker-compose.yml`.
+  For PM2/systemd: add it to your `.env` file or environment config.
 
-3. **Add CORS guidance in the setup guides** — instruct users to add a "Respond to Webhook" node in n8n with these response headers:
-   - `Access-Control-Allow-Origin: *`
-   - `Access-Control-Allow-Methods: GET, POST, OPTIONS`
-   - `Access-Control-Allow-Headers: Content-Type`
+**2. Improve error message** in `useDataSources.ts`:
 
-   Or for n8n cloud: enable "Allow Cross-Origin Requests" in the Webhook node settings.
-
-**`src/components/settings/GoogleSheetsSetupGuide.tsx`** — Add a CORS configuration step explaining how to enable cross-origin access in the n8n Webhook node (there's a checkbox in n8n's Webhook node under "Options" → "Allow Cross-Origin Requests").
-
-**`src/components/settings/ZohoCrmSetupGuide.tsx`** and **`src/components/settings/ZohoProjectsSetupGuide.tsx`** — Same CORS step added.
+The current CORS error message only mentions the Webhook node checkbox. It will be updated to include the self-hosted environment variable fix, since that's the actual solution for this setup.
 
 ### Files Modified
 
 | File | Change |
 |------|--------|
-| `src/hooks/useDataSources.ts` | `fetchSource` returns `{success, error?}`. CORS error detection with user-friendly message. Remove race condition in `saveAndTest`. |
-| `src/components/settings/GoogleSheetsSetupGuide.tsx` | Add CORS setup step for n8n Webhook node |
-| `src/components/settings/ZohoCrmSetupGuide.tsx` | Add CORS setup step |
-| `src/components/settings/ZohoProjectsSetupGuide.tsx` | Add CORS setup step |
+| `src/hooks/useDataSources.ts` | Update CORS error message to mention `N8N_ADDITIONAL_ALLOWED_ORIGINS` for self-hosted |
+| `src/components/settings/GoogleSheetsSetupGuide.tsx` | Rewrite CORS step with Cloud vs Self-hosted sections |
+| `src/components/settings/ZohoCrmSetupGuide.tsx` | Same CORS step update |
+| `src/components/settings/ZohoProjectsSetupGuide.tsx` | Same CORS step update |
 
