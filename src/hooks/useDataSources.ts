@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const STORAGE_KEY = "dashboard_data_sources";
 const DATA_CACHE_KEY = "dashboard_live_data";
@@ -89,7 +90,6 @@ function loadSavedSources(): DataSourceConfig[] {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved) as DataSourceConfig[];
-      // Merge with defaults to pick up any new sources
       return DEFAULT_SOURCES.map((def) => {
         const existing = parsed.find((s) => s.id === def.id);
         return existing
@@ -110,7 +110,6 @@ function loadCachedData(): LiveData {
 }
 
 function saveSources(sources: DataSourceConfig[]) {
-  // Strip loading state before persisting
   const toSave = sources.map((s) => ({ ...s, loading: false }));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
 }
@@ -124,7 +123,6 @@ export function useDataSources() {
   const [liveData, setLiveData] = useState<LiveData>(loadCachedData);
   const intervals = useRef<Record<string, ReturnType<typeof setInterval>>>({});
 
-  // Persist sources whenever they change (but debounce loading flickers)
   const persistSources = useCallback((updated: DataSourceConfig[]) => {
     setSources(updated);
     saveSources(updated);
@@ -138,41 +136,17 @@ export function useDataSources() {
     );
 
     try {
-      // Try POST first, fall back to GET if 405
-      let res: Response;
-      try {
-        res = await fetch(source.webhookUrl, {
-          method: "POST",
-          mode: "cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ source: source.id, timestamp: new Date().toISOString() }),
-        });
-      } catch (postErr: any) {
-        // If POST fails with TypeError (CORS or network), try GET as fallback
-        if (postErr instanceof TypeError) {
-          try {
-            res = await fetch(source.webhookUrl, { method: "GET", mode: "cors" });
-          } catch (getErr: any) {
-            // Both failed — likely CORS
-            throw new TypeError("Failed to fetch");
-          }
-        } else {
-          throw postErr;
-        }
-      }
+      // Route through the n8n-proxy Edge Function to avoid CORS
+      const { data: responseData, error } = await supabase.functions.invoke("n8n-proxy", {
+        body: { webhookUrl: source.webhookUrl, source: source.id },
+      });
 
-      // If POST returned 405, retry with GET
-      if (res!.status === 405) {
-        res = await fetch(source.webhookUrl, { method: "GET", mode: "cors" });
-      }
+      if (error) throw new Error(error.message || "Proxy request failed");
 
-      if (!res!.ok) throw new Error(`HTTP ${res!.status}: ${res!.statusText}`);
-
-      const data = await res!.json();
       const now = new Date().toLocaleString();
 
       setLiveData((prev) => {
-        const updated = { ...prev, ...data, [`_lastSync_${source.id}`]: now };
+        const updated = { ...prev, ...responseData, [`_lastSync_${source.id}`]: now };
         saveLiveData(updated);
         return updated;
       });
@@ -185,14 +159,9 @@ export function useDataSources() {
         return updated;
       });
 
-      return { success: true, data };
+      return { success: true, data: responseData };
     } catch (err: any) {
-      let errorMsg = err.message || "Failed to fetch";
-
-      // Detect CORS errors
-      if (err instanceof TypeError && (errorMsg === "Failed to fetch" || errorMsg.includes("NetworkError"))) {
-        errorMsg = "CORS error: Your self-hosted n8n is blocking browser requests. Add this environment variable to your n8n server and restart: N8N_ADDITIONAL_ALLOWED_ORIGINS=https://*.lovable.app,https://*.lovableproject.com";
-      }
+      const errorMsg = err.message || "Failed to fetch";
 
       setSources((prev) => {
         const updated = prev.map((s) =>
@@ -208,15 +177,11 @@ export function useDataSources() {
 
   const startPolling = useCallback(
     (source: DataSourceConfig) => {
-      // Clear existing interval if any
       if (intervals.current[source.id]) {
         clearInterval(intervals.current[source.id]);
       }
-      // Immediate fetch
       fetchSource(source);
-      // Set up polling
       intervals.current[source.id] = setInterval(() => {
-        // Re-read latest source config from state
         setSources((prev) => {
           const current = prev.find((s) => s.id === source.id);
           if (current?.connected && current.webhookUrl) {
@@ -236,7 +201,6 @@ export function useDataSources() {
     }
   }, []);
 
-  // On mount, start polling for all enabled sources
   useEffect(() => {
     sources.forEach((source) => {
       if (source.connected && source.webhookUrl) {
@@ -304,7 +268,6 @@ export function useDataSources() {
         return { success: false, error: result.error };
       }
 
-      // Auto-enable if not already
       if (!source.connected) {
         toggleConnection(id);
       }
