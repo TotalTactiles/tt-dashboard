@@ -136,6 +136,19 @@ function getMetricValue(lookup: Record<string, any>, monthKey: string, ...labelV
   return 0;
 }
 
+function getMetricValueFuzzy(lookup: Record<string, any>, monthKey: string, partialKeys: string[], ...labelVariants: string[]): number {
+  // Try exact match first
+  const exact = getMetricValue(lookup, monthKey, ...labelVariants);
+  if (exact !== 0) return exact;
+  // Fuzzy: find a key containing ALL partial strings (uppercase)
+  const upperPartials = partialKeys.map(p => p.toUpperCase());
+  const matchKey = Object.keys(lookup).find(k => upperPartials.every(p => k.includes(p)));
+  if (matchKey && lookup[matchKey][monthKey] !== undefined) {
+    return parseNum(lookup[matchKey][monthKey]);
+  }
+  return 0;
+}
+
 function mapCashflow(raw: any[]): CashflowMonth[] {
   // Detect if data is transposed (months as columns)
   const monthCols = detectMonthColumns(raw);
