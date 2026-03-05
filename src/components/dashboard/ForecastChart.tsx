@@ -5,10 +5,10 @@ import NoData from "./NoData";
 
 const SERIES = [
   { key: "totalOutgoings", label: "Total Outgoings", color: "hsl(0, 70%, 55%)" },
-  { key: "anticipatedSurplus", label: "Anticipated Cash Surplus/(Deficit)", color: "hsl(160, 70%, 45%)" },
+  { key: "anticipatedSurplus", label: "Anticipated Cash Surplus/(Deficit)", color: "hsl(145, 63%, 32%)" },
   { key: "costProbableJobs", label: "Cost of Jobs Probable To Be Won", color: "hsl(30, 85%, 55%)" },
-  { key: "probableJobs", label: "Jobs Probable To Be Won", color: "hsl(210, 75%, 55%)" },
-  { key: "surplusIncludingProbable", label: "Surplus Including Probable Jobs", color: "hsl(45, 90%, 55%)" },
+  { key: "probableJobs", label: "Jobs Probable To Be Won", color: "hsl(45, 90%, 55%)" },
+  { key: "surplusIncludingProbable", label: "Anticipated Cash Surplus/(Deficit) Including Probable Jobs", color: "hsl(145, 63%, 55%)" },
 ] as const;
 
 const ForecastChart = () => {
