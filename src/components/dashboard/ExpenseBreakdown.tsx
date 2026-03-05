@@ -10,7 +10,7 @@ const categoryColors: Record<string, string> = {
 };
 
 const ExpenseBreakdown = () => {
-  const { expenseCategories } = useDashboardData();
+  const { expenseCategories, dataHealth } = useDashboardData();
 
   const grandTotalMonthly = expenseCategories.reduce((sum, c) => sum + c.totalMonthly, 0);
 
@@ -30,7 +30,7 @@ const ExpenseBreakdown = () => {
         )}
       </div>
       {expenseCategories.length === 0 ? (
-        <NoData message="No expense data" />
+        <NoData message="No expense data" healthStatus={dataHealth.expenses.status} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {expenseCategories.map((cat, ci) => (

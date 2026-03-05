@@ -4,7 +4,7 @@ import { useDashboardData } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
 
 const CashflowChart = () => {
-  const { cashflowChartData } = useDashboardData();
+  const { cashflowChartData, dataHealth } = useDashboardData();
 
   return (
     <motion.div
@@ -16,7 +16,7 @@ const CashflowChart = () => {
       <h3 className="text-sm font-medium text-muted-foreground mb-1">Cash Surplus / Deficit</h3>
       <p className="text-xs text-muted-foreground font-mono mb-4">Monthly closing balance trend</p>
       {cashflowChartData.length === 0 ? (
-        <NoData message="No cashflow data" />
+        <NoData message="No cashflow data" healthStatus={dataHealth.cashflow.status} />
       ) : (
         <ResponsiveContainer width="100%" height={220}>
           <AreaChart data={cashflowChartData}>

@@ -4,7 +4,7 @@ import { useDashboardData } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
 
 const FundPerformanceChart = () => {
-  const { profitMarginData } = useDashboardData();
+  const { profitMarginData, dataHealth } = useDashboardData();
 
   return (
     <motion.div
@@ -15,7 +15,7 @@ const FundPerformanceChart = () => {
     >
       <h3 className="text-sm font-medium text-muted-foreground mb-4">Gross Profit Margin (%)</h3>
       {profitMarginData.length === 0 ? (
-        <NoData message="No profit margin data" />
+        <NoData message="No profit margin data" healthStatus={dataHealth.cashflow.status} />
       ) : (
         <>
           <ResponsiveContainer width="100%" height={220}>

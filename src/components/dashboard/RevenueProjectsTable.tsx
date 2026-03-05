@@ -9,7 +9,7 @@ const statusStyles: Record<string, string> = {
 };
 
 const RevenueProjectsTable = () => {
-  const { revenueProjects } = useDashboardData();
+  const { revenueProjects, dataHealth } = useDashboardData();
 
   const totalRevenue = revenueProjects.reduce((sum, p) => sum + p.valueExclGST, 0);
   const totalCOGS = revenueProjects.reduce((sum, p) => sum + p.totalCOGS, 0);
@@ -39,7 +39,7 @@ const RevenueProjectsTable = () => {
         )}
       </div>
       {revenueProjects.length === 0 ? (
-        <NoData message="No revenue data" />
+        <NoData message="No revenue data" healthStatus={dataHealth.revenue.status} />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
