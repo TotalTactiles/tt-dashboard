@@ -1,64 +1,52 @@
 
 
-## Problem
+## Plan: Fix KPI Cards and Cashflow to Match Google Sheets Exactly
 
-Your n8n workflow has the right structure (4 Google Sheets nodes → Merge → Code → Respond to Webhook), but only cashflow data arrives. The issue is in the **Code in JavaScript** node.
+### Problem Summary
+1. **KPI cards show wrong values** — summary totals (Total Quoted, Won, etc.) are computed from individual rows instead of being read from the sheet's own summary rows (which `isSummaryRow()` currently filters out and discards).
+2. **Net Revenue** is incorrectly sourced from Quotes; it should come from the **Cashflow** tab.
+3. **Cash Position** should be the **latest populated month's closing balance** from Cashflow.
+4. **Conversion Rate** should be calculated as won count / total count.
+5. **Card labels** don't match the sheet's text labels.
+6. **Cashflow chart** should display all months that have data.
 
-When a Merge node in "append" mode combines 4 inputs, all rows get mixed into a single flat list. The Code node has no way to tell which rows came from which sheet — unless it references each upstream node by name.
+### Changes — `src/contexts/DashboardDataContext.tsx`
 
-## Fix: Update the Code in JavaScript Node
+**1. Extract quote summary from raw rows before filtering**
 
-Replace the current code in your **Code in JavaScript** node with this:
+Currently `mapQuotes` calls `isSummaryRow()` to skip summary rows — discarding the totals the user entered in the sheet. New approach:
+- Add a `extractQuoteSummaryFromRaw(raw)` function that scans all rows for labels like `"TOTAL QUOTED"`, `"TOTAL QUOTED WON"`, `"TOTAL QUOTED LOST"`, `"QUOTED REMAINING"`, `"TOTAL YELLOW"`.
+- For each summary row found, extract the count (if present) and dollar value from the row's value column (the one containing "QUOTED" in its key).
+- Return a `QuoteSummary` object directly from the sheet data.
 
-```javascript
-// Reference each Google Sheets node by its exact name
-const cashflow = $('Cashflow').all().map(item => item.json);
-const quotes = $('Quotes').all().map(item => item.json);
-const revenue = $('Revs & COGS').all().map(item => item.json);
-const expenses = $('Expenses').all().map(item => item.json);
+**2. Source Net Revenue from Cashflow**
 
-return [{
-  json: {
-    cashflow,
-    quotes,
-    revenue,
-    expenses
-  }
-}];
-```
+- After mapping cashflow months, compute `netRevenue` as the sum of `cashSurplus` across all populated months (or use `grossProfit` from the latest month — will use the total `Anticipated Cash Surplus` from the latest populated month).
+- More precisely: Net Revenue = sum of `totalIncome` across all months minus sum of `costOfSales.total`.
 
-**Important**: The node names in `$('...')` must match exactly what you see on the canvas — `Cashflow`, `Quotes`, `Revs & COGS`, `Expenses`. If any name differs (even by a space), adjust accordingly.
+**3. Source Cash Position from Cashflow**
 
-## Why This Works
+- Cash Position = `closingBalance` of the last month that has non-zero data.
 
-- `$('Cashflow').all()` pulls items specifically from the "Cashflow" node output, regardless of how the Merge mixed them
-- This produces the exact JSON structure the dashboard expects: `{ cashflow: [...], quotes: [...], revenue: [...], expenses: [...] }`
+**4. Calculate Conversion Rate in dashboard**
 
-## Alternative (if `$('NodeName')` doesn't work)
+- `conversionRate = (wonCount / totalCount) * 100` using the extracted summary counts, or fallback to counting individual rows.
 
-If your n8n version doesn't support `$('NodeName')`, you can bypass the Merge entirely:
+**5. Update KPI card labels**
 
-1. Remove the Merge node
-2. Connect all 4 Google Sheets nodes directly into the Code node (it accepts multiple inputs)
-3. Use this code instead:
+Current labels → Updated labels:
+- `"Total Quoted"` → `"Total Quoted"` (keep)
+- `"Net Revenue (excl GST)"` → `"Net Revenue"` (sourced from cashflow)
+- `"Cash Position"` → `"Cashflow Position"` (latest closing balance from cashflow)
+- `"Conversion Rate"` → `"Conversion Rate"` (keep, add descriptive subtitle)
 
-```javascript
-const cashflow = $input.all(0).map(item => item.json);  // Input 1
-const quotes = $input.all(1).map(item => item.json);     // Input 2
-const revenue = $input.all(2).map(item => item.json);    // Input 3
-const expenses = $input.all(3).map(item => item.json);   // Input 4
+**6. Cashflow chart — show all months with data**
 
-return [{
-  json: {
-    cashflow,
-    quotes,
-    revenue,
-    expenses
-  }
-}];
-```
+- Filter out months where every value is 0 (future months with no data yet), keeping all months that have at least one non-zero value.
 
-## No Code Changes Needed
+### Files Changed
 
-The dashboard code already handles all four keys correctly. This is purely an n8n workflow fix.
+| File | Change |
+|------|--------|
+| `src/contexts/DashboardDataContext.tsx` | Add `extractQuoteSummaryFromRaw()`; update quote summary logic to use sheet totals; source Net Revenue and Cash Position from cashflow; update KPI labels; filter empty future months from cashflow chart |
 
