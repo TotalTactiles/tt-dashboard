@@ -11,33 +11,6 @@ export interface MetricFormula {
 
 const STORAGE_KEY = "meridian_formulas";
 
-// KPI variables available for formulas (aligned to Google Sheets data)
-const KPI_VARIABLES: Record<string, number> = {
-  TotalQuoted: 399900,
-  TotalWon: 109700,
-  TotalLost: 12400,
-  GrossRevenue: 109700,
-  CostOfGoods: 43880,
-  LabourCost: 27425,
-  NetRevenue: 38395,
-  ConversionRate: 27.4,
-  CashPosition: 75500,
-  MonthlyExpenses: 35000,
-};
-
-function loadFormulas(): MetricFormula[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveFormulas(formulas: MetricFormula[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(formulas));
-}
-
 // Simple tokenizer and evaluator for arithmetic expressions with named variables
 function tokenize(expr: string): string[] {
   const tokens: string[] = [];
@@ -64,13 +37,11 @@ function resolveToken(token: string, vars: Record<string, number>): number {
 
 export function evaluateExpression(
   expression: string,
-  extraVars?: Record<string, number>
+  kpiVariables?: Record<string, number>
 ): number | null {
   try {
-    const vars = { ...KPI_VARIABLES, ...extraVars };
+    const vars = kpiVariables || {};
     const tokens = tokenize(expression);
-    // Simple left-to-right with * / priority via two-pass
-    // Pass 1: resolve all tokens to numbers
     const values: number[] = [];
     const ops: string[] = [];
     for (const t of tokens) {
@@ -82,7 +53,6 @@ export function evaluateExpression(
         values.push(resolveToken(t, vars));
       }
     }
-    // Pass 2: handle * and / first
     let i = 0;
     while (i < ops.length) {
       if (ops[i] === "*" || ops[i] === "/") {
@@ -94,7 +64,6 @@ export function evaluateExpression(
         i++;
       }
     }
-    // Pass 3: handle + and -
     let result = values[0];
     for (let j = 0; j < ops.length; j++) {
       result = ops[j] === "+" ? result + values[j + 1] : result - values[j + 1];
@@ -105,7 +74,31 @@ export function evaluateExpression(
   }
 }
 
-export const AVAILABLE_VARIABLES = Object.keys(KPI_VARIABLES);
+export const AVAILABLE_VARIABLES = [
+  "TotalQuoted",
+  "TotalWon",
+  "TotalLost",
+  "GrossRevenue",
+  "CostOfGoods",
+  "LabourCost",
+  "NetRevenue",
+  "ConversionRate",
+  "CashPosition",
+  "MonthlyExpenses",
+];
+
+function loadFormulas(): MetricFormula[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveFormulas(formulas: MetricFormula[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(formulas));
+}
 
 export function useFormulas() {
   const [formulas, setFormulas] = useState<MetricFormula[]>(loadFormulas);

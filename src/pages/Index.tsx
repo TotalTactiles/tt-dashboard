@@ -10,14 +10,13 @@ import DashboardLayout from "@/components/DashboardLayout";
 import GoalsDashboardWidgets from "@/components/goals/GoalsDashboardWidgets";
 import { useGoals } from "@/hooks/useGoals";
 import { useFormulas } from "@/hooks/useFormulas";
-import { useDataSources } from "@/hooks/useDataSources";
-import { kpiStats } from "@/data/mockData";
+import { DashboardDataProvider, useDashboardData } from "@/contexts/DashboardDataContext";
 import { Badge } from "@/components/ui/badge";
 
-const Index = () => {
+const DashboardContent = () => {
   const { goals } = useGoals();
   const { formulas } = useFormulas();
-  const { hasLiveData, connectedCount } = useDataSources();
+  const { kpiStats, hasLiveData, connectedCount } = useDashboardData();
 
   return (
     <DashboardLayout>
@@ -30,7 +29,7 @@ const Index = () => {
           variant={hasLiveData ? "default" : "secondary"}
           className={`font-mono text-xs ${hasLiveData ? "bg-chart-green/20 text-chart-green border-chart-green/30" : ""}`}
         >
-          {hasLiveData ? `● Live — ${connectedCount} source${connectedCount !== 1 ? "s" : ""}` : "Mock Data"}
+          {hasLiveData ? `● Live — ${connectedCount} source${connectedCount !== 1 ? "s" : ""}` : "No Data Source"}
         </Badge>
       </div>
 
@@ -58,6 +57,14 @@ const Index = () => {
         <ExpenseBreakdown />
       </div>
     </DashboardLayout>
+  );
+};
+
+const Index = () => {
+  return (
+    <DashboardDataProvider>
+      <DashboardContent />
+    </DashboardDataProvider>
   );
 };
 
