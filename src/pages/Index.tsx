@@ -4,6 +4,7 @@ import SectorAllocationChart from "@/components/dashboard/SectorAllocationChart"
 import DealPipeline from "@/components/dashboard/DealPipeline";
 import CashflowChart from "@/components/dashboard/CashflowChart";
 import FundPerformanceChart from "@/components/dashboard/FundPerformanceChart";
+import ForecastChart from "@/components/dashboard/ForecastChart";
 import RevenueProjectsTable from "@/components/dashboard/RevenueProjectsTable";
 import ExpenseBreakdown from "@/components/dashboard/ExpenseBreakdown";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -84,6 +85,10 @@ const DashboardContent = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <CashflowChart />
         <FundPerformanceChart />
+      </div>
+
+      <div className="mb-6">
+        <ForecastChart />
       </div>
 
       <div className="space-y-6">

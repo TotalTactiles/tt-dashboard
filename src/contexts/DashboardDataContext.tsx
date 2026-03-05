@@ -394,6 +394,15 @@ export interface ProfitMarginPoint {
   cashSurplus: number;
 }
 
+export interface ForecastChartPoint {
+  month: string;
+  totalOutgoings: number;
+  anticipatedSurplus: number;
+  costProbableJobs: number;
+  probableJobs: number;
+  surplusIncludingProbable: number;
+}
+
 export interface DashboardData {
   // Raw mapped data
   quotedJobs: QuotedJob[];
@@ -406,6 +415,7 @@ export interface DashboardData {
   kpiStats: KPIStat[];
   cashflowChartData: CashflowChartPoint[];
   profitMarginData: ProfitMarginPoint[];
+  forecastChartData: ForecastChartPoint[];
   expenseAllocation: ExpenseAllocationItem[];
   kpiVariables: Record<string, number>;
 
@@ -552,6 +562,21 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       cashSurplus: m.cashSurplus,
     }));
 
+    // Forecast chart data — extract 5 series from cashflow lookup across ALL months
+    const forecastChartData: ForecastChartPoint[] = (() => {
+      const monthCols = liveData.cashflow?.length ? detectMonthColumns(liveData.cashflow) : [];
+      if (monthCols.length === 0) return [];
+      const lookup = buildRowLookup(liveData.cashflow || []);
+      return monthCols.map((mk) => ({
+        month: mk,
+        totalOutgoings: Math.abs(getMetricValue(lookup, mk, "Total Outgoings", "TOTAL OUTGOINGS")),
+        anticipatedSurplus: getMetricValue(lookup, mk, "Anticipated Cash Surplus/(Deficit)", "ANTICIPATED CASH SURPLUS/(DEFICIT)"),
+        costProbableJobs: Math.abs(getMetricValue(lookup, mk, "Cost of Jobs Probable To Be Won", "COST OF JOBS PROBABLE TO BE WON")),
+        probableJobs: getMetricValue(lookup, mk, "Jobs Probable To Be Won", "JOBS PROBABLE TO BE WON"),
+        surplusIncludingProbable: getMetricValue(lookup, mk, "Anticipated Cash Surplus/(Deficit) Including Probable Jobs", "ANTICIPATED CASH SURPLUS/(DEFICIT) INCLUDING PROBABLE JOBS"),
+      }));
+    })();
+
     // Expense allocation
     const expenseAllocation: ExpenseAllocationItem[] = expenseCategories.map((cat, i) => ({
       name: cat.category,
@@ -597,6 +622,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       kpiStats,
       cashflowChartData,
       profitMarginData,
+      forecastChartData,
       expenseAllocation,
       kpiVariables,
       dataHealth,
