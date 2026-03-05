@@ -45,20 +45,46 @@ function isBlankRow(row: any, requiredKeys: string[][]): boolean {
 
 // ---- Mappers with row validation ----
 
+// ---- QUOTES MAPPER ----
+// Sheet columns: (value col named "2025 QUOTED JOBS" or similar) | Company Name | Project Name | Total POs
+// Status comes from row color (not readable via standard API) — default to "pending"
+
+function findKeyContaining(obj: any, substring: string): string | undefined {
+  if (!obj || typeof obj !== "object") return undefined;
+  return Object.keys(obj).find((k) => k.toUpperCase().includes(substring.toUpperCase()));
+}
+
+function isSummaryRow(row: any): boolean {
+  const values = Object.values(row).map((v) => String(v).toUpperCase().trim());
+  return values.some((v) => v === "TOTAL" || v === "SUB TOTAL" || v.startsWith("TOTAL ") || v.startsWith("SUB TOTAL"));
+}
+
 function mapQuotes(raw: any[]): QuotedJob[] {
   return raw
-    .filter((r) => !isBlankRow(r, [["quoteNumber", "Quote Number", "quote_number"], ["value", "Value (excl GST)", "Amount"]]))
-    .map((r, i) => ({
-      id: flexGet(r, "id", "ID") || `Q${i}`,
-      quoteNumber: flexGet(r, "quoteNumber", "Quote Number", "quote_number") || "",
-      company: flexGet(r, "company", "Company", "Client") || "",
-      project: flexGet(r, "project", "Project", "Project Name", "Description") || "",
-      value: parseNum(flexGet(r, "value", "Value (excl GST)", "Value", "value_excl_gst", "Amount")),
-      totalPOs: parseNum(flexGet(r, "totalPOs", "Total POs", "POs", "total_pos")),
-      status: normalizeQuoteStatus(flexGet(r, "status", "Status") || "pending"),
-      dateQuoted: flexGet(r, "dateQuoted", "Date Quoted", "date_quoted", "Date") || "",
-      notes: flexGet(r, "notes", "Notes") || undefined,
-    }));
+    .filter((r) => {
+      if (!r || typeof r !== "object") return false;
+      if (isSummaryRow(r)) return false;
+      // Must have a company name
+      const company = flexGet(r, "Company Name", "company", "Company", "Client");
+      return company && String(company).trim() !== "";
+    })
+    .map((r, i) => {
+      // The value column key contains "QUOTED" (e.g. "2025 QUOTED JOBS", "2026 QUOTED JOBS")
+      const valueKey = findKeyContaining(r, "QUOTED");
+      const value = valueKey ? parseNum(r[valueKey]) : parseNum(flexGet(r, "value", "Value", "Amount"));
+
+      return {
+        id: `Q${i}`,
+        quoteNumber: `Q-${String(i + 1).padStart(3, "0")}`,
+        company: flexGet(r, "Company Name", "company", "Company", "Client") || "",
+        project: flexGet(r, "Project Name", "project", "Project", "Description") || "",
+        value,
+        totalPOs: parseNum(flexGet(r, "Total POs", "totalPOs", "POs", "total_pos")),
+        status: normalizeQuoteStatus(flexGet(r, "Status", "status") || "pending"),
+        dateQuoted: flexGet(r, "Date Quoted", "dateQuoted", "date_quoted", "Date") || "",
+        notes: flexGet(r, "Notes", "notes") || undefined,
+      };
+    });
 }
 
 function normalizeQuoteStatus(s: string): "won" | "lost" | "pending" | "yellow" {
@@ -69,7 +95,87 @@ function normalizeQuoteStatus(s: string): "won" | "lost" | "pending" | "yellow" 
   return "pending";
 }
 
+// ---- CASHFLOW MAPPER ----
+// Sheet is TRANSPOSED: months are columns (Feb-26, Mar-26 etc.), rows are metrics.
+// First column key is "Fortnight Ending" or similar label column.
+
+const MONTH_PATTERN = /^[A-Za-z]{3}-\d{2}$/; // e.g. "Feb-26", "Mar-26"
+
+function detectMonthColumns(rows: any[]): string[] {
+  if (!rows.length) return [];
+  const firstRow = rows[0];
+  const months = Object.keys(firstRow).filter((k) => MONTH_PATTERN.test(k.trim()));
+  return months;
+}
+
+function buildRowLookup(rows: any[]): Record<string, any> {
+  const lookup: Record<string, any> = {};
+  for (const row of rows) {
+    // The label is in the first column — find it by checking common key names
+    const labelKey = Object.keys(row).find((k) =>
+      ["Fortnight Ending", "Category", "Item", "Label", "Description"].some(
+        (h) => k.toLowerCase() === h.toLowerCase()
+      )
+    ) || Object.keys(row)[0]; // fallback to first key
+    
+    const label = String(row[labelKey] || "").trim();
+    if (label) {
+      lookup[label.toUpperCase()] = row;
+    }
+  }
+  return lookup;
+}
+
+function getMetricValue(lookup: Record<string, any>, monthKey: string, ...labelVariants: string[]): number {
+  for (const label of labelVariants) {
+    const row = lookup[label.toUpperCase()];
+    if (row && row[monthKey] !== undefined) {
+      return parseNum(row[monthKey]);
+    }
+  }
+  return 0;
+}
+
 function mapCashflow(raw: any[]): CashflowMonth[] {
+  // Detect if data is transposed (months as columns)
+  const monthCols = detectMonthColumns(raw);
+
+  if (monthCols.length > 0) {
+    // TRANSPOSED FORMAT — pivot columns to rows
+    const lookup = buildRowLookup(raw);
+
+    return monthCols.map((mk) => {
+      const totalIncome = getMetricValue(lookup, mk, "Total Income", "TOTAL INCOME");
+      const labour = getMetricValue(lookup, mk, "Labour Costs", "Labour Cost", "LABOUR COSTS", "COS Labour");
+      const tactile = getMetricValue(lookup, mk, "Tactile Costs", "Tactile Cost", "TACTILE COSTS", "COS Tactile");
+      const otherProducts = getMetricValue(lookup, mk, "Other Costs", "Other Products", "OTHER COSTS", "COS Other");
+      const cosTotal = getMetricValue(lookup, mk, "Total Cost of Sales", "TOTAL COST OF SALES", "Total COS") || (labour + tactile + otherProducts);
+      const grossProfit = getMetricValue(lookup, mk, "Gross Profit", "GROSS PROFIT") || (totalIncome - cosTotal);
+      const totalEmployment = getMetricValue(lookup, mk, "Total Salaries", "TOTAL SALARIES", "Total Employment", "Total Wages");
+      const totalOperating = getMetricValue(lookup, mk, "Total Operating Expenses", "TOTAL OPERATING EXPENSES", "Total Opex");
+      const totalOutgoings = getMetricValue(lookup, mk, "Total Outgoings", "TOTAL OUTGOINGS") || (cosTotal + totalEmployment + totalOperating);
+
+      return {
+        month: mk,
+        openingBalance: getMetricValue(lookup, mk, "Opening Balances", "OPENING BALANCES", "Opening Balance"),
+        totalIncome,
+        costOfSales: { labour, tactile, otherProducts, total: cosTotal },
+        grossProfit,
+        employmentExpenses: {},
+        totalEmploymentExpenses: totalEmployment,
+        operatingExpenses: {},
+        totalOperatingExpenses: totalOperating,
+        totalOutgoings,
+        gstCollected: getMetricValue(lookup, mk, "GST Collected", "GST COLLECTED"),
+        gstPaid: getMetricValue(lookup, mk, "GST Paid", "GST PAID"),
+        gstOwing: getMetricValue(lookup, mk, "GST Owing", "GST OWING"),
+        cashSurplus: getMetricValue(lookup, mk, "Anticipated Cash Surplus/(Deficit)", "ANTICIPATED CASH SURPLUS/(DEFICIT)", "Net Operating Cash from Operations", "Cash Surplus", "Surplus"),
+        closingBalance: getMetricValue(lookup, mk, "Closing Balance", "CLOSING BALANCE", "Closing Balances"),
+      };
+    });
+  }
+
+  // FALLBACK: original row-per-month format
   return raw
     .filter((r) => !isBlankRow(r, [["month", "Month"], ["totalIncome", "Total Income", "Income"]]))
     .map((r) => {
@@ -103,24 +209,42 @@ function mapCashflow(raw: any[]): CashflowMonth[] {
     });
 }
 
+// ---- REVENUE & COGS MAPPER ----
+// Sheet columns: COMPANY | PROJECT | VALUE (INCL. GST) | INVOICE DATE | DUE DATE | LABOUR COST | MONTH | TACTILE COST (GST N/A) | MONTH | OTHER PRODUCTS (INCL GST) | MONTH
+
 function mapRevenue(raw: any[]): RevenueProject[] {
   return raw
-    .filter((r) => !isBlankRow(r, [["company", "Company", "Client"], ["valueExclGST", "Value (excl GST)", "Value"]]))
-    .map((r, i) => ({
-      id: flexGet(r, "id", "ID") || `R${i}`,
-      company: flexGet(r, "company", "Company", "Client") || "",
-      project: flexGet(r, "project", "Project", "Project Name") || "",
-      valueInclGST: parseNum(flexGet(r, "valueInclGST", "Value (incl GST)", "Value Incl GST")),
-      valueExclGST: parseNum(flexGet(r, "valueExclGST", "Value (excl GST)", "Value Excl GST", "Value")),
-      invoiceDate: flexGet(r, "invoiceDate", "Invoice Date", "invoice_date") || "",
-      dueDate: flexGet(r, "dueDate", "Due Date", "due_date") || "",
-      labourCost: parseNum(flexGet(r, "labourCost", "Labour Cost", "Labour")),
-      tactileCost: parseNum(flexGet(r, "tactileCost", "Tactile Cost", "Tactile")),
-      otherProducts: parseNum(flexGet(r, "otherProducts", "Other Products", "Other")),
-      totalCOGS: parseNum(flexGet(r, "totalCOGS", "Total COGS", "COGS")),
-      grossProfit: parseNum(flexGet(r, "grossProfit", "Gross Profit")),
-      status: normalizeRevenueStatus(flexGet(r, "status", "Status") || "pending"),
-    }));
+    .filter((r) => {
+      if (!r || typeof r !== "object") return false;
+      if (isSummaryRow(r)) return false;
+      const company = flexGet(r, "COMPANY", "Company", "company", "Client");
+      return company && String(company).trim() !== "";
+    })
+    .map((r, i) => {
+      const valueInclGST = parseNum(flexGet(r, "VALUE (INCL. GST)", "Value (incl GST)", "Value (Incl. GST)", "valueInclGST", "Value"));
+      const valueExclGST = parseNum(flexGet(r, "Value (excl GST)", "valueExclGST")) || (valueInclGST / 1.1);
+      const labourCost = parseNum(flexGet(r, "LABOUR COST", "Labour Cost", "labourCost", "Labour"));
+      const tactileCost = parseNum(flexGet(r, "TACTILE COST (GST N/A)", "Tactile Cost", "tactileCost", "Tactile"));
+      const otherProducts = parseNum(flexGet(r, "OTHER PRODUCTS (INCL GST)", "Other Products", "otherProducts", "Other"));
+      const totalCOGS = labourCost + tactileCost + otherProducts;
+      const grossProfit = valueExclGST - totalCOGS;
+
+      return {
+        id: `R${i}`,
+        company: flexGet(r, "COMPANY", "Company", "company", "Client") || "",
+        project: flexGet(r, "PROJECT", "Project", "project", "Project Name") || "",
+        valueInclGST,
+        valueExclGST: Math.round(valueExclGST * 100) / 100,
+        invoiceDate: flexGet(r, "INVOICE DATE", "Invoice Date", "invoiceDate", "invoice_date") || "",
+        dueDate: flexGet(r, "DUE DATE", "Due Date", "dueDate", "due_date") || "",
+        labourCost,
+        tactileCost,
+        otherProducts,
+        totalCOGS,
+        grossProfit: Math.round(grossProfit * 100) / 100,
+        status: normalizeRevenueStatus(flexGet(r, "Status", "status") || "pending"),
+      };
+    });
 }
 
 function normalizeRevenueStatus(s: string): "invoiced" | "pending" | "overdue" {
@@ -130,28 +254,83 @@ function normalizeRevenueStatus(s: string): "invoiced" | "pending" | "overdue" {
   return "pending";
 }
 
-function mapExpenses(raw: any[]): ExpenseCategory[] {
-  const validRows = raw.filter((r) => !isBlankRow(r, [["name", "Name", "Item", "Expense"], ["monthlyCost", "Monthly Cost", "Monthly"]]));
-  const groups: Record<string, { name: string; paymentDate?: string; weeklyCost: number; monthlyCost: number; yearlyCost: number }[]> = {};
-  for (const r of validRows) {
-    const cat = flexGet(r, "category", "Category") || "Uncategorised";
-    const item = {
-      name: flexGet(r, "name", "Name", "Item", "Expense") || "",
-      paymentDate: flexGet(r, "paymentDate", "Payment Date") || undefined,
-      weeklyCost: parseNum(flexGet(r, "weeklyCost", "Weekly Cost", "Weekly")),
-      monthlyCost: parseNum(flexGet(r, "monthlyCost", "Monthly Cost", "Monthly")),
-      yearlyCost: parseNum(flexGet(r, "yearlyCost", "Yearly Cost", "Yearly", "Annual")),
-    };
-    if (!groups[cat]) groups[cat] = [];
-    groups[cat].push(item);
+// ---- EXPENSES MAPPER ----
+// Sheet: Main Expenses | # | Payment Date | Weekly Cost | Monthly Cost | Yearly Cost
+// Categories are section header rows (e.g. "Essentials") with no cost values
+
+const KNOWN_CATEGORIES = ["ESSENTIALS", "OFFICE & MISC", "OFFICE AND MISC", "SHARED EXPENSES", "EMPLOYEE EXPENSES", "OFFICE", "MISC"];
+
+function isExpenseCategoryHeader(row: any): string | null {
+  const name = flexGet(row, "Main Expenses", "Name", "Item", "Expense", "Category") || "";
+  const nameStr = String(name).trim();
+  if (!nameStr) return null;
+
+  // Check if cost columns are all empty/zero
+  const weekly = parseNum(flexGet(row, "Weekly Cost", "Weekly", "weeklyCost"));
+  const monthly = parseNum(flexGet(row, "Monthly Cost", "Monthly", "monthlyCost"));
+  const yearly = parseNum(flexGet(row, "Yearly Cost", "Yearly", "yearlyCost", "Annual"));
+
+  if (weekly === 0 && monthly === 0 && yearly === 0) {
+    // Check against known category names or if it looks like a header (short, no numbers)
+    if (KNOWN_CATEGORIES.includes(nameStr.toUpperCase()) || nameStr.length < 25) {
+      return nameStr;
+    }
   }
-  return Object.entries(groups).map(([category, items]) => ({
-    category,
-    items,
-    totalWeekly: items.reduce((s, i) => s + i.weeklyCost, 0),
-    totalMonthly: items.reduce((s, i) => s + i.monthlyCost, 0),
-    totalYearly: items.reduce((s, i) => s + i.yearlyCost, 0),
-  }));
+  return null;
+}
+
+function mapExpenses(raw: any[]): ExpenseCategory[] {
+  const categories: ExpenseCategory[] = [];
+  let currentCategory = "Uncategorised";
+  let currentItems: { name: string; paymentDate?: string; weeklyCost: number; monthlyCost: number; yearlyCost: number }[] = [];
+
+  const flushCategory = () => {
+    if (currentItems.length > 0) {
+      categories.push({
+        category: currentCategory,
+        items: [...currentItems],
+        totalWeekly: currentItems.reduce((s, i) => s + i.weeklyCost, 0),
+        totalMonthly: currentItems.reduce((s, i) => s + i.monthlyCost, 0),
+        totalYearly: currentItems.reduce((s, i) => s + i.yearlyCost, 0),
+      });
+    }
+    currentItems = [];
+  };
+
+  for (const r of raw) {
+    if (!r || typeof r !== "object") continue;
+    if (isSummaryRow(r)) continue;
+
+    // Check if this is a category header
+    const catHeader = isExpenseCategoryHeader(r);
+    if (catHeader) {
+      flushCategory();
+      currentCategory = catHeader;
+      continue;
+    }
+
+    const name = flexGet(r, "Main Expenses", "Name", "Item", "Expense") || "";
+    const nameStr = String(name).trim();
+    if (!nameStr) continue;
+
+    const monthly = parseNum(flexGet(r, "Monthly Cost", "Monthly", "monthlyCost"));
+    const weekly = parseNum(flexGet(r, "Weekly Cost", "Weekly", "weeklyCost"));
+    const yearly = parseNum(flexGet(r, "Yearly Cost", "Yearly", "yearlyCost", "Annual"));
+
+    // Skip rows with no cost data at all
+    if (monthly === 0 && weekly === 0 && yearly === 0) continue;
+
+    currentItems.push({
+      name: nameStr,
+      paymentDate: flexGet(r, "Payment Date", "#", "paymentDate") || undefined,
+      weeklyCost: weekly,
+      monthlyCost: monthly,
+      yearlyCost: yearly,
+    });
+  }
+
+  flushCategory(); // flush last category
+  return categories;
 }
 
 // ---- Data Health ----
