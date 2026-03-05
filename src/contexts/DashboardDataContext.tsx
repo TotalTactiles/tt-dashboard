@@ -587,7 +587,15 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         anticipatedSurplus: getMetricValue(lookup, mk, "Anticipated Cash Surplus/(Deficit)", "ANTICIPATED CASH SURPLUS/(DEFICIT)", "Anticipated Cash Surplus / (Deficit)", "Anticipated Cash Surplus/(deficit)", "Anticipated Cash Surplus/ (Deficit)"),
         costProbableJobs: Math.abs(getMetricValue(lookup, mk, "Cost of Jobs Probable To Be Won", "COST OF JOBS PROBABLE TO BE WON", "Cost Of Jobs Probable To Be Won", "Cost of jobs probable to be won")),
         probableJobs: getMetricValue(lookup, mk, "Jobs Probable To Be Won", "JOBS PROBABLE TO BE WON", "Jobs probable to be won", "Revenue From Jobs Probable To Be Won", "REVENUE FROM JOBS PROBABLE TO BE WON", "Probable Jobs", "PROBABLE JOBS", "Revenue from Probable Jobs"),
-        surplusIncludingProbable: getMetricValue(lookup, mk, "Anticipated Cash Surplus/(Deficit) Including Probable Jobs", "ANTICIPATED CASH SURPLUS/(DEFICIT) INCLUDING PROBABLE JOBS", "Anticipated Cash Surplus / (Deficit) Including Probable Jobs", "Anticipated Cash Surplus/(deficit) Including Probable Jobs", "Anticipated Cash Surplus/(Deficit) including Probable Jobs"),
+        surplusIncludingProbable: (() => {
+          const val = getMetricValueFuzzy(lookup, mk, ["SURPLUS", "PROBABLE"], "Anticipated Cash Surplus/(Deficit) Including Probable Jobs", "ANTICIPATED CASH SURPLUS/(DEFICIT) INCLUDING PROBABLE JOBS", "Anticipated Cash Surplus / (Deficit) Including Probable Jobs", "Anticipated Cash Surplus/(deficit) Including Probable Jobs", "Anticipated Cash Surplus/(Deficit) including Probable Jobs");
+          if (val !== 0) return val;
+          // Computed fallback: surplus + probable revenue - probable cost
+          const s = getMetricValue(lookup, mk, "Anticipated Cash Surplus/(Deficit)", "ANTICIPATED CASH SURPLUS/(DEFICIT)", "Anticipated Cash Surplus / (Deficit)", "Anticipated Cash Surplus/(deficit)", "Anticipated Cash Surplus/ (Deficit)");
+          const p = getMetricValue(lookup, mk, "Jobs Probable To Be Won", "JOBS PROBABLE TO BE WON", "Revenue From Jobs Probable To Be Won", "REVENUE FROM JOBS PROBABLE TO BE WON", "Probable Jobs", "PROBABLE JOBS");
+          const c = Math.abs(getMetricValue(lookup, mk, "Cost of Jobs Probable To Be Won", "COST OF JOBS PROBABLE TO BE WON"));
+          return (s !== 0 || p !== 0 || c !== 0) ? s + p - c : 0;
+        })(),
       }));
     })();
 
