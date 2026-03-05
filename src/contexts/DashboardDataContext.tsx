@@ -113,15 +113,15 @@ function buildRowLookup(rows: any[]): Record<string, any> {
   for (const row of rows) {
     // The label is in the first column — find it by checking common key names
     const labelKey = Object.keys(row).find((k) =>
-      ["Fortnight Ending", "Category", "Item", "Label", "Description"].some(
+      ["col_1", "Fortnight Ending", "Category", "Item", "Label", "Description"].some(
         (h) => k.toLowerCase() === h.toLowerCase()
       )
-    ) || Object.keys(row)[0]; // fallback to first key
+    ) || Object.keys(row).filter(k => k !== "row_number")[0] || Object.keys(row)[0];
     
     const label = String(row[labelKey] || "").trim();
-    if (label) {
-      lookup[label.toUpperCase()] = row;
-    }
+    // Skip metadata header rows
+    if (!label || label.toUpperCase() === "FORTNIGHT ENDING:" || label.toUpperCase() === "FORTNIGHT ENDING") continue;
+    lookup[label.toUpperCase()] = row;
   }
   return lookup;
 }
@@ -146,14 +146,14 @@ function mapCashflow(raw: any[]): CashflowMonth[] {
 
     return monthCols.map((mk) => {
       const totalIncome = getMetricValue(lookup, mk, "Total Income", "TOTAL INCOME");
-      const labour = getMetricValue(lookup, mk, "Labour Costs", "Labour Cost", "LABOUR COSTS", "COS Labour");
-      const tactile = getMetricValue(lookup, mk, "Tactile Costs", "Tactile Cost", "TACTILE COSTS", "COS Tactile");
-      const otherProducts = getMetricValue(lookup, mk, "Other Costs", "Other Products", "OTHER COSTS", "COS Other");
-      const cosTotal = getMetricValue(lookup, mk, "Total Cost of Sales", "TOTAL COST OF SALES", "Total COS") || (labour + tactile + otherProducts);
+      const labour = Math.abs(getMetricValue(lookup, mk, "Labour Costs", "Labour Cost", "LABOUR COSTS", "COS Labour"));
+      const tactile = Math.abs(getMetricValue(lookup, mk, "Tactile Costs", "Tactile Cost", "TACTILE COSTS", "COS Tactile"));
+      const otherProducts = Math.abs(getMetricValue(lookup, mk, "Other Costs", "Other Products", "OTHER COSTS", "COS Other"));
+      const cosTotal = Math.abs(getMetricValue(lookup, mk, "Total Cost of Sales", "TOTAL COST OF SALES", "Total COS")) || (labour + tactile + otherProducts);
       const grossProfit = getMetricValue(lookup, mk, "Gross Profit", "GROSS PROFIT") || (totalIncome - cosTotal);
-      const totalEmployment = getMetricValue(lookup, mk, "Total Salaries", "TOTAL SALARIES", "Total Employment", "Total Wages");
-      const totalOperating = getMetricValue(lookup, mk, "Total Operating Expenses", "TOTAL OPERATING EXPENSES", "Total Opex");
-      const totalOutgoings = getMetricValue(lookup, mk, "Total Outgoings", "TOTAL OUTGOINGS") || (cosTotal + totalEmployment + totalOperating);
+      const totalEmployment = Math.abs(getMetricValue(lookup, mk, "Total Salaries", "TOTAL SALARIES", "Total Employment", "Total Wages"));
+      const totalOperating = Math.abs(getMetricValue(lookup, mk, "Total Operating Expenses", "TOTAL OPERATING EXPENSES", "Total Opex"));
+      const totalOutgoings = Math.abs(getMetricValue(lookup, mk, "Total Outgoings", "TOTAL OUTGOINGS")) || (cosTotal + totalEmployment + totalOperating);
 
       return {
         month: mk,
