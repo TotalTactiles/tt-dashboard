@@ -1,52 +1,33 @@
 
 
-## Plan: Fix KPI Cards and Cashflow to Match Google Sheets Exactly
+## Plan: Enable Lovable Cloud + Create n8n CORS Proxy
 
-### Problem Summary
-1. **KPI cards show wrong values** — summary totals (Total Quoted, Won, etc.) are computed from individual rows instead of being read from the sheet's own summary rows (which `isSummaryRow()` currently filters out and discards).
-2. **Net Revenue** is incorrectly sourced from Quotes; it should come from the **Cashflow** tab.
-3. **Cash Position** should be the **latest populated month's closing balance** from Cashflow.
-4. **Conversion Rate** should be calculated as won count / total count.
-5. **Card labels** don't match the sheet's text labels.
-6. **Cashflow chart** should display all months that have data.
+### Step 1: Enable Lovable Cloud
+- Enable Supabase/Lovable Cloud for the project (you'll pick a region)
 
-### Changes — `src/contexts/DashboardDataContext.tsx`
+### Step 2: Create Edge Function `supabase/functions/n8n-proxy/index.ts`
+- Accepts POST with `{ webhookUrl, source }` body
+- Forwards request server-to-server to the n8n webhook URL
+- Returns n8n response to browser
+- Proper CORS headers included
 
-**1. Extract quote summary from raw rows before filtering**
+### Step 3: Update `src/hooks/useDataSources.ts`
+- Replace direct `fetch(webhookUrl)` with calls to the Edge Function proxy
+- Remove GET fallback logic and CORS error messaging
 
-Currently `mapQuotes` calls `isSummaryRow()` to skip summary rows — discarding the totals the user entered in the sheet. New approach:
-- Add a `extractQuoteSummaryFromRaw(raw)` function that scans all rows for labels like `"TOTAL QUOTED"`, `"TOTAL QUOTED WON"`, `"TOTAL QUOTED LOST"`, `"QUOTED REMAINING"`, `"TOTAL YELLOW"`.
-- For each summary row found, extract the count (if present) and dollar value from the row's value column (the one containing "QUOTED" in its key).
-- Return a `QuoteSummary` object directly from the sheet data.
-
-**2. Source Net Revenue from Cashflow**
-
-- After mapping cashflow months, compute `netRevenue` as the sum of `cashSurplus` across all populated months (or use `grossProfit` from the latest month — will use the total `Anticipated Cash Surplus` from the latest populated month).
-- More precisely: Net Revenue = sum of `totalIncome` across all months minus sum of `costOfSales.total`.
-
-**3. Source Cash Position from Cashflow**
-
-- Cash Position = `closingBalance` of the last month that has non-zero data.
-
-**4. Calculate Conversion Rate in dashboard**
-
-- `conversionRate = (wonCount / totalCount) * 100` using the extracted summary counts, or fallback to counting individual rows.
-
-**5. Update KPI card labels**
-
-Current labels → Updated labels:
-- `"Total Quoted"` → `"Total Quoted"` (keep)
-- `"Net Revenue (excl GST)"` → `"Net Revenue"` (sourced from cashflow)
-- `"Cash Position"` → `"Cashflow Position"` (latest closing balance from cashflow)
-- `"Conversion Rate"` → `"Conversion Rate"` (keep, add descriptive subtitle)
-
-**6. Cashflow chart — show all months with data**
-
-- Filter out months where every value is 0 (future months with no data yet), keeping all months that have at least one non-zero value.
+### Step 4: Simplify setup guides
+- Remove CORS/environment variable steps from:
+  - `GoogleSheetsSetupGuide.tsx`
+  - `ZohoCrmSetupGuide.tsx`
+  - `ZohoProjectsSetupGuide.tsx`
 
 ### Files Changed
 
-| File | Change |
+| File | Action |
 |------|--------|
-| `src/contexts/DashboardDataContext.tsx` | Add `extractQuoteSummaryFromRaw()`; update quote summary logic to use sheet totals; source Net Revenue and Cash Position from cashflow; update KPI labels; filter empty future months from cashflow chart |
+| `supabase/functions/n8n-proxy/index.ts` | Create — proxy Edge Function |
+| `src/hooks/useDataSources.ts` | Update — route through proxy |
+| `src/components/settings/GoogleSheetsSetupGuide.tsx` | Update — remove CORS step |
+| `src/components/settings/ZohoCrmSetupGuide.tsx` | Update — remove CORS step |
+| `src/components/settings/ZohoProjectsSetupGuide.tsx` | Update — remove CORS step |
 

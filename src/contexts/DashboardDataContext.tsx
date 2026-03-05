@@ -436,6 +436,37 @@ const FILLS = [
   "hsl(120, 50%, 40%)",
 ];
 
+// ---- Extract summary totals from raw quote rows before filtering ----
+function extractQuoteSummaryFromRaw(raw: any[]): Partial<QuoteSummary> | null {
+  if (!raw || !raw.length) return null;
+  const result: Partial<QuoteSummary> = {};
+  let found = false;
+
+  for (const row of raw) {
+    if (!row || typeof row !== "object") continue;
+    const values = Object.values(row).map((v) => String(v).toUpperCase().trim());
+    const valueKey = findKeyContaining(row, "QUOTED");
+
+    for (const v of values) {
+      if (v === "TOTAL QUOTED" || v === "TOTAL QUOTED JOBS") {
+        result.totalQuoted = valueKey ? parseNum(row[valueKey]) : 0;
+        found = true;
+      } else if (v === "TOTAL QUOTED WON" || v === "TOTAL WON") {
+        result.totalWon = valueKey ? parseNum(row[valueKey]) : 0;
+        found = true;
+      } else if (v === "TOTAL QUOTED LOST" || v === "TOTAL LOST") {
+        result.totalLost = valueKey ? parseNum(row[valueKey]) : 0;
+        found = true;
+      } else if (v === "QUOTED REMAINING" || v === "REMAINING") {
+        result.quotedRemaining = valueKey ? parseNum(row[valueKey]) : 0;
+        found = true;
+      }
+    }
+  }
+
+  return found ? result : null;
+}
+
 export function DashboardDataProvider({ children }: { children: React.ReactNode }) {
   const ds = useDataSources();
   const { liveData, hasLiveData, connectedCount, sources } = ds;
@@ -456,22 +487,37 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       expenses: calcSectionHealth(liveData.expenses, expenseCategories),
     };
 
-    // Quote summary
-    const quoteSummary: QuoteSummary | null = quotedJobs.length
+    // ---- Extract quote summary from raw rows (before isSummaryRow filtering) ----
+    const extractedQuoteSummary = extractQuoteSummaryFromRaw(liveData.quotes || []);
+
+    // Quote summary: prefer extracted sheet totals, fallback to row calculations
+    const quoteSummary: QuoteSummary | null = (quotedJobs.length || extractedQuoteSummary)
       ? (() => {
-          const totalQuoted = quotedJobs.reduce((s, q) => s + q.value, 0);
-          const totalWon = quotedJobs.filter((q) => q.status === "won").reduce((s, q) => s + q.value, 0);
-          const totalLost = quotedJobs.filter((q) => q.status === "lost").reduce((s, q) => s + q.value, 0);
-          const quotedRemaining = totalQuoted - totalWon - totalLost;
-          const conversionRate = totalQuoted > 0 ? (totalWon / totalQuoted) * 100 : 0;
+          // Fallback: calculate from individual rows
+          const calcTotalQuoted = quotedJobs.reduce((s, q) => s + q.value, 0);
+          const calcTotalWon = quotedJobs.filter((q) => q.status === "won").reduce((s, q) => s + q.value, 0);
+          const calcTotalLost = quotedJobs.filter((q) => q.status === "lost").reduce((s, q) => s + q.value, 0);
+
+          // Use extracted values if available, otherwise fallback
+          const totalQuoted = extractedQuoteSummary?.totalQuoted ?? calcTotalQuoted;
+          const totalWon = extractedQuoteSummary?.totalWon ?? calcTotalWon;
+          const totalLost = extractedQuoteSummary?.totalLost ?? calcTotalLost;
+          const quotedRemaining = extractedQuoteSummary?.quotedRemaining ?? (totalQuoted - totalWon - totalLost);
+
+          // Conversion rate: count-based from rows
+          const wonCount = quotedJobs.filter((q) => q.status === "won").length;
+          const totalCount = quotedJobs.length;
+          const conversionRate = totalCount > 0 ? Math.round(((wonCount / totalCount) * 100) * 10) / 10 : 0;
+
           const totalCOGS = revenueProjects.reduce((s, p) => s + p.totalCOGS, 0);
           const labourCost = revenueProjects.reduce((s, p) => s + p.labourCost, 0);
+
           return {
             totalQuoted,
             totalWon,
             totalLost,
             quotedRemaining,
-            conversionRate: Math.round(conversionRate * 10) / 10,
+            conversionRate,
             grossRevenue: totalWon,
             costOfGoods: totalCOGS,
             labourCost,
@@ -480,8 +526,17 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         })()
       : null;
 
-    // Cashflow chart data
-    const cashflowChartData: CashflowChartPoint[] = cashflowMonths.map((m) => ({
+    // ---- Net Revenue & Cashflow Position from Cashflow tab ----
+    const populatedMonths = cashflowMonths.filter(
+      (m) => m.totalIncome !== 0 || m.totalOutgoings !== 0 || m.closingBalance !== 0 || m.openingBalance !== 0
+    );
+    const netRevenueCashflow = populatedMonths.reduce((s, m) => s + m.totalIncome - m.costOfSales.total, 0);
+    const cashflowPosition = populatedMonths.length
+      ? populatedMonths[populatedMonths.length - 1].closingBalance
+      : 0;
+
+    // Cashflow chart data — only months with at least one non-zero value
+    const cashflowChartData: CashflowChartPoint[] = populatedMonths.map((m) => ({
       month: m.month,
       income: m.totalIncome,
       outgoings: m.totalOutgoings,
@@ -491,7 +546,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     }));
 
     // Profit margin data
-    const profitMarginData: ProfitMarginPoint[] = cashflowMonths.map((m) => ({
+    const profitMarginData: ProfitMarginPoint[] = populatedMonths.map((m) => ({
       month: m.month,
       grossMargin: m.totalIncome > 0 ? Math.round((m.grossProfit / m.totalIncome) * 100) : 0,
       cashSurplus: m.cashSurplus,
@@ -505,7 +560,6 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     }));
 
     // KPI variables for formula engine
-    const cashPosition = cashflowMonths.length ? cashflowMonths[cashflowMonths.length - 1].closingBalance : 0;
     const monthlyExpenses = expenseCategories.reduce((s, c) => s + c.totalMonthly, 0);
     const kpiVariables: Record<string, number> = {
       TotalQuoted: quoteSummary?.totalQuoted || 0,
@@ -514,9 +568,9 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       GrossRevenue: quoteSummary?.grossRevenue || 0,
       CostOfGoods: quoteSummary?.costOfGoods || 0,
       LabourCost: quoteSummary?.labourCost || 0,
-      NetRevenue: quoteSummary?.netRevenue || 0,
+      NetRevenue: netRevenueCashflow,
       ConversionRate: quoteSummary?.conversionRate || 0,
-      CashPosition: cashPosition,
+      CashPosition: cashflowPosition,
       MonthlyExpenses: monthlyExpenses,
     };
 
@@ -529,8 +583,8 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const noData = !hasLiveData;
     const kpiStats: KPIStat[] = [
       { label: "Total Quoted", value: noData ? "--" : fmt(kpiVariables.TotalQuoted), change: "--", positive: true, noData },
-      { label: "Net Revenue (excl GST)", value: noData ? "--" : fmt(kpiVariables.NetRevenue), change: "--", positive: kpiVariables.NetRevenue >= 0, noData },
-      { label: "Cash Position", value: noData ? "--" : fmt(kpiVariables.CashPosition), change: "--", positive: kpiVariables.CashPosition >= 0, noData },
+      { label: "Net Revenue", value: noData ? "--" : fmt(kpiVariables.NetRevenue), change: "--", positive: kpiVariables.NetRevenue >= 0, noData },
+      { label: "Cashflow Position", value: noData ? "--" : fmt(kpiVariables.CashPosition), change: "--", positive: kpiVariables.CashPosition >= 0, noData },
       { label: "Conversion Rate", value: noData ? "--" : `${kpiVariables.ConversionRate}%`, change: "--", positive: kpiVariables.ConversionRate >= 20, noData },
     ];
 
