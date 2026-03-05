@@ -436,6 +436,37 @@ const FILLS = [
   "hsl(120, 50%, 40%)",
 ];
 
+// ---- Extract summary totals from raw quote rows before filtering ----
+function extractQuoteSummaryFromRaw(raw: any[]): Partial<QuoteSummary> | null {
+  if (!raw || !raw.length) return null;
+  const result: Partial<QuoteSummary> = {};
+  let found = false;
+
+  for (const row of raw) {
+    if (!row || typeof row !== "object") continue;
+    const values = Object.values(row).map((v) => String(v).toUpperCase().trim());
+    const valueKey = findKeyContaining(row, "QUOTED");
+
+    for (const v of values) {
+      if (v === "TOTAL QUOTED" || v === "TOTAL QUOTED JOBS") {
+        result.totalQuoted = valueKey ? parseNum(row[valueKey]) : 0;
+        found = true;
+      } else if (v === "TOTAL QUOTED WON" || v === "TOTAL WON") {
+        result.totalWon = valueKey ? parseNum(row[valueKey]) : 0;
+        found = true;
+      } else if (v === "TOTAL QUOTED LOST" || v === "TOTAL LOST") {
+        result.totalLost = valueKey ? parseNum(row[valueKey]) : 0;
+        found = true;
+      } else if (v === "QUOTED REMAINING" || v === "REMAINING") {
+        result.quotedRemaining = valueKey ? parseNum(row[valueKey]) : 0;
+        found = true;
+      }
+    }
+  }
+
+  return found ? result : null;
+}
+
 export function DashboardDataProvider({ children }: { children: React.ReactNode }) {
   const ds = useDataSources();
   const { liveData, hasLiveData, connectedCount, sources } = ds;
