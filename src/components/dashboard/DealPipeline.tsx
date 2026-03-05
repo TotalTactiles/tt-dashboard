@@ -17,7 +17,7 @@ const statusLabels: Record<string, string> = {
 };
 
 const DealPipeline = () => {
-  const { quotedJobs, quoteSummary } = useDashboardData();
+  const { quotedJobs, quoteSummary, dataHealth } = useDashboardData();
 
   return (
     <motion.div
@@ -40,7 +40,7 @@ const DealPipeline = () => {
         )}
       </div>
       {quotedJobs.length === 0 ? (
-        <NoData message="No quote data" />
+        <NoData message="No quote data" healthStatus={dataHealth.quotes.status} />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

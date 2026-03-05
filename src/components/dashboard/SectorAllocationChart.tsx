@@ -4,7 +4,7 @@ import { useDashboardData } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
 
 const SectorAllocationChart = () => {
-  const { expenseAllocation } = useDashboardData();
+  const { expenseAllocation, dataHealth } = useDashboardData();
 
   return (
     <motion.div
@@ -15,7 +15,7 @@ const SectorAllocationChart = () => {
     >
       <h3 className="text-sm font-medium text-muted-foreground mb-4">Expense Breakdown by Category</h3>
       {expenseAllocation.length === 0 ? (
-        <NoData message="No expense data" />
+        <NoData message="No expense data" healthStatus={dataHealth.expenses.status} />
       ) : (
         <>
           <ResponsiveContainer width="100%" height={200}>

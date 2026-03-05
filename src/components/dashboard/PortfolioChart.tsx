@@ -4,7 +4,7 @@ import { useDashboardData } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
 
 const PortfolioChart = () => {
-  const { cashflowChartData } = useDashboardData();
+  const { cashflowChartData, dataHealth } = useDashboardData();
 
   return (
     <motion.div
@@ -30,7 +30,7 @@ const PortfolioChart = () => {
         </div>
       </div>
       {cashflowChartData.length === 0 ? (
-        <NoData message="No cashflow data" />
+        <NoData message="No cashflow data" healthStatus={dataHealth.cashflow.status} />
       ) : (
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={cashflowChartData} barGap={2}>

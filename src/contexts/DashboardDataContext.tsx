@@ -32,20 +32,33 @@ function parseNum(v: any): number {
   return 0;
 }
 
-// ---- Mappers ----
+// ---- Row validation: skip blank/spacer rows ----
+
+function isBlankRow(row: any, requiredKeys: string[][]): boolean {
+  if (!row || typeof row !== "object") return true;
+  // A row is blank if ALL of its required fields are empty/undefined
+  return requiredKeys.every((keys) => {
+    const val = flexGet(row, ...keys);
+    return val === undefined || val === null || val === "" || val === 0;
+  });
+}
+
+// ---- Mappers with row validation ----
 
 function mapQuotes(raw: any[]): QuotedJob[] {
-  return raw.map((r, i) => ({
-    id: flexGet(r, "id", "ID") || `Q${i}`,
-    quoteNumber: flexGet(r, "quoteNumber", "Quote Number", "quote_number") || "",
-    company: flexGet(r, "company", "Company", "Client") || "",
-    project: flexGet(r, "project", "Project", "Project Name", "Description") || "",
-    value: parseNum(flexGet(r, "value", "Value (excl GST)", "Value", "value_excl_gst", "Amount")),
-    totalPOs: parseNum(flexGet(r, "totalPOs", "Total POs", "POs", "total_pos")),
-    status: normalizeQuoteStatus(flexGet(r, "status", "Status") || "pending"),
-    dateQuoted: flexGet(r, "dateQuoted", "Date Quoted", "date_quoted", "Date") || "",
-    notes: flexGet(r, "notes", "Notes") || undefined,
-  }));
+  return raw
+    .filter((r) => !isBlankRow(r, [["quoteNumber", "Quote Number", "quote_number"], ["value", "Value (excl GST)", "Amount"]]))
+    .map((r, i) => ({
+      id: flexGet(r, "id", "ID") || `Q${i}`,
+      quoteNumber: flexGet(r, "quoteNumber", "Quote Number", "quote_number") || "",
+      company: flexGet(r, "company", "Company", "Client") || "",
+      project: flexGet(r, "project", "Project", "Project Name", "Description") || "",
+      value: parseNum(flexGet(r, "value", "Value (excl GST)", "Value", "value_excl_gst", "Amount")),
+      totalPOs: parseNum(flexGet(r, "totalPOs", "Total POs", "POs", "total_pos")),
+      status: normalizeQuoteStatus(flexGet(r, "status", "Status") || "pending"),
+      dateQuoted: flexGet(r, "dateQuoted", "Date Quoted", "date_quoted", "Date") || "",
+      notes: flexGet(r, "notes", "Notes") || undefined,
+    }));
 }
 
 function normalizeQuoteStatus(s: string): "won" | "lost" | "pending" | "yellow" {
@@ -57,53 +70,57 @@ function normalizeQuoteStatus(s: string): "won" | "lost" | "pending" | "yellow" 
 }
 
 function mapCashflow(raw: any[]): CashflowMonth[] {
-  return raw.map((r) => {
-    const totalIncome = parseNum(flexGet(r, "totalIncome", "Total Income", "total_income", "Income"));
-    const labour = parseNum(flexGet(r, "Labour", "labour", "COS Labour"));
-    const tactile = parseNum(flexGet(r, "Tactile", "tactile", "COS Tactile"));
-    const otherProducts = parseNum(flexGet(r, "Other Products", "otherProducts", "COS Other"));
-    const cosTotal = parseNum(flexGet(r, "Total COS", "costOfSalesTotal")) || (labour + tactile + otherProducts);
-    const grossProfit = parseNum(flexGet(r, "grossProfit", "Gross Profit", "gross_profit")) || (totalIncome - cosTotal);
-    const totalEmployment = parseNum(flexGet(r, "totalEmploymentExpenses", "Total Employment", "Total Wages"));
-    const totalOperating = parseNum(flexGet(r, "totalOperatingExpenses", "Total Operating", "Total Opex"));
-    const totalOutgoings = parseNum(flexGet(r, "totalOutgoings", "Total Outgoings")) || (cosTotal + totalEmployment + totalOperating);
+  return raw
+    .filter((r) => !isBlankRow(r, [["month", "Month"], ["totalIncome", "Total Income", "Income"]]))
+    .map((r) => {
+      const totalIncome = parseNum(flexGet(r, "totalIncome", "Total Income", "total_income", "Income"));
+      const labour = parseNum(flexGet(r, "Labour", "labour", "COS Labour"));
+      const tactile = parseNum(flexGet(r, "Tactile", "tactile", "COS Tactile"));
+      const otherProducts = parseNum(flexGet(r, "Other Products", "otherProducts", "COS Other"));
+      const cosTotal = parseNum(flexGet(r, "Total COS", "costOfSalesTotal")) || (labour + tactile + otherProducts);
+      const grossProfit = parseNum(flexGet(r, "grossProfit", "Gross Profit", "gross_profit")) || (totalIncome - cosTotal);
+      const totalEmployment = parseNum(flexGet(r, "totalEmploymentExpenses", "Total Employment", "Total Wages"));
+      const totalOperating = parseNum(flexGet(r, "totalOperatingExpenses", "Total Operating", "Total Opex"));
+      const totalOutgoings = parseNum(flexGet(r, "totalOutgoings", "Total Outgoings")) || (cosTotal + totalEmployment + totalOperating);
 
-    return {
-      month: flexGet(r, "month", "Month") || "",
-      openingBalance: parseNum(flexGet(r, "openingBalance", "Opening Balance", "opening_balance")),
-      totalIncome,
-      costOfSales: { labour, tactile, otherProducts, total: cosTotal },
-      grossProfit,
-      employmentExpenses: {},
-      totalEmploymentExpenses: totalEmployment,
-      operatingExpenses: {},
-      totalOperatingExpenses: totalOperating,
-      totalOutgoings,
-      gstCollected: parseNum(flexGet(r, "gstCollected", "GST Collected")),
-      gstPaid: parseNum(flexGet(r, "gstPaid", "GST Paid")),
-      gstOwing: parseNum(flexGet(r, "gstOwing", "GST Owing")),
-      cashSurplus: parseNum(flexGet(r, "cashSurplus", "Cash Surplus", "Surplus")),
-      closingBalance: parseNum(flexGet(r, "closingBalance", "Closing Balance", "closing_balance")),
-    };
-  });
+      return {
+        month: flexGet(r, "month", "Month") || "",
+        openingBalance: parseNum(flexGet(r, "openingBalance", "Opening Balance", "opening_balance")),
+        totalIncome,
+        costOfSales: { labour, tactile, otherProducts, total: cosTotal },
+        grossProfit,
+        employmentExpenses: {},
+        totalEmploymentExpenses: totalEmployment,
+        operatingExpenses: {},
+        totalOperatingExpenses: totalOperating,
+        totalOutgoings,
+        gstCollected: parseNum(flexGet(r, "gstCollected", "GST Collected")),
+        gstPaid: parseNum(flexGet(r, "gstPaid", "GST Paid")),
+        gstOwing: parseNum(flexGet(r, "gstOwing", "GST Owing")),
+        cashSurplus: parseNum(flexGet(r, "cashSurplus", "Cash Surplus", "Surplus")),
+        closingBalance: parseNum(flexGet(r, "closingBalance", "Closing Balance", "closing_balance")),
+      };
+    });
 }
 
 function mapRevenue(raw: any[]): RevenueProject[] {
-  return raw.map((r, i) => ({
-    id: flexGet(r, "id", "ID") || `R${i}`,
-    company: flexGet(r, "company", "Company", "Client") || "",
-    project: flexGet(r, "project", "Project", "Project Name") || "",
-    valueInclGST: parseNum(flexGet(r, "valueInclGST", "Value (incl GST)", "Value Incl GST")),
-    valueExclGST: parseNum(flexGet(r, "valueExclGST", "Value (excl GST)", "Value Excl GST", "Value")),
-    invoiceDate: flexGet(r, "invoiceDate", "Invoice Date", "invoice_date") || "",
-    dueDate: flexGet(r, "dueDate", "Due Date", "due_date") || "",
-    labourCost: parseNum(flexGet(r, "labourCost", "Labour Cost", "Labour")),
-    tactileCost: parseNum(flexGet(r, "tactileCost", "Tactile Cost", "Tactile")),
-    otherProducts: parseNum(flexGet(r, "otherProducts", "Other Products", "Other")),
-    totalCOGS: parseNum(flexGet(r, "totalCOGS", "Total COGS", "COGS")),
-    grossProfit: parseNum(flexGet(r, "grossProfit", "Gross Profit")),
-    status: normalizeRevenueStatus(flexGet(r, "status", "Status") || "pending"),
-  }));
+  return raw
+    .filter((r) => !isBlankRow(r, [["company", "Company", "Client"], ["valueExclGST", "Value (excl GST)", "Value"]]))
+    .map((r, i) => ({
+      id: flexGet(r, "id", "ID") || `R${i}`,
+      company: flexGet(r, "company", "Company", "Client") || "",
+      project: flexGet(r, "project", "Project", "Project Name") || "",
+      valueInclGST: parseNum(flexGet(r, "valueInclGST", "Value (incl GST)", "Value Incl GST")),
+      valueExclGST: parseNum(flexGet(r, "valueExclGST", "Value (excl GST)", "Value Excl GST", "Value")),
+      invoiceDate: flexGet(r, "invoiceDate", "Invoice Date", "invoice_date") || "",
+      dueDate: flexGet(r, "dueDate", "Due Date", "due_date") || "",
+      labourCost: parseNum(flexGet(r, "labourCost", "Labour Cost", "Labour")),
+      tactileCost: parseNum(flexGet(r, "tactileCost", "Tactile Cost", "Tactile")),
+      otherProducts: parseNum(flexGet(r, "otherProducts", "Other Products", "Other")),
+      totalCOGS: parseNum(flexGet(r, "totalCOGS", "Total COGS", "COGS")),
+      grossProfit: parseNum(flexGet(r, "grossProfit", "Gross Profit")),
+      status: normalizeRevenueStatus(flexGet(r, "status", "Status") || "pending"),
+    }));
 }
 
 function normalizeRevenueStatus(s: string): "invoiced" | "pending" | "overdue" {
@@ -114,9 +131,9 @@ function normalizeRevenueStatus(s: string): "invoiced" | "pending" | "overdue" {
 }
 
 function mapExpenses(raw: any[]): ExpenseCategory[] {
-  // Group by category
+  const validRows = raw.filter((r) => !isBlankRow(r, [["name", "Name", "Item", "Expense"], ["monthlyCost", "Monthly Cost", "Monthly"]]));
   const groups: Record<string, { name: string; paymentDate?: string; weeklyCost: number; monthlyCost: number; yearlyCost: number }[]> = {};
-  for (const r of raw) {
+  for (const r of validRows) {
     const cat = flexGet(r, "category", "Category") || "Uncategorised";
     const item = {
       name: flexGet(r, "name", "Name", "Item", "Expense") || "",
@@ -135,6 +152,36 @@ function mapExpenses(raw: any[]): ExpenseCategory[] {
     totalMonthly: items.reduce((s, i) => s + i.monthlyCost, 0),
     totalYearly: items.reduce((s, i) => s + i.yearlyCost, 0),
   }));
+}
+
+// ---- Data Health ----
+
+export type DataHealthStatus = "disconnected" | "connected-empty" | "connected-header-mismatch" | "healthy";
+
+export interface SectionHealth {
+  status: DataHealthStatus;
+  rawCount: number;
+  mappedCount: number;
+}
+
+export interface DataHealth {
+  quotes: SectionHealth;
+  cashflow: SectionHealth;
+  revenue: SectionHealth;
+  expenses: SectionHealth;
+}
+
+function calcSectionHealth(rawArr: any[] | undefined, mappedArr: any[]): SectionHealth {
+  if (!rawArr || rawArr.length === 0) {
+    return { status: "disconnected", rawCount: 0, mappedCount: 0 };
+  }
+  if (mappedArr.length === 0 && rawArr.length > 0) {
+    return { status: "connected-header-mismatch", rawCount: rawArr.length, mappedCount: 0 };
+  }
+  if (mappedArr.length > 0) {
+    return { status: "healthy", rawCount: rawArr.length, mappedCount: mappedArr.length };
+  }
+  return { status: "connected-empty", rawCount: 0, mappedCount: 0 };
 }
 
 // ---- Derived data ----
@@ -183,6 +230,9 @@ export interface DashboardData {
   expenseAllocation: ExpenseAllocationItem[];
   kpiVariables: Record<string, number>;
 
+  // Health
+  dataHealth: DataHealth;
+
   // Status
   isLoading: boolean;
   hasLiveData: boolean;
@@ -218,6 +268,14 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const cashflowMonths = liveData.cashflow?.length ? mapCashflow(liveData.cashflow) : [];
     const revenueProjects = liveData.revenue?.length ? mapRevenue(liveData.revenue) : [];
     const expenseCategories = liveData.expenses?.length ? mapExpenses(liveData.expenses) : [];
+
+    // Data health
+    const dataHealth: DataHealth = {
+      quotes: calcSectionHealth(liveData.quotes, quotedJobs),
+      cashflow: calcSectionHealth(liveData.cashflow, cashflowMonths),
+      revenue: calcSectionHealth(liveData.revenue, revenueProjects),
+      expenses: calcSectionHealth(liveData.expenses, expenseCategories),
+    };
 
     // Quote summary
     const quoteSummary: QuoteSummary | null = quotedJobs.length
@@ -308,6 +366,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       profitMarginData,
       expenseAllocation,
       kpiVariables,
+      dataHealth,
       isLoading,
       hasLiveData,
       connectedCount,
