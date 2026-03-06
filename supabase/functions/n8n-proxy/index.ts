@@ -32,7 +32,6 @@ serve(async (req) => {
     }
 
     // Forward request server-to-server (no CORS restrictions)
-    // This webhook is configured for POST in n8n
     const response = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Accept": "application/json" },
