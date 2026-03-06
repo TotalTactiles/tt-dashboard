@@ -540,26 +540,39 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
           const calcTotalQuoted = quotedJobs.reduce((s, q) => s + q.value, 0);
           const calcTotalWon = quotedJobs.filter((q) => q.status === "won").reduce((s, q) => s + q.value, 0);
           const calcTotalLost = quotedJobs.filter((q) => q.status === "lost").reduce((s, q) => s + q.value, 0);
+          const calcTotalYellow = quotedJobs.filter((q) => q.status === "yellow").reduce((s, q) => s + q.value, 0);
 
           // Use extracted values if available, otherwise fallback
           const totalQuoted = extractedQuoteSummary?.totalQuoted ?? calcTotalQuoted;
           const totalWon = extractedQuoteSummary?.totalWon ?? calcTotalWon;
           const totalLost = extractedQuoteSummary?.totalLost ?? calcTotalLost;
+          const totalYellow = extractedQuoteSummary?.totalYellow ?? calcTotalYellow;
           const quotedRemaining = extractedQuoteSummary?.quotedRemaining ?? (totalQuoted - totalWon - totalLost);
 
+          // Counts
+          const totalQuotedCount = extractedQuoteSummary?.totalQuotedCount ?? quotedJobs.length;
+          const totalWonCount = extractedQuoteSummary?.totalWonCount ?? quotedJobs.filter((q) => q.status === "won").length;
+          const totalLostCount = extractedQuoteSummary?.totalLostCount ?? quotedJobs.filter((q) => q.status === "lost").length;
+          const totalYellowCount = extractedQuoteSummary?.totalYellowCount ?? quotedJobs.filter((q) => q.status === "yellow").length;
+          const quotedRemainingCount = extractedQuoteSummary?.quotedRemainingCount ?? (totalQuotedCount - totalWonCount - totalLostCount);
+
           // Conversion rate: count-based from rows
-          const wonCount = quotedJobs.filter((q) => q.status === "won").length;
-          const totalCount = quotedJobs.length;
-          const conversionRate = totalCount > 0 ? Math.round(((wonCount / totalCount) * 100) * 10) / 10 : 0;
+          const conversionRate = totalQuotedCount > 0 ? Math.round(((totalWonCount / totalQuotedCount) * 100) * 10) / 10 : 0;
 
           const totalCOGS = revenueProjects.reduce((s, p) => s + p.totalCOGS, 0);
           const labourCost = revenueProjects.reduce((s, p) => s + p.labourCost, 0);
 
           return {
             totalQuoted,
+            totalQuotedCount,
             totalWon,
+            totalWonCount,
             totalLost,
+            totalLostCount,
+            totalYellow,
+            totalYellowCount,
             quotedRemaining,
+            quotedRemainingCount,
             conversionRate,
             grossRevenue: totalWon,
             costOfGoods: totalCOGS,
