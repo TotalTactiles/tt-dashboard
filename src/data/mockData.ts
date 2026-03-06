@@ -19,9 +19,15 @@ export interface QuotedJob {
 
 export interface QuoteSummary {
   totalQuoted: number;
+  totalQuotedCount: number;
   totalWon: number;
+  totalWonCount: number;
   totalLost: number;
+  totalLostCount: number;
+  totalYellow: number;
+  totalYellowCount: number;
   quotedRemaining: number;
+  quotedRemainingCount: number;
   conversionRate: number;
   grossRevenue: number;
   costOfGoods: number;

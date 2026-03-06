@@ -469,19 +469,39 @@ function extractQuoteSummaryFromRaw(raw: any[]): Partial<QuoteSummary> | null {
     if (!row || typeof row !== "object") continue;
     const values = Object.values(row).map((v) => String(v).toUpperCase().trim());
     const valueKey = findKeyContaining(row, "QUOTED");
+    
+    // Find count column — a numeric column that isn't the label and isn't the QUOTED value column
+    const allKeys = Object.keys(row);
+    const countKey = allKeys.find((k) => {
+      if (k === valueKey) return false;
+      const val = row[k];
+      const str = String(val).toUpperCase().trim();
+      // Skip if it looks like a label (contains letters that aren't just a number)
+      if (values.includes(str)) return false;
+      const num = parseNum(val);
+      return num > 0 && num < 1000; // counts are typically small numbers
+    });
 
     for (const v of values) {
       if (v === "TOTAL QUOTED" || v === "TOTAL QUOTED JOBS") {
         result.totalQuoted = valueKey ? parseNum(row[valueKey]) : 0;
+        result.totalQuotedCount = countKey ? parseNum(row[countKey]) : 0;
         found = true;
       } else if (v === "TOTAL QUOTED WON" || v === "TOTAL WON") {
         result.totalWon = valueKey ? parseNum(row[valueKey]) : 0;
+        result.totalWonCount = countKey ? parseNum(row[countKey]) : 0;
         found = true;
       } else if (v === "TOTAL QUOTED LOST" || v === "TOTAL LOST") {
         result.totalLost = valueKey ? parseNum(row[valueKey]) : 0;
+        result.totalLostCount = countKey ? parseNum(row[countKey]) : 0;
+        found = true;
+      } else if (v === "TOTAL YELLOW" || v === "YELLOW TOTAL") {
+        result.totalYellow = valueKey ? parseNum(row[valueKey]) : 0;
+        result.totalYellowCount = countKey ? parseNum(row[countKey]) : 0;
         found = true;
       } else if (v === "QUOTED REMAINING" || v === "REMAINING") {
         result.quotedRemaining = valueKey ? parseNum(row[valueKey]) : 0;
+        result.quotedRemainingCount = countKey ? parseNum(row[countKey]) : 0;
         found = true;
       }
     }
@@ -520,26 +540,39 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
           const calcTotalQuoted = quotedJobs.reduce((s, q) => s + q.value, 0);
           const calcTotalWon = quotedJobs.filter((q) => q.status === "won").reduce((s, q) => s + q.value, 0);
           const calcTotalLost = quotedJobs.filter((q) => q.status === "lost").reduce((s, q) => s + q.value, 0);
+          const calcTotalYellow = quotedJobs.filter((q) => q.status === "yellow").reduce((s, q) => s + q.value, 0);
 
           // Use extracted values if available, otherwise fallback
           const totalQuoted = extractedQuoteSummary?.totalQuoted ?? calcTotalQuoted;
           const totalWon = extractedQuoteSummary?.totalWon ?? calcTotalWon;
           const totalLost = extractedQuoteSummary?.totalLost ?? calcTotalLost;
+          const totalYellow = extractedQuoteSummary?.totalYellow ?? calcTotalYellow;
           const quotedRemaining = extractedQuoteSummary?.quotedRemaining ?? (totalQuoted - totalWon - totalLost);
 
+          // Counts
+          const totalQuotedCount = extractedQuoteSummary?.totalQuotedCount ?? quotedJobs.length;
+          const totalWonCount = extractedQuoteSummary?.totalWonCount ?? quotedJobs.filter((q) => q.status === "won").length;
+          const totalLostCount = extractedQuoteSummary?.totalLostCount ?? quotedJobs.filter((q) => q.status === "lost").length;
+          const totalYellowCount = extractedQuoteSummary?.totalYellowCount ?? quotedJobs.filter((q) => q.status === "yellow").length;
+          const quotedRemainingCount = extractedQuoteSummary?.quotedRemainingCount ?? (totalQuotedCount - totalWonCount - totalLostCount);
+
           // Conversion rate: count-based from rows
-          const wonCount = quotedJobs.filter((q) => q.status === "won").length;
-          const totalCount = quotedJobs.length;
-          const conversionRate = totalCount > 0 ? Math.round(((wonCount / totalCount) * 100) * 10) / 10 : 0;
+          const conversionRate = totalQuotedCount > 0 ? Math.round(((totalWonCount / totalQuotedCount) * 100) * 10) / 10 : 0;
 
           const totalCOGS = revenueProjects.reduce((s, p) => s + p.totalCOGS, 0);
           const labourCost = revenueProjects.reduce((s, p) => s + p.labourCost, 0);
 
           return {
             totalQuoted,
+            totalQuotedCount,
             totalWon,
+            totalWonCount,
             totalLost,
+            totalLostCount,
+            totalYellow,
+            totalYellowCount,
             quotedRemaining,
+            quotedRemainingCount,
             conversionRate,
             grossRevenue: totalWon,
             costOfGoods: totalCOGS,
@@ -610,8 +643,15 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const monthlyExpenses = expenseCategories.reduce((s, c) => s + c.totalMonthly, 0);
     const kpiVariables: Record<string, number> = {
       TotalQuoted: quoteSummary?.totalQuoted || 0,
+      TotalQuotedCount: quoteSummary?.totalQuotedCount || 0,
       TotalWon: quoteSummary?.totalWon || 0,
+      TotalWonCount: quoteSummary?.totalWonCount || 0,
       TotalLost: quoteSummary?.totalLost || 0,
+      TotalLostCount: quoteSummary?.totalLostCount || 0,
+      TotalYellow: quoteSummary?.totalYellow || 0,
+      TotalYellowCount: quoteSummary?.totalYellowCount || 0,
+      QuotedRemaining: quoteSummary?.quotedRemaining || 0,
+      QuotedRemainingCount: quoteSummary?.quotedRemainingCount || 0,
       GrossRevenue: quoteSummary?.grossRevenue || 0,
       CostOfGoods: quoteSummary?.costOfGoods || 0,
       LabourCost: quoteSummary?.labourCost || 0,
@@ -629,10 +669,12 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     const noData = !hasLiveData;
     const kpiStats: KPIStat[] = [
-      { label: "Total Quoted", value: noData ? "--" : fmt(kpiVariables.TotalQuoted), change: "--", positive: true, noData },
+      { label: "Total Quoted", value: noData ? "--" : fmt(kpiVariables.TotalQuoted), change: noData ? "--" : `${kpiVariables.TotalQuotedCount} jobs`, positive: true, noData },
+      { label: "Total Won", value: noData ? "--" : fmt(kpiVariables.TotalWon), change: noData ? "--" : `${kpiVariables.TotalWonCount} jobs`, positive: true, noData },
+      { label: "Quoted Remaining", value: noData ? "--" : fmt(kpiVariables.QuotedRemaining), change: noData ? "--" : `${kpiVariables.QuotedRemainingCount} jobs`, positive: kpiVariables.QuotedRemaining >= 0, noData },
       { label: "Net Revenue", value: noData ? "--" : fmt(kpiVariables.NetRevenue), change: "--", positive: kpiVariables.NetRevenue >= 0, noData },
       { label: "Cashflow Position", value: noData ? "--" : fmt(kpiVariables.CashPosition), change: "--", positive: kpiVariables.CashPosition >= 0, noData },
-      { label: "Conversion Rate", value: noData ? "--" : `${kpiVariables.ConversionRate}%`, change: "--", positive: kpiVariables.ConversionRate >= 20, noData },
+      { label: "Conversion Rate", value: noData ? "--" : `${kpiVariables.ConversionRate}%`, change: noData ? "--" : `${kpiVariables.TotalWonCount}/${kpiVariables.TotalQuotedCount}`, positive: kpiVariables.ConversionRate >= 20, noData },
     ];
 
     return {
