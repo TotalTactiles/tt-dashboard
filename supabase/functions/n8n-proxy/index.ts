@@ -32,10 +32,16 @@ serve(async (req) => {
     }
 
     // Forward request server-to-server (no CORS restrictions)
-    const response = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ source, timestamp: new Date().toISOString() }),
+    // n8n webhook contract here expects GET
+    const targetUrl = new URL(webhookUrl);
+    if (typeof source === "string" && source.trim()) {
+      targetUrl.searchParams.set("source", source);
+    }
+    targetUrl.searchParams.set("timestamp", new Date().toISOString());
+
+    const response = await fetch(targetUrl.toString(), {
+      method: "GET",
+      headers: { "Accept": "application/json" },
     });
 
     const rawText = await response.text();
