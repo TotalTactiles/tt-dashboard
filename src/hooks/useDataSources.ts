@@ -129,7 +129,7 @@ export function useDataSources() {
     saveSources(updated);
   }, []);
 
-  const fetchSource = useCallback(async (source: DataSourceConfig): Promise<{ success: boolean; data?: any; error?: string }> => {
+  const fetchSource = useCallback(async (source: DataSourceConfig): Promise<{ success: boolean; data?: any; error?: string; warnings?: string[] }> => {
     if (!source.webhookUrl) return { success: false, error: "No webhook URL" };
 
     setSources((prev) =>
