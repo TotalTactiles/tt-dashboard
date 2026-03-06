@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ScreenshotUpload from "@/components/shared/ScreenshotUpload";
 
 const CATEGORIES = ["Financial", "Operational", "Growth", "Efficiency", "Custom"];
 const UNITS = ["$", "%", "#", "x"];
@@ -23,10 +24,11 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial }: F
   const [description, setDescription] = useState(initial?.description ?? "");
   const [unit, setUnit] = useState(initial?.unit ?? "%");
   const [category, setCategory] = useState(initial?.category ?? "Financial");
+  const [screenshotUrl, setScreenshotUrl] = useState(initial?.screenshotUrl ?? "");
 
   const handleSubmit = () => {
     if (!name || !expression) return;
-    onSubmit({ name, expression, description, unit, category });
+    onSubmit({ name, expression, description, unit, category, screenshotUrl: screenshotUrl || undefined });
     onOpenChange(false);
   };
 
@@ -81,6 +83,13 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial }: F
               </Select>
             </div>
           </div>
+
+          <ScreenshotUpload
+            currentUrl={screenshotUrl}
+            onUpload={setScreenshotUrl}
+            onRemove={() => setScreenshotUrl("")}
+          />
+
           <Button onClick={handleSubmit} className="w-full" disabled={!name || !expression}>
             {initial ? "Save Changes" : "Create Formula"}
           </Button>
