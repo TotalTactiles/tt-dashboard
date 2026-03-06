@@ -67,6 +67,8 @@ function findKeyContaining(obj: any, substring: string): string | undefined {
 }
 
 function isSummaryRow(row: any): boolean {
+  // Prefer n8n pre-computed label
+  if (row?._label_isSummaryRow === true) return true;
   const values = Object.values(row).map((v) => String(v).toUpperCase().trim());
   return values.some((v) => v === "TOTAL" || v === "SUB TOTAL" || v.startsWith("TOTAL ") || v.startsWith("SUB TOTAL"));
 }
@@ -76,22 +78,25 @@ function mapQuotes(raw: any[]): QuotedJob[] {
     .filter((r) => {
       if (!r || typeof r !== "object") return false;
       if (isSummaryRow(r)) return false;
-      // Must have a company name
-      const company = flexGet(r, "Company Name", "company", "Company", "Client");
+      // Use _label_ field if available
+      const company = r._label_company ?? flexGet(r, "Company Name", "company", "Company", "Client");
       return company && String(company).trim() !== "";
     })
     .map((r, i) => {
-      // The value column key contains "QUOTED" (e.g. "2025 QUOTED JOBS", "2026 QUOTED JOBS")
-      const valueKey = findKeyContaining(r, "QUOTED");
-      const value = valueKey ? parseNum(r[valueKey]) : parseNum(flexGet(r, "value", "Value", "Amount"));
+      // Prefer n8n pre-computed values
+      const hasLabels = r._label_dollarValue !== undefined;
+      const value = hasLabels ? r._label_dollarValue : (() => {
+        const valueKey = findKeyContaining(r, "QUOTED");
+        return valueKey ? parseNum(r[valueKey]) : parseNum(flexGet(r, "value", "Value", "Amount"));
+      })();
 
       return {
         id: `Q${i}`,
         quoteNumber: `Q-${String(i + 1).padStart(3, "0")}`,
-        company: flexGet(r, "Company Name", "company", "Company", "Client") || "",
-        project: flexGet(r, "Project Name", "project", "Project", "Description") || "",
+        company: r._label_company ?? flexGet(r, "Company Name", "company", "Company", "Client") || "",
+        project: r._label_project ?? flexGet(r, "Project Name", "project", "Project", "Description") || "",
         value,
-        totalPOs: parseNum(flexGet(r, "Total POs", "totalPOs", "POs", "total_pos")),
+        totalPOs: hasLabels ? (r._label_countValue || 0) : parseNum(flexGet(r, "Total POs", "totalPOs", "POs", "total_pos")),
         status: normalizeQuoteStatus(flexGet(r, "Status", "status") || "pending"),
         dateQuoted: flexGet(r, "Date Quoted", "dateQuoted", "date_quoted", "Date") || "",
         notes: flexGet(r, "Notes", "notes") || undefined,
@@ -123,15 +128,18 @@ function detectMonthColumns(rows: any[]): string[] {
 function buildRowLookup(rows: any[]): Record<string, any> {
   const lookup: Record<string, any> = {};
   for (const row of rows) {
-    // The label is in the first column — find it by checking common key names
-    const labelKey = Object.keys(row).find((k) =>
-      ["col_1", "Fortnight Ending", "Category", "Item", "Label", "Description"].some(
-        (h) => k.toLowerCase() === h.toLowerCase()
-      )
-    ) || Object.keys(row).filter(k => k !== "row_number")[0] || Object.keys(row)[0];
-    
-    const label = String(row[labelKey] || "").trim();
-    // Skip metadata header rows
+    // Prefer n8n pre-computed label
+    let label = "";
+    if (row._label_rowLabel) {
+      label = row._label_rowLabel;
+    } else {
+      const labelKey = Object.keys(row).find((k) =>
+        ["col_1", "Fortnight Ending", "Category", "Item", "Label", "Description"].some(
+          (h) => k.toLowerCase() === h.toLowerCase()
+        )
+      ) || Object.keys(row).filter(k => k !== "row_number" && !k.startsWith("_label_"))[0] || Object.keys(row)[0];
+      label = String(row[labelKey] || "").trim();
+    }
     if (!label || label.toUpperCase() === "FORTNIGHT ENDING:" || label.toUpperCase() === "FORTNIGHT ENDING") continue;
     lookup[label.toUpperCase()] = row;
   }
@@ -241,27 +249,31 @@ function mapRevenue(raw: any[]): RevenueProject[] {
   return raw
     .filter((r) => {
       if (!r || typeof r !== "object") return false;
+      // Prefer n8n label for total row detection
+      if (r._label_isTotalRow === true) return false;
       if (isSummaryRow(r)) return false;
-      const company = flexGet(r, "COMPANY", "Company", "company", "Client");
+      const company = r._label_company ?? flexGet(r, "COMPANY", "Company", "company", "Client");
       return company && String(company).trim() !== "";
     })
     .map((r, i) => {
-      const valueInclGST = parseNum(flexGet(r, "VALUE (INCL. GST)", "Value (incl GST)", "Value (Incl. GST)", "valueInclGST", "Value"));
+      const hasLabels = r._label_value !== undefined;
+
+      const valueInclGST = hasLabels ? r._label_value : parseNum(flexGet(r, "VALUE (INCL. GST)", "Value (incl GST)", "Value (Incl. GST)", "valueInclGST", "Value"));
       const valueExclGST = parseNum(flexGet(r, "Value (excl GST)", "valueExclGST")) || (valueInclGST / 1.1);
-      const labourCost = parseNum(flexGet(r, "LABOUR COST", "Labour Cost", "labourCost", "Labour"));
-      const tactileCost = parseNum(flexGet(r, "TACTILE COST (GST N/A)", "Tactile Cost", "tactileCost", "Tactile"));
-      const otherProducts = parseNum(flexGet(r, "OTHER PRODUCTS (INCL GST)", "Other Products", "otherProducts", "Other"));
-      const totalCOGS = labourCost + tactileCost + otherProducts;
+      const labourCost = hasLabels ? r._label_labourCost : parseNum(flexGet(r, "LABOUR COST", "Labour Cost", "labourCost", "Labour"));
+      const tactileCost = hasLabels ? r._label_tactileCost : parseNum(flexGet(r, "TACTILE COST (GST N/A)", "Tactile Cost", "tactileCost", "Tactile"));
+      const otherProducts = hasLabels ? r._label_otherCost : parseNum(flexGet(r, "OTHER PRODUCTS (INCL GST)", "Other Products", "otherProducts", "Other"));
+      const totalCOGS = hasLabels ? r._label_totalCost : (labourCost + tactileCost + otherProducts);
       const grossProfit = valueExclGST - totalCOGS;
 
       return {
         id: `R${i}`,
-        company: flexGet(r, "COMPANY", "Company", "company", "Client") || "",
-        project: flexGet(r, "PROJECT", "Project", "project", "Project Name") || "",
+        company: r._label_company ?? flexGet(r, "COMPANY", "Company", "company", "Client") || "",
+        project: r._label_project ?? flexGet(r, "PROJECT", "Project", "project", "Project Name") || "",
         valueInclGST,
         valueExclGST: Math.round(valueExclGST * 100) / 100,
-        invoiceDate: flexGet(r, "INVOICE DATE", "Invoice Date", "invoiceDate", "invoice_date") || "",
-        dueDate: flexGet(r, "DUE DATE", "Due Date", "dueDate", "due_date") || "",
+        invoiceDate: r._label_invoiceDate ?? flexGet(r, "INVOICE DATE", "Invoice Date", "invoiceDate", "invoice_date") || "",
+        dueDate: r._label_dueDate ?? flexGet(r, "DUE DATE", "Due Date", "dueDate", "due_date") || "",
         labourCost,
         tactileCost,
         otherProducts,
@@ -305,6 +317,33 @@ function isExpenseCategoryHeader(row: any): string | null {
 }
 
 function mapExpenses(raw: any[]): ExpenseCategory[] {
+  // Check if data has n8n _label_* fields
+  const hasLabels = raw.length > 0 && raw[0]._label_name !== undefined;
+
+  if (hasLabels) {
+    // Use pre-computed labels — group by _label_category
+    const categoryMap: Record<string, { name: string; paymentDate?: string; weeklyCost: number; monthlyCost: number; yearlyCost: number }[]> = {};
+    for (const r of raw) {
+      if (!r._label_isLineItem) continue;
+      const cat = r._label_category || "Uncategorised";
+      if (!categoryMap[cat]) categoryMap[cat] = [];
+      categoryMap[cat].push({
+        name: r._label_name,
+        weeklyCost: r._label_weeklyCost || 0,
+        monthlyCost: r._label_monthlyCost || 0,
+        yearlyCost: r._label_yearlyCost || 0,
+      });
+    }
+    return Object.entries(categoryMap).map(([category, items]) => ({
+      category,
+      items,
+      totalWeekly: items.reduce((s, i) => s + i.weeklyCost, 0),
+      totalMonthly: items.reduce((s, i) => s + i.monthlyCost, 0),
+      totalYearly: items.reduce((s, i) => s + i.yearlyCost, 0),
+    }));
+  }
+
+  // Fallback: original parsing logic
   const categories: ExpenseCategory[] = [];
   let currentCategory = "Uncategorised";
   let currentItems: { name: string; paymentDate?: string; weeklyCost: number; monthlyCost: number; yearlyCost: number }[] = [];
@@ -326,7 +365,6 @@ function mapExpenses(raw: any[]): ExpenseCategory[] {
     if (!r || typeof r !== "object") continue;
     if (isSummaryRow(r)) continue;
 
-    // Check if this is a category header
     const catHeader = isExpenseCategoryHeader(r);
     if (catHeader) {
       flushCategory();
@@ -342,7 +380,6 @@ function mapExpenses(raw: any[]): ExpenseCategory[] {
     const weekly = parseNum(flexGet(r, "Weekly Cost", "Weekly", "weeklyCost"));
     const yearly = parseNum(flexGet(r, "Yearly Cost", "Yearly", "yearlyCost", "Annual"));
 
-    // Skip rows with no cost data at all
     if (monthly === 0 && weekly === 0 && yearly === 0) continue;
 
     currentItems.push({
@@ -354,7 +391,7 @@ function mapExpenses(raw: any[]): ExpenseCategory[] {
     });
   }
 
-  flushCategory(); // flush last category
+  flushCategory();
   return categories;
 }
 
@@ -479,25 +516,55 @@ function extractQuoteSummaryFromRaw(raw: any[]): Partial<QuoteSummary> | null {
 
   for (const row of raw) {
     if (!row || typeof row !== "object") continue;
+
+    // ---- Prefer n8n pre-computed _label_ booleans ----
+    if (row._label_isTotalQuoted === true) {
+      result.totalQuoted = row._label_dollarValue ?? 0;
+      result.totalQuotedCount = row._label_countValue ?? 0;
+      found = true;
+      continue;
+    }
+    if (row._label_isTotalWon === true) {
+      result.totalWon = row._label_dollarValue ?? 0;
+      result.totalWonCount = row._label_countValue ?? 0;
+      found = true;
+      continue;
+    }
+    if (row._label_isTotalLost === true) {
+      result.totalLost = row._label_dollarValue ?? 0;
+      result.totalLostCount = row._label_countValue ?? 0;
+      found = true;
+      continue;
+    }
+    if (row._label_isTotalYellow === true) {
+      result.totalYellow = row._label_dollarValue ?? 0;
+      result.totalYellowCount = row._label_countValue ?? 0;
+      found = true;
+      continue;
+    }
+    if (row._label_isQuotedRemaining === true) {
+      result.quotedRemaining = row._label_dollarValue ?? 0;
+      result.quotedRemainingCount = row._label_countValue ?? 0;
+      found = true;
+      continue;
+    }
+
+    // ---- Fallback: string-scan for non-labelled payloads ----
     const values = Object.values(row).map((v) => String(v).toUpperCase().trim());
     const valueKey = findKeyContaining(row, "QUOTED");
     
-    // Also try QUOTED_COUNT key directly
     const countKeyDirect = Object.keys(row).find((k) => k.toUpperCase().includes("QUOTED_COUNT") || k.toUpperCase() === "COUNT" || k.toUpperCase() === "JOBS" || k.toUpperCase() === "QTY");
     
-    // Find count column — a numeric column that isn't the label and isn't the QUOTED value column
     const allKeys = Object.keys(row);
     const countKey = countKeyDirect || allKeys.find((k) => {
       if (k === valueKey) return false;
       const val = row[k];
       const str = String(val).toUpperCase().trim();
-      // Skip if it looks like a label
       if (values.includes(str)) return false;
       const num = parseNum(val);
       return num > 0 && num < 1000;
     });
 
-    // Match summary labels with aggressive trimming and more aliases
     for (const v of values) {
       const normalized = v.replace(/\s+/g, " ").trim();
       if (normalized === "TOTAL QUOTED" || normalized === "TOTAL QUOTED JOBS" || normalized === "TOTAL QUOTES") {
