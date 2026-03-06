@@ -144,6 +144,16 @@ export function useDataSources() {
 
       if (error) throw new Error(error.message || "Proxy request failed");
 
+      // Safety-net unwrap: n8n Code node wraps in array [{ json: {...} }]
+      let unwrapped = responseData;
+      if (Array.isArray(unwrapped)) {
+        unwrapped = unwrapped[0];
+      }
+      if (unwrapped && typeof unwrapped === "object" && unwrapped.json && typeof unwrapped.json === "object") {
+        unwrapped = unwrapped.json;
+      }
+      const finalData = unwrapped;
+
       // Validate payload: must have expected keys as arrays
       const REQUIRED_KEYS: Record<string, string[]> = {
         google_sheets: ["quotes", "cashflow", "revenue", "expenses"],

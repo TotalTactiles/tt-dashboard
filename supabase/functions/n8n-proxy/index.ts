@@ -38,14 +38,34 @@ serve(async (req) => {
       body: JSON.stringify({ source, timestamp: new Date().toISOString() }),
     });
 
-    const data = await response.text();
+    const rawText = await response.text();
 
-    return new Response(data, {
+    // Parse and unwrap n8n Code node output
+    // n8n wraps Code node results in an array: [{ json: { quotes, cashflow, ... } }]
+    let parsed: any;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch {
+      // Not JSON — return as-is
+      return new Response(rawText, {
+        status: response.status,
+        headers: { ...corsHeaders, "Content-Type": response.headers.get("Content-Type") || "text/plain" },
+      });
+    }
+
+    // Unwrap: array → first element
+    if (Array.isArray(parsed)) {
+      parsed = parsed[0];
+    }
+
+    // Unwrap: { json: { ... } } → inner object (n8n Code node convention)
+    if (parsed && typeof parsed === "object" && parsed.json && typeof parsed.json === "object") {
+      parsed = parsed.json;
+    }
+
+    return new Response(JSON.stringify(parsed), {
       status: response.status,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": response.headers.get("Content-Type") || "application/json",
-      },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
