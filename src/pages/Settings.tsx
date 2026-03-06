@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import GoogleSheetsSetupGuide from "@/components/settings/GoogleSheetsSetupGuide";
 import ZohoCrmSetupGuide from "@/components/settings/ZohoCrmSetupGuide";
 import ZohoProjectsSetupGuide from "@/components/settings/ZohoProjectsSetupGuide";
+import ScreenshotUpload from "@/components/shared/ScreenshotUpload";
+import ScreenshotViewer from "@/components/shared/ScreenshotViewer";
 
 const SETUP_GUIDES: Record<string, React.ComponentType> = {
   google_sheets: GoogleSheetsSetupGuide,
@@ -26,10 +28,13 @@ const Settings = () => {
     updateWebhookUrl,
     saveAndTest,
     syncNow,
+    updateScreenshot,
+    removeScreenshot,
   } = useDataSources();
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [nextSyncCountdown, setNextSyncCountdown] = useState<Record<string, number>>({});
+  const [viewingScreenshot, setViewingScreenshot] = useState<{ url: string; name: string } | null>(null);
 
   // Countdown timer for next sync
   useEffect(() => {
@@ -322,12 +327,41 @@ const Settings = () => {
                       <SetupGuide />
                     </div>
                   )}
+
+                  {/* Reference Screenshot */}
+                  <div className="pt-2 border-t border-border">
+                    <ScreenshotUpload
+                      currentUrl={source.screenshotUrl}
+                      onUpload={(url) => updateScreenshot(source.id, url)}
+                      onRemove={() => removeScreenshot(source.id)}
+                      label="Reference Screenshot — verify data mapping"
+                    />
+                    {source.screenshotUrl && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 text-xs text-chart-blue"
+                        onClick={() => setViewingScreenshot({ url: source.screenshotUrl!, name: source.name })}
+                      >
+                        View full screenshot
+                      </Button>
+                    )}
+                  </div>
                 </motion.div>
               )}
             </motion.div>
           );
         })}
       </div>
+
+      {viewingScreenshot && (
+        <ScreenshotViewer
+          open={!!viewingScreenshot}
+          onOpenChange={() => setViewingScreenshot(null)}
+          url={viewingScreenshot.url}
+          title={`${viewingScreenshot.name} — Reference Data`}
+        />
+      )}
     </DashboardLayout>
   );
 };
