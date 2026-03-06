@@ -643,8 +643,15 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const monthlyExpenses = expenseCategories.reduce((s, c) => s + c.totalMonthly, 0);
     const kpiVariables: Record<string, number> = {
       TotalQuoted: quoteSummary?.totalQuoted || 0,
+      TotalQuotedCount: quoteSummary?.totalQuotedCount || 0,
       TotalWon: quoteSummary?.totalWon || 0,
+      TotalWonCount: quoteSummary?.totalWonCount || 0,
       TotalLost: quoteSummary?.totalLost || 0,
+      TotalLostCount: quoteSummary?.totalLostCount || 0,
+      TotalYellow: quoteSummary?.totalYellow || 0,
+      TotalYellowCount: quoteSummary?.totalYellowCount || 0,
+      QuotedRemaining: quoteSummary?.quotedRemaining || 0,
+      QuotedRemainingCount: quoteSummary?.quotedRemainingCount || 0,
       GrossRevenue: quoteSummary?.grossRevenue || 0,
       CostOfGoods: quoteSummary?.costOfGoods || 0,
       LabourCost: quoteSummary?.labourCost || 0,
@@ -662,10 +669,12 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     const noData = !hasLiveData;
     const kpiStats: KPIStat[] = [
-      { label: "Total Quoted", value: noData ? "--" : fmt(kpiVariables.TotalQuoted), change: "--", positive: true, noData },
+      { label: "Total Quoted", value: noData ? "--" : fmt(kpiVariables.TotalQuoted), change: noData ? "--" : `${kpiVariables.TotalQuotedCount} jobs`, positive: true, noData },
+      { label: "Total Won", value: noData ? "--" : fmt(kpiVariables.TotalWon), change: noData ? "--" : `${kpiVariables.TotalWonCount} jobs`, positive: true, noData },
+      { label: "Quoted Remaining", value: noData ? "--" : fmt(kpiVariables.QuotedRemaining), change: noData ? "--" : `${kpiVariables.QuotedRemainingCount} jobs`, positive: kpiVariables.QuotedRemaining >= 0, noData },
       { label: "Net Revenue", value: noData ? "--" : fmt(kpiVariables.NetRevenue), change: "--", positive: kpiVariables.NetRevenue >= 0, noData },
       { label: "Cashflow Position", value: noData ? "--" : fmt(kpiVariables.CashPosition), change: "--", positive: kpiVariables.CashPosition >= 0, noData },
-      { label: "Conversion Rate", value: noData ? "--" : `${kpiVariables.ConversionRate}%`, change: "--", positive: kpiVariables.ConversionRate >= 20, noData },
+      { label: "Conversion Rate", value: noData ? "--" : `${kpiVariables.ConversionRate}%`, change: noData ? "--" : `${kpiVariables.TotalWonCount}/${kpiVariables.TotalQuotedCount}`, positive: kpiVariables.ConversionRate >= 20, noData },
     ];
 
     return {
