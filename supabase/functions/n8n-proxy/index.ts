@@ -32,16 +32,10 @@ serve(async (req) => {
     }
 
     // Forward request server-to-server (no CORS restrictions)
-    // n8n webhook expects GET request
-    const targetUrl = new URL(webhookUrl);
-    if (source && typeof source === "string") {
-      targetUrl.searchParams.set("source", source);
-    }
-    targetUrl.searchParams.set("timestamp", new Date().toISOString());
-
-    const response = await fetch(targetUrl.toString(), {
-      method: "GET",
-      headers: { "Accept": "application/json" },
+    const response = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({ source, timestamp: new Date().toISOString() }),
     });
 
     const rawText = await response.text();
