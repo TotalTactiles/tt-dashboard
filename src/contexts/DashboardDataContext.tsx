@@ -77,9 +77,11 @@ function mapQuotes(raw: any[]): QuotedJob[] {
   return raw
     .filter((r) => {
       if (!r || typeof r !== "object") return false;
+      if (r._label_isSummaryRow === true) return false;
+      if (r._label_isHeader === true) return false;
       if (isSummaryRow(r)) return false;
-      // Use _label_ field if available
-      const company = r._label_company ?? flexGet(r, "Company Name", "company", "Company", "Client");
+      // Use _label_ field if available; also check _company (n8n convention)
+      const company = r._label_company ?? r._company ?? flexGet(r, "Company Name", "company", "Company", "Client");
       return company && String(company).trim() !== "";
     })
     .map((r, i) => {
@@ -141,7 +143,16 @@ function buildRowLookup(rows: any[]): Record<string, any> {
       label = String(row[labelKey] || "").trim();
     }
     if (!label || label.toUpperCase() === "FORTNIGHT ENDING:" || label.toUpperCase() === "FORTNIGHT ENDING") continue;
-    lookup[label.toUpperCase()] = row;
+    const key = label.toUpperCase();
+    // When duplicate labels exist, prefer the row with the higher row_number (final total)
+    if (lookup[key] && row.row_number !== undefined) {
+      const existingRowNum = lookup[key].row_number ?? 0;
+      if (row.row_number > existingRowNum) {
+        lookup[key] = row;
+      }
+    } else {
+      lookup[key] = row;
+    }
   }
   return lookup;
 }
@@ -149,7 +160,12 @@ function buildRowLookup(rows: any[]): Record<string, any> {
 function getMetricValue(lookup: Record<string, any>, monthKey: string, ...labelVariants: string[]): number {
   for (const label of labelVariants) {
     const row = lookup[label.toUpperCase()];
-    if (row && row[monthKey] !== undefined) {
+    if (!row) continue;
+    // Prefer n8n pre-parsed _label_monthData
+    if (row._label_monthData && row._label_monthData[monthKey] !== undefined) {
+      return typeof row._label_monthData[monthKey] === "number" ? row._label_monthData[monthKey] : parseNum(row._label_monthData[monthKey]);
+    }
+    if (row[monthKey] !== undefined) {
       return parseNum(row[monthKey]);
     }
   }
@@ -249,8 +265,12 @@ function mapRevenue(raw: any[]): RevenueProject[] {
   return raw
     .filter((r) => {
       if (!r || typeof r !== "object") return false;
-      // Prefer n8n label for total row detection
+      // Skip headers and totals
+      if (r._label_isHeader === true) return false;
       if (r._label_isTotalRow === true) return false;
+      if (r._label_isTotal === true) return false;
+      // Prefer _label_isLineItem if present
+      if (r._label_isLineItem !== undefined) return r._label_isLineItem === true;
       if (isSummaryRow(r)) return false;
       const company = r._label_company ?? flexGet(r, "COMPANY", "Company", "company", "Client");
       return company && String(company).trim() !== "";

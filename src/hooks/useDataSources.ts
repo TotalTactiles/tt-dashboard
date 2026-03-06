@@ -144,6 +144,16 @@ export function useDataSources() {
 
       if (error) throw new Error(error.message || "Proxy request failed");
 
+      // Safety-net unwrap: n8n Code node wraps in array [{ json: {...} }]
+      let unwrapped = responseData;
+      if (Array.isArray(unwrapped)) {
+        unwrapped = unwrapped[0];
+      }
+      if (unwrapped && typeof unwrapped === "object" && unwrapped.json && typeof unwrapped.json === "object") {
+        unwrapped = unwrapped.json;
+      }
+      const finalData = unwrapped;
+
       // Validate payload: must have expected keys as arrays
       const REQUIRED_KEYS: Record<string, string[]> = {
         google_sheets: ["quotes", "cashflow", "revenue", "expenses"],
@@ -155,9 +165,9 @@ export function useDataSources() {
       const warnings: string[] = [];
 
       for (const key of requiredKeys) {
-        if (!responseData || !(key in responseData)) {
+        if (!finalData || !(key in finalData)) {
           warnings.push(`missing "${key}" key`);
-        } else if (Array.isArray(responseData[key]) && responseData[key].length === 0) {
+        } else if (Array.isArray(finalData[key]) && finalData[key].length === 0) {
           warnings.push(`"${key}" is empty`);
         }
       }
@@ -167,8 +177,8 @@ export function useDataSources() {
       setLiveData((prev) => {
         const updated = { ...prev, [`_lastSync_${source.id}`]: now };
         // Only merge keys that are non-empty arrays; preserve existing data for empty ones
-        if (responseData && typeof responseData === "object") {
-          for (const [k, v] of Object.entries(responseData)) {
+        if (finalData && typeof finalData === "object") {
+          for (const [k, v] of Object.entries(finalData)) {
             if (Array.isArray(v) && v.length === 0 && prev[k]?.length > 0) {
               // Skip overwriting good data with empty array
               continue;
@@ -190,7 +200,7 @@ export function useDataSources() {
         return updated;
       });
 
-      return { success: true, data: responseData, warnings };
+      return { success: true, data: finalData, warnings };
     } catch (err: any) {
       const errorMsg = err.message || "Failed to fetch";
 
