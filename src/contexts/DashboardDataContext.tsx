@@ -51,7 +51,19 @@ function isBlankRow(row: any, requiredKeys: string[][]): boolean {
 
 function findKeyContaining(obj: any, substring: string): string | undefined {
   if (!obj || typeof obj !== "object") return undefined;
-  return Object.keys(obj).find((k) => k.toUpperCase().includes(substring.toUpperCase()));
+  // Try exact substring match first
+  const exact = Object.keys(obj).find((k) => k.toUpperCase().includes(substring.toUpperCase()));
+  if (exact) return exact;
+  // Fallback aliases for common column names
+  const ALIASES: Record<string, string[]> = {
+    "QUOTED": ["Total Value", "Value", "Amount", "QUOTED_VALUE", "Quote Value"],
+  };
+  const aliasKeys = ALIASES[substring.toUpperCase()] || [];
+  for (const alias of aliasKeys) {
+    const match = Object.keys(obj).find((k) => k.toLowerCase() === alias.toLowerCase());
+    if (match) return match;
+  }
+  return undefined;
 }
 
 function isSummaryRow(row: any): boolean {
@@ -470,36 +482,41 @@ function extractQuoteSummaryFromRaw(raw: any[]): Partial<QuoteSummary> | null {
     const values = Object.values(row).map((v) => String(v).toUpperCase().trim());
     const valueKey = findKeyContaining(row, "QUOTED");
     
+    // Also try QUOTED_COUNT key directly
+    const countKeyDirect = Object.keys(row).find((k) => k.toUpperCase().includes("QUOTED_COUNT") || k.toUpperCase() === "COUNT" || k.toUpperCase() === "JOBS" || k.toUpperCase() === "QTY");
+    
     // Find count column — a numeric column that isn't the label and isn't the QUOTED value column
     const allKeys = Object.keys(row);
-    const countKey = allKeys.find((k) => {
+    const countKey = countKeyDirect || allKeys.find((k) => {
       if (k === valueKey) return false;
       const val = row[k];
       const str = String(val).toUpperCase().trim();
-      // Skip if it looks like a label (contains letters that aren't just a number)
+      // Skip if it looks like a label
       if (values.includes(str)) return false;
       const num = parseNum(val);
-      return num > 0 && num < 1000; // counts are typically small numbers
+      return num > 0 && num < 1000;
     });
 
+    // Match summary labels with aggressive trimming and more aliases
     for (const v of values) {
-      if (v === "TOTAL QUOTED" || v === "TOTAL QUOTED JOBS") {
+      const normalized = v.replace(/\s+/g, " ").trim();
+      if (normalized === "TOTAL QUOTED" || normalized === "TOTAL QUOTED JOBS" || normalized === "TOTAL QUOTES") {
         result.totalQuoted = valueKey ? parseNum(row[valueKey]) : 0;
         result.totalQuotedCount = countKey ? parseNum(row[countKey]) : 0;
         found = true;
-      } else if (v === "TOTAL QUOTED WON" || v === "TOTAL WON") {
+      } else if (normalized === "TOTAL QUOTED WON" || normalized === "TOTAL WON" || normalized === "WON" || normalized === "TOTAL ACCEPTED") {
         result.totalWon = valueKey ? parseNum(row[valueKey]) : 0;
         result.totalWonCount = countKey ? parseNum(row[countKey]) : 0;
         found = true;
-      } else if (v === "TOTAL QUOTED LOST" || v === "TOTAL LOST") {
+      } else if (normalized === "TOTAL QUOTED LOST" || normalized === "TOTAL LOST" || normalized === "LOST" || normalized === "TOTAL DECLINED") {
         result.totalLost = valueKey ? parseNum(row[valueKey]) : 0;
         result.totalLostCount = countKey ? parseNum(row[countKey]) : 0;
         found = true;
-      } else if (v === "TOTAL YELLOW" || v === "YELLOW TOTAL") {
+      } else if (normalized === "TOTAL YELLOW" || normalized === "YELLOW TOTAL" || normalized === "90% LIKELY" || normalized === "TOTAL 90% LIKELY") {
         result.totalYellow = valueKey ? parseNum(row[valueKey]) : 0;
         result.totalYellowCount = countKey ? parseNum(row[countKey]) : 0;
         found = true;
-      } else if (v === "QUOTED REMAINING" || v === "REMAINING") {
+      } else if (normalized === "QUOTED REMAINING" || normalized === "REMAINING" || normalized === "TOTAL REMAINING" || normalized === "OUTSTANDING") {
         result.quotedRemaining = valueKey ? parseNum(row[valueKey]) : 0;
         result.quotedRemainingCount = countKey ? parseNum(row[countKey]) : 0;
         found = true;
