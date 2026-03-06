@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MetricFormula, AVAILABLE_VARIABLES } from "@/hooks/useFormulas";
+import { MetricFormula, AVAILABLE_VARIABLES, DASHBOARD_CARDS, DATA_SOURCES } from "@/hooks/useFormulas";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,20 +25,45 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial }: F
   const [unit, setUnit] = useState(initial?.unit ?? "%");
   const [category, setCategory] = useState(initial?.category ?? "Financial");
   const [screenshotUrl, setScreenshotUrl] = useState(initial?.screenshotUrl ?? "");
+  const [dashboardCard, setDashboardCard] = useState(initial?.dashboardCard ?? "");
+  const [dataSource, setDataSource] = useState(initial?.dataSource ?? "Google Sheets");
 
   const handleSubmit = () => {
     if (!name || !expression) return;
-    onSubmit({ name, expression, description, unit, category, screenshotUrl: screenshotUrl || undefined });
+    onSubmit({
+      name, expression, description, unit, category,
+      screenshotUrl: screenshotUrl || undefined,
+      dashboardCard: dashboardCard || undefined,
+      dataSource: dataSource || undefined,
+    });
     onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-mono text-sm">{initial ? "Edit Formula" : "New Formula"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Dashboard Card</Label>
+            <Select value={dashboardCard} onValueChange={setDashboardCard}>
+              <SelectTrigger><SelectValue placeholder="Select dashboard card..." /></SelectTrigger>
+              <SelectContent>
+                {DASHBOARD_CARDS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Data Source</Label>
+            <Select value={dataSource} onValueChange={setDataSource}>
+              <SelectTrigger><SelectValue placeholder="Select data source..." /></SelectTrigger>
+              <SelectContent>
+                {DATA_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Name</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Burn Rate" />
@@ -84,11 +109,14 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial }: F
             </div>
           </div>
 
-          <ScreenshotUpload
-            currentUrl={screenshotUrl}
-            onUpload={setScreenshotUrl}
-            onRemove={() => setScreenshotUrl("")}
-          />
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Reference Screenshot (where data lives in source)</Label>
+            <ScreenshotUpload
+              currentUrl={screenshotUrl}
+              onUpload={setScreenshotUrl}
+              onRemove={() => setScreenshotUrl("")}
+            />
+          </div>
 
           <Button onClick={handleSubmit} className="w-full" disabled={!name || !expression}>
             {initial ? "Save Changes" : "Create Formula"}
