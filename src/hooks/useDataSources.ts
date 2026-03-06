@@ -129,7 +129,7 @@ export function useDataSources() {
     saveSources(updated);
   }, []);
 
-  const fetchSource = useCallback(async (source: DataSourceConfig): Promise<{ success: boolean; data?: any; error?: string }> => {
+  const fetchSource = useCallback(async (source: DataSourceConfig): Promise<{ success: boolean; data?: any; error?: string; warnings?: string[] }> => {
     if (!source.webhookUrl) return { success: false, error: "No webhook URL" };
 
     setSources((prev) =>
@@ -144,23 +144,53 @@ export function useDataSources() {
 
       if (error) throw new Error(error.message || "Proxy request failed");
 
+      // Validate payload: must have expected keys as arrays
+      const REQUIRED_KEYS: Record<string, string[]> = {
+        google_sheets: ["quotes", "cashflow", "revenue", "expenses"],
+        zoho_crm: ["deals", "contacts"],
+        zoho_projects: ["projects", "tasks", "milestones"],
+      };
+
+      const requiredKeys = REQUIRED_KEYS[source.id] || [];
+      const warnings: string[] = [];
+
+      for (const key of requiredKeys) {
+        if (!responseData || !(key in responseData)) {
+          warnings.push(`missing "${key}" key`);
+        } else if (Array.isArray(responseData[key]) && responseData[key].length === 0) {
+          warnings.push(`"${key}" is empty`);
+        }
+      }
+
       const now = new Date().toLocaleString();
 
       setLiveData((prev) => {
-        const updated = { ...prev, ...responseData, [`_lastSync_${source.id}`]: now };
+        const updated = { ...prev, [`_lastSync_${source.id}`]: now };
+        // Only merge keys that are non-empty arrays; preserve existing data for empty ones
+        if (responseData && typeof responseData === "object") {
+          for (const [k, v] of Object.entries(responseData)) {
+            if (Array.isArray(v) && v.length === 0 && prev[k]?.length > 0) {
+              // Skip overwriting good data with empty array
+              continue;
+            }
+            updated[k] = v;
+          }
+        }
         saveLiveData(updated);
         return updated;
       });
 
+      const lastError = warnings.length > 0 ? `Partial data: ${warnings.join(", ")}` : "";
+
       setSources((prev) => {
         const updated = prev.map((s) =>
-          s.id === source.id ? { ...s, loading: false, lastSync: now, lastError: "" } : s
+          s.id === source.id ? { ...s, loading: false, lastSync: now, lastError } : s
         );
         saveSources(updated);
         return updated;
       });
 
-      return { success: true, data: responseData };
+      return { success: true, data: responseData, warnings };
     } catch (err: any) {
       const errorMsg = err.message || "Failed to fetch";
 
