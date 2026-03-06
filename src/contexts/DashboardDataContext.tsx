@@ -810,6 +810,36 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
 export function useDashboardData(): DashboardData {
   const ctx = useContext(DashboardDataContext);
-  if (!ctx) throw new Error("useDashboardData must be used within DashboardDataProvider");
+  if (!ctx) {
+    // During HMR, context may temporarily be null — return safe defaults
+    // instead of throwing to prevent blank screen flashes
+    return {
+      quotedJobs: [],
+      quoteSummary: null,
+      cashflowMonths: [],
+      revenueProjects: [],
+      expenseCategories: [],
+      kpiStats: [],
+      cashflowChartData: [],
+      profitMarginData: [],
+      forecastChartData: [],
+      expenseAllocation: [],
+      kpiVariables: {},
+      dataHealth: {
+        quotes: { status: "disconnected", rawCount: 0, mappedCount: 0 },
+        cashflow: { status: "disconnected", rawCount: 0, mappedCount: 0 },
+        revenue: { status: "disconnected", rawCount: 0, mappedCount: 0 },
+        expenses: { status: "disconnected", rawCount: 0, mappedCount: 0 },
+      },
+      isLoading: false,
+      hasLiveData: false,
+      connectedCount: 0,
+      sources: [],
+      toggleConnection: () => {},
+      updateWebhookUrl: () => {},
+      saveAndTest: async () => ({ success: false, error: "Not initialized" }),
+      syncNow: () => {},
+    } as DashboardData;
+  }
   return ctx;
 }
