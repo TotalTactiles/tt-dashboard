@@ -93,8 +93,8 @@ function mapQuotes(raw: any[]): QuotedJob[] {
       return {
         id: `Q${i}`,
         quoteNumber: `Q-${String(i + 1).padStart(3, "0")}`,
-        company: r._label_company ?? flexGet(r, "Company Name", "company", "Company", "Client") || "",
-        project: r._label_project ?? flexGet(r, "Project Name", "project", "Project", "Description") || "",
+        company: (r._label_company ?? flexGet(r, "Company Name", "company", "Company", "Client")) || "",
+        project: (r._label_project ?? flexGet(r, "Project Name", "project", "Project", "Description")) || "",
         value,
         totalPOs: hasLabels ? (r._label_countValue || 0) : parseNum(flexGet(r, "Total POs", "totalPOs", "POs", "total_pos")),
         status: normalizeQuoteStatus(flexGet(r, "Status", "status") || "pending"),
@@ -268,12 +268,12 @@ function mapRevenue(raw: any[]): RevenueProject[] {
 
       return {
         id: `R${i}`,
-        company: r._label_company ?? flexGet(r, "COMPANY", "Company", "company", "Client") || "",
-        project: r._label_project ?? flexGet(r, "PROJECT", "Project", "project", "Project Name") || "",
+        company: (r._label_company ?? flexGet(r, "COMPANY", "Company", "company", "Client")) || "",
+        project: (r._label_project ?? flexGet(r, "PROJECT", "Project", "project", "Project Name")) || "",
         valueInclGST,
         valueExclGST: Math.round(valueExclGST * 100) / 100,
-        invoiceDate: r._label_invoiceDate ?? flexGet(r, "INVOICE DATE", "Invoice Date", "invoiceDate", "invoice_date") || "",
-        dueDate: r._label_dueDate ?? flexGet(r, "DUE DATE", "Due Date", "dueDate", "due_date") || "",
+        invoiceDate: (r._label_invoiceDate ?? flexGet(r, "INVOICE DATE", "Invoice Date", "invoiceDate", "invoice_date")) || "",
+        dueDate: (r._label_dueDate ?? flexGet(r, "DUE DATE", "Due Date", "dueDate", "due_date")) || "",
         labourCost,
         tactileCost,
         otherProducts,
