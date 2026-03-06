@@ -469,19 +469,39 @@ function extractQuoteSummaryFromRaw(raw: any[]): Partial<QuoteSummary> | null {
     if (!row || typeof row !== "object") continue;
     const values = Object.values(row).map((v) => String(v).toUpperCase().trim());
     const valueKey = findKeyContaining(row, "QUOTED");
+    
+    // Find count column — a numeric column that isn't the label and isn't the QUOTED value column
+    const allKeys = Object.keys(row);
+    const countKey = allKeys.find((k) => {
+      if (k === valueKey) return false;
+      const val = row[k];
+      const str = String(val).toUpperCase().trim();
+      // Skip if it looks like a label (contains letters that aren't just a number)
+      if (values.includes(str)) return false;
+      const num = parseNum(val);
+      return num > 0 && num < 1000; // counts are typically small numbers
+    });
 
     for (const v of values) {
       if (v === "TOTAL QUOTED" || v === "TOTAL QUOTED JOBS") {
         result.totalQuoted = valueKey ? parseNum(row[valueKey]) : 0;
+        result.totalQuotedCount = countKey ? parseNum(row[countKey]) : 0;
         found = true;
       } else if (v === "TOTAL QUOTED WON" || v === "TOTAL WON") {
         result.totalWon = valueKey ? parseNum(row[valueKey]) : 0;
+        result.totalWonCount = countKey ? parseNum(row[countKey]) : 0;
         found = true;
       } else if (v === "TOTAL QUOTED LOST" || v === "TOTAL LOST") {
         result.totalLost = valueKey ? parseNum(row[valueKey]) : 0;
+        result.totalLostCount = countKey ? parseNum(row[countKey]) : 0;
+        found = true;
+      } else if (v === "TOTAL YELLOW" || v === "YELLOW TOTAL") {
+        result.totalYellow = valueKey ? parseNum(row[valueKey]) : 0;
+        result.totalYellowCount = countKey ? parseNum(row[countKey]) : 0;
         found = true;
       } else if (v === "QUOTED REMAINING" || v === "REMAINING") {
         result.quotedRemaining = valueKey ? parseNum(row[valueKey]) : 0;
+        result.quotedRemainingCount = countKey ? parseNum(row[countKey]) : 0;
         found = true;
       }
     }
