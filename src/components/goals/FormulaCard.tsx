@@ -11,6 +11,14 @@ interface FormulaCardProps {
   onDelete: (id: string) => void;
 }
 
+const DATA_SOURCE_COLORS: Record<string, string> = {
+  "Google Sheets": "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+  "Zoho CRM": "bg-blue-500/15 text-blue-400 border-blue-500/30",
+  "Zoho Projects": "bg-sky-500/15 text-sky-400 border-sky-500/30",
+  "Xero": "bg-purple-500/15 text-purple-400 border-purple-500/30",
+  "Manual": "bg-muted text-muted-foreground border-border",
+};
+
 export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardProps) {
   const result = evaluateExpression(formula.expression);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -22,23 +30,41 @@ export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardPr
     return v.toFixed(2);
   };
 
+  const sourceClass = formula.dataSource ? DATA_SOURCE_COLORS[formula.dataSource] || DATA_SOURCE_COLORS["Manual"] : "";
+
   return (
     <>
       <div className="stat-card space-y-3">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2">
-              <Calculator className="h-3.5 w-3.5 text-accent" />
-              <h3 className="text-sm font-semibold text-foreground">{formula.name}</h3>
+              <Calculator className="h-3.5 w-3.5 text-accent shrink-0" />
+              <h3 className="text-sm font-semibold text-foreground truncate">{formula.name}</h3>
               {formula.screenshotUrl && (
-                <Camera className="h-3 w-3 text-chart-blue" />
+                <Camera className="h-3 w-3 text-chart-blue shrink-0" />
               )}
             </div>
             <p className="text-xs text-muted-foreground line-clamp-1">{formula.description}</p>
           </div>
-          <Badge variant="outline" className="text-[10px] shrink-0 border-border text-muted-foreground">
-            {formula.category}
-          </Badge>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <Badge variant="outline" className="text-[10px] border-border text-muted-foreground">
+              {formula.category}
+            </Badge>
+          </div>
+        </div>
+
+        {/* Dashboard card & data source badges */}
+        <div className="flex flex-wrap gap-1.5">
+          {formula.dashboardCard && (
+            <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-primary/20">
+              📊 {formula.dashboardCard}
+            </Badge>
+          )}
+          {formula.dataSource && (
+            <Badge variant="outline" className={`text-[10px] ${sourceClass}`}>
+              {formula.dataSource}
+            </Badge>
+          )}
         </div>
 
         <div className="bg-secondary/50 rounded-md px-3 py-2">
