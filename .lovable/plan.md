@@ -1,51 +1,33 @@
 
 
-## Plan: Add Reference Screenshot Attachments to Formula Cards & Data Source Connectors
+## Plan: Enable Lovable Cloud + Create n8n CORS Proxy
 
-### Overview
-Add the ability to attach "source of truth" screenshots to formula cards AND to each data source connector (Google Sheets, Zoho CRM, Zoho Projects, and future Xero). Screenshots are uploaded to Lovable Cloud storage and displayed as thumbnails with click-to-expand viewing.
+### Step 1: Enable Lovable Cloud
+- Enable Supabase/Lovable Cloud for the project (you'll pick a region)
 
-### Step 1: Create Storage Bucket
-SQL migration to create a `reference-screenshots` public bucket with RLS policies for authenticated users to upload, read, and delete files.
+### Step 2: Create Edge Function `supabase/functions/n8n-proxy/index.ts`
+- Accepts POST with `{ webhookUrl, source }` body
+- Forwards request server-to-server to the n8n webhook URL
+- Returns n8n response to browser
+- Proper CORS headers included
 
-### Step 2: Update `MetricFormula` Interface
-In `src/hooks/useFormulas.ts`, add `screenshotUrl?: string` to the `MetricFormula` interface. Persisted via existing localStorage mechanism.
+### Step 3: Update `src/hooks/useDataSources.ts`
+- Replace direct `fetch(webhookUrl)` with calls to the Edge Function proxy
+- Remove GET fallback logic and CORS error messaging
 
-### Step 3: Update Formula Form (`src/components/goals/FormulaForm.tsx`)
-- Add a file input labeled "Reference Screenshot (Source of Truth)"
-- On file select, upload to `reference-screenshots` bucket via Supabase storage
-- Show thumbnail preview of selected/existing image with remove option
-- Pass `screenshotUrl` through `onSubmit`
-
-### Step 4: Update Formula Card (`src/components/goals/FormulaCard.tsx`)
-- If `screenshotUrl` exists, show a small thumbnail at the bottom of the card
-- Clicking opens a Dialog showing the full-size screenshot
-- Add a subtle camera/image icon indicator
-
-### Step 5: Add Screenshot Support to Data Sources (`src/hooks/useDataSources.ts`)
-- Add `screenshotUrl?: string` to the `DataSourceConfig` interface
-- Add `updateScreenshot(id: string, url: string)` and `removeScreenshot(id: string)` functions
-- Persisted via existing localStorage mechanism
-
-### Step 6: Update Settings Page (`src/pages/Settings.tsx`)
-- For each data source card (Google Sheets, Zoho CRM, Zoho Projects, future Xero), add an upload area for a reference screenshot
-- Show thumbnail preview when attached, with click-to-expand and remove option
-- Label: "Attach reference screenshot to verify data mapping"
-
-### Step 7: Create Shared Screenshot Components
-- `src/components/shared/ScreenshotUpload.tsx` — reusable file input + upload logic + thumbnail preview
-- `src/components/shared/ScreenshotViewer.tsx` — reusable Dialog for full-size viewing
+### Step 4: Simplify setup guides
+- Remove CORS/environment variable steps from:
+  - `GoogleSheetsSetupGuide.tsx`
+  - `ZohoCrmSetupGuide.tsx`
+  - `ZohoProjectsSetupGuide.tsx`
 
 ### Files Changed
 
-| File | Change |
+| File | Action |
 |------|--------|
-| SQL Migration | Create `reference-screenshots` storage bucket + RLS policies |
-| `src/hooks/useFormulas.ts` | Add `screenshotUrl` to `MetricFormula` |
-| `src/hooks/useDataSources.ts` | Add `screenshotUrl` to `DataSourceConfig` + update/remove helpers |
-| `src/components/shared/ScreenshotUpload.tsx` | Create — reusable upload + preview component |
-| `src/components/shared/ScreenshotViewer.tsx` | Create — reusable full-size viewer dialog |
-| `src/components/goals/FormulaForm.tsx` | Integrate `ScreenshotUpload` |
-| `src/components/goals/FormulaCard.tsx` | Show thumbnail + integrate `ScreenshotViewer` |
-| `src/pages/Settings.tsx` | Add screenshot upload per data source connector |
+| `supabase/functions/n8n-proxy/index.ts` | Create — proxy Edge Function |
+| `src/hooks/useDataSources.ts` | Update — route through proxy |
+| `src/components/settings/GoogleSheetsSetupGuide.tsx` | Update — remove CORS step |
+| `src/components/settings/ZohoCrmSetupGuide.tsx` | Update — remove CORS step |
+| `src/components/settings/ZohoProjectsSetupGuide.tsx` | Update — remove CORS step |
 

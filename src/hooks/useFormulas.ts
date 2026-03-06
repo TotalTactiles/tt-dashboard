@@ -7,6 +7,7 @@ export interface MetricFormula {
   description: string;
   unit: string;
   category: string;
+  screenshotUrl?: string;
 }
 
 const STORAGE_KEY = "meridian_formulas";

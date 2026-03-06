@@ -16,6 +16,7 @@ export interface DataSourceConfig {
   lastError: string;
   loading: boolean;
   dataMapping: string[];
+  screenshotUrl?: string;
 }
 
 export interface LiveData {
@@ -287,6 +288,26 @@ export function useDataSources() {
     [sources, fetchSource]
   );
 
+  const updateScreenshot = useCallback((id: string, url: string) => {
+    setSources((prev) => {
+      const updated = prev.map((s) => (s.id === id ? { ...s, screenshotUrl: url } : s));
+      saveSources(updated);
+      return updated;
+    });
+  }, []);
+
+  const removeScreenshot = useCallback((id: string) => {
+    setSources((prev) => {
+      const updated = prev.map((s) => {
+        if (s.id !== id) return s;
+        const { screenshotUrl, ...rest } = s;
+        return rest as DataSourceConfig;
+      });
+      saveSources(updated);
+      return updated;
+    });
+  }, []);
+
   const connectedCount = sources.filter((s) => s.connected).length;
   const hasLiveData = Object.keys(liveData).some((k) => !k.startsWith("_"));
 
@@ -299,5 +320,7 @@ export function useDataSources() {
     updateWebhookUrl,
     saveAndTest,
     syncNow,
+    updateScreenshot,
+    removeScreenshot,
   };
 }
