@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Check, ExternalLink, RefreshCw, Zap, ArrowRight, FileSpreadsheet, Loader2, AlertCircle, Clock } from "lucide-react";
+import { Check, ExternalLink, RefreshCw, Zap, ArrowRight, FileSpreadsheet, Loader2, AlertCircle, Clock, ChevronDown, ChevronUp, Database } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ const SETUP_GUIDES: Record<string, React.ComponentType> = {
 const Settings = () => {
   const {
     sources,
+    liveData,
     connectedCount,
     toggleConnection,
     updateWebhookUrl,
@@ -35,6 +36,7 @@ const Settings = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [nextSyncCountdown, setNextSyncCountdown] = useState<Record<string, number>>({});
   const [viewingScreenshot, setViewingScreenshot] = useState<{ url: string; name: string } | null>(null);
+  const [showInspector, setShowInspector] = useState(false);
 
   // Countdown timer for next sync
   useEffect(() => {
@@ -353,6 +355,56 @@ const Settings = () => {
           );
         })}
       </div>
+
+      {/* Raw Payload Inspector */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="chart-container mt-6 border border-border"
+      >
+        <button
+          className="flex items-center justify-between w-full text-left"
+          onClick={() => setShowInspector(!showInspector)}
+        >
+          <div className="flex items-center gap-2">
+            <Database className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Raw Payload Inspector</span>
+          </div>
+          {showInspector ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+        </button>
+
+        {showInspector && (
+          <div className="mt-4 space-y-3">
+            {(["quotes", "cashflow", "revenue", "expenses"] as const).map((key) => {
+              const arr = liveData[key];
+              const count = Array.isArray(arr) ? arr.length : 0;
+              const sample = Array.isArray(arr) && arr.length > 0 ? arr[0] : null;
+              return (
+                <div key={key} className="border border-border rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-mono font-medium uppercase">{key}</span>
+                    <Badge variant={count > 0 ? "default" : "destructive"} className="text-xs font-mono">
+                      {count} rows
+                    </Badge>
+                  </div>
+                  {sample && (
+                    <div className="mt-2">
+                      <p className="text-xs text-muted-foreground font-mono mb-1">Sample row keys:</p>
+                      <p className="text-xs font-mono text-foreground/70 break-all">
+                        {Object.keys(sample).join(", ")}
+                      </p>
+                    </div>
+                  )}
+                  {!sample && count === 0 && (
+                    <p className="text-xs text-muted-foreground font-mono mt-1">No data received from n8n</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </motion.div>
 
       {viewingScreenshot && (
         <ScreenshotViewer
