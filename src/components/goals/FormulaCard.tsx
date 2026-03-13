@@ -43,15 +43,16 @@ export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardPr
   // Use cached result from formulaCache
   const cached = formulaCache.get(formula.id);
   const result = cached?.value ?? null;
+  const errorMsg = cached?.error ?? null;
   const [viewerOpen, setViewerOpen] = useState(false);
 
   // Check if data is loaded: all values zero means webhook hasn't returned yet
   const dataLoaded = Object.values(kpiVariables).some((v) => v !== 0);
-  const isWaiting = cached === null && !dataLoaded;
+  const isWaiting = cached === null;
 
   const formatResult = (v: number | null) => {
-    if (isWaiting) return "Waiting for data…";
-    if (v === null) return "Error";
+    if (isWaiting) return "Syncing…";
+    if (v === null) return errorMsg ?? "Error";
     if (formula.unit === "$") return `$${v >= 1000 ? (v / 1000).toFixed(1) + "K" : v.toFixed(2)}`;
     if (formula.unit === "%") return `${v.toFixed(1)}%`;
     return v.toFixed(2);
