@@ -74,7 +74,7 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial, kpi
             <Label className="text-xs">Expression</Label>
             <Input value={expression} onChange={(e) => setExpression(e.target.value)} placeholder="e.g. OpEx / Revenue * 100" className="font-mono text-xs" />
             <div className="flex flex-wrap gap-1 mt-1">
-              {AVAILABLE_VARIABLES.map((v) => (
+              {availableVars.map((v) => (
                 <Badge
                   key={v}
                   variant="outline"

@@ -124,8 +124,17 @@ export function getAvailableVariables(kpiVariables?: Record<string, number>): st
   return DEFAULT_VARIABLE_NAMES;
 }
 
+const RESEED_KEY = "meridian_formulas_v2_seeded";
+
 function loadFormulas(): MetricFormula[] {
   try {
+    // Force re-seed if old defaults are present
+    if (!localStorage.getItem(RESEED_KEY)) {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(SEED_KEY);
+      localStorage.setItem(RESEED_KEY, "true");
+    }
+
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
     
