@@ -335,11 +335,21 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     // Card 4: Net Revenue = sum(totalIncome) - sum(totalCostOfSales)
     const netRevenue = months.reduce((s, m) => s + sv(cs?.totalIncome, m) - Math.abs(sv(cs?.totalCostOfSales, m)), 0);
 
-    // Card 5: Cashflow Position = last non-zero anticipatedSurplus
+    // Card 5: Cashflow Position = last non-zero anticipatedSurplus, fallback to Closing Balance
     let cashflowPosition = 0;
     for (let i = months.length - 1; i >= 0; i--) {
       const val = sv(cs?.anticipatedSurplus, months[i]);
       if (val !== 0) { cashflowPosition = val; break; }
+    }
+    // Fallback: try Closing Balance row from raw cashflow
+    if (cashflowPosition === 0) {
+      const closingRow = findCashflowRow("Closing Balance");
+      if (closingRow) {
+        for (let i = months.length - 1; i >= 0; i--) {
+          const val = parseNum(closingRow[months[i]] ?? 0);
+          if (val !== 0) { cashflowPosition = val; break; }
+        }
+      }
     }
 
     const kpiStats: KPIStat[] = [
