@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { MetricFormula, evaluateExpression } from "@/hooks/useFormulas";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { Badge } from "@/components/ui/badge";
