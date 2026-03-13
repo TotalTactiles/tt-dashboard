@@ -17,18 +17,19 @@ const MONTH_REGEX = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{2}$/i
 
 // ---- Quote status normalizer ----
 
-function normalizeQuoteStatus(s: string): "won" | "lost" | "pending" | "yellow" {
-  const lower = (s || "").toLowerCase().trim();
-  if (lower === "won" || lower.includes("po received") || lower === "accepted") return "won";
-  if (lower === "lost" || lower.includes("lost") || lower.includes("dead") || lower === "declined") return "lost";
-  if (lower === "yellow" || lower.includes("verbal") || lower.includes("yellow") || lower.includes("90%") || lower.includes("likely")) return "yellow";
+function normalizeQuoteStatus(raw: string): "won" | "lost" | "pending" | "yellow" {
+  const s = (raw ?? "").toUpperCase();
+  if (s.includes("PO RECEIVED") || s.includes("WON") || s === "GREEN") return "won";
+  if (s.includes("LOST") || s.includes("DEAD")) return "lost";
+  if (s.includes("VERBAL") || s.includes("YELLOW") || s.includes("YLW") || s.includes("90%")) return "yellow";
+  if (s.includes("NEGOTIATION") || s.includes("REVIEW") || s.includes("QUOTE SENT") || s.includes("PENDING")) return "pending";
   return "pending";
 }
 
-function normalizeRevenueStatus(s: string): "invoiced" | "pending" | "overdue" {
-  const lower = (s || "").toLowerCase().trim();
-  if (lower === "invoiced" || lower === "paid") return "invoiced";
-  if (lower === "overdue" || lower === "late") return "overdue";
+function normalizeRevenueStatus(raw: string): "invoiced" | "pending" | "overdue" {
+  const s = (raw ?? "").toUpperCase();
+  if (s.includes("INVOICED") || s.includes("PAID")) return "invoiced";
+  if (s.includes("OVERDUE")) return "overdue";
   return "pending";
 }
 
@@ -277,8 +278,8 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const findCashflowRow = (label: string) => {
       const upper = label.toUpperCase().trim();
       return rawCashflow.find((r: any) => {
-        const rl = (r._label_rowLabel ?? "").toUpperCase().trim();
-        return rl === upper;
+        const rl = (r._label_rowLabel ?? r.col_1 ?? "").toString().toUpperCase().trim();
+        return rl === upper || rl.includes(upper) || upper.includes(rl);
       });
     };
 
@@ -334,11 +335,21 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     // Card 4: Net Revenue = sum(totalIncome) - sum(totalCostOfSales)
     const netRevenue = months.reduce((s, m) => s + sv(cs?.totalIncome, m) - Math.abs(sv(cs?.totalCostOfSales, m)), 0);
 
-    // Card 5: Cashflow Position = last non-zero anticipatedSurplus
+    // Card 5: Cashflow Position = last non-zero anticipatedSurplus, fallback to Closing Balance
     let cashflowPosition = 0;
     for (let i = months.length - 1; i >= 0; i--) {
       const val = sv(cs?.anticipatedSurplus, months[i]);
       if (val !== 0) { cashflowPosition = val; break; }
+    }
+    // Fallback: try Closing Balance row from raw cashflow
+    if (cashflowPosition === 0) {
+      const closingRow = findCashflowRow("Closing Balance");
+      if (closingRow) {
+        for (let i = months.length - 1; i >= 0; i--) {
+          const val = parseNum(closingRow[months[i]] ?? 0);
+          if (val !== 0) { cashflowPosition = val; break; }
+        }
+      }
     }
 
     const kpiStats: KPIStat[] = [

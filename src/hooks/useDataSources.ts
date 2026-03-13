@@ -178,9 +178,12 @@ export function useDataSources() {
 
       setLiveData((prev) => {
         const updated = { ...prev, [`_lastSync_${source.id}`]: now };
-        // Only merge keys that are non-empty arrays; preserve existing data for empty ones
         if (finalData && typeof finalData === "object") {
           for (const [k, v] of Object.entries(finalData)) {
+            // Only skip if new value is empty array AND existing is non-empty array
+            if (Array.isArray(v) && v.length === 0 && Array.isArray(updated[k]) && updated[k].length > 0) {
+              continue;
+            }
             updated[k] = v;
           }
         }
