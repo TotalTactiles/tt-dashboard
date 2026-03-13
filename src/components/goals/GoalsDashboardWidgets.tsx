@@ -1,5 +1,5 @@
 import { Goal } from "@/hooks/useGoals";
-import { MetricFormula, evaluateExpression } from "@/hooks/useFormulas";
+import { MetricFormula } from "@/hooks/useFormulas";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { Progress } from "@/components/ui/progress";
 import { Target, Calculator } from "lucide-react";
@@ -10,7 +10,7 @@ interface GoalsDashboardWidgetsProps {
 }
 
 export default function GoalsDashboardWidgets({ goals, formulas }: GoalsDashboardWidgetsProps) {
-  const { kpiVariables } = useDashboardData();
+  const { kpiVariables, formulaCache } = useDashboardData();
   const activeGoals = goals.
   filter((g) => {
     const progress = g.targetValue > 0 ? g.currentValue / g.targetValue * 100 : 0;
@@ -18,10 +18,10 @@ export default function GoalsDashboardWidgets({ goals, formulas }: GoalsDashboar
   }).
   slice(0, 5);
 
-  const formulaResults = formulas.slice(0, 4).map((f) => ({
-    ...f,
-    result: evaluateExpression(f.expression, kpiVariables)
-  }));
+  const formulaResults = formulas.slice(0, 4).map((f) => {
+    const cached = formulaCache.get(f.id);
+    return { ...f, result: cached?.value ?? null };
+  });
 
   if (activeGoals.length === 0 && formulaResults.length === 0) return null;
 

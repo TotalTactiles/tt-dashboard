@@ -1,5 +1,9 @@
-import React, { createContext, useContext, useMemo } from "react";
+import React, { createContext, useContext, useMemo, useRef } from "react";
 import { useDataSources } from "@/hooks/useDataSources";
+import { resolveKpiVariables, createFormulaCache, DataStore, type EvaluationCache } from "@/engine/formulaEngine";
+
+// Module-level formula cache singleton — survives re-renders
+const formulaCacheInstance = createFormulaCache();
 
 // ---- Helpers ----
 
@@ -135,6 +139,7 @@ export interface DashboardData {
   forecastChartData: ForecastChartPoint[];
   expenseAllocation: ExpenseAllocationItem[];
   kpiVariables: Record<string, number>;
+  formulaCache: ReturnType<typeof createFormulaCache>;
   dataHealth: DataHealth;
   isLoading: boolean;
   hasLiveData: boolean;
@@ -391,18 +396,21 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       },
     ];
 
-    // KPI variables for formula engine
-    const es = liveData.expensesSummary as any;
-    const rs = liveData.revenueSummary as any;
-    const kpiVariables: Record<string, number> = {
-      TotalQuoted: parseNum(qs?.totalQuoted?.value ?? 0),
-      TotalWon: parseNum(qs?.totalWon?.value ?? 0),
-      QuotedRemaining: parseNum(qs?.remaining?.value ?? 0),
-      NetRevenue: rs ? (parseNum(rs.totalValue ?? 0) - parseNum(rs.totalCOGS ?? 0)) : netRevenue,
-      CashPosition: cashflowPosition,
-      ConversionRate: parseNum(qs?.conversionRate ?? 0),
-      MonthlyExpenses: es ? parseNum(es.totalMonthly ?? 0) : expenseCategories.reduce((s, c) => s + c.totalMonthly, 0),
+    // KPI variables via formula engine
+    const storeSnapshot: DataStore = {
+      quotes: rawQuotes,
+      qtsSmmry: liveData.qtsSmmry ?? [],
+      cashflow: rawCashflow,
+      revenue: rawRevenue,
+      expenses: rawExpenses,
+      labour: liveData.labour ?? [],
+      stock: liveData.stock ?? [],
+      quotesSummary: qs ?? {},
+      cashflowSummary: cs ?? {},
+      revenueSummary: liveData.revenueSummary ?? {},
+      expensesSummary: liveData.expensesSummary ?? {},
     };
+    const kpiVariables = resolveKpiVariables(storeSnapshot);
 
     // Data health
     const health = (raw: any[], mapped: any[]): SectionHealth => {
@@ -419,10 +427,15 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     const lastUpdated = meta?.pulledAt ?? null;
 
+    // Compute formula cache
+    formulaCacheInstance.invalidate();
+    // Note: formulas from useFormulas() are not available here (hook can't be called inside useMemo).
+    // The cache.compute() call happens via the exposed formulaCache on the context — consumers call it.
+
     return {
       quotedJobs, revenueProjects, expenseCategories,
       kpiStats, incomeOutgoingsData, profitMarginData, forecastChartData, expenseAllocation,
-      kpiVariables, dataHealth, isLoading, hasLiveData, connectedCount, lastUpdated,
+      kpiVariables, formulaCache: formulaCacheInstance, dataHealth, isLoading, hasLiveData, connectedCount, lastUpdated,
       sources: ds.sources, toggleConnection: ds.toggleConnection,
       updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow,
     };
@@ -438,6 +451,7 @@ export function useDashboardData(): DashboardData {
       quotedJobs: [], revenueProjects: [], expenseCategories: [],
       kpiStats: [], incomeOutgoingsData: [], profitMarginData: [],
       forecastChartData: [], expenseAllocation: [], kpiVariables: {},
+      formulaCache: formulaCacheInstance,
       dataHealth: {
         quotes: { status: "disconnected", rawCount: 0, mappedCount: 0 },
         cashflow: { status: "disconnected", rawCount: 0, mappedCount: 0 },

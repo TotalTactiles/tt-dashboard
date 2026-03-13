@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -12,13 +12,28 @@ import GoalForm from "@/components/goals/GoalForm";
 import GoalProgressChart from "@/components/goals/GoalProgressChart";
 import FormulaCard from "@/components/goals/FormulaCard";
 import FormulaForm from "@/components/goals/FormulaForm";
+import { DataStore } from "@/engine/formulaEngine";
 
 const CATEGORIES = ["All", "Revenue", "Operations", "Growth", "Profitability", "Customer", "Product"];
 
 const GoalsTargets = () => {
   const { goals, addGoal, updateGoal, deleteGoal } = useGoals();
   const { formulas, addFormula, updateFormula, deleteFormula } = useFormulas();
-  const { kpiVariables } = useDashboardData();
+  const { kpiVariables, formulaCache } = useDashboardData();
+
+  // Recompute formula cache whenever formulas or kpiVariables change
+  useEffect(() => {
+    if (formulas.length > 0) {
+      // We need a minimal DataStore for the cache — kpiVariables are already resolved,
+      // so we pass an empty store and let variables handle resolution
+      const emptyStore: DataStore = {
+        quotes: [], qtsSmmry: [], cashflow: [], revenue: [], expenses: [],
+        labour: [], stock: [], quotesSummary: {}, cashflowSummary: {},
+        revenueSummary: {}, expensesSummary: {},
+      };
+      formulaCache.compute(formulas, emptyStore, kpiVariables);
+    }
+  }, [formulas, kpiVariables, formulaCache]);
 
   const [goalFormOpen, setGoalFormOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | undefined>();

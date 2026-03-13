@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { MetricFormula, evaluateExpression } from "@/hooks/useFormulas";
+import { MetricFormula } from "@/hooks/useFormulas";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,20 +38,16 @@ function DebugSection({ kpiVariables, result, expression }: { kpiVariables: Reco
 }
 
 export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardProps) {
-  const { kpiVariables } = useDashboardData();
-  console.log('kpiVariables in FormulaCard:', kpiVariables);
-  const result = evaluateExpression(formula.expression, kpiVariables);
+  const { kpiVariables, formulaCache } = useDashboardData();
+
+  // Use cached result from formulaCache
+  const cached = formulaCache.get(formula.id);
+  const result = cached?.value ?? null;
   const [viewerOpen, setViewerOpen] = useState(false);
 
   // Check if data is loaded: all values zero means webhook hasn't returned yet
   const dataLoaded = Object.values(kpiVariables).some((v) => v !== 0);
-  // Check if expression uses unknown variables
-  const expressionVarsValid = formula.expression
-    .split(/[+\-*/() ]+/)
-    .filter((t) => t.trim() && isNaN(Number(t)))
-    .every((t) => t in kpiVariables);
-
-  const isWaiting = !dataLoaded && expressionVarsValid;
+  const isWaiting = cached === null && !dataLoaded;
 
   const formatResult = (v: number | null) => {
     if (isWaiting) return "Waiting for data…";
