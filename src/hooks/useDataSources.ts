@@ -169,6 +169,8 @@ export function useDataSources() {
           warnings.push(`missing "${key}" key`);
         } else if (Array.isArray(finalData[key]) && finalData[key].length === 0) {
           warnings.push(`"${key}" is empty`);
+        } else if (finalData[key] && typeof finalData[key] === "object" && !Array.isArray(finalData[key]) && Object.keys(finalData[key]).length === 0) {
+          warnings.push(`"${key}" is empty`);
         }
       }
 
