@@ -455,6 +455,7 @@ export function useDashboardData(): DashboardData {
       quotedJobs: [], revenueProjects: [], expenseCategories: [],
       kpiStats: [], incomeOutgoingsData: [], profitMarginData: [],
       forecastChartData: [], expenseAllocation: [], kpiVariables: {},
+      dataStore: { quotes: [], qtsSmmry: [], cashflow: [], revenue: [], expenses: [], labour: [], stock: [], quotesSummary: {}, cashflowSummary: {}, revenueSummary: {}, expensesSummary: {} },
       formulaCache: formulaCacheInstance,
       dataHealth: {
         quotes: { status: "disconnected", rawCount: 0, mappedCount: 0 },
