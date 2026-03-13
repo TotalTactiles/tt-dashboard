@@ -1,5 +1,6 @@
 import { Goal } from "@/hooks/useGoals";
 import { MetricFormula, evaluateExpression } from "@/hooks/useFormulas";
+import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { Progress } from "@/components/ui/progress";
 import { Target, Calculator } from "lucide-react";
 
