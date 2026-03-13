@@ -18,6 +18,7 @@ const CATEGORIES = ["All", "Revenue", "Operations", "Growth", "Profitability", "
 const GoalsTargets = () => {
   const { goals, addGoal, updateGoal, deleteGoal } = useGoals();
   const { formulas, addFormula, updateFormula, deleteFormula } = useFormulas();
+  const { kpiVariables } = useDashboardData();
 
   const [goalFormOpen, setGoalFormOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | undefined>();
