@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Target, Calculator } from "lucide-react";
 import { useGoals, Goal } from "@/hooks/useGoals";
 import { useFormulas, MetricFormula } from "@/hooks/useFormulas";
+import { useDashboardData } from "@/contexts/DashboardDataContext";
 import GoalCard from "@/components/goals/GoalCard";
 import GoalForm from "@/components/goals/GoalForm";
 import GoalProgressChart from "@/components/goals/GoalProgressChart";
