@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { MetricFormula, evaluateExpression } from "@/hooks/useFormulas";
+import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Calculator, Camera } from "lucide-react";
