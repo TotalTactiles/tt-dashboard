@@ -4,7 +4,7 @@ import { useDashboardData } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
 
 const CashflowChart = () => {
-  const { cashflowChartData, dataHealth } = useDashboardData();
+  const { incomeOutgoingsData, dataHealth } = useDashboardData();
 
   return (
     <motion.div
@@ -14,12 +14,12 @@ const CashflowChart = () => {
       className="chart-container"
     >
       <h3 className="text-sm font-medium text-muted-foreground mb-1">Cash Surplus / Deficit</h3>
-      <p className="text-xs text-muted-foreground font-mono mb-4">Monthly closing balance trend</p>
-      {cashflowChartData.length === 0 ? (
+      <p className="text-xs text-muted-foreground font-mono mb-4">Monthly surplus trend</p>
+      {incomeOutgoingsData.length === 0 ? (
         <NoData message="No cashflow data" healthStatus={dataHealth.cashflow.status} />
       ) : (
         <ResponsiveContainer width="100%" height={220}>
-          <AreaChart data={cashflowChartData}>
+          <AreaChart data={incomeOutgoingsData}>
             <defs>
               <linearGradient id="surplusGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="hsl(160, 70%, 45%)" stopOpacity={0.3} />
@@ -37,13 +37,10 @@ const CashflowChart = () => {
                 fontFamily: "JetBrains Mono",
                 fontSize: "12px",
               }}
-              formatter={(value: number, name: string) => {
-                const labels: Record<string, string> = { surplus: "Surplus/Deficit", closingBalance: "Closing Balance" };
-                return [`$${value.toLocaleString()}`, labels[name] || name];
-              }}
+              formatter={(value: number) => [`$${value.toLocaleString()}`, "Surplus/(Deficit)"]}
             />
             <ReferenceLine y={0} stroke="hsl(220, 14%, 22%)" />
-            <Area type="monotone" dataKey="closingBalance" stroke="hsl(160, 70%, 45%)" fill="url(#surplusGrad)" strokeWidth={2} animationDuration={2000} />
+            <Area type="monotone" dataKey="surplus" stroke="hsl(160, 70%, 45%)" fill="url(#surplusGrad)" strokeWidth={2} animationDuration={2000} />
           </AreaChart>
         </ResponsiveContainer>
       )}

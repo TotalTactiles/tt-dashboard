@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
 
@@ -31,16 +31,15 @@ const FundPerformanceChart = () => {
                   fontFamily: "JetBrains Mono",
                   fontSize: "12px",
                 }}
-                formatter={(value: number, name: string) => {
-                  if (name === "grossMargin") return [`${value}%`, "Gross Margin"];
-                  return [`$${value.toLocaleString()}`, "Cash Surplus"];
-                }}
+                formatter={(value: number) => [`${value}%`, "Gross Margin"]}
               />
+              <ReferenceLine y={30} stroke="hsl(38, 92%, 55%)" strokeDasharray="5 5" label={{ value: "Target 30%", position: "right", fill: "hsl(38, 92%, 55%)", fontSize: 10, fontFamily: "JetBrains Mono" }} />
               <Line type="monotone" dataKey="grossMargin" stroke="hsl(160, 70%, 45%)" strokeWidth={2} dot={{ r: 3, fill: "hsl(160, 70%, 45%)" }} animationDuration={2000} />
             </LineChart>
           </ResponsiveContainer>
           <div className="flex gap-4 mt-3 text-xs font-mono">
             <div className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-chart-green rounded" /> Gross Margin</div>
+            <div className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-chart-amber rounded" style={{ borderTop: "1px dashed" }} /> Target 30%</div>
           </div>
         </>
       )}

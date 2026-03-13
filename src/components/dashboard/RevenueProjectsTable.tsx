@@ -23,7 +23,7 @@ const RevenueProjectsTable = () => {
       className="chart-container col-span-full"
     >
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-muted-foreground">Expected Revenue & COGS</h3>
+        <h3 className="text-sm font-medium text-muted-foreground">Revenue & COGS</h3>
         {revenueProjects.length > 0 && (
           <div className="flex items-center gap-4 text-xs font-mono">
             <span className="text-muted-foreground">
@@ -47,12 +47,15 @@ const RevenueProjectsTable = () => {
               <tr className="text-left text-xs text-muted-foreground font-mono border-b border-border">
                 <th className="pb-3 pr-4">Company</th>
                 <th className="pb-3 pr-4">Project</th>
+                <th className="pb-3 pr-4 text-right">Value (incl GST)</th>
                 <th className="pb-3 pr-4 text-right">Value (excl GST)</th>
+                <th className="pb-3 pr-4">Invoice</th>
+                <th className="pb-3 pr-4">Due</th>
                 <th className="pb-3 pr-4 text-right">Labour</th>
                 <th className="pb-3 pr-4 text-right">Tactile</th>
                 <th className="pb-3 pr-4 text-right">Other</th>
+                <th className="pb-3 pr-4 text-right">COGS</th>
                 <th className="pb-3 pr-4 text-right">Gross Profit</th>
-                <th className="pb-3 pr-4">Due</th>
                 <th className="pb-3 text-center">Status</th>
               </tr>
             </thead>
@@ -62,17 +65,20 @@ const RevenueProjectsTable = () => {
                   key={proj.id}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.8 + i * 0.05 }}
+                  transition={{ delay: 0.8 + i * 0.03 }}
                   className="border-b border-border/50 hover:bg-secondary/30 transition-colors"
                 >
                   <td className="py-3 pr-4 font-medium">{proj.company}</td>
                   <td className="py-3 pr-4 text-muted-foreground">{proj.project}</td>
+                  <td className="py-3 pr-4 text-right font-mono">${proj.valueInclGST.toLocaleString()}</td>
                   <td className="py-3 pr-4 text-right font-mono">${proj.valueExclGST.toLocaleString()}</td>
+                  <td className="py-3 pr-4 font-mono text-xs text-muted-foreground">{proj.invoiceDate}</td>
+                  <td className="py-3 pr-4 font-mono text-xs text-muted-foreground">{proj.dueDate}</td>
                   <td className="py-3 pr-4 text-right font-mono text-chart-red">${proj.labourCost.toLocaleString()}</td>
                   <td className="py-3 pr-4 text-right font-mono text-chart-red">${proj.tactileCost.toLocaleString()}</td>
-                  <td className="py-3 pr-4 text-right font-mono text-chart-red">${proj.otherProducts.toLocaleString()}</td>
-                  <td className="py-3 pr-4 text-right font-mono text-chart-green">${proj.grossProfit.toLocaleString()}</td>
-                  <td className="py-3 pr-4 font-mono text-xs text-muted-foreground">{proj.dueDate}</td>
+                  <td className="py-3 pr-4 text-right font-mono text-chart-red">${proj.otherCost.toLocaleString()}</td>
+                  <td className="py-3 pr-4 text-right font-mono text-chart-red">${proj.totalCOGS.toLocaleString()}</td>
+                  <td className={`py-3 pr-4 text-right font-mono ${proj.grossProfit >= 0 ? "text-chart-green" : "text-chart-red"}`}>${proj.grossProfit.toLocaleString()}</td>
                   <td className="py-3 text-center">
                     <span className={`text-xs px-2 py-1 rounded-full font-mono capitalize ${statusStyles[proj.status]}`}>
                       {proj.status}

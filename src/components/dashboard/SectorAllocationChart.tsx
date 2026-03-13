@@ -43,7 +43,7 @@ const SectorAllocationChart = () => {
                   fontFamily: "JetBrains Mono",
                   fontSize: "12px",
                 }}
-                formatter={(value: number) => [`$${value.toLocaleString()}/mo`, ""]}
+                formatter={(value: number) => [`$${value.toLocaleString()}/yr`, ""]}
               />
             </PieChart>
           </ResponsiveContainer>

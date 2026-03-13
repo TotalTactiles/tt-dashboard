@@ -4,15 +4,24 @@ import { useDashboardData } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
 
 const SERIES = [
-  { key: "totalOutgoings", label: "Total Outgoings", color: "hsl(0, 70%, 55%)" },
-  { key: "anticipatedSurplus", label: "Anticipated Cash Surplus/(Deficit)", color: "hsl(145, 63%, 32%)" },
-  { key: "costProbableJobs", label: "Cost of Jobs Probable To Be Won", color: "hsl(30, 85%, 55%)" },
-  { key: "probableJobs", label: "Jobs Probable To Be Won", color: "hsl(45, 90%, 55%)" },
-  { key: "surplusIncludingProbable", label: "Anticipated Cash Surplus/(Deficit) Including Probable Jobs", color: "hsl(145, 63%, 55%)" },
+  { key: "totalOutgoings", label: "Total Outgoings", color: "hsl(0, 70%, 55%)", dash: undefined },
+  { key: "anticipatedSurplus", label: "Anticipated Surplus/(Deficit)", color: "hsl(145, 63%, 32%)", dash: undefined },
+  { key: "probableJobs", label: "Jobs Probable To Be Won", color: "hsl(45, 90%, 55%)", dash: "5 5" },
+  { key: "surplusIncludingProbable", label: "Surplus incl. Probable Jobs", color: "hsl(145, 63%, 55%)", dash: "5 5" },
 ] as const;
 
 const ForecastChart = () => {
   const { forecastChartData, dataHealth } = useDashboardData();
+
+  // Check which optional series have data
+  const hasProbable = forecastChartData.some((d) => d.probableJobs !== 0);
+  const hasSurplusProb = forecastChartData.some((d) => d.surplusIncludingProbable !== 0);
+
+  const activeSeries = SERIES.filter((s) => {
+    if (s.key === "probableJobs") return hasProbable;
+    if (s.key === "surplusIncludingProbable") return hasSurplusProb;
+    return true;
+  });
 
   return (
     <motion.div
@@ -27,9 +36,9 @@ const ForecastChart = () => {
       ) : (
         <>
           <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-4">
-            {SERIES.map((s) => (
+            {activeSeries.map((s) => (
               <div key={s.key} className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
-                <span className="w-3 h-0.5 rounded" style={{ backgroundColor: s.color }} />
+                <span className="w-3 h-0.5 rounded" style={{ backgroundColor: s.color, borderTop: s.dash ? "1px dashed" : undefined }} />
                 {s.label}
               </div>
             ))}
@@ -48,17 +57,18 @@ const ForecastChart = () => {
                   fontSize: "12px",
                 }}
                 formatter={(value: number, name: string) => {
-                  const series = SERIES.find((s) => s.key === name);
+                  const series = activeSeries.find((s) => s.key === name);
                   return [`$${value.toLocaleString()}`, series?.label || name];
                 }}
               />
-              {SERIES.map((s) => (
+              {activeSeries.map((s) => (
                 <Line
                   key={s.key}
                   type="monotone"
                   dataKey={s.key}
                   stroke={s.color}
                   strokeWidth={2}
+                  strokeDasharray={s.dash}
                   dot={{ r: 2, fill: s.color }}
                   animationDuration={2000}
                 />

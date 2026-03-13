@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
 
 const PortfolioChart = () => {
-  const { cashflowChartData, dataHealth } = useDashboardData();
+  const { incomeOutgoingsData, dataHealth } = useDashboardData();
 
   return (
     <motion.div
@@ -20,20 +20,24 @@ const PortfolioChart = () => {
         </div>
         <div className="flex items-center gap-4 text-xs font-mono">
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-sm bg-chart-green" />
+            <span className="w-3 h-3 rounded-sm bg-chart-blue" />
             <span className="text-muted-foreground">Income</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-sm bg-chart-red" />
             <span className="text-muted-foreground">Outgoings</span>
           </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-0.5 rounded bg-chart-green" />
+            <span className="text-muted-foreground">Surplus</span>
+          </div>
         </div>
       </div>
-      {cashflowChartData.length === 0 ? (
+      {incomeOutgoingsData.length === 0 ? (
         <NoData message="No cashflow data" healthStatus={dataHealth.cashflow.status} />
       ) : (
         <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={cashflowChartData} barGap={2}>
+          <ComposedChart data={incomeOutgoingsData} barGap={2}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
             <XAxis dataKey="month" stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" />
             <YAxis stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`} />
@@ -45,14 +49,15 @@ const PortfolioChart = () => {
                 fontFamily: "JetBrains Mono",
                 fontSize: "12px",
               }}
-              formatter={(value: number, name: string) => [
-                `$${value.toLocaleString()}`,
-                name === "income" ? "Income" : "Outgoings",
-              ]}
+              formatter={(value: number, name: string) => {
+                const labels: Record<string, string> = { income: "Income", outgoings: "Outgoings", surplus: "Surplus/(Deficit)" };
+                return [`$${value.toLocaleString()}`, labels[name] || name];
+              }}
             />
-            <Bar dataKey="income" fill="hsl(160, 70%, 45%)" radius={[3, 3, 0, 0]} animationDuration={1500} />
+            <Bar dataKey="income" fill="hsl(200, 80%, 50%)" radius={[3, 3, 0, 0]} animationDuration={1500} />
             <Bar dataKey="outgoings" fill="hsl(0, 72%, 55%)" radius={[3, 3, 0, 0]} animationDuration={1500} />
-          </BarChart>
+            <Line type="monotone" dataKey="surplus" stroke="hsl(160, 70%, 45%)" strokeWidth={2} dot={{ r: 3, fill: "hsl(160, 70%, 45%)" }} />
+          </ComposedChart>
         </ResponsiveContainer>
       )}
     </motion.div>
