@@ -12,7 +12,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import GoalsDashboardWidgets from "@/components/goals/GoalsDashboardWidgets";
 import { useGoals } from "@/hooks/useGoals";
 import { useFormulas } from "@/hooks/useFormulas";
-import { DashboardDataProvider, useDashboardData } from "@/contexts/DashboardDataContext";
+import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Unplug, Loader2 } from "lucide-react";
@@ -134,11 +134,7 @@ const DashboardContent = () => {
 };
 
 const Index = () => {
-  return (
-    <DashboardDataProvider>
-      <DashboardContent />
-    </DashboardDataProvider>
-  );
+  return <DashboardContent />;
 };
 
 export default Index;

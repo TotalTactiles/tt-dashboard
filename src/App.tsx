@@ -8,6 +8,7 @@ import Settings from "./pages/Settings";
 import CalendarView from "./pages/CalendarView";
 import GoalsTargets from "./pages/GoalsTargets";
 import NotFound from "./pages/NotFound";
+import { DashboardDataProvider } from "@/contexts/DashboardDataContext";
 
 const queryClient = new QueryClient();
 
@@ -16,16 +17,18 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/calendar" element={<CalendarView />} />
-          <Route path="/goals" element={<GoalsTargets />} />
-          <Route path="/settings" element={<Settings />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <DashboardDataProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/calendar" element={<CalendarView />} />
+            <Route path="/goals" element={<GoalsTargets />} />
+            <Route path="/settings" element={<Settings />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </DashboardDataProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
