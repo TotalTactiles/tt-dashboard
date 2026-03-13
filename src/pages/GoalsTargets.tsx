@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Target, Calculator } from "lucide-react";
 import { useGoals, Goal } from "@/hooks/useGoals";
 import { useFormulas, MetricFormula } from "@/hooks/useFormulas";
+import { useDashboardData } from "@/contexts/DashboardDataContext";
 import GoalCard from "@/components/goals/GoalCard";
 import GoalForm from "@/components/goals/GoalForm";
 import GoalProgressChart from "@/components/goals/GoalProgressChart";
@@ -17,6 +18,7 @@ const CATEGORIES = ["All", "Revenue", "Operations", "Growth", "Profitability", "
 const GoalsTargets = () => {
   const { goals, addGoal, updateGoal, deleteGoal } = useGoals();
   const { formulas, addFormula, updateFormula, deleteFormula } = useFormulas();
+  const { kpiVariables } = useDashboardData();
 
   const [goalFormOpen, setGoalFormOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | undefined>();
@@ -136,6 +138,7 @@ const GoalsTargets = () => {
             onOpenChange={(open) => { setFormulaFormOpen(open); if (!open) setEditingFormula(undefined); }}
             onSubmit={handleFormulaSubmit}
             initial={editingFormula}
+            kpiVariables={kpiVariables}
           />
         </TabsContent>
       </Tabs>

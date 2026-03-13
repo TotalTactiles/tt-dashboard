@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MetricFormula, AVAILABLE_VARIABLES, DASHBOARD_CARDS, DATA_SOURCES } from "@/hooks/useFormulas";
+import { MetricFormula, getAvailableVariables, DASHBOARD_CARDS, DATA_SOURCES } from "@/hooks/useFormulas";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,9 +16,11 @@ interface FormulaFormProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (formula: Omit<MetricFormula, "id">) => void;
   initial?: MetricFormula;
+  kpiVariables?: Record<string, number>;
 }
 
-export default function FormulaForm({ open, onOpenChange, onSubmit, initial }: FormulaFormProps) {
+export default function FormulaForm({ open, onOpenChange, onSubmit, initial, kpiVariables }: FormulaFormProps) {
+  const availableVars = getAvailableVariables(kpiVariables);
   const [name, setName] = useState(initial?.name ?? "");
   const [expression, setExpression] = useState(initial?.expression ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -72,7 +74,7 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial }: F
             <Label className="text-xs">Expression</Label>
             <Input value={expression} onChange={(e) => setExpression(e.target.value)} placeholder="e.g. OpEx / Revenue * 100" className="font-mono text-xs" />
             <div className="flex flex-wrap gap-1 mt-1">
-              {AVAILABLE_VARIABLES.map((v) => (
+              {availableVars.map((v) => (
                 <Badge
                   key={v}
                   variant="outline"

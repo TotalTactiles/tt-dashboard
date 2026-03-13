@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { MetricFormula, evaluateExpression } from "@/hooks/useFormulas";
+import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Calculator, Camera } from "lucide-react";
@@ -20,7 +21,8 @@ const DATA_SOURCE_COLORS: Record<string, string> = {
 };
 
 export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardProps) {
-  const result = evaluateExpression(formula.expression);
+  const { kpiVariables } = useDashboardData();
+  const result = evaluateExpression(formula.expression, kpiVariables);
   const [viewerOpen, setViewerOpen] = useState(false);
 
   const formatResult = (v: number | null) => {
