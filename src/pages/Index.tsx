@@ -41,7 +41,7 @@ const DashboardContent = () => {
       <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Business Dashboard</h1>
-          <p className="text-sm text-muted-foreground font-mono">FY 2025 Overview — Quotes · Cashflow · Revenue · Expenses</p>
+          <p className="text-sm text-muted-foreground font-mono">FY 2026 Overview — Quotes · Cashflow · Revenue · Expenses</p>
         </div>
         <div className="flex items-center gap-3">
           {lastUpdated && (
