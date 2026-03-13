@@ -106,6 +106,9 @@ export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardPr
             <p className={`text-lg font-mono font-bold ${isWaiting ? "text-muted-foreground" : result !== null ? "text-primary glow-green" : "text-destructive"}`}>
               {formatResult(result)}
             </p>
+            {errorMsg && !isWaiting && (
+              <p className="text-[9px] font-mono text-destructive/80 mt-0.5 break-all">{errorMsg}</p>
+            )}
           </div>
           <div className="flex gap-1">
             {formula.screenshotUrl && (

@@ -442,7 +442,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       sources: ds.sources, toggleConnection: ds.toggleConnection,
       updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow,
     };
-  }, [liveData, hasLiveData, connectedCount, isLoading, ds]);
+  }, [liveData, hasLiveData, connectedCount, isLoading, ds, formulas]);
 
   return <DashboardDataContext.Provider value={data}>{children}</DashboardDataContext.Provider>;
 }
