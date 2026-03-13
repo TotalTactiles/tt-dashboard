@@ -19,7 +19,8 @@ interface FormulaFormProps {
   kpiVariables?: Record<string, number>;
 }
 
-export default function FormulaForm({ open, onOpenChange, onSubmit, initial }: FormulaFormProps) {
+export default function FormulaForm({ open, onOpenChange, onSubmit, initial, kpiVariables }: FormulaFormProps) {
+  const availableVars = getAvailableVariables(kpiVariables);
   const [name, setName] = useState(initial?.name ?? "");
   const [expression, setExpression] = useState(initial?.expression ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
