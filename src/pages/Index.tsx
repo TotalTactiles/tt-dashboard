@@ -1,3 +1,4 @@
+import { RefreshCw } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import PortfolioChart from "@/components/dashboard/PortfolioChart";
 import SectorAllocationChart from "@/components/dashboard/SectorAllocationChart";
@@ -13,89 +14,113 @@ import { useGoals } from "@/hooks/useGoals";
 import { useFormulas } from "@/hooks/useFormulas";
 import { DashboardDataProvider, useDashboardData } from "@/contexts/DashboardDataContext";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, AlertTriangle, Unplug } from "lucide-react";
-
-const healthIcon = {
-  healthy: <CheckCircle className="w-3 h-3 text-chart-green" />,
-  "connected-empty": <AlertTriangle className="w-3 h-3 text-amber-400" />,
-  "connected-header-mismatch": <AlertTriangle className="w-3 h-3 text-destructive" />,
-  disconnected: <Unplug className="w-3 h-3 text-muted-foreground" />,
-};
-
-const healthLabel = {
-  healthy: "OK",
-  "connected-empty": "Empty",
-  "connected-header-mismatch": "Headers",
-  disconnected: "Off",
-};
+import { Button } from "@/components/ui/button";
+import { CheckCircle, Unplug, Loader2 } from "lucide-react";
 
 const DashboardContent = () => {
   const { goals } = useGoals();
   const { formulas } = useFormulas();
-  const { kpiStats, hasLiveData, connectedCount, dataHealth } = useDashboardData();
+  const { kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, lastUpdated, sources, syncNow } = useDashboardData();
 
-  const sections = [
-    { key: "quotes" as const, label: "Quotes" },
-    { key: "cashflow" as const, label: "Cashflow" },
-    { key: "revenue" as const, label: "Revenue" },
-    { key: "expenses" as const, label: "Expenses" },
-  ];
+  const handleRefresh = () => {
+    const gSheets = sources.find((s) => s.id === "google_sheets");
+    if (gSheets) syncNow(gSheets.id);
+  };
+
+  const formatLastUpdated = (ts: string | null) => {
+    if (!ts) return null;
+    try {
+      return new Date(ts).toLocaleString();
+    } catch {
+      return ts;
+    }
+  };
 
   return (
     <DashboardLayout>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Business Dashboard</h1>
           <p className="text-sm text-muted-foreground font-mono">FY 2025 Overview — Quotes · Cashflow · Revenue · Expenses</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="hidden md:flex items-center gap-2">
-            {sections.map((s) => {
-              const h = dataHealth[s.key];
-              return (
-                <div key={s.key} className="flex items-center gap-1 text-xs font-mono text-muted-foreground" title={`${s.label}: ${h.mappedCount} rows mapped from ${h.rawCount} raw`}>
-                  {healthIcon[h.status]}
-                  <span>{s.label}</span>
-                </div>
-              );
-            })}
-          </div>
+          {lastUpdated && (
+            <span className="text-xs font-mono text-muted-foreground">
+              Last updated: {formatLastUpdated(lastUpdated)}
+            </span>
+          )}
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading} className="gap-1.5">
+            {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+            Refresh
+          </Button>
           <Badge
             variant={hasLiveData ? "default" : "secondary"}
             className={`font-mono text-xs ${hasLiveData ? "bg-chart-green/20 text-chart-green border-chart-green/30" : ""}`}
           >
-            {hasLiveData ? `● Live — ${connectedCount} source${connectedCount !== 1 ? "s" : ""}` : "No Data Source"}
+            {hasLiveData ? (
+              <>
+                <CheckCircle className="w-3 h-3 mr-1" />
+                Live
+              </>
+            ) : (
+              <>
+                <Unplug className="w-3 h-3 mr-1" />
+                No Data
+              </>
+            )}
           </Badge>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {kpiStats.map((stat, i) => (
-          <StatCard key={stat.label} {...stat} index={i} />
-        ))}
-      </div>
+      {isLoading && !hasLiveData && (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <span className="ml-3 text-muted-foreground font-mono">Loading data...</span>
+        </div>
+      )}
 
-      <GoalsDashboardWidgets goals={goals} formulas={formulas} />
+      {!isLoading && !hasLiveData && (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Unplug className="w-12 h-12 text-muted-foreground/40 mb-4" />
+          <p className="text-lg text-muted-foreground mb-2">No data source connected</p>
+          <p className="text-sm text-muted-foreground font-mono mb-4">Connect your Google Sheets webhook in Settings to get started</p>
+          <Button variant="outline" onClick={handleRefresh}>
+            <RefreshCw className="w-4 h-4 mr-2" /> Retry
+          </Button>
+        </div>
+      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        <PortfolioChart />
-        <SectorAllocationChart />
-      </div>
+      {(hasLiveData || (!isLoading && hasLiveData)) && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            {kpiStats.map((stat, i) => (
+              <StatCard key={stat.label} {...stat} index={i} />
+            ))}
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <CashflowChart />
-        <FundPerformanceChart />
-      </div>
+          <GoalsDashboardWidgets goals={goals} formulas={formulas} />
 
-      <div className="mb-6">
-        <ForecastChart />
-      </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+            <PortfolioChart />
+            <SectorAllocationChart />
+          </div>
 
-      <div className="space-y-6">
-        <DealPipeline />
-        <RevenueProjectsTable />
-        <ExpenseBreakdown />
-      </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+            <CashflowChart />
+            <FundPerformanceChart />
+          </div>
+
+          <div className="mb-6">
+            <ForecastChart />
+          </div>
+
+          <div className="space-y-6">
+            <DealPipeline />
+            <RevenueProjectsTable />
+            <ExpenseBreakdown />
+          </div>
+        </>
+      )}
     </DashboardLayout>
   );
 };

@@ -156,7 +156,7 @@ export function useDataSources() {
 
       // Validate payload: must have expected keys as arrays
       const REQUIRED_KEYS: Record<string, string[]> = {
-        google_sheets: ["quotes", "cashflow", "revenue", "expenses"],
+        google_sheets: ["quotes", "cashflow", "revenue", "expenses", "quotesSummary", "cashflowSummary"],
         zoho_crm: ["deals", "contacts"],
         zoho_projects: ["projects", "tasks", "milestones"],
       };
@@ -169,6 +169,8 @@ export function useDataSources() {
           warnings.push(`missing "${key}" key`);
         } else if (Array.isArray(finalData[key]) && finalData[key].length === 0) {
           warnings.push(`"${key}" is empty`);
+        } else if (finalData[key] && typeof finalData[key] === "object" && !Array.isArray(finalData[key]) && Object.keys(finalData[key]).length === 0) {
+          warnings.push(`"${key}" is empty`);
         }
       }
 
@@ -179,10 +181,6 @@ export function useDataSources() {
         // Only merge keys that are non-empty arrays; preserve existing data for empty ones
         if (finalData && typeof finalData === "object") {
           for (const [k, v] of Object.entries(finalData)) {
-            if (Array.isArray(v) && v.length === 0 && prev[k]?.length > 0) {
-              // Skip overwriting good data with empty array
-              continue;
-            }
             updated[k] = v;
           }
         }

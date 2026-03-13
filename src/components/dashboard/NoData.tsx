@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Database, AlertTriangle, Unplug } from "lucide-react";
+import { Database, Unplug } from "lucide-react";
 import type { DataHealthStatus } from "@/contexts/DashboardDataContext";
 
 interface NoDataProps {
@@ -16,13 +16,8 @@ const statusConfig: Record<DataHealthStatus, { icon: typeof Database; label: str
   },
   "connected-empty": {
     icon: Database,
-    label: "Connected — sheet is empty",
-    hint: "Add rows to your Google Sheet to see data here",
-  },
-  "connected-header-mismatch": {
-    icon: AlertTriangle,
-    label: "Connected — headers not recognised",
-    hint: "Check your sheet column headers match the expected format →",
+    label: "Connected — no matching rows",
+    hint: "Check your sheet data and n8n workflow",
   },
   healthy: {
     icon: Database,
@@ -34,19 +29,14 @@ const statusConfig: Record<DataHealthStatus, { icon: typeof Database; label: str
 const NoData = ({ message, className = "", healthStatus = "disconnected" }: NoDataProps) => {
   const config = statusConfig[healthStatus];
   const Icon = config.icon;
-  const displayMessage = message || config.label;
-  const displayHint = config.hint;
 
   return (
     <div className={`flex flex-col items-center justify-center py-10 text-center ${className}`}>
       <Icon className="w-8 h-8 text-muted-foreground/40 mb-3" />
-      <p className="text-sm text-muted-foreground font-mono mb-1">{displayMessage}</p>
-      {displayHint && (
-        <Link
-          to="/settings"
-          className="text-xs text-primary hover:underline font-mono"
-        >
-          {displayHint}
+      <p className="text-sm text-muted-foreground font-mono mb-1">{message || config.label}</p>
+      {config.hint && (
+        <Link to="/settings" className="text-xs text-primary hover:underline font-mono">
+          {config.hint}
         </Link>
       )}
     </div>

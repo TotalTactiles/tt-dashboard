@@ -13,11 +13,11 @@ const statusLabels: Record<string, string> = {
   won: "Won",
   lost: "Lost",
   pending: "Pending",
-  yellow: "90% Likely",
+  yellow: "Verbal/Likely",
 };
 
 const DealPipeline = () => {
-  const { quotedJobs, quoteSummary, dataHealth } = useDashboardData();
+  const { quotedJobs, dataHealth } = useDashboardData();
 
   return (
     <motion.div
@@ -28,16 +28,7 @@ const DealPipeline = () => {
     >
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-medium text-muted-foreground">Quoted Jobs</h3>
-        {quoteSummary && (
-          <div className="flex items-center gap-4 text-xs font-mono">
-            <span className="text-muted-foreground">
-              Won: <span className="text-chart-green">${quoteSummary.totalWon.toLocaleString()}</span>
-            </span>
-            <span className="text-muted-foreground">
-              Pipeline: <span className="text-chart-amber">${quoteSummary.quotedRemaining.toLocaleString()}</span>
-            </span>
-          </div>
-        )}
+        <span className="text-xs font-mono text-muted-foreground">{quotedJobs.length} jobs</span>
       </div>
       {quotedJobs.length === 0 ? (
         <NoData message="No quote data" healthStatus={dataHealth.quotes.status} />
@@ -46,12 +37,12 @@ const DealPipeline = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-muted-foreground font-mono border-b border-border">
-                <th className="pb-3 pr-4">Quote #</th>
                 <th className="pb-3 pr-4">Company</th>
                 <th className="pb-3 pr-4">Project</th>
                 <th className="pb-3 pr-4 text-right">Value</th>
-                <th className="pb-3 pr-4 text-center">POs</th>
-                <th className="pb-3 text-center">Status</th>
+                <th className="pb-3 pr-4 text-center">Status</th>
+                <th className="pb-3 pr-4">Date Quoted</th>
+                <th className="pb-3">Notes</th>
               </tr>
             </thead>
             <tbody>
@@ -60,19 +51,19 @@ const DealPipeline = () => {
                   key={job.id}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.6 + i * 0.05 }}
+                  transition={{ delay: 0.6 + i * 0.03 }}
                   className="border-b border-border/50 hover:bg-secondary/30 transition-colors"
                 >
-                  <td className="py-3 pr-4 font-mono text-muted-foreground">{job.quoteNumber}</td>
                   <td className="py-3 pr-4 font-medium">{job.company}</td>
                   <td className="py-3 pr-4 text-muted-foreground">{job.project}</td>
                   <td className="py-3 pr-4 text-right font-mono">${job.value.toLocaleString()}</td>
-                  <td className="py-3 pr-4 text-center font-mono">{job.totalPOs}</td>
-                  <td className="py-3 text-center">
+                  <td className="py-3 pr-4 text-center">
                     <span className={`text-xs px-2 py-1 rounded-full font-mono ${statusStyles[job.status]}`}>
                       {statusLabels[job.status]}
                     </span>
                   </td>
+                  <td className="py-3 pr-4 font-mono text-xs text-muted-foreground">{job.dateQuoted}</td>
+                  <td className="py-3 text-xs text-muted-foreground truncate max-w-[200px]">{job.notes}</td>
                 </motion.tr>
               ))}
             </tbody>
