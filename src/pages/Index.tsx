@@ -79,16 +79,24 @@ const DashboardContent = () => {
         </div>
       )}
 
-      {!isLoading && !hasLiveData && (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Unplug className="w-12 h-12 text-muted-foreground/40 mb-4" />
-          <p className="text-lg text-muted-foreground mb-2">No data source connected</p>
-          <p className="text-sm text-muted-foreground font-mono mb-4">Connect your Google Sheets webhook in Settings to get started</p>
-          <Button variant="outline" onClick={handleRefresh}>
-            <RefreshCw className="w-4 h-4 mr-2" /> Retry
-          </Button>
-        </div>
-      )}
+      {!isLoading && !hasLiveData && (() => {
+        const gSheets = sources.find((s) => s.id === "google_sheets");
+        const hasWebhook = !!(gSheets?.webhookUrl);
+        return (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <Unplug className="w-12 h-12 text-muted-foreground/40 mb-4" />
+            <p className="text-lg text-muted-foreground mb-2">
+              {hasWebhook ? "Webhook configured — click Refresh to load data" : "No data source connected"}
+            </p>
+            <p className="text-sm text-muted-foreground font-mono mb-4">
+              {hasWebhook ? "Your n8n webhook URL is saved. Hit Refresh to pull the latest data." : "Add your n8n webhook URL in Settings to get started"}
+            </p>
+            <Button variant="outline" onClick={handleRefresh}>
+              <RefreshCw className="w-4 h-4 mr-2" /> {hasWebhook ? "Refresh" : "Retry"}
+            </Button>
+          </div>
+        );
+      })()}
 
       {(hasLiveData || (!isLoading && hasLiveData)) && (
         <>
