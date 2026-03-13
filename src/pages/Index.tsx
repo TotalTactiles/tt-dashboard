@@ -17,10 +17,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Unplug, Loader2 } from "lucide-react";
 
+function fmtAUD(n: number): string {
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) return `${n < 0 ? "-" : ""}$${(abs / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${n < 0 ? "-" : ""}$${(abs / 1_000).toFixed(1)}K`;
+  return `$${n.toLocaleString("en-AU", { maximumFractionDigits: 0 })}`;
+}
+
+function timeAgo(ts: number | null): string {
+  if (!ts) return "never";
+  const diff = Math.floor((Date.now() - ts) / 1000);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  return `${Math.floor(diff / 3600)}h ago`;
+}
+
 const DashboardContent = () => {
   const { goals } = useGoals();
   const { formulas } = useFormulas();
-  const { kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, lastUpdated, sources, syncNow } = useDashboardData();
+  const { kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, lastUpdated, sources, syncNow, formulaCache } = useDashboardData();
 
   const handleRefresh = () => {
     const gSheets = sources.find((s) => s.id === "google_sheets");
@@ -36,6 +51,43 @@ const DashboardContent = () => {
     }
   };
 
+  // Build formula-driven lookup for KPI cards
+  const getFormulaForCard = (cardLabel: string) => {
+    const formula = formulas.find((f) => f.dashboardCard === cardLabel);
+    if (!formula) return null;
+    const cached = formulaCache.get(formula.id);
+    if (!cached || cached.value === null) return null;
+    return { formula, cached };
+  };
+
+  const getCardValue = (stat: typeof kpiStats[0]) => {
+    const match = getFormulaForCard(stat.label);
+    if (match) {
+      const v = match.cached.value!;
+      // Format based on card type
+      if (stat.label === "Conversion Rate") return `${v.toFixed(1)}%`;
+      return fmtAUD(v);
+    }
+    return stat.value;
+  };
+
+  const getFormulaInfo = (cardLabel: string) => {
+    const formula = formulas.find((f) => f.dashboardCard === cardLabel);
+    if (!formula) return null;
+    const cached = formulaCache.get(formula.id);
+    if (!cached || cached.value === null) return null;
+    return {
+      name: formula.name,
+      expression: formula.expression,
+      lastComputed: formulaCache.lastComputedAt_value,
+    };
+  };
+
+  // Formula sync stats
+  const allResults = formulaCache.getAll();
+  const activeFormulaCount = Object.values(allResults).filter((r) => r.value !== null).length;
+  const formulaLastComputed = formulaCache.lastComputedAt_value;
+
   return (
     <DashboardLayout>
       <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -44,11 +96,18 @@ const DashboardContent = () => {
           <p className="text-sm text-muted-foreground font-mono">FY 2026 Overview — Quotes · Cashflow · Revenue · Expenses</p>
         </div>
         <div className="flex items-center gap-3">
-          {lastUpdated && (
-            <span className="text-xs font-mono text-muted-foreground">
-              Last updated: {formatLastUpdated(lastUpdated)}
-            </span>
-          )}
+          <div className="text-right">
+            {lastUpdated && (
+              <span className="text-xs font-mono text-muted-foreground block">
+                Last updated: {formatLastUpdated(lastUpdated)}
+              </span>
+            )}
+            {activeFormulaCount > 0 && (
+              <span className="text-[10px] font-mono text-muted-foreground/70 block">
+                Formulas: {activeFormulaCount} active · last computed {timeAgo(formulaLastComputed)}
+              </span>
+            )}
+          </div>
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading} className="gap-1.5">
             {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
             Refresh
@@ -102,7 +161,13 @@ const DashboardContent = () => {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             {kpiStats.map((stat, i) => (
-              <StatCard key={stat.label} {...stat} index={i} />
+              <StatCard
+                key={stat.label}
+                {...stat}
+                value={getCardValue(stat)}
+                index={i}
+                formulaDriven={getFormulaInfo(stat.label)}
+              />
             ))}
           </div>
 
