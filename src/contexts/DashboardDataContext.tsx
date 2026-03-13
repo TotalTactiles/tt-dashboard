@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useMemo, useRef } from "react";
 import { useDataSources } from "@/hooks/useDataSources";
 import { resolveKpiVariables, createFormulaCache, DataStore, type EvaluationCache } from "@/engine/formulaEngine";
+import { useFormulas } from "@/hooks/useFormulas";
 
 // Module-level formula cache singleton — survives re-renders
 const formulaCacheInstance = createFormulaCache();
