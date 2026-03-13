@@ -138,6 +138,7 @@ const GoalsTargets = () => {
             onOpenChange={(open) => { setFormulaFormOpen(open); if (!open) setEditingFormula(undefined); }}
             onSubmit={handleFormulaSubmit}
             initial={editingFormula}
+            kpiVariables={kpiVariables}
           />
         </TabsContent>
       </Tabs>
