@@ -181,10 +181,6 @@ export function useDataSources() {
         // Only merge keys that are non-empty arrays; preserve existing data for empty ones
         if (finalData && typeof finalData === "object") {
           for (const [k, v] of Object.entries(finalData)) {
-            if (Array.isArray(v) && v.length === 0 && prev[k]?.length > 0) {
-              // Skip overwriting good data with empty array
-              continue;
-            }
             updated[k] = v;
           }
         }
