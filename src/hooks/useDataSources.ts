@@ -144,6 +144,12 @@ export function useDataSources() {
 
       if (error) throw new Error(error.message || "Proxy request failed");
 
+      // Check for proxy-level errors (upstream 404, bad URL, etc.)
+      if (responseData?._proxyError) {
+        const hint = responseData.hint ? `\n${responseData.hint}` : "";
+        throw new Error(`${responseData.error || "Proxy error"}${hint}`);
+      }
+
       // Safety-net unwrap: n8n Code node wraps in array [{ json: {...} }]
       let unwrapped = responseData;
       if (Array.isArray(unwrapped)) {
