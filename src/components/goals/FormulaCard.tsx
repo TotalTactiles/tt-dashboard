@@ -21,6 +21,22 @@ const DATA_SOURCE_COLORS: Record<string, string> = {
   "Manual": "bg-muted text-muted-foreground border-border",
 };
 
+function DebugSection({ kpiVariables, result, expression }: { kpiVariables: Record<string, number>; result: number | null; expression: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger className="text-[9px] font-mono text-muted-foreground hover:text-foreground cursor-pointer">
+        {open ? "▾ debug" : "▸ debug"}
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <pre className="text-[9px] font-mono text-muted-foreground bg-secondary/50 rounded p-2 mt-1 overflow-x-auto whitespace-pre-wrap break-all">
+{`expr: ${expression}\nresult: ${result}\nkpiVariables: ${JSON.stringify(kpiVariables, null, 2)}`}
+        </pre>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardProps) {
   const { kpiVariables } = useDashboardData();
   console.log('kpiVariables in FormulaCard:', kpiVariables);
