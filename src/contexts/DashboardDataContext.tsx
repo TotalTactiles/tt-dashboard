@@ -396,18 +396,21 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       },
     ];
 
-    // KPI variables for formula engine
-    const es = liveData.expensesSummary as any;
-    const rs = liveData.revenueSummary as any;
-    const kpiVariables: Record<string, number> = {
-      TotalQuoted: parseNum(qs?.totalQuoted?.value ?? 0),
-      TotalWon: parseNum(qs?.totalWon?.value ?? 0),
-      QuotedRemaining: parseNum(qs?.remaining?.value ?? 0),
-      NetRevenue: rs ? (parseNum(rs.totalValue ?? 0) - parseNum(rs.totalCOGS ?? 0)) : netRevenue,
-      CashPosition: cashflowPosition,
-      ConversionRate: parseNum(qs?.conversionRate ?? 0),
-      MonthlyExpenses: es ? parseNum(es.totalMonthly ?? 0) : expenseCategories.reduce((s, c) => s + c.totalMonthly, 0),
+    // KPI variables via formula engine
+    const storeSnapshot: DataStore = {
+      quotes: rawQuotes,
+      qtsSmmry: liveData.qtsSmmry ?? [],
+      cashflow: rawCashflow,
+      revenue: rawRevenue,
+      expenses: rawExpenses,
+      labour: liveData.labour ?? [],
+      stock: liveData.stock ?? [],
+      quotesSummary: qs ?? {},
+      cashflowSummary: cs ?? {},
+      revenueSummary: liveData.revenueSummary ?? {},
+      expensesSummary: liveData.expensesSummary ?? {},
     };
+    const kpiVariables = resolveKpiVariables(storeSnapshot);
 
     // Data health
     const health = (raw: any[], mapped: any[]): SectionHealth => {
