@@ -554,6 +554,9 @@ export function createFormulaCache() {
     get(id: string): FormulaResult | null {
       return cache[id] ?? null;
     },
+    getAll(): EvaluationCache {
+      return { ...cache };
+    },
     invalidate(): void {
       cache = {};
       lastComputedAt = null;
