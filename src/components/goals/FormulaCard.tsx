@@ -21,8 +21,25 @@ const DATA_SOURCE_COLORS: Record<string, string> = {
   "Manual": "bg-muted text-muted-foreground border-border",
 };
 
-function DebugSection({ kpiVariables, result, expression }: { kpiVariables: Record<string, number>; result: number | null; expression: string }) {
+function DebugSection({ kpiVariables, result, expression, errorMsg }: { kpiVariables: Record<string, number>; result: number | null; expression: string; errorMsg: string | null }) {
   const [open, setOpen] = useState(false);
+
+  // Parse expression for tokens that exist in kpiVariables
+  const tokens = expression
+    .split(/[+\-*/() ]+/)
+    .map((t) => t.trim())
+    .filter((t) => t && isNaN(Number(t)));
+  const resolvedTokens = tokens
+    .filter((t) => t in kpiVariables)
+    .map((t) => `${t}: ${kpiVariables[t]}`);
+  const unknownTokens = tokens.filter((t) => !(t in kpiVariables) && t.length > 0);
+
+  // Special: if expression involves NetRevenue, also show GrossRevenue & TotalCOGS
+  const isNetRevenue = expression.includes("NetRevenue");
+  const netRevenueDebug = isNetRevenue
+    ? `\n--- NetRevenue breakdown ---\nGrossRevenue: ${kpiVariables["GrossRevenue"] ?? "MISSING"}\nTotalCOGS: ${kpiVariables["TotalCOGS"] ?? "MISSING"}\nNetRevenue = GrossRevenue - TotalCOGS = ${(kpiVariables["GrossRevenue"] ?? 0) - (kpiVariables["TotalCOGS"] ?? 0)}`
+    : "";
+
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger className="text-[9px] font-mono text-muted-foreground hover:text-foreground cursor-pointer">
@@ -30,7 +47,9 @@ function DebugSection({ kpiVariables, result, expression }: { kpiVariables: Reco
       </CollapsibleTrigger>
       <CollapsibleContent>
         <pre className="text-[9px] font-mono text-muted-foreground bg-secondary/50 rounded p-2 mt-1 overflow-x-auto whitespace-pre-wrap break-all">
-{`expr: ${expression}\nresult: ${result}\nkpiVariables: ${JSON.stringify(kpiVariables, null, 2)}`}
+{`expr: ${expression}
+result: ${result}${errorMsg ? `\nerror: ${errorMsg}` : ""}
+vars: ${resolvedTokens.length > 0 ? resolvedTokens.join(" | ") : "(none)"}${unknownTokens.length > 0 ? `\nunknown tokens: ${unknownTokens.join(", ")}` : ""}${netRevenueDebug}`}
         </pre>
       </CollapsibleContent>
     </Collapsible>
