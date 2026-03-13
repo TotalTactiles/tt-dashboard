@@ -139,6 +139,7 @@ export interface DashboardData {
   forecastChartData: ForecastChartPoint[];
   expenseAllocation: ExpenseAllocationItem[];
   kpiVariables: Record<string, number>;
+  formulaCache: ReturnType<typeof createFormulaCache>;
   dataHealth: DataHealth;
   isLoading: boolean;
   hasLiveData: boolean;
