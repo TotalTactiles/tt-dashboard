@@ -278,8 +278,8 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const findCashflowRow = (label: string) => {
       const upper = label.toUpperCase().trim();
       return rawCashflow.find((r: any) => {
-        const rl = (r._label_rowLabel ?? "").toUpperCase().trim();
-        return rl === upper;
+        const rl = (r._label_rowLabel ?? r.col_1 ?? "").toString().toUpperCase().trim();
+        return rl === upper || rl.includes(upper) || upper.includes(rl);
       });
     };
 
