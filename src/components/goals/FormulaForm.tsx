@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MetricFormula, AVAILABLE_VARIABLES, DASHBOARD_CARDS, DATA_SOURCES } from "@/hooks/useFormulas";
+import { MetricFormula, getAvailableVariables, DASHBOARD_CARDS, DATA_SOURCES } from "@/hooks/useFormulas";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
