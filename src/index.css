@@ -112,3 +112,15 @@
     box-shadow: 0 0 24px hsl(var(--primary) / 0.06);
   }
 }
+
+@keyframes formula-pulse {
+  0% { opacity: 1; transform: scale(1); }
+  25% { opacity: 0.7; transform: scale(1.02); }
+  50% { opacity: 1; transform: scale(1); }
+  75% { opacity: 0.7; transform: scale(1.02); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.animate-formula-pulse {
+  animation: formula-pulse 1.5s ease-in-out 2;
+}
