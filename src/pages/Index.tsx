@@ -134,11 +134,7 @@ const DashboardContent = () => {
 };
 
 const Index = () => {
-  return (
-    <DashboardDataProvider>
-      <DashboardContent />
-    </DashboardDataProvider>
-  );
+  return <DashboardContent />;
 };
 
 export default Index;
