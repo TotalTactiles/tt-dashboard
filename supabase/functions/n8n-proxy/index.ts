@@ -16,8 +16,8 @@ serve(async (req) => {
 
     if (!webhookUrl || typeof webhookUrl !== "string") {
       return new Response(
-        JSON.stringify({ error: "Missing or invalid webhookUrl" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Missing or invalid webhookUrl", _proxyError: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -26,8 +26,8 @@ serve(async (req) => {
       new URL(webhookUrl);
     } catch {
       return new Response(
-        JSON.stringify({ error: "Invalid URL format" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Invalid URL format", _proxyError: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -40,15 +40,27 @@ serve(async (req) => {
 
     const rawText = await response.text();
 
+    // If upstream returned an error, wrap it so client gets a 200 with error info
+    if (!response.ok) {
+      console.error(`n8n upstream error: ${response.status}`, rawText);
+      return new Response(
+        JSON.stringify({
+          _proxyError: true,
+          error: `n8n returned ${response.status}`,
+          hint: rawText.substring(0, 500),
+          upstreamStatus: response.status,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Parse and unwrap n8n Code node output
-    // n8n wraps Code node results in an array: [{ json: { quotes, cashflow, ... } }]
     let parsed: any;
     try {
       parsed = JSON.parse(rawText);
     } catch {
-      // Not JSON — return as-is
       return new Response(rawText, {
-        status: response.status,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": response.headers.get("Content-Type") || "text/plain" },
       });
     }
@@ -64,15 +76,15 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify(parsed), {
-      status: response.status,
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("n8n-proxy error:", message);
     return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: message, _proxyError: true }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
