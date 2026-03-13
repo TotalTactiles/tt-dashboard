@@ -37,6 +37,28 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial, kpi
   const [dataSource, setDataSource] = useState(initial?.dataSource ?? "Google Sheets");
   const [pickerOpen, setPickerOpen] = useState(false);
 
+  useEffect(() => {
+    if (initial) {
+      setName(initial.name ?? "");
+      setExpression(initial.expression ?? "");
+      setDescription(initial.description ?? "");
+      setUnit(initial.unit ?? "%");
+      setCategory(initial.category ?? "Financial");
+      setScreenshotUrl(initial.screenshotUrl ?? "");
+      setDashboardCard(initial.dashboardCard ?? "");
+      setDataSource(initial.dataSource ?? "Google Sheets");
+    } else {
+      setName("");
+      setExpression("");
+      setDescription("");
+      setUnit("%");
+      setCategory("Financial");
+      setScreenshotUrl("");
+      setDashboardCard("");
+      setDataSource("Google Sheets");
+    }
+  }, [initial]);
+
   const handleSubmit = () => {
     if (!name || !expression) return;
     onSubmit({
