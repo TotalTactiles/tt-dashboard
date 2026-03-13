@@ -43,15 +43,16 @@ export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardPr
   // Use cached result from formulaCache
   const cached = formulaCache.get(formula.id);
   const result = cached?.value ?? null;
+  const errorMsg = cached?.error ?? null;
   const [viewerOpen, setViewerOpen] = useState(false);
 
   // Check if data is loaded: all values zero means webhook hasn't returned yet
   const dataLoaded = Object.values(kpiVariables).some((v) => v !== 0);
-  const isWaiting = cached === null && !dataLoaded;
+  const isWaiting = cached === null;
 
   const formatResult = (v: number | null) => {
-    if (isWaiting) return "Waiting for data…";
-    if (v === null) return "Error";
+    if (isWaiting) return "Syncing…";
+    if (v === null) return errorMsg ?? "Error";
     if (formula.unit === "$") return `$${v >= 1000 ? (v / 1000).toFixed(1) + "K" : v.toFixed(2)}`;
     if (formula.unit === "%") return `${v.toFixed(1)}%`;
     return v.toFixed(2);
@@ -105,6 +106,9 @@ export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardPr
             <p className={`text-lg font-mono font-bold ${isWaiting ? "text-muted-foreground" : result !== null ? "text-primary glow-green" : "text-destructive"}`}>
               {formatResult(result)}
             </p>
+            {errorMsg && !isWaiting && (
+              <p className="text-[9px] font-mono text-destructive/80 mt-0.5 break-all">{errorMsg}</p>
+            )}
           </div>
           <div className="flex gap-1">
             {formula.screenshotUrl && (

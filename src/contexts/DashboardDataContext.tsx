@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useMemo, useRef } from "react";
 import { useDataSources } from "@/hooks/useDataSources";
 import { resolveKpiVariables, createFormulaCache, DataStore, type EvaluationCache } from "@/engine/formulaEngine";
+import { useFormulas } from "@/hooks/useFormulas";
 
 // Module-level formula cache singleton — survives re-renders
 const formulaCacheInstance = createFormulaCache();
@@ -186,6 +187,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
   const ds = useDataSources();
   const { liveData, hasLiveData, connectedCount, sources } = ds;
   const isLoading = sources.some((s) => s.loading);
+  const { formulas } = useFormulas();
 
   const data = useMemo<DashboardData>(() => {
     const rawQuotes = liveData.quotes ?? [];
@@ -427,10 +429,11 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     const lastUpdated = meta?.pulledAt ?? null;
 
-    // Compute formula cache
+    // Compute formula cache with full DataStore
     formulaCacheInstance.invalidate();
-    // Note: formulas from useFormulas() are not available here (hook can't be called inside useMemo).
-    // The cache.compute() call happens via the exposed formulaCache on the context — consumers call it.
+    if (formulas.length > 0) {
+      formulaCacheInstance.compute(formulas, storeSnapshot, kpiVariables);
+    }
 
     return {
       quotedJobs, revenueProjects, expenseCategories,
@@ -439,7 +442,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       sources: ds.sources, toggleConnection: ds.toggleConnection,
       updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow,
     };
-  }, [liveData, hasLiveData, connectedCount, isLoading, ds]);
+  }, [liveData, hasLiveData, connectedCount, isLoading, ds, formulas]);
 
   return <DashboardDataContext.Provider value={data}>{children}</DashboardDataContext.Provider>;
 }
