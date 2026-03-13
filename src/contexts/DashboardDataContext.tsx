@@ -187,6 +187,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
   const ds = useDataSources();
   const { liveData, hasLiveData, connectedCount, sources } = ds;
   const isLoading = sources.some((s) => s.loading);
+  const { formulas } = useFormulas();
 
   const data = useMemo<DashboardData>(() => {
     const rawQuotes = liveData.quotes ?? [];
