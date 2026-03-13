@@ -41,12 +41,11 @@ const SEED_KEY = "meridian_formulas_seeded";
 const DEFAULT_FORMULAS: Omit<MetricFormula, "id">[] = [
   { name: "Total Quoted", expression: "TotalQuoted", description: "Sum of all quoted project values", unit: "$", category: "Financial", dashboardCard: "Total Quoted", dataSource: "Google Sheets" },
   { name: "Total Won", expression: "TotalWon", description: "Sum of all won project values", unit: "$", category: "Financial", dashboardCard: "Total Won", dataSource: "Google Sheets" },
-  { name: "Conversion Rate", expression: "TotalWon / TotalQuoted * 100", description: "Won vs quoted percentage", unit: "%", category: "Growth", dashboardCard: "Conversion Rate", dataSource: "Google Sheets" },
-  { name: "Cash Position", expression: "CashPosition", description: "Current available cash", unit: "$", category: "Financial", dashboardCard: "Cash Position", dataSource: "Xero" },
-  { name: "Gross Margin", expression: "GrossRevenue - CostOfGoods", description: "Revenue minus cost of goods", unit: "$", category: "Financial", dashboardCard: "Portfolio Chart", dataSource: "Google Sheets" },
-  { name: "Net Revenue", expression: "GrossRevenue - CostOfGoods - LabourCost", description: "Revenue minus all costs", unit: "$", category: "Financial", dashboardCard: "Fund Performance", dataSource: "Google Sheets" },
-  { name: "Burn Rate", expression: "MonthlyExpenses", description: "Monthly operating expenses", unit: "$", category: "Operational", dashboardCard: "Expense Breakdown", dataSource: "Xero" },
-  { name: "OpEx Ratio", expression: "MonthlyExpenses / GrossRevenue * 100", description: "Operating expenses as % of revenue", unit: "%", category: "Efficiency", dashboardCard: "Cashflow Chart", dataSource: "Google Sheets" },
+  { name: "Quoted Remaining", expression: "QuotedRemaining", description: "Value of quotes still pending", unit: "$", category: "Financial", dashboardCard: "Quoted Remaining", dataSource: "Google Sheets" },
+  { name: "Conversion Rate", expression: "ConversionRate", description: "Won vs quoted percentage", unit: "%", category: "Growth", dashboardCard: "Conversion Rate", dataSource: "Google Sheets" },
+  { name: "Net Revenue", expression: "NetRevenue", description: "Revenue minus cost of sales", unit: "$", category: "Financial", dashboardCard: "Net Revenue", dataSource: "Google Sheets" },
+  { name: "Cashflow Position", expression: "CashPosition", description: "Current available cash position", unit: "$", category: "Financial", dashboardCard: "Cashflow Position", dataSource: "Google Sheets" },
+  { name: "Monthly Expenses", expression: "MonthlyExpenses", description: "Total monthly operating expenses", unit: "$", category: "Operational", dashboardCard: "Monthly Expenses", dataSource: "Google Sheets" },
 ];
 
 // Simple tokenizer and evaluator for arithmetic expressions with named variables
