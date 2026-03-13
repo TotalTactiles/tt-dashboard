@@ -22,10 +22,22 @@ const DATA_SOURCE_COLORS: Record<string, string> = {
 
 export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardProps) {
   const { kpiVariables } = useDashboardData();
+  console.log('kpiVariables in FormulaCard:', kpiVariables);
   const result = evaluateExpression(formula.expression, kpiVariables);
   const [viewerOpen, setViewerOpen] = useState(false);
 
+  // Check if data is loaded: all values zero means webhook hasn't returned yet
+  const dataLoaded = Object.values(kpiVariables).some((v) => v !== 0);
+  // Check if expression uses unknown variables
+  const expressionVarsValid = formula.expression
+    .split(/[+\-*/() ]+/)
+    .filter((t) => t.trim() && isNaN(Number(t)))
+    .every((t) => t in kpiVariables);
+
+  const isWaiting = !dataLoaded && expressionVarsValid;
+
   const formatResult = (v: number | null) => {
+    if (isWaiting) return "Waiting for data…";
     if (v === null) return "Error";
     if (formula.unit === "$") return `$${v >= 1000 ? (v / 1000).toFixed(1) + "K" : v.toFixed(2)}`;
     if (formula.unit === "%") return `${v.toFixed(1)}%`;
