@@ -124,6 +124,9 @@ export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardPr
             </p>
           </div>
         )}
+
+        {/* TEMP DEBUG */}
+        <DebugSection kpiVariables={kpiVariables} result={result} expression={formula.expression} />
       </div>
 
       {formula.screenshotUrl && (
