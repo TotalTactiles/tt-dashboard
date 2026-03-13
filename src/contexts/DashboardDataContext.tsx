@@ -471,6 +471,7 @@ export function useDashboardData(): DashboardData {
       forecastChartData: [], expenseAllocation: [], kpiVariables: {},
       dataStore: { quotes: [], qtsSmmry: [], cashflow: [], revenue: [], expenses: [], labour: [], stock: [], quotesSummary: {}, cashflowSummary: {}, revenueSummary: {}, expensesSummary: {} },
       formulaCache: formulaCacheInstance,
+      changedFormulas: [],
       dataHealth: {
         quotes: { status: "disconnected", rawCount: 0, mappedCount: 0 },
         cashflow: { status: "disconnected", rawCount: 0, mappedCount: 0 },
