@@ -356,54 +356,119 @@ const Settings = () => {
         })}
       </div>
 
-      {/* Raw Payload Inspector */}
+      {/* Data Debug Panel */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="chart-container mt-6 border border-border"
+        transition={{ delay: 0.15 }}
+        className="chart-container mt-6 border border-chart-amber/20"
       >
         <button
           className="flex items-center justify-between w-full text-left"
           onClick={() => setShowInspector(!showInspector)}
         >
           <div className="flex items-center gap-2">
-            <Database className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Raw Payload Inspector</span>
+            <Database className="w-4 h-4 text-chart-amber" />
+            <span className="text-sm font-medium">Data Debug</span>
           </div>
           {showInspector ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
         </button>
 
-        {showInspector && (
-          <div className="mt-4 space-y-3">
-            {(["quotes", "cashflow", "revenue", "expenses"] as const).map((key) => {
-              const arr = liveData[key];
-              const count = Array.isArray(arr) ? arr.length : 0;
-              const sample = Array.isArray(arr) && arr.length > 0 ? arr[0] : null;
-              return (
-                <div key={key} className="border border-border rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-mono font-medium uppercase">{key}</span>
-                    <Badge variant={count > 0 ? "default" : "destructive"} className="text-xs font-mono">
-                      {count} rows
-                    </Badge>
-                  </div>
-                  {sample && (
-                    <div className="mt-2">
-                      <p className="text-xs text-muted-foreground font-mono mb-1">Sample row keys:</p>
-                      <p className="text-xs font-mono text-foreground/70 break-all">
-                        {Object.keys(sample).join(", ")}
-                      </p>
-                    </div>
-                  )}
-                  {!sample && count === 0 && (
-                    <p className="text-xs text-muted-foreground font-mono mt-1">No data received from n8n</p>
-                  )}
+        {showInspector && (() => {
+          const meta = liveData._meta as any;
+          const debug = liveData._debug as any[];
+          return (
+            <div className="mt-4 space-y-4">
+              {/* Meta info */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground font-mono mb-1">Last Pull</p>
+                  <p className="text-sm font-mono text-foreground">{meta?.pulledAt ? new Date(meta.pulledAt).toLocaleString() : "—"}</p>
                 </div>
-              );
-            })}
-          </div>
-        )}
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground font-mono mb-1">Quotes Rows</p>
+                  <p className="text-sm font-mono text-foreground">{meta?.quotesRows ?? "—"}</p>
+                </div>
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground font-mono mb-1">Cashflow Rows</p>
+                  <p className="text-sm font-mono text-foreground">{meta?.cashflowRows ?? "—"}</p>
+                </div>
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground font-mono mb-1">Revenue Rows</p>
+                  <p className="text-sm font-mono text-foreground">{meta?.revenueRows ?? "—"}</p>
+                </div>
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-muted-foreground font-mono mb-1">Expenses Rows</p>
+                  <p className="text-sm font-mono text-foreground">{meta?.expensesRows ?? "—"}</p>
+                </div>
+              </div>
+
+              {/* Debug errors */}
+              {Array.isArray(debug) && debug.length > 0 && (
+                <div>
+                  <p className="text-xs font-mono text-muted-foreground mb-2">Debug Errors</p>
+                  <div className="flex flex-wrap gap-2">
+                    {debug.map((err: any, i: number) => (
+                      <Badge key={i} variant="destructive" className="text-xs font-mono">
+                        {typeof err === "string" ? err : JSON.stringify(err)}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Raw Response Preview */}
+              <div>
+                <p className="text-xs font-mono text-muted-foreground mb-2">Raw Response Preview (first 3 items per array)</p>
+                <div className="space-y-3">
+                  {(["quotes", "cashflow", "revenue", "expenses"] as const).map((key) => {
+                    const arr = liveData[key];
+                    const count = Array.isArray(arr) ? arr.length : 0;
+                    const sample = Array.isArray(arr) ? arr.slice(0, 3) : null;
+                    return (
+                      <div key={key} className="border border-border rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-mono font-medium uppercase">{key}</span>
+                          <Badge variant={count > 0 ? "default" : "destructive"} className="text-xs font-mono">
+                            {count} rows
+                          </Badge>
+                        </div>
+                        {sample && sample.length > 0 && (
+                          <pre className="mt-2 text-xs font-mono text-foreground/70 bg-secondary/50 rounded p-2 overflow-x-auto max-h-40 overflow-y-auto">
+                            {JSON.stringify(sample, null, 2)}
+                          </pre>
+                        )}
+                        {count === 0 && (
+                          <p className="text-xs text-muted-foreground font-mono mt-1">No data received</p>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* Summary objects preview */}
+                  {(["quotesSummary", "cashflowSummary"] as const).map((key) => {
+                    const obj = liveData[key];
+                    return (
+                      <div key={key} className="border border-border rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-mono font-medium uppercase">{key}</span>
+                          <Badge variant={obj ? "default" : "secondary"} className="text-xs font-mono">
+                            {obj ? "present" : "missing"}
+                          </Badge>
+                        </div>
+                        {obj && (
+                          <pre className="mt-2 text-xs font-mono text-foreground/70 bg-secondary/50 rounded p-2 overflow-x-auto max-h-40 overflow-y-auto">
+                            {JSON.stringify(obj, null, 2)}
+                          </pre>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </motion.div>
 
       {viewingScreenshot && (
