@@ -6,7 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import ScreenshotUpload from "@/components/shared/ScreenshotUpload";
+import FieldPicker from "@/components/goals/FieldPicker";
+import { useDashboardData } from "@/contexts/DashboardDataContext";
 
 const CATEGORIES = ["Financial", "Operational", "Growth", "Efficiency", "Custom"];
 const UNITS = ["$", "%", "#", "x"];
@@ -21,6 +24,9 @@ interface FormulaFormProps {
 
 export default function FormulaForm({ open, onOpenChange, onSubmit, initial, kpiVariables }: FormulaFormProps) {
   const availableVars = getAvailableVariables(kpiVariables);
+  const { dataStore, kpiVariables: ctxKpi } = useDashboardData();
+  const resolvedKpi = kpiVariables ?? ctxKpi;
+
   const [name, setName] = useState(initial?.name ?? "");
   const [expression, setExpression] = useState(initial?.expression ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -29,6 +35,7 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial, kpi
   const [screenshotUrl, setScreenshotUrl] = useState(initial?.screenshotUrl ?? "");
   const [dashboardCard, setDashboardCard] = useState(initial?.dashboardCard ?? "");
   const [dataSource, setDataSource] = useState(initial?.dataSource ?? "Google Sheets");
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const handleSubmit = () => {
     if (!name || !expression) return;
@@ -41,9 +48,13 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial, kpi
     onOpenChange(false);
   };
 
+  const handleInsertToken = (token: string) => {
+    setExpression((prev) => (prev ? prev + " " + token : token));
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-mono text-sm">{initial ? "Edit Formula" : "New Formula"}</DialogTitle>
         </DialogHeader>
@@ -85,6 +96,20 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial, kpi
                 </Badge>
               ))}
             </div>
+
+            {/* Field Picker toggle */}
+            <Collapsible open={pickerOpen} onOpenChange={setPickerOpen}>
+              <CollapsibleTrigger className="text-[10px] font-mono text-muted-foreground hover:text-foreground cursor-pointer mt-2 inline-block">
+                {pickerOpen ? "▾ Field Picker" : "▸ Field Picker"}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2">
+                <FieldPicker
+                  store={dataStore}
+                  kpiVariables={resolvedKpi}
+                  onInsert={handleInsertToken}
+                />
+              </CollapsibleContent>
+            </Collapsible>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Description</Label>
