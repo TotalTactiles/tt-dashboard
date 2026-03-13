@@ -142,6 +142,7 @@ export interface DashboardData {
   kpiVariables: Record<string, number>;
   dataStore: DataStore;
   formulaCache: ReturnType<typeof createFormulaCache>;
+  changedFormulas: string[];
   dataHealth: DataHealth;
   isLoading: boolean;
   hasLiveData: boolean;
