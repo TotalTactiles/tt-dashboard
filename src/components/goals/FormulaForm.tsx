@@ -16,6 +16,7 @@ interface FormulaFormProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (formula: Omit<MetricFormula, "id">) => void;
   initial?: MetricFormula;
+  kpiVariables?: Record<string, number>;
 }
 
 export default function FormulaForm({ open, onOpenChange, onSubmit, initial }: FormulaFormProps) {
