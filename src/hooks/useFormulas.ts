@@ -111,18 +111,18 @@ export function evaluateExpression(
   }
 }
 
-export const AVAILABLE_VARIABLES = [
-  "TotalQuoted",
-  "TotalWon",
-  "TotalLost",
-  "GrossRevenue",
-  "CostOfGoods",
-  "LabourCost",
-  "NetRevenue",
-  "ConversionRate",
-  "CashPosition",
-  "MonthlyExpenses",
+// Default variable names shown when no live data is available
+const DEFAULT_VARIABLE_NAMES = [
+  "TotalQuoted", "TotalWon", "QuotedRemaining",
+  "ConversionRate", "NetRevenue", "CashPosition", "MonthlyExpenses",
 ];
+
+export function getAvailableVariables(kpiVariables?: Record<string, number>): string[] {
+  if (kpiVariables && Object.keys(kpiVariables).length > 0) {
+    return Object.keys(kpiVariables);
+  }
+  return DEFAULT_VARIABLE_NAMES;
+}
 
 function loadFormulas(): MetricFormula[] {
   try {
