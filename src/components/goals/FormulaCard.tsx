@@ -24,7 +24,6 @@ const DATA_SOURCE_COLORS: Record<string, string> = {
 function DebugSection({ kpiVariables, result, expression, errorMsg }: { kpiVariables: Record<string, number>; result: number | null; expression: string; errorMsg: string | null }) {
   const [open, setOpen] = useState(false);
 
-  // Parse expression for tokens that exist in kpiVariables
   const tokens = expression
     .split(/[+\-*/() ]+/)
     .map((t) => t.trim())
@@ -34,7 +33,6 @@ function DebugSection({ kpiVariables, result, expression, errorMsg }: { kpiVaria
     .map((t) => `${t}: ${kpiVariables[t]}`);
   const unknownTokens = tokens.filter((t) => !(t in kpiVariables) && t.length > 0);
 
-  // Special: if expression involves NetRevenue, also show GrossRevenue & TotalCOGS
   const isNetRevenue = expression.includes("NetRevenue");
   const netRevenueDebug = isNetRevenue
     ? `\n--- NetRevenue breakdown ---\nGrossRevenue: ${kpiVariables["GrossRevenue"] ?? "MISSING"}\nTotalCOGS: ${kpiVariables["TotalCOGS"] ?? "MISSING"}\nNetRevenue = GrossRevenue - TotalCOGS = ${(kpiVariables["GrossRevenue"] ?? 0) - (kpiVariables["TotalCOGS"] ?? 0)}`
@@ -57,17 +55,26 @@ vars: ${resolvedTokens.length > 0 ? resolvedTokens.join(" | ") : "(none)"}${unkn
 }
 
 export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardProps) {
-  const { kpiVariables, formulaCache } = useDashboardData();
+  const { kpiVariables, formulaCache, changedFormulas } = useDashboardData();
 
-  // Use cached result from formulaCache
   const cached = formulaCache.get(formula.id);
   const result = cached?.value ?? null;
   const errorMsg = cached?.error ?? null;
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [showPulse, setShowPulse] = useState(false);
 
-  // Check if data is loaded: all values zero means webhook hasn't returned yet
   const dataLoaded = Object.values(kpiVariables).some((v) => v !== 0);
   const isWaiting = cached === null;
+  const hasError = cached !== null && cached.value === null && cached.error !== null;
+
+  // Pulse animation when formula result changed
+  useEffect(() => {
+    if (changedFormulas.includes(formula.name)) {
+      setShowPulse(true);
+      const timer = setTimeout(() => setShowPulse(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [changedFormulas, formula.name]);
 
   const formatResult = (v: number | null) => {
     if (isWaiting) return "Syncing…";
@@ -79,9 +86,14 @@ export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardPr
 
   const sourceClass = formula.dataSource ? DATA_SOURCE_COLORS[formula.dataSource] || DATA_SOURCE_COLORS["Manual"] : "";
 
+  // Error state: amber border + auto-expand debug
+  const cardBorderClass = hasError
+    ? "stat-card space-y-3 border-amber-500/50 ring-1 ring-amber-500/20"
+    : "stat-card space-y-3";
+
   return (
     <>
-      <div className="stat-card space-y-3">
+      <div className={cardBorderClass}>
         <div className="flex items-start justify-between gap-2">
           <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2">
@@ -122,7 +134,7 @@ export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardPr
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Result</p>
-            <p className={`text-lg font-mono font-bold ${isWaiting ? "text-muted-foreground" : result !== null ? "text-primary glow-green" : "text-destructive"}`}>
+            <p className={`text-lg font-mono font-bold ${showPulse ? "animate-formula-pulse" : ""} ${isWaiting ? "text-muted-foreground" : result !== null ? "text-primary glow-green" : "text-destructive"}`}>
               {formatResult(result)}
             </p>
             {errorMsg && !isWaiting && (
@@ -160,8 +172,13 @@ export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardPr
           </div>
         )}
 
-        {/* TEMP DEBUG */}
+        {/* Debug — auto-expand on error */}
         <DebugSection kpiVariables={kpiVariables} result={result} expression={formula.expression} errorMsg={errorMsg} />
+        {hasError && (
+          <div className="rounded bg-amber-500/10 border border-amber-500/20 px-2 py-1.5">
+            <p className="text-[9px] font-mono text-amber-400">⚠ {errorMsg}</p>
+          </div>
+        )}
       </div>
 
       {formula.screenshotUrl && (

@@ -1,5 +1,12 @@
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Calculator } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+interface FormulaInfo {
+  name: string;
+  expression: string;
+  lastComputed: number | null;
+}
 
 interface StatCardProps {
   label: string;
@@ -8,16 +15,41 @@ interface StatCardProps {
   positive: boolean;
   index: number;
   noData?: boolean;
+  formulaDriven?: FormulaInfo | null;
 }
 
-const StatCard = ({ label, value, change, positive, index, noData }: StatCardProps) => {
+function timeAgo(ts: number | null): string {
+  if (!ts) return "never";
+  const diff = Math.floor((Date.now() - ts) / 1000);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  return `${Math.floor(diff / 3600)}h ago`;
+}
+
+const StatCard = ({ label, value, change, positive, index, noData, formulaDriven }: StatCardProps) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className="stat-card"
+      className="stat-card relative"
     >
+      {formulaDriven && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="absolute top-2 right-2 flex items-center gap-1">
+              <span className="text-[9px] font-mono text-chart-green/70 bg-chart-green/10 border border-chart-green/20 rounded px-1 py-0.5 leading-none">
+                f(x)
+              </span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs font-mono max-w-[250px]">
+            <p className="font-semibold">Formula: {formulaDriven.name}</p>
+            <p className="text-muted-foreground mt-0.5">Expression: {formulaDriven.expression}</p>
+            <p className="text-muted-foreground mt-0.5">Last computed: {timeAgo(formulaDriven.lastComputed)}</p>
+          </TooltipContent>
+        </Tooltip>
+      )}
       <p className="text-sm text-muted-foreground mb-1">{label}</p>
       <div className="flex items-end justify-between">
         <p className={`text-2xl font-mono font-bold ${noData ? "text-muted-foreground" : positive ? "glow-green text-chart-green" : "glow-red text-chart-red"}`}>
