@@ -17,11 +17,12 @@ const MONTH_REGEX = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{2}$/i
 
 // ---- Quote status normalizer ----
 
-function normalizeQuoteStatus(s: string): "won" | "lost" | "pending" | "yellow" {
-  const lower = (s || "").toLowerCase().trim();
-  if (lower === "won" || lower.includes("po received") || lower === "accepted") return "won";
-  if (lower === "lost" || lower.includes("lost") || lower.includes("dead") || lower === "declined") return "lost";
-  if (lower === "yellow" || lower.includes("verbal") || lower.includes("yellow") || lower.includes("90%") || lower.includes("likely")) return "yellow";
+function normalizeQuoteStatus(raw: string): "won" | "lost" | "pending" | "yellow" {
+  const s = (raw ?? "").toUpperCase();
+  if (s.includes("PO RECEIVED") || s.includes("WON") || s === "GREEN") return "won";
+  if (s.includes("LOST") || s.includes("DEAD")) return "lost";
+  if (s.includes("VERBAL") || s.includes("YELLOW") || s.includes("YLW") || s.includes("90%")) return "yellow";
+  if (s.includes("NEGOTIATION") || s.includes("REVIEW") || s.includes("QUOTE SENT") || s.includes("PENDING")) return "pending";
   return "pending";
 }
 
