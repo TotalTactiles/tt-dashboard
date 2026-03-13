@@ -26,10 +26,10 @@ function normalizeQuoteStatus(raw: string): "won" | "lost" | "pending" | "yellow
   return "pending";
 }
 
-function normalizeRevenueStatus(s: string): "invoiced" | "pending" | "overdue" {
-  const lower = (s || "").toLowerCase().trim();
-  if (lower === "invoiced" || lower === "paid") return "invoiced";
-  if (lower === "overdue" || lower === "late") return "overdue";
+function normalizeRevenueStatus(raw: string): "invoiced" | "pending" | "overdue" {
+  const s = (raw ?? "").toUpperCase();
+  if (s.includes("INVOICED") || s.includes("PAID")) return "invoiced";
+  if (s.includes("OVERDUE")) return "overdue";
   return "pending";
 }
 
