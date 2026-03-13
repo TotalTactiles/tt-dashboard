@@ -431,16 +431,29 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     const lastUpdated = meta?.pulledAt ?? null;
 
-    // Compute formula cache with full DataStore
+    // Compute formula cache with full DataStore — detect changes
+    const prevResults = { ...formulaCacheInstance.getAll() };
     formulaCacheInstance.invalidate();
+    const changedFormulas: string[] = [];
     if (formulas.length > 0) {
       formulaCacheInstance.compute(formulas, storeSnapshot, kpiVariables);
+      const newResults = formulaCacheInstance.getAll();
+      for (const f of formulas) {
+        const prev = prevResults[f.id]?.value;
+        const next = newResults[f.id]?.value;
+        if (prev != null && next != null && prev !== 0) {
+          const pctChange = Math.abs((next - prev) / prev) * 100;
+          if (pctChange > 1) changedFormulas.push(f.name);
+        } else if (prev == null && next != null) {
+          changedFormulas.push(f.name);
+        }
+      }
     }
 
     return {
       quotedJobs, revenueProjects, expenseCategories,
       kpiStats, incomeOutgoingsData, profitMarginData, forecastChartData, expenseAllocation,
-      kpiVariables, dataStore: storeSnapshot, formulaCache: formulaCacheInstance, dataHealth, isLoading, hasLiveData, connectedCount, lastUpdated,
+      kpiVariables, dataStore: storeSnapshot, formulaCache: formulaCacheInstance, changedFormulas, dataHealth, isLoading, hasLiveData, connectedCount, lastUpdated,
       sources: ds.sources, toggleConnection: ds.toggleConnection,
       updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow,
     };
