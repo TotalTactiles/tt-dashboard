@@ -22,10 +22,22 @@ const DATA_SOURCE_COLORS: Record<string, string> = {
 
 export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardProps) {
   const { kpiVariables } = useDashboardData();
+  console.log('kpiVariables in FormulaCard:', kpiVariables);
   const result = evaluateExpression(formula.expression, kpiVariables);
   const [viewerOpen, setViewerOpen] = useState(false);
 
+  // Check if data is loaded: all values zero means webhook hasn't returned yet
+  const dataLoaded = Object.values(kpiVariables).some((v) => v !== 0);
+  // Check if expression uses unknown variables
+  const expressionVarsValid = formula.expression
+    .split(/[+\-*/() ]+/)
+    .filter((t) => t.trim() && isNaN(Number(t)))
+    .every((t) => t in kpiVariables);
+
+  const isWaiting = !dataLoaded && expressionVarsValid;
+
   const formatResult = (v: number | null) => {
+    if (isWaiting) return "Waiting for data…";
     if (v === null) return "Error";
     if (formula.unit === "$") return `$${v >= 1000 ? (v / 1000).toFixed(1) + "K" : v.toFixed(2)}`;
     if (formula.unit === "%") return `${v.toFixed(1)}%`;
@@ -77,7 +89,7 @@ export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardPr
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Result</p>
-            <p className={`text-lg font-mono font-bold ${result !== null ? "text-primary glow-green" : "text-destructive"}`}>
+            <p className={`text-lg font-mono font-bold ${isWaiting ? "text-muted-foreground" : result !== null ? "text-primary glow-green" : "text-destructive"}`}>
               {formatResult(result)}
             </p>
           </div>
