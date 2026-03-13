@@ -439,7 +439,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     return {
       quotedJobs, revenueProjects, expenseCategories,
       kpiStats, incomeOutgoingsData, profitMarginData, forecastChartData, expenseAllocation,
-      kpiVariables, formulaCache: formulaCacheInstance, dataHealth, isLoading, hasLiveData, connectedCount, lastUpdated,
+      kpiVariables, dataStore: storeSnapshot, formulaCache: formulaCacheInstance, dataHealth, isLoading, hasLiveData, connectedCount, lastUpdated,
       sources: ds.sources, toggleConnection: ds.toggleConnection,
       updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow,
     };
