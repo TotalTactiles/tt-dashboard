@@ -89,7 +89,7 @@ export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardPr
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Result</p>
-            <p className={`text-lg font-mono font-bold ${result !== null ? "text-primary glow-green" : "text-destructive"}`}>
+            <p className={`text-lg font-mono font-bold ${isWaiting ? "text-muted-foreground" : result !== null ? "text-primary glow-green" : "text-destructive"}`}>
               {formatResult(result)}
             </p>
           </div>
