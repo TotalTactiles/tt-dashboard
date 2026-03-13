@@ -156,7 +156,7 @@ export function useDataSources() {
 
       // Validate payload: must have expected keys as arrays
       const REQUIRED_KEYS: Record<string, string[]> = {
-        google_sheets: ["quotes", "cashflow", "revenue", "expenses"],
+        google_sheets: ["quotes", "cashflow", "revenue", "expenses", "quotesSummary", "cashflowSummary"],
         zoho_crm: ["deals", "contacts"],
         zoho_projects: ["projects", "tasks", "milestones"],
       };
