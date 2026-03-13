@@ -429,10 +429,11 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     const lastUpdated = meta?.pulledAt ?? null;
 
-    // Compute formula cache
+    // Compute formula cache with full DataStore
     formulaCacheInstance.invalidate();
-    // Note: formulas from useFormulas() are not available here (hook can't be called inside useMemo).
-    // The cache.compute() call happens via the exposed formulaCache on the context — consumers call it.
+    if (formulas.length > 0) {
+      formulaCacheInstance.compute(formulas, storeSnapshot, kpiVariables);
+    }
 
     return {
       quotedJobs, revenueProjects, expenseCategories,
