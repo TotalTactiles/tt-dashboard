@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MetricFormula, getAvailableVariables, DASHBOARD_CARDS, DATA_SOURCES } from "@/hooks/useFormulas";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,28 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial, kpi
   const [dashboardCard, setDashboardCard] = useState(initial?.dashboardCard ?? "");
   const [dataSource, setDataSource] = useState(initial?.dataSource ?? "Google Sheets");
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  useEffect(() => {
+    if (initial) {
+      setName(initial.name ?? "");
+      setExpression(initial.expression ?? "");
+      setDescription(initial.description ?? "");
+      setUnit(initial.unit ?? "%");
+      setCategory(initial.category ?? "Financial");
+      setScreenshotUrl(initial.screenshotUrl ?? "");
+      setDashboardCard(initial.dashboardCard ?? "");
+      setDataSource(initial.dataSource ?? "Google Sheets");
+    } else {
+      setName("");
+      setExpression("");
+      setDescription("");
+      setUnit("%");
+      setCategory("Financial");
+      setScreenshotUrl("");
+      setDashboardCard("");
+      setDataSource("Google Sheets");
+    }
+  }, [initial]);
 
   const handleSubmit = () => {
     if (!name || !expression) return;
