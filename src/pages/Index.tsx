@@ -12,7 +12,6 @@ import ExpenseBreakdown from "@/components/dashboard/ExpenseBreakdown";
 import DashboardLayout from "@/components/DashboardLayout";
 import GoalsDashboardWidgets from "@/components/goals/GoalsDashboardWidgets";
 import { useGoals } from "@/hooks/useGoals";
-import { useFormulas } from "@/hooks/useFormulas";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
