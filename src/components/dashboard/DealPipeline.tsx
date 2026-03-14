@@ -306,14 +306,17 @@ const DealPipeline = () => {
               </tbody>
               {/* Total row */}
               <tfoot>
-                <tr className="border-t border-border">
-                  <td colSpan={2} className="py-3 pr-4 text-xs font-mono text-muted-foreground font-medium">
-                    Total ({quotedJobs.length} jobs)
+                <tr className="border-t-2 border-chart-green/60" style={{ backgroundColor: "rgba(16, 185, 129, 0.05)" }}>
+                  <td colSpan={2} className="py-3 pr-4 font-mono font-bold text-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <Calculator className="h-3.5 w-3.5 text-chart-green" />
+                      Total ({quotedJobs.length} jobs)
+                    </span>
                   </td>
-                  <td className="py-3 pr-4 text-right font-mono text-xs font-semibold text-foreground">
+                  <td className="py-3 pr-4 text-right font-mono text-base font-bold text-chart-green">
                     {totalValue > 0 ? formatMetricValue(totalValue, "currency") : "TBC"}
                   </td>
-                  <td colSpan={3} />
+                  <td colSpan={2} />
                 </tr>
               </tfoot>
             </table>
