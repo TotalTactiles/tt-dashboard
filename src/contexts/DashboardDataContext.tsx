@@ -669,6 +669,7 @@ export function useDashboardData(): DashboardData {
       isLoading: false, hasLiveData: false, connectedCount: 0, lastUpdated: null,
       sources: [], toggleConnection: () => {}, updateWebhookUrl: () => {},
       saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {},
+      calendarEvents: [], upcomingEvents: [], calendarSummary: null, setCalendarEvents: () => {},
     } as DashboardData;
   }
   return ctx;
