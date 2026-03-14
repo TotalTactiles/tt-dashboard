@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SlidersHorizontal, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { SlidersHorizontal, ChevronLeft, ChevronRight, X, Calculator } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 import { formatDateMonthYear } from "@/lib/formatDate";
@@ -67,7 +67,7 @@ function getQuarter(month: number): number {
 }
 
 const DealPipeline = () => {
-  const { quotedJobs, dataHealth, quotesDebug } = useDashboardData();
+  const { quotedJobs, dataHealth } = useDashboardData();
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("date-desc");
@@ -261,40 +261,6 @@ const DealPipeline = () => {
         )}
       </AnimatePresence>
 
-      <details className="mb-4 rounded-lg border border-border/50 bg-secondary/20">
-        <summary className="cursor-pointer px-3 py-2 text-xs font-mono text-muted-foreground">Raw Data Debug</summary>
-        <div className="space-y-2 border-t border-border/50 px-3 py-3 text-xs font-mono text-muted-foreground">
-          <p>quotes array length: {quotesDebug.rawQuotesLength}</p>
-          <p>after filter: {quotesDebug.afterFilterLength}</p>
-          <p>Contract Value ($) on row 0: {String(quotesDebug.row0ContractValue ?? "undefined")}</p>
-          <p>_value on row 0: {String(quotesDebug.row0UnderscoreValue ?? "undefined")}</p>
-          <p>Keys: {quotesDebug.row0Keys.length ? quotesDebug.row0Keys.join(", ") : "-"}</p>
-          <p>WEBHOOK RAW RESPONSE type: {quotesDebug.rawResponseType}</p>
-          <p>Top level keys: {quotesDebug.topLevelKeys.length ? quotesDebug.topLevelKeys.join(", ") : "-"}</p>
-          <p>quotes exists at top level: {quotesDebug.hasTopLevelQuotes ? "yes" : "no"}</p>
-
-          <div>
-            <p className="mb-1 text-[11px] uppercase tracking-wide">First quote row full JSON</p>
-            <pre className="max-h-44 overflow-auto rounded-md bg-foreground p-3 text-[11px] text-background">
-              {JSON.stringify(quotesDebug.firstQuoteTopLevel, null, 2)}
-            </pre>
-          </div>
-
-          <div>
-            <p className="mb-1 text-[11px] uppercase tracking-wide">Value path probes</p>
-            <pre className="max-h-44 overflow-auto rounded-md bg-foreground p-3 text-[11px] text-background">
-              {JSON.stringify(quotesDebug.valuePaths, null, 2)}
-            </pre>
-          </div>
-
-          <div>
-            <p className="mb-1 text-[11px] uppercase tracking-wide">First 3 items from quotes</p>
-            <pre className="max-h-56 overflow-auto rounded-md bg-foreground p-3 text-[11px] text-background">
-              {JSON.stringify(quotesDebug.rawQuotesSample, null, 2)}
-            </pre>
-          </div>
-        </div>
-      </details>
 
       {quotedJobs.length === 0 ? (
         <NoData message="No quote data" healthStatus={dataHealth.quotes.status} />
@@ -308,8 +274,7 @@ const DealPipeline = () => {
                   <th className="pb-3 pr-4">Project</th>
                   <th className="pb-3 pr-4 text-right">Value</th>
                   <th className="pb-3 pr-4 text-center">Status</th>
-                  <th className="pb-3 pr-4">Date</th>
-                  <th className="pb-3">Sales Owner</th>
+                  <th className="pb-3">Date</th>
                 </tr>
               </thead>
               <tbody>
@@ -333,23 +298,25 @@ const DealPipeline = () => {
                         {statusLabels[job.status]}
                       </span>
                     </td>
-                    <td className="py-3 pr-4 font-mono text-xs text-muted-foreground">
+                    <td className="py-3 font-mono text-xs text-muted-foreground">
                       {formatDateMonthYear(job.dateQuoted)}
                     </td>
-                    <td className="py-3 text-xs text-muted-foreground">{job.salesOwner}</td>
                   </motion.tr>
                 ))}
               </tbody>
               {/* Total row */}
               <tfoot>
-                <tr className="border-t border-border">
-                  <td colSpan={2} className="py-3 pr-4 text-xs font-mono text-muted-foreground font-medium">
-                    Total ({quotedJobs.length} jobs)
+                <tr className="border-t-2 border-chart-green/60" style={{ backgroundColor: "rgba(16, 185, 129, 0.05)" }}>
+                  <td colSpan={2} className="py-3 pr-4 font-mono font-bold text-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <Calculator className="h-3.5 w-3.5 text-chart-green" />
+                      Total ({quotedJobs.length} jobs)
+                    </span>
                   </td>
-                  <td className="py-3 pr-4 text-right font-mono text-xs font-semibold text-foreground">
+                  <td className="py-3 pr-4 text-right font-mono text-base font-bold text-chart-green">
                     {totalValue > 0 ? formatMetricValue(totalValue, "currency") : "TBC"}
                   </td>
-                  <td colSpan={3} />
+                  <td colSpan={2} />
                 </tr>
               </tfoot>
             </table>
