@@ -129,17 +129,18 @@ const ExpenseBreakdown = () => {
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(220, 18%, 10%)",
-                      border: "1px solid hsl(220, 14%, 18%)",
-                      borderRadius: "8px",
-                      fontFamily: "JetBrains Mono",
-                      fontSize: "12px",
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const { name, value, fill } = payload[0].payload;
+                      const pct = pieTotal > 0 ? ((value / pieTotal) * 100).toFixed(1) : "0";
+                      return (
+                        <div style={{ background: '#fff', borderRadius: 8, padding: '10px 14px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: '#111', marginBottom: 2 }}>{name}</div>
+                          <div style={{ fontWeight: 600, fontSize: 15, color: fill }}>${value.toLocaleString()}{periodSuffix}</div>
+                          <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>{pct}% of total</div>
+                        </div>
+                      );
                     }}
-                    formatter={(value: number) => [
-                      `$${value.toLocaleString()}${periodSuffix} (${pieTotal > 0 ? ((value / pieTotal) * 100).toFixed(1) : 0}%)`,
-                      "",
-                    ]}
                   />
                 </PieChart>
               </ResponsiveContainer>
