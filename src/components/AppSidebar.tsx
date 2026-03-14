@@ -5,6 +5,7 @@ import {
   Activity,
   CalendarDays,
   Target,
+  FunctionSquare,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -24,6 +25,7 @@ const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Calendar", url: "/calendar", icon: CalendarDays },
   { title: "Goals & Targets", url: "/goals", icon: Target },
+  { title: "Formulas", url: "/formulas", icon: FunctionSquare },
   { title: "Portfolio", url: "/portfolio", icon: TrendingUp },
   { title: "Deal Flow", url: "/deals", icon: Activity },
   { title: "Settings", url: "/settings", icon: Settings },
