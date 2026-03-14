@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Calculator, Camera } from "lucide-react";
 import ScreenshotViewer from "@/components/shared/ScreenshotViewer";
+import { formatMetricValue } from "@/lib/formatMetricValue";
 
 interface FormulaCardProps {
   formula: MetricFormula;
