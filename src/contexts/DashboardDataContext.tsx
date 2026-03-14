@@ -240,7 +240,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const rawQuotes = Array.isArray(webhookResponse?.quotes) ? webhookResponse.quotes : [];
     const rawCashflow = liveData.cashflow ?? [];
     const rawRevenue = liveData.revenue ?? [];
-    const rawExpenses = liveData.expenses ?? [];
+    // Unwrap n8n per-item envelope: [{ json: {...} }] → [{...}]
+    const unwrapItems = (arr: any[]): any[] =>
+      arr.map((item: any) =>
+        item && typeof item === "object" && item.json && typeof item.json === "object" ? item.json : item
+      );
+    const rawExpenses = unwrapItems(liveData.expenses ?? []);
+    console.log("[Expenses Debug] raw length:", (liveData.expenses ?? []).length, "unwrapped sample:", rawExpenses[0]);
     const qs = liveData.quotesSummary as any;
     const cs = liveData.cashflowSummary as any;
     const meta = liveData._meta as any;
