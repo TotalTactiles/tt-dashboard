@@ -88,8 +88,15 @@ export interface ExpenseItem {
 export interface ExpenseCategoryGroup {
   category: string;
   items: ExpenseItem[];
+  totalWeekly: number;
   totalMonthly: number;
   totalYearly: number;
+}
+
+export interface GrandTotalExpense {
+  weeklyCost: number;
+  monthlyCost: number;
+  yearlyCost: number;
 }
 
 export interface KPIStat {
