@@ -5,12 +5,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
+import { Loader2 } from "lucide-react";
 
 interface EventModalProps {
   open: boolean;
   onClose: () => void;
   event: LiveCalendarEvent | null;
-  onSave: (action: "create" | "update" | "delete", data: Partial<LiveCalendarEvent>) => void;
+  onSave: (action: "create" | "update" | "delete", data: Partial<LiveCalendarEvent>) => Promise<void>;
   selectedDate: Date;
 }
 
@@ -26,7 +27,6 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 const pad = (n: number) => n.toString().padStart(2, "0");
-
 const toDateInput = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const toTimeInput = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
@@ -42,8 +42,17 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [attendeesStr, setAttendeesStr] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{ title?: boolean; date?: boolean }>({});
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
+    if (!open) {
+      setLoading(false);
+      setErrors({});
+      setConfirmDelete(false);
+      return;
+    }
     if (event) {
       setTitle(event.title);
       const s = new Date(event.start);
@@ -69,8 +78,16 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
     }
   }, [event, selectedDate, open]);
 
-  const handleSave = () => {
-    if (!title.trim() || !date) return;
+  const handleSave = async () => {
+    const newErrors: { title?: boolean; date?: boolean } = {};
+    if (!title.trim()) newErrors.title = true;
+    if (!date) newErrors.date = true;
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    setErrors({});
+
     const startISO = allDay
       ? new Date(`${date}T00:00:00`).toISOString()
       : new Date(`${date}T${startTime}:00`).toISOString();
@@ -83,20 +100,33 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
       .map((a) => a.trim())
       .filter(Boolean);
 
-    onSave(isEditing ? "update" : "create", {
+    setLoading(true);
+    await onSave(isEditing ? "update" : "create", {
       title: title.trim(),
-      description: description.trim() || undefined,
-      location: location.trim() || undefined,
+      description: description.trim() || "",
+      location: location.trim() || "",
       start: startISO,
       end: endISO,
       allDay,
       type,
       attendees,
+      googleId: event?.googleId,
+      zohoId: event?.zohoId,
     });
+    setLoading(false);
   };
 
-  const handleDelete = () => {
-    if (event) onSave("delete", {});
+  const handleDelete = async () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    setLoading(true);
+    await onSave("delete", {
+      googleId: event?.googleId,
+      zohoId: event?.zohoId,
+    });
+    setLoading(false);
   };
 
   return (
@@ -110,13 +140,25 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
           {/* Title */}
           <div>
             <Label className="text-xs font-medium text-muted-foreground mb-1 block">Title *</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Event title" />
+            <Input
+              value={title}
+              onChange={(e) => { setTitle(e.target.value); setErrors((p) => ({ ...p, title: false })); }}
+              placeholder="Event title"
+              className={errors.title ? "border-destructive" : ""}
+            />
+            {errors.title && <p className="text-[11px] text-destructive mt-1">Title is required</p>}
           </div>
 
           {/* Date */}
           <div>
             <Label className="text-xs font-medium text-muted-foreground mb-1 block">Date *</Label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <Input
+              type="date"
+              value={date}
+              onChange={(e) => { setDate(e.target.value); setErrors((p) => ({ ...p, date: false })); }}
+              className={errors.date ? "border-destructive" : ""}
+            />
+            {errors.date && <p className="text-[11px] text-destructive mt-1">Date is required</p>}
           </div>
 
           {/* All day toggle */}
@@ -186,26 +228,34 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
           <div className="flex items-center gap-2 pt-2">
             <button
               onClick={handleSave}
-              disabled={!title.trim() || !date}
-              className="flex-1 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading}
+              className="flex-1 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
             >
-              Save
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {loading ? "Saving…" : "Save"}
             </button>
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-secondary text-foreground text-sm font-medium hover:bg-secondary/80 transition-colors"
+              disabled={loading}
+              className="px-4 py-2 rounded-xl bg-secondary text-foreground text-sm font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             {isEditing && (
               <button
                 onClick={handleDelete}
-                className="px-4 py-2 rounded-xl bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90 transition-colors"
+                disabled={loading}
+                className="px-4 py-2 rounded-xl bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90 transition-colors disabled:opacity-50"
               >
-                Delete
+                {confirmDelete ? "Confirm Delete" : "Delete"}
               </button>
             )}
           </div>
+          {confirmDelete && (
+            <p className="text-[11px] text-destructive text-center">
+              Delete this event from Google Calendar? Click again to confirm.
+            </p>
+          )}
         </div>
       </DialogContent>
     </Dialog>
