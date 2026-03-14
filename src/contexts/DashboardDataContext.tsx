@@ -203,8 +203,10 @@ const CATEGORY_FILLS: Record<string, string> = {
   "Office & Misc": "hsl(200, 80%, 50%)",
   "Shared Expenses": "hsl(270, 60%, 55%)",
   "Employee Expenses": "hsl(38, 92%, 55%)",
+  "Krishan": "hsl(340, 65%, 50%)",
+  "Mehmet": "hsl(30, 60%, 50%)",
 };
-const FALLBACK_FILLS = ["hsl(340, 65%, 50%)", "hsl(120, 50%, 40%)", "hsl(30, 60%, 50%)"];
+const FALLBACK_FILLS = ["hsl(120, 50%, 40%)", "hsl(280, 50%, 55%)", "hsl(15, 70%, 50%)", "hsl(190, 60%, 45%)"];
 
 // ---- Format helpers ----
 const fmtAUD = (n: number) => formatMetricValue(n, "currency");
