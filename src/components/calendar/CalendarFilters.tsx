@@ -1,59 +1,55 @@
-import { CalendarEvent, eventTypeColors } from "@/data/calendarMockData";
-
 interface CalendarFiltersProps {
-  activeTypes: CalendarEvent["type"][];
-  onToggleType: (type: CalendarEvent["type"]) => void;
-  activeSources: ("google" | "zoho")[];
-  onToggleSource: (source: "google" | "zoho") => void;
+  activeTypes: string[];
+  onToggleType: (type: string) => void;
+  activeSources: string[];
+  onToggleSource: (source: string) => void;
 }
 
-const eventTypes: { type: CalendarEvent["type"]; label: string }[] = [
-  { type: "meeting", label: "Meetings" },
-  { type: "deadline", label: "Deadlines" },
-  { type: "milestone", label: "Milestones" },
-  { type: "call", label: "Calls" },
-  { type: "filing", label: "Filings" },
-  { type: "distribution", label: "Distributions" },
-  { type: "valuation", label: "Valuations" },
-];
-
-const eventTypeHslMap: Record<CalendarEvent["type"], string> = {
-  meeting: "200 80% 50%",
-  deadline: "0 72% 55%",
-  milestone: "270 60% 55%",
-  call: "160 70% 45%",
-  filing: "38 92% 55%",
-  distribution: "200 80% 50%",
-  valuation: "38 92% 55%",
+const TYPE_COLORS: Record<string, string> = {
+  Meeting: "200 80% 50%",
+  Deadline: "0 72% 55%",
+  Milestone: "270 60% 55%",
+  Care: "130 55% 40%",
+  Valuation: "38 70% 42%",
+  Distribution: "160 70% 35%",
 };
+
+const eventTypes = [
+  { type: "Meeting", label: "Meetings" },
+  { type: "Deadline", label: "Deadlines" },
+  { type: "Milestone", label: "Milestones" },
+  { type: "Care", label: "Care" },
+  { type: "Valuation", label: "Valuations" },
+  { type: "Distribution", label: "Distributions" },
+];
 
 const CalendarFilters = ({ activeTypes, onToggleType, activeSources, onToggleSource }: CalendarFiltersProps) => {
   return (
     <div className="flex flex-wrap items-center gap-2">
       {/* Source filters */}
       <button
-        onClick={() => onToggleSource("google")}
+        onClick={() => onToggleSource("Google Calendar")}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all duration-150"
         style={
-          activeSources.includes("google")
+          activeSources.includes("Google Calendar")
             ? { background: "hsl(200, 80%, 50%)", color: "hsl(220, 20%, 6%)" }
             : { background: "transparent", border: "1px solid hsl(200, 80%, 50%)", color: "hsl(200, 80%, 50%)" }
         }
       >
         <span className="w-2 h-2 rounded-full" style={{ background: "hsl(200, 80%, 50%)" }} />
-        Google
+        Google Calendar
       </button>
       <button
-        onClick={() => onToggleSource("zoho")}
+        onClick={() => onToggleSource("Zoho Calendar")}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all duration-150"
         style={
-          activeSources.includes("zoho")
+          activeSources.includes("Zoho Calendar")
             ? { background: "hsl(270, 60%, 55%)", color: "hsl(220, 20%, 6%)" }
             : { background: "transparent", border: "1px solid hsl(270, 60%, 55%)", color: "hsl(270, 60%, 55%)" }
         }
       >
         <span className="w-2 h-2 rounded-full" style={{ background: "hsl(270, 60%, 55%)" }} />
-        Zoho
+        Zoho Calendar
       </button>
 
       <div className="w-px h-5 bg-border mx-1" />
@@ -61,7 +57,7 @@ const CalendarFilters = ({ activeTypes, onToggleType, activeSources, onToggleSou
       {/* Type filters */}
       {eventTypes.map((et) => {
         const active = activeTypes.includes(et.type);
-        const hsl = eventTypeHslMap[et.type];
+        const hsl = TYPE_COLORS[et.type] || "200 80% 50%";
         return (
           <button
             key={et.type}

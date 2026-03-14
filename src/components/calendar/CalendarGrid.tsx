@@ -1,13 +1,15 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, X, Plus } from "lucide-react";
-import { CalendarEvent, eventTypeColors } from "@/data/calendarMockData";
+import { ChevronLeft, ChevronRight, X, Plus, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
 
 interface CalendarGridProps {
-  events: CalendarEvent[];
+  events: LiveCalendarEvent[];
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
+  onEventClick: (event: LiveCalendarEvent) => void;
+  onAddEvent: () => void;
 }
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -16,28 +18,34 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-const typeLabels: Record<CalendarEvent["type"], string> = {
-  meeting: "Meeting", deadline: "Deadline", milestone: "Milestone",
-  call: "Call", filing: "Filing", distribution: "Distribution", valuation: "Valuation",
+const TYPE_COLORS: Record<string, string> = {
+  Meeting: "#378ADD",
+  Deadline: "#E24B4A",
+  Milestone: "#7F77DD",
+  Care: "#639922",
+  Valuation: "#BA7517",
+  Distribution: "#1D9E75",
 };
 
-const CalendarGrid = ({ events, selectedDate, onSelectDate }: CalendarGridProps) => {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 2, 1));
+const getTypeColor = (type: string) => TYPE_COLORS[type] || "#378ADD";
+
+const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onAddEvent }: CalendarGridProps) => {
+  const [currentDate, setCurrentDate] = useState(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
-  const cellRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const prevMonthDays = new Date(year, month, 0).getDate();
 
   const prevMonth = () => { setCurrentDate(new Date(year, month - 1, 1)); setExpandedDay(null); };
   const nextMonth = () => { setCurrentDate(new Date(year, month + 1, 1)); setExpandedDay(null); };
 
   const eventsByDay = useMemo(() => {
-    const map: Record<number, CalendarEvent[]> = {};
+    const map: Record<number, LiveCalendarEvent[]> = {};
     events.forEach((e) => {
-      const d = new Date(e.date);
+      const d = new Date(e.start);
       if (d.getMonth() === month && d.getFullYear() === year) {
         const day = d.getDate();
         if (!map[day]) map[day] = [];
@@ -47,11 +55,11 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate }: CalendarGridProps)
     return map;
   }, [events, month, year]);
 
-  const cells: (number | null)[] = [];
-  for (let i = 0; i < firstDay; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-  // Pad to fill complete rows
-  while (cells.length % 7 !== 0) cells.push(null);
+  // Build cells: leading blanks from prev month, current month days, trailing blanks
+  const cells: { day: number; inMonth: boolean }[] = [];
+  for (let i = firstDay - 1; i >= 0; i--) cells.push({ day: prevMonthDays - i, inMonth: false });
+  for (let d = 1; d <= daysInMonth; d++) cells.push({ day: d, inMonth: true });
+  while (cells.length % 7 !== 0) cells.push({ day: cells.length - firstDay - daysInMonth + 1, inMonth: false });
 
   const today = new Date();
   const isToday = (d: number) => d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
@@ -66,25 +74,19 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate }: CalendarGridProps)
   const expandedEvents = expandedDay ? eventsByDay[expandedDay] || [] : [];
   const expandedDate = expandedDay ? new Date(year, month, expandedDay) : null;
 
+  const formatTime12 = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="stat-card flex-1 min-w-0">
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2">
-          <select
-            value={month}
-            onChange={(e) => { setCurrentDate(new Date(year, Number(e.target.value), 1)); setExpandedDay(null); }}
-            className="bg-secondary text-foreground text-sm font-semibold rounded-lg px-3 py-1.5 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
-          >
-            {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
-          </select>
-          <select
-            value={year}
-            onChange={(e) => { setCurrentDate(new Date(Number(e.target.value), month, 1)); setExpandedDay(null); }}
-            className="bg-secondary text-foreground text-sm font-semibold rounded-lg px-3 py-1.5 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
-          >
-            {[2025, 2026, 2027].map((y) => <option key={y} value={y}>{y}</option>)}
-          </select>
+        <div className="flex items-center gap-3">
+          <h3 className="text-sm font-semibold text-foreground">
+            {MONTHS[month]} {year}
+          </h3>
         </div>
         <div className="flex items-center gap-1">
           <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-secondary transition-colors duration-150">
@@ -105,38 +107,36 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate }: CalendarGridProps)
 
       {/* Grid */}
       <div className="grid grid-cols-7 gap-1.5 relative">
-        {cells.map((day, i) => (
-          <div
-            key={i}
-            ref={(el) => { if (day) cellRefs.current[day] = el; }}
-            onClick={() => day && handleDayClick(day)}
-            className={`relative min-h-[100px] flex flex-col p-2 rounded-xl text-xs transition-all duration-150 cursor-pointer
-              ${!day ? "opacity-0 pointer-events-none" : ""}
-              ${day && isToday(day) ? "bg-primary/15 ring-1 ring-primary/40" : ""}
-              ${day && isSelected(day) && !isToday(day) ? "bg-secondary ring-1 ring-primary/30" : ""}
-              ${day && !isToday(day) && !isSelected(day) ? "bg-muted/50 hover:bg-secondary/70" : ""}
-            `}
-          >
-            {day && (
-              <>
-                <span className={`text-[12px] font-bold mb-1 ${isToday(day) ? "text-primary" : "text-foreground/80"}`}>
-                  {day}
-                </span>
-                <div className="flex flex-col gap-0.5 flex-1">
-                  {(eventsByDay[day] || []).slice(0, 3).map((ev) => (
-                    <div key={ev.id} className="flex items-center gap-1 min-w-0">
-                      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: eventTypeColors[ev.type] }} />
-                      <span className="text-[10px] text-foreground/70 truncate leading-tight">{ev.title}</span>
-                    </div>
-                  ))}
-                  {(eventsByDay[day] || []).length > 3 && (
-                    <span className="text-[9px] text-primary font-medium">+{(eventsByDay[day] || []).length - 3} more</span>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        ))}
+        {cells.map((cell, i) => {
+          const dayEvents = cell.inMonth ? eventsByDay[cell.day] || [] : [];
+          return (
+            <div
+              key={i}
+              onClick={() => cell.inMonth && handleDayClick(cell.day)}
+              className={`relative min-h-[110px] flex flex-col p-2 rounded-xl text-xs transition-all duration-150
+                ${!cell.inMonth ? "opacity-30 pointer-events-none" : "cursor-pointer"}
+                ${cell.inMonth && isToday(cell.day) ? "bg-primary/15 ring-1 ring-primary/40" : ""}
+                ${cell.inMonth && isSelected(cell.day) && !isToday(cell.day) ? "bg-secondary ring-1 ring-primary/30" : ""}
+                ${cell.inMonth && !isToday(cell.day) && !isSelected(cell.day) ? "bg-muted/50 hover:bg-secondary/70" : ""}
+              `}
+            >
+              <span className={`text-[12px] font-bold mb-1 ${cell.inMonth && isToday(cell.day) ? "text-primary" : "text-foreground/80"}`}>
+                {cell.day}
+              </span>
+              <div className="flex flex-col gap-0.5 flex-1">
+                {dayEvents.slice(0, 3).map((ev) => (
+                  <div key={ev.id} className="flex items-center gap-1 min-w-0">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: getTypeColor(ev.type) }} />
+                    <span className="text-[10px] text-foreground/70 truncate leading-tight">{ev.title}</span>
+                  </div>
+                ))}
+                {dayEvents.length > 3 && (
+                  <span className="text-[9px] text-primary font-medium">+{dayEvents.length - 3} more</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
 
         {/* Expanded day floating card */}
         <AnimatePresence>
@@ -147,17 +147,13 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate }: CalendarGridProps)
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.15 }}
               className="absolute z-50 w-[320px] bg-card border border-border rounded-xl shadow-2xl p-4"
-              style={{
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-              }}
+              style={{ top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
             >
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-sm font-semibold text-foreground">
                   {expandedDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                 </h4>
-                <button onClick={() => setExpandedDay(null)} className="p-1 rounded-lg hover:bg-secondary transition-colors">
+                <button onClick={(e) => { e.stopPropagation(); setExpandedDay(null); }} className="p-1 rounded-lg hover:bg-secondary transition-colors">
                   <X className="h-4 w-4 text-muted-foreground" />
                 </button>
               </div>
@@ -166,26 +162,38 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate }: CalendarGridProps)
               ) : (
                 <div className="space-y-2 max-h-[260px] overflow-y-auto">
                   {expandedEvents.map((ev) => (
-                    <div key={ev.id} className="p-2.5 rounded-lg bg-secondary/50 space-y-1">
+                    <div
+                      key={ev.id}
+                      className="p-2.5 rounded-lg bg-secondary/50 space-y-1 cursor-pointer hover:bg-secondary/80 transition-colors"
+                      onClick={(e) => { e.stopPropagation(); onEventClick(ev); setExpandedDay(null); }}
+                    >
                       <div className="flex items-center gap-2">
                         <Badge
                           className="text-[9px] px-1.5 py-0 rounded-full border-0"
-                          style={{ backgroundColor: eventTypeColors[ev.type], color: "hsl(220, 20%, 6%)" }}
+                          style={{ backgroundColor: getTypeColor(ev.type), color: "#fff" }}
                         >
-                          {typeLabels[ev.type]}
+                          {ev.type}
                         </Badge>
-                        <span className="text-[10px] font-mono text-muted-foreground ml-auto">
-                          {ev.calendar === "google" ? "Google" : "Zoho"}
+                        <span className="text-[9px] font-mono text-muted-foreground ml-auto">
+                          {ev.source.includes("Google") ? "Google" : "Zoho"}
                         </span>
                       </div>
-                      <p className="text-xs font-semibold text-foreground">{ev.title}</p>
-                      {ev.time && <p className="text-[10px] font-mono text-muted-foreground">{ev.time}</p>}
-                      {ev.description && <p className="text-[10px] text-foreground/60">{ev.description}</p>}
+                      <div className="flex items-center gap-1">
+                        <p className="text-xs font-semibold text-foreground">{ev.title}</p>
+                        {ev.htmlLink && <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />}
+                      </div>
+                      {!ev.allDay && ev.start && (
+                        <p className="text-[10px] font-mono text-muted-foreground">{formatTime12(ev.start)}</p>
+                      )}
+                      {ev.description && <p className="text-[10px] text-foreground/60 line-clamp-2">{ev.description}</p>}
                     </div>
                   ))}
                 </div>
               )}
-              <button className="flex items-center gap-1 mt-3 text-[11px] text-primary font-medium hover:text-primary/80 transition-colors">
+              <button
+                onClick={(e) => { e.stopPropagation(); setExpandedDay(null); onAddEvent(); }}
+                className="flex items-center gap-1 mt-3 text-[11px] text-primary font-medium hover:text-primary/80 transition-colors"
+              >
                 <Plus className="h-3 w-3" /> Add Event
               </button>
             </motion.div>
