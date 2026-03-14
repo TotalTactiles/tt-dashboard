@@ -608,6 +608,15 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       }
     }
 
+    // ===== CALENDAR DATA =====
+    const rawCalendarEvents: LiveCalendarEvent[] = Array.isArray(webhookResponse?.calendarEvents)
+      ? webhookResponse.calendarEvents
+      : [];
+    const rawUpcomingEvents: LiveCalendarEvent[] = Array.isArray(webhookResponse?.upcomingEvents)
+      ? webhookResponse.upcomingEvents
+      : [];
+    const rawCalendarSummary: CalendarSummary | null = webhookResponse?.calendarSummary ?? null;
+
     return {
       quotedJobs, revenueProjects, expenseCategories, grandTotalExpense,
       kpiStats, incomeOutgoingsData, profitMarginData, forecastChartData, expenseAllocation,
@@ -616,8 +625,12 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       dataHealth, quotesDebug, isLoading, hasLiveData, connectedCount, lastUpdated,
       sources: ds.sources, toggleConnection: ds.toggleConnection,
       updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow,
+      calendarEvents: rawCalendarEvents,
+      upcomingEvents: rawUpcomingEvents,
+      calendarSummary: rawCalendarSummary,
+      setCalendarEvents: setCalendarEventsState,
     };
-  }, [liveData, hasLiveData, connectedCount, isLoading, ds, formulas, addFormula, updateFormula, deleteFormula]);
+  }, [liveData, hasLiveData, connectedCount, isLoading, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState]);
 
   return <DashboardDataContext.Provider value={data}>{children}</DashboardDataContext.Provider>;
 }
