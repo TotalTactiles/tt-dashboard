@@ -94,9 +94,17 @@ function loadSavedSources(): DataSourceConfig[] {
       const parsed = JSON.parse(saved) as DataSourceConfig[];
       return DEFAULT_SOURCES.map((def) => {
         const existing = parsed.find((s) => s.id === def.id);
-        return existing
-          ? { ...def, ...existing, loading: false }
-          : def;
+        if (existing) {
+          // Ensure google_sheets always has a webhook URL (fallback to default)
+          const webhookUrl = (def.id === "google_sheets" && !existing.webhookUrl)
+            ? DEFAULT_WEBHOOK_URL
+            : existing.webhookUrl;
+          const connected = (def.id === "google_sheets" && !existing.webhookUrl)
+            ? true
+            : existing.connected;
+          return { ...def, ...existing, loading: false, webhookUrl, connected };
+        }
+        return def;
       });
     }
   } catch {}
