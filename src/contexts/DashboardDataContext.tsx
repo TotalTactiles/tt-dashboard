@@ -546,7 +546,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       kpiStats, incomeOutgoingsData, profitMarginData, forecastChartData, expenseAllocation,
       kpiVariables, dataStore: storeSnapshot, formulaCache: formulaCacheInstance, changedFormulas,
       formulas, addFormula, updateFormula, deleteFormula,
-      dataHealth, isLoading, hasLiveData, connectedCount, lastUpdated,
+      dataHealth, quotesDebug, isLoading, hasLiveData, connectedCount, lastUpdated,
       sources: ds.sources, toggleConnection: ds.toggleConnection,
       updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow,
     };
