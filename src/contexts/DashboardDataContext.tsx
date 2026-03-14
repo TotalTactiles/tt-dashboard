@@ -164,6 +164,30 @@ export interface QuotesDebugInfo {
   valuePaths: Record<string, unknown>;
 }
 
+export interface LiveCalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  location?: string;
+  start: string;
+  end: string;
+  allDay: boolean;
+  source: string;
+  type: string;
+  attendees: string[];
+  googleId?: string;
+  zohoId?: string;
+  status?: string;
+  organizer?: string;
+  htmlLink?: string;
+}
+
+export interface CalendarSummary {
+  totalEvents: number;
+  upcomingCount: number;
+  byType: Record<string, number>;
+}
+
 export interface DashboardData {
   quotedJobs: QuotedJob[];
   revenueProjects: RevenueProject[];
@@ -193,6 +217,10 @@ export interface DashboardData {
   updateWebhookUrl: ReturnType<typeof useDataSources>["updateWebhookUrl"];
   saveAndTest: ReturnType<typeof useDataSources>["saveAndTest"];
   syncNow: ReturnType<typeof useDataSources>["syncNow"];
+  calendarEvents: LiveCalendarEvent[];
+  upcomingEvents: LiveCalendarEvent[];
+  calendarSummary: CalendarSummary | null;
+  setCalendarEvents: React.Dispatch<React.SetStateAction<LiveCalendarEvent[]>>;
 }
 
 const DashboardDataContext = createContext<DashboardData | null>(null);
