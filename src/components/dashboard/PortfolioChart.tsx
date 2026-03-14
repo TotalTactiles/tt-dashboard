@@ -169,13 +169,12 @@ const PortfolioChart = () => {
             </Bar>
             {/* Outgoings bars */}
             <Bar dataKey="outgoings" fill="hsl(0, 72%, 55%)" radius={[3, 3, 0, 0]} animationDuration={1500} />
-            {/* Surplus line — solid for past, dashed for future */}
+            {/* Surplus line */}
             <Line
               type="monotone"
               dataKey="surplus"
               stroke="hsl(160, 70%, 45%)"
               strokeWidth={2}
-              strokeDasharray={(props: any) => ""}
               dot={renderSurplusDot}
               animationDuration={1500}
             />
