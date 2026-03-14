@@ -219,7 +219,15 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
   const { formulas, addFormula, updateFormula, deleteFormula } = useFormulas();
 
   const data = useMemo<DashboardData>(() => {
-    const rawQuotes = liveData.quotes ?? [];
+    const webhookResponse: any = liveData;
+
+    console.log("WEBHOOK RAW RESPONSE type:", typeof webhookResponse);
+    console.log("WEBHOOK TOP LEVEL KEYS:", Object.keys(webhookResponse ?? {}));
+    console.log("quotes type:", typeof webhookResponse?.quotes);
+    console.log("quotes length:", webhookResponse?.quotes?.length);
+    console.log("quotes[0]:", JSON.stringify(webhookResponse?.quotes?.[0], null, 2));
+
+    const rawQuotes = Array.isArray(webhookResponse?.quotes) ? webhookResponse.quotes : [];
     const rawCashflow = liveData.cashflow ?? [];
     const rawRevenue = liveData.revenue ?? [];
     const rawExpenses = liveData.expenses ?? [];
@@ -227,9 +235,8 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const cs = liveData.cashflowSummary as any;
     const meta = liveData._meta as any;
 
-    // Debug: log meta on data load
     if (meta) {
-      console.log('Dashboard data loaded:', meta);
+      console.log("Dashboard data loaded:", meta);
     }
 
     // ===== QUOTED JOBS TABLE =====
@@ -258,6 +265,30 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         if (!b.dateQuoted) return -1;
         return new Date(b.dateQuoted).getTime() - new Date(a.dateQuoted).getTime();
       });
+
+    const testRow = webhookResponse?.quotes?.[0] ?? webhookResponse?.[0]?.quotes?.[0] ?? {};
+    const valuePaths: Record<string, unknown> = {
+      'direct ["Contract Value ($)"]': testRow?.["Contract Value ($)"],
+      "direct._value": testRow?._value,
+      "direct.value": testRow?.value,
+      "direct.Value": testRow?.Value,
+      "direct.Amount": testRow?.Amount,
+      "all keys": Object.keys(testRow ?? {}).join(", "),
+    };
+
+    const quotesDebug: QuotesDebugInfo = {
+      rawResponseType: typeof webhookResponse,
+      topLevelKeys: Object.keys(webhookResponse ?? {}),
+      hasTopLevelQuotes: Array.isArray(webhookResponse?.quotes),
+      rawQuotesLength: rawQuotes.length,
+      afterFilterLength: quotedJobs.length,
+      row0ContractValue: rawQuotes[0]?.["Contract Value ($)"],
+      row0UnderscoreValue: rawQuotes[0]?._value,
+      row0Keys: Object.keys(rawQuotes[0] ?? {}),
+      firstQuoteTopLevel: webhookResponse?.quotes?.[0] ?? null,
+      rawQuotesSample: rawQuotes.slice(0, 3),
+      valuePaths,
+    };
 
     // ===== REVENUE PROJECTS TABLE =====
     const revenueProjects: RevenueProject[] = rawRevenue
