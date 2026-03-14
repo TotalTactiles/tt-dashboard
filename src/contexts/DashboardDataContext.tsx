@@ -212,15 +212,23 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const cs = liveData.cashflowSummary as any;
     const meta = liveData._meta as any;
 
+    // Debug: log meta on data load
+    if (meta) {
+      console.log('Dashboard data loaded:', meta);
+    }
+
     // ===== QUOTED JOBS TABLE =====
     const quotedJobs: QuotedJob[] = rawQuotes
-      .filter((r: any) => r?._label_isLineItem === true)
       .map((r: any, i: number) => ({
         id: `Q${i}`,
         company: String(r["Company Name"] ?? r._company ?? "").trim(),
         project: String(r["Project Name"] ?? r._project ?? "").trim(),
-        value: parseNum(r["Contract Value ($)"] ?? r._value ?? 0),
-        status: normalizeQuoteStatus(String(r.Status ?? r["Current Status"] ?? "pending")),
+        value: typeof r["Contract Value ($)"] === "number"
+          ? r["Contract Value ($)"]
+          : parseFloat(String(r["Contract Value ($)"] ?? r._value ?? "0").replace(/[^0-9.-]/g, "")) || 0,
+        status: (r.Status === "won" || r.Status === "lost" || r.Status === "yellow" || r.Status === "pending")
+          ? r.Status as "won" | "lost" | "yellow" | "pending"
+          : normalizeQuoteStatus(String(r["Current Status"] ?? "pending")),
         dateQuoted: String(r["Estimated Job Date"] ?? r["Date Quoted"] ?? "").trim(),
         stageValue: parseNum(r["Stage Value ($)"] ?? 0),
         lostReason: String(r["Lost/Dead Reason"] ?? r["Loss Notes"] ?? "").trim(),
@@ -228,6 +236,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         zohoId: String(r["Job/Lead ID (Zoho)"] ?? "").trim(),
         projectYear: String(r["Project Year"] ?? "").trim(),
       }))
+      .filter((j) => j.company || j.project)
       .sort((a: QuotedJob, b: QuotedJob) => {
         if (!a.dateQuoted && !b.dateQuoted) return 0;
         if (!a.dateQuoted) return 1;
