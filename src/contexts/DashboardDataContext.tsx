@@ -143,6 +143,20 @@ export interface DataHealth {
   expenses: SectionHealth;
 }
 
+export interface QuotesDebugInfo {
+  rawResponseType: string;
+  topLevelKeys: string[];
+  hasTopLevelQuotes: boolean;
+  rawQuotesLength: number;
+  afterFilterLength: number;
+  row0ContractValue: unknown;
+  row0UnderscoreValue: unknown;
+  row0Keys: string[];
+  firstQuoteTopLevel: any;
+  rawQuotesSample: any[];
+  valuePaths: Record<string, unknown>;
+}
+
 export interface DashboardData {
   quotedJobs: QuotedJob[];
   revenueProjects: RevenueProject[];
@@ -161,6 +175,7 @@ export interface DashboardData {
   updateFormula: (id: string, updates: Partial<import("@/hooks/useFormulas").MetricFormula>) => void;
   deleteFormula: (id: string) => void;
   dataHealth: DataHealth;
+  quotesDebug: QuotesDebugInfo;
   isLoading: boolean;
   hasLiveData: boolean;
   connectedCount: number;
