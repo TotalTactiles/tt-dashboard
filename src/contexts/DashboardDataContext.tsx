@@ -312,7 +312,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
           month: m,
           income: inc,
           outgoings: out,
-          surplus: sv(cs?.anticipatedSurplus, m),
+          surplus: inc - out,
         };
       });
 

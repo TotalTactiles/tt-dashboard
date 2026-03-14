@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
+import { formatMetricValue } from "@/lib/formatMetricValue";
 import NoData from "./NoData";
 
 const CashflowChart = () => {
@@ -70,14 +71,33 @@ const CashflowChart = () => {
                 fontFamily: "JetBrains Mono",
                 fontSize: "12px",
               }}
-              formatter={(value: number, name: string) => {
-                if (name === "surplusNeg") return [`-$${Math.abs(value).toLocaleString()}`, "Deficit"];
-                return [`$${value.toLocaleString()}`, "Surplus"];
+              content={({ active, payload, label }) => {
+                if (!active || !payload || payload.length === 0) return null;
+                const point = payload[0]?.payload;
+                if (!point) return null;
+                const surplusVal = point.surplus ?? 0;
+                const isNeg = surplusVal < 0;
+                return (
+                  <div style={{
+                    backgroundColor: "hsl(220, 18%, 10%)",
+                    border: "1px solid hsl(220, 14%, 18%)",
+                    borderRadius: "8px",
+                    fontFamily: "JetBrains Mono",
+                    fontSize: "12px",
+                    padding: "8px 12px",
+                  }}>
+                    <p style={{ color: "hsl(215, 12%, 70%)", marginBottom: 4 }}>{label}</p>
+                    <p style={{ color: "hsl(160, 70%, 45%)" }}>Income: {formatMetricValue(point.income, "currency")}</p>
+                    <p style={{ color: "hsl(0, 84%, 60%)" }}>Outgoings: {formatMetricValue(point.outgoings, "currency")}</p>
+                    <p style={{ color: isNeg ? "hsl(0, 84%, 60%)" : "hsl(160, 70%, 45%)", marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4 }}>
+                      {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
+                    </p>
+                  </div>
+                );
               }}
             />
-            {hasNegative && (
-              <ReferenceLine y={0} stroke="hsl(215, 12%, 30%)" strokeDasharray="3 3" />
-            )}
+            {/* Always show $0 baseline as a subtle gridline */}
+            <ReferenceLine y={0} stroke="hsl(215, 12%, 30%)" strokeDasharray="3 3" />
             {hasNegative ? (
               <>
                 <Area type="monotone" dataKey="surplusPos" stroke="hsl(160, 70%, 45%)" fill="url(#surplusPosGrad)" strokeWidth={2} animationDuration={2000} connectNulls />
