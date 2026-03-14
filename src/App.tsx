@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Settings from "./pages/Settings";
 import CalendarView from "./pages/CalendarView";
 import GoalsTargets from "./pages/GoalsTargets";
+import Formulas from "./pages/Formulas";
 import NotFound from "./pages/NotFound";
 import { DashboardDataProvider } from "@/contexts/DashboardDataContext";
 
