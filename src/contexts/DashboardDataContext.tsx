@@ -314,8 +314,8 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       .filter((m) => {
         const inc = sv(cs?.totalIncome, m);
         const outRaw = totalOutgoingsRow ? parseNum(totalOutgoingsRow[m] ?? 0) : (Math.abs(sv(cs?.totalCostOfSales, m)) + Math.abs(sv(cs?.totalOperatingExpenses, m)));
-        const probable = jobsProbableRow ? parseNum(jobsProbableRow[m] ?? 0) : 0;
-        return inc !== 0 || outRaw !== 0 || probable !== 0;
+        const anticipated = sv(cs?.anticipatedSurplus, m);
+        return inc !== 0 || outRaw !== 0 || anticipated !== 0;
       })
       .map((m) => {
         const inc = sv(cs?.totalIncome, m);
@@ -324,13 +324,16 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
           : (Math.abs(sv(cs?.totalCostOfSales, m)) + Math.abs(sv(cs?.totalOperatingExpenses, m)));
         const parsed = parseMonthLabel(m);
         const isFuture = parsed ? (parsed.year > currentYear || (parsed.year === currentYear && parsed.month > currentMonthIdx)) : false;
-        const probable = isFuture && jobsProbableRow ? parseNum(jobsProbableRow[m] ?? 0) : 0;
+        // For future months: derive probable income from anticipatedSurplus + totalOutgoings
+        // This reconstructs the forecast model's implied income
+        const anticipated = sv(cs?.anticipatedSurplus, m);
+        const probableIncome = isFuture ? Math.max(0, anticipated + out) : 0;
         return {
           month: m,
           income: inc,
           outgoings: out,
-          surplus: isFuture ? (probable - out) : (inc - out),
-          probableIncome: probable,
+          surplus: isFuture ? (probableIncome - out) : (inc - out),
+          probableIncome,
           isFuture,
         };
       });
