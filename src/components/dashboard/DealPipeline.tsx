@@ -298,10 +298,9 @@ const DealPipeline = () => {
                         {statusLabels[job.status]}
                       </span>
                     </td>
-                    <td className="py-3 pr-4 font-mono text-xs text-muted-foreground">
+                    <td className="py-3 font-mono text-xs text-muted-foreground">
                       {formatDateMonthYear(job.dateQuoted)}
                     </td>
-                    <td className="py-3 text-xs text-muted-foreground">{job.salesOwner}</td>
                   </motion.tr>
                 ))}
               </tbody>
