@@ -67,7 +67,7 @@ function getQuarter(month: number): number {
 }
 
 const DealPipeline = () => {
-  const { quotedJobs, dataHealth } = useDashboardData();
+  const { quotedJobs, dataHealth, quotesDebug } = useDashboardData();
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("date-desc");
