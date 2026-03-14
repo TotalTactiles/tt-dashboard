@@ -588,7 +588,7 @@ export function useDashboardData(): DashboardData {
   const ctx = useContext(DashboardDataContext);
   if (!ctx) {
     return {
-      quotedJobs: [], revenueProjects: [], expenseCategories: [],
+      quotedJobs: [], revenueProjects: [], expenseCategories: [], grandTotalExpense: null,
       kpiStats: [], incomeOutgoingsData: [], profitMarginData: [],
       forecastChartData: [], expenseAllocation: [], kpiVariables: {},
       dataStore: { quotes: [], qtsSmmry: [], cashflow: [], revenue: [], expenses: [], labour: [], stock: [], quotesSummary: {}, cashflowSummary: {}, revenueSummary: {}, expensesSummary: {} },
