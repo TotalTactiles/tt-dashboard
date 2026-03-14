@@ -8,13 +8,30 @@ import NoData from "./NoData";
 
 function getBadgeStyle(rawStatus: string): string {
   const u = (rawStatus ?? "").toUpperCase();
-  if (u.includes("PO RECEIVED") || u.includes("GRN") || u === "COMPLETED" || u.includes("COMPLETED"))
-    return "bg-chart-green/20 text-chart-green border border-chart-green/30";
-  if (u.includes("LOST") || u.includes("DEAD"))
-    return "bg-chart-red/20 text-chart-red border border-chart-red/30";
+  if (u.includes("COMPLETED"))
+    return "bg-emerald-700/40 text-emerald-300 border border-emerald-600/50";
+  if (u.includes("PO RECEIVED") || u.includes("GRN"))
+    return "bg-green-500/30 text-green-300 border border-green-500/50";
   if (u.includes("VERBAL") || u.includes("YLW"))
-    return "bg-chart-amber/20 text-chart-amber border border-chart-amber/30";
-  return "bg-secondary text-muted-foreground border border-border";
+    return "bg-yellow-400/30 text-yellow-300 border border-yellow-400/50";
+  if (u.includes("NEGOTIATION") || u.includes("REVIEW"))
+    return "bg-pink-400/20 text-pink-300 border border-pink-400/40";
+  if (u.includes("LOST") || u.includes("DEAD"))
+    return "bg-red-500/25 text-red-400 border border-red-500/40";
+  // Quote Sent — neutral/white toned
+  return "bg-slate-400/15 text-slate-300 border border-slate-400/30";
+}
+
+function getFilterPillStyle(filterValue: string): string {
+  switch (filterValue) {
+    case "Completed": return "bg-emerald-700/40 text-emerald-300 border-emerald-600/50";
+    case "PO Received (GRN)": return "bg-green-500/30 text-green-300 border-green-500/50";
+    case "Verbal Confirmation (YLW)": return "bg-yellow-400/30 text-yellow-300 border-yellow-400/50";
+    case "Negotiation/Review": return "bg-pink-400/20 text-pink-300 border-pink-400/40";
+    case "Lost/Dead": return "bg-red-500/25 text-red-400 border-red-500/40";
+    case "Quote Sent": return "bg-slate-400/15 text-slate-300 border-slate-400/30";
+    default: return "bg-chart-green/20 text-chart-green border-chart-green/40";
+  }
 }
 
 type SortOption = "date-desc" | "date-asc" | "value-desc" | "value-asc" | "company-asc";
