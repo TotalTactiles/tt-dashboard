@@ -172,12 +172,7 @@ const CATEGORY_FILLS: Record<string, string> = {
 const FALLBACK_FILLS = ["hsl(340, 65%, 50%)", "hsl(120, 50%, 40%)", "hsl(30, 60%, 50%)"];
 
 // ---- Format helpers ----
-function fmtAUD(n: number): string {
-  const abs = Math.abs(n);
-  if (abs >= 1_000_000) return `${n < 0 ? "-" : ""}$${(abs / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${n < 0 ? "-" : ""}$${(abs / 1_000).toFixed(1)}K`;
-  return `$${n.toLocaleString("en-AU", { maximumFractionDigits: 0 })}`;
-}
+const fmtAUD = (n: number) => formatMetricValue(n, "currency");
 
 // ---- Extract month values from a raw cashflow row ----
 function getMonthValues(row: any, months: string[]): Record<string, number> {
