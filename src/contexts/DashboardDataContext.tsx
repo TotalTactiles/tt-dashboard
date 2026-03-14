@@ -326,14 +326,26 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       });
 
     // ===== EXPENSE ITEMS & CATEGORIES =====
+    // New webhook format: { Category, "Sub-Category", "Weekly Cost", "Monthly Cost", "Yearly Cost" }
+    // Fallback to legacy _label_ format
     const expenseItems: ExpenseItem[] = rawExpenses
-      .filter((r: any) => r?._label_isLineItem === true)
+      .filter((r: any) => {
+        // New format: exclude TOTAL sub-categories and GRAND TOTAL
+        const subCat = r["Sub-Category"] ?? r._label_name ?? "";
+        const cat = r["Category"] ?? r._label_category ?? "";
+        if (String(subCat).toUpperCase() === "TOTAL" || String(subCat).toUpperCase() === "ALL") return false;
+        if (String(cat).toUpperCase() === "GRAND TOTAL") return false;
+        // Legacy format
+        if (r._label_isLineItem !== undefined) return r._label_isLineItem === true;
+        // New format: must have a sub-category
+        return !!subCat;
+      })
       .map((r: any) => ({
-        name: r._label_name ?? "",
-        category: r._label_category ?? "Uncategorised",
-        weeklyCost: parseNum(r._label_weeklyCost ?? 0),
-        monthlyCost: parseNum(r._label_monthlyCost ?? 0),
-        yearlyCost: parseNum(r._label_yearlyCost ?? 0),
+        name: String(r["Sub-Category"] ?? r._label_name ?? "").trim(),
+        category: String(r["Category"] ?? r._label_category ?? "Uncategorised").trim(),
+        weeklyCost: parseNum(r["Weekly Cost"] ?? r._label_weeklyCost ?? 0),
+        monthlyCost: parseNum(r["Monthly Cost"] ?? r._label_monthlyCost ?? 0),
+        yearlyCost: parseNum(r["Yearly Cost"] ?? r._label_yearlyCost ?? 0),
       }));
 
     const catMap: Record<string, ExpenseItem[]> = {};
@@ -344,16 +356,25 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const expenseCategories: ExpenseCategoryGroup[] = Object.entries(catMap).map(([cat, items]) => ({
       category: cat,
       items,
+      totalWeekly: items.reduce((s, i) => s + i.weeklyCost, 0),
       totalMonthly: items.reduce((s, i) => s + i.monthlyCost, 0),
       totalYearly: items.reduce((s, i) => s + i.yearlyCost, 0),
     }));
 
+    // Grand total row
+    const grandTotalRow = rawExpenses.find((r: any) => String(r["Category"] ?? "").toUpperCase() === "GRAND TOTAL");
+    const grandTotalExpense: GrandTotalExpense | null = grandTotalRow ? {
+      weeklyCost: parseNum(grandTotalRow["Weekly Cost"] ?? 0),
+      monthlyCost: parseNum(grandTotalRow["Monthly Cost"] ?? 0),
+      yearlyCost: parseNum(grandTotalRow["Yearly Cost"] ?? 0),
+    } : null;
+
     // ===== EXPENSE ALLOCATION (PIE) =====
     let fillIdx = 0;
-    const expenseAllocation: ExpenseAllocationItem[] = expenseCategories.map((cat) => ({
-      name: cat.category,
-      value: cat.totalYearly,
-      fill: CATEGORY_FILLS[cat.category] ?? FALLBACK_FILLS[fillIdx++ % FALLBACK_FILLS.length],
+    const expenseAllocation: ExpenseAllocationItem[] = expenseItems.map((item) => ({
+      name: item.name,
+      value: item.monthlyCost,
+      fill: CATEGORY_FILLS[item.name] ?? FALLBACK_FILLS[fillIdx++ % FALLBACK_FILLS.length],
     }));
 
     // ===== CASHFLOW SUMMARY CHARTS =====
