@@ -30,8 +30,7 @@ function timeAgo(ts: number | null): string {
 
 const DashboardContent = () => {
   const { goals } = useGoals();
-  const { formulas } = useFormulas();
-  const { kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, lastUpdated, sources, syncNow, formulaCache } = useDashboardData();
+  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, lastUpdated, sources, syncNow, formulaCache } = useDashboardData();
 
   const handleRefresh = () => {
     const gSheets = sources.find((s) => s.id === "google_sheets");
