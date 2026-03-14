@@ -131,6 +131,16 @@ const DealPipeline = () => {
     // Sort
     jobs.sort((a, b) => {
       switch (sortBy) {
+        case "date-closest": {
+          const today = Date.now();
+          const diffA = parseDateForFilter(a.dateQuoted)
+            ? Math.abs(parseDateForFilter(a.dateQuoted)!.getTime() - today)
+            : Infinity;
+          const diffB = parseDateForFilter(b.dateQuoted)
+            ? Math.abs(parseDateForFilter(b.dateQuoted)!.getTime() - today)
+            : Infinity;
+          return diffA - diffB;
+        }
         case "date-desc": {
           const da = parseDateForFilter(a.dateQuoted)?.getTime() ?? 0;
           const db = parseDateForFilter(b.dateQuoted)?.getTime() ?? 0;
