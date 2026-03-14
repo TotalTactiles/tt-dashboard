@@ -240,7 +240,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const rawQuotes = Array.isArray(webhookResponse?.quotes) ? webhookResponse.quotes : [];
     const rawCashflow = liveData.cashflow ?? [];
     const rawRevenue = liveData.revenue ?? [];
-    const rawExpenses = liveData.expenses ?? [];
+    // Unwrap n8n per-item envelope: [{ json: {...} }] → [{...}]
+    const unwrapItems = (arr: any[]): any[] =>
+      arr.map((item: any) =>
+        item && typeof item === "object" && item.json && typeof item.json === "object" ? item.json : item
+      );
+    const rawExpenses = unwrapItems(liveData.expenses ?? []);
+    console.log("[Expenses Debug] raw length:", (liveData.expenses ?? []).length, "unwrapped sample:", rawExpenses[0]);
     const qs = liveData.quotesSummary as any;
     const cs = liveData.cashflowSummary as any;
     const meta = liveData._meta as any;
@@ -349,6 +355,8 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         monthlyCost: parseNum(r["Monthly Cost"] ?? r._label_monthlyCost ?? 0),
         yearlyCost: parseNum(r["Yearly Cost"] ?? r._label_yearlyCost ?? 0),
       }));
+
+    console.log("[Expenses Debug] line items:", expenseItems.length, "categories:", [...new Set(expenseItems.map(i => i.category))]);
 
     const catMap: Record<string, ExpenseItem[]> = {};
     for (const item of expenseItems) {
