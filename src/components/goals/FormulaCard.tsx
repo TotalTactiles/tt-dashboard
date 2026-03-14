@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Calculator, Camera } from "lucide-react";
 import ScreenshotViewer from "@/components/shared/ScreenshotViewer";
+import { formatMetricValue } from "@/lib/formatMetricValue";
 
 interface FormulaCardProps {
   formula: MetricFormula;
@@ -79,8 +80,8 @@ export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardPr
   const formatResult = (v: number | null) => {
     if (isWaiting) return "Syncing…";
     if (v === null) return errorMsg ?? "Error";
-    if (formula.unit === "$") return `$${v >= 1000 ? (v / 1000).toFixed(1) + "K" : v.toFixed(2)}`;
-    if (formula.unit === "%") return `${v.toFixed(1)}%`;
+    if (formula.unit === "%") return formatMetricValue(v, "percentage");
+    if (formula.unit === "$") return formatMetricValue(v, "currency");
     return v.toFixed(2);
   };
 

@@ -1,5 +1,6 @@
 import { RefreshCw } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
+import { formatMetricValue } from "@/lib/formatMetricValue";
 import PortfolioChart from "@/components/dashboard/PortfolioChart";
 import SectorAllocationChart from "@/components/dashboard/SectorAllocationChart";
 import DealPipeline from "@/components/dashboard/DealPipeline";
@@ -11,18 +12,13 @@ import ExpenseBreakdown from "@/components/dashboard/ExpenseBreakdown";
 import DashboardLayout from "@/components/DashboardLayout";
 import GoalsDashboardWidgets from "@/components/goals/GoalsDashboardWidgets";
 import { useGoals } from "@/hooks/useGoals";
-import { useFormulas } from "@/hooks/useFormulas";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Unplug, Loader2 } from "lucide-react";
 
-function fmtAUD(n: number): string {
-  const abs = Math.abs(n);
-  if (abs >= 1_000_000) return `${n < 0 ? "-" : ""}$${(abs / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${n < 0 ? "-" : ""}$${(abs / 1_000).toFixed(1)}K`;
-  return `$${n.toLocaleString("en-AU", { maximumFractionDigits: 0 })}`;
-}
+// Use shared formatting
+const fmtAUD = (n: number) => formatMetricValue(n, "currency");
 
 function timeAgo(ts: number | null): string {
   if (!ts) return "never";
@@ -34,8 +30,7 @@ function timeAgo(ts: number | null): string {
 
 const DashboardContent = () => {
   const { goals } = useGoals();
-  const { formulas } = useFormulas();
-  const { kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, lastUpdated, sources, syncNow, formulaCache } = useDashboardData();
+  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, lastUpdated, sources, syncNow, formulaCache } = useDashboardData();
 
   const handleRefresh = () => {
     const gSheets = sources.find((s) => s.id === "google_sheets");

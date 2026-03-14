@@ -2,6 +2,7 @@ import React, { createContext, useContext, useMemo, useRef } from "react";
 import { useDataSources } from "@/hooks/useDataSources";
 import { resolveKpiVariables, createFormulaCache, DataStore, type EvaluationCache } from "@/engine/formulaEngine";
 import { useFormulas } from "@/hooks/useFormulas";
+import { formatMetricValue } from "@/lib/formatMetricValue";
 
 // Module-level formula cache singleton — survives re-renders
 const formulaCacheInstance = createFormulaCache();
@@ -143,6 +144,10 @@ export interface DashboardData {
   dataStore: DataStore;
   formulaCache: ReturnType<typeof createFormulaCache>;
   changedFormulas: string[];
+  formulas: import("@/hooks/useFormulas").MetricFormula[];
+  addFormula: (formula: Omit<import("@/hooks/useFormulas").MetricFormula, "id">) => void;
+  updateFormula: (id: string, updates: Partial<import("@/hooks/useFormulas").MetricFormula>) => void;
+  deleteFormula: (id: string) => void;
   dataHealth: DataHealth;
   isLoading: boolean;
   hasLiveData: boolean;
@@ -167,12 +172,7 @@ const CATEGORY_FILLS: Record<string, string> = {
 const FALLBACK_FILLS = ["hsl(340, 65%, 50%)", "hsl(120, 50%, 40%)", "hsl(30, 60%, 50%)"];
 
 // ---- Format helpers ----
-function fmtAUD(n: number): string {
-  const abs = Math.abs(n);
-  if (abs >= 1_000_000) return `${n < 0 ? "-" : ""}$${(abs / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${n < 0 ? "-" : ""}$${(abs / 1_000).toFixed(1)}K`;
-  return `$${n.toLocaleString("en-AU", { maximumFractionDigits: 0 })}`;
-}
+const fmtAUD = (n: number) => formatMetricValue(n, "currency");
 
 // ---- Extract month values from a raw cashflow row ----
 function getMonthValues(row: any, months: string[]): Record<string, number> {
@@ -189,7 +189,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
   const ds = useDataSources();
   const { liveData, hasLiveData, connectedCount, sources } = ds;
   const isLoading = sources.some((s) => s.loading);
-  const { formulas } = useFormulas();
+  const { formulas, addFormula, updateFormula, deleteFormula } = useFormulas();
 
   const data = useMemo<DashboardData>(() => {
     const rawQuotes = liveData.quotes ?? [];
@@ -453,11 +453,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     return {
       quotedJobs, revenueProjects, expenseCategories,
       kpiStats, incomeOutgoingsData, profitMarginData, forecastChartData, expenseAllocation,
-      kpiVariables, dataStore: storeSnapshot, formulaCache: formulaCacheInstance, changedFormulas, dataHealth, isLoading, hasLiveData, connectedCount, lastUpdated,
+      kpiVariables, dataStore: storeSnapshot, formulaCache: formulaCacheInstance, changedFormulas,
+      formulas, addFormula, updateFormula, deleteFormula,
+      dataHealth, isLoading, hasLiveData, connectedCount, lastUpdated,
       sources: ds.sources, toggleConnection: ds.toggleConnection,
       updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow,
     };
-  }, [liveData, hasLiveData, connectedCount, isLoading, ds, formulas]);
+  }, [liveData, hasLiveData, connectedCount, isLoading, ds, formulas, addFormula, updateFormula, deleteFormula]);
 
   return <DashboardDataContext.Provider value={data}>{children}</DashboardDataContext.Provider>;
 }
@@ -472,6 +474,7 @@ export function useDashboardData(): DashboardData {
       dataStore: { quotes: [], qtsSmmry: [], cashflow: [], revenue: [], expenses: [], labour: [], stock: [], quotesSummary: {}, cashflowSummary: {}, revenueSummary: {}, expensesSummary: {} },
       formulaCache: formulaCacheInstance,
       changedFormulas: [],
+      formulas: [], addFormula: () => {}, updateFormula: () => {}, deleteFormula: () => {},
       dataHealth: {
         quotes: { status: "disconnected", rawCount: 0, mappedCount: 0 },
         cashflow: { status: "disconnected", rawCount: 0, mappedCount: 0 },
