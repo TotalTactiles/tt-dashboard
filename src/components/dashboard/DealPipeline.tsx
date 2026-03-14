@@ -261,40 +261,6 @@ const DealPipeline = () => {
         )}
       </AnimatePresence>
 
-      <details className="mb-4 rounded-lg border border-border/50 bg-secondary/20">
-        <summary className="cursor-pointer px-3 py-2 text-xs font-mono text-muted-foreground">Raw Data Debug</summary>
-        <div className="space-y-2 border-t border-border/50 px-3 py-3 text-xs font-mono text-muted-foreground">
-          <p>quotes array length: {quotesDebug.rawQuotesLength}</p>
-          <p>after filter: {quotesDebug.afterFilterLength}</p>
-          <p>Contract Value ($) on row 0: {String(quotesDebug.row0ContractValue ?? "undefined")}</p>
-          <p>_value on row 0: {String(quotesDebug.row0UnderscoreValue ?? "undefined")}</p>
-          <p>Keys: {quotesDebug.row0Keys.length ? quotesDebug.row0Keys.join(", ") : "-"}</p>
-          <p>WEBHOOK RAW RESPONSE type: {quotesDebug.rawResponseType}</p>
-          <p>Top level keys: {quotesDebug.topLevelKeys.length ? quotesDebug.topLevelKeys.join(", ") : "-"}</p>
-          <p>quotes exists at top level: {quotesDebug.hasTopLevelQuotes ? "yes" : "no"}</p>
-
-          <div>
-            <p className="mb-1 text-[11px] uppercase tracking-wide">First quote row full JSON</p>
-            <pre className="max-h-44 overflow-auto rounded-md bg-foreground p-3 text-[11px] text-background">
-              {JSON.stringify(quotesDebug.firstQuoteTopLevel, null, 2)}
-            </pre>
-          </div>
-
-          <div>
-            <p className="mb-1 text-[11px] uppercase tracking-wide">Value path probes</p>
-            <pre className="max-h-44 overflow-auto rounded-md bg-foreground p-3 text-[11px] text-background">
-              {JSON.stringify(quotesDebug.valuePaths, null, 2)}
-            </pre>
-          </div>
-
-          <div>
-            <p className="mb-1 text-[11px] uppercase tracking-wide">First 3 items from quotes</p>
-            <pre className="max-h-56 overflow-auto rounded-md bg-foreground p-3 text-[11px] text-background">
-              {JSON.stringify(quotesDebug.rawQuotesSample, null, 2)}
-            </pre>
-          </div>
-        </div>
-      </details>
 
       {quotedJobs.length === 0 ? (
         <NoData message="No quote data" healthStatus={dataHealth.quotes.status} />
