@@ -10,7 +10,8 @@ import QuarterlyTimeline from "@/components/calendar/QuarterlyTimeline";
 import EventModal from "@/components/calendar/EventModal";
 import { useDashboardData, type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+
+const CALENDAR_WRITE_WEBHOOK = 'https://n8n.srv1437130.hstgr.cloud/webhook/calendar-write';
 
 const EVENT_TYPES = ["Meeting", "Deadline", "Milestone", "Care", "Valuation", "Distribution"] as const;
 const EVENT_SOURCES = ["Google Calendar", "Zoho Calendar"] as const;
