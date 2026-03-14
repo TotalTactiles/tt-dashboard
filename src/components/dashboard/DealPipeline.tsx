@@ -86,11 +86,11 @@ const DealPipeline = () => {
   const { quotedJobs, dataHealth } = useDashboardData();
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>("date-desc");
+  const [sortBy, setSortBy] = useState<SortOption>("date-closest");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
 
-  const hasActiveFilters = sortBy !== "date-desc" || statusFilter !== "all" || dateFilter !== "all";
+  const hasActiveFilters = sortBy !== "date-closest" || statusFilter !== "all" || dateFilter !== "all";
 
   // Total value for cross-check
   const totalValue = useMemo(() => quotedJobs.reduce((s, j) => s + j.value, 0), [quotedJobs]);
