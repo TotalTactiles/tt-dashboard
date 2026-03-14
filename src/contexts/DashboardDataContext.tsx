@@ -24,11 +24,17 @@ const MONTH_REGEX = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{2}$/i
 // ---- Quote status normalizer ----
 
 function normalizeQuoteStatus(raw: string): "won" | "lost" | "pending" | "yellow" {
-  const s = (raw ?? "").toUpperCase();
-  if (s.includes("PO RECEIVED") || s.includes("WON") || s === "GREEN" || s.includes("COMPLETED") || s.includes("GRN")) return "won";
-  if (s.includes("LOST") || s.includes("DEAD")) return "lost";
-  if (s.includes("VERBAL") || s.includes("YELLOW") || s.includes("YLW") || s.includes("90%")) return "yellow";
-  if (s.includes("NEGOTIATION") || s.includes("REVIEW") || s.includes("QUOTE SENT") || s.includes("PENDING") || s.includes("SENT")) return "pending";
+  const s = (raw ?? "").trim();
+  // n8n pre-normalised values
+  if (s === "won") return "won";
+  if (s === "lost") return "lost";
+  if (s === "yellow") return "yellow";
+  if (s === "pending") return "pending";
+  // Raw "Current Status" fallbacks
+  const u = s.toUpperCase();
+  if (u.includes("PO RECEIVED") || u.includes("GRN") || u === "COMPLETED") return "won";
+  if (u.includes("LOST") || u.includes("DEAD")) return "lost";
+  if (u.includes("VERBAL") || u.includes("YLW")) return "yellow";
   return "pending";
 }
 
