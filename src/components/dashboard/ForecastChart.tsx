@@ -30,7 +30,8 @@ const ForecastChart = () => {
       transition={{ duration: 0.5, delay: 0.7 }}
       className="chart-container"
     >
-      <h3 className="text-sm font-medium text-muted-foreground mb-4">Forecasts</h3>
+      <h3 className="text-sm font-medium text-muted-foreground mb-1">Forecasts</h3>
+      <p className="text-xs text-muted-foreground font-mono mb-4">Forward-looking forecast from cashflow model</p>
       {forecastChartData.length === 0 ? (
         <NoData message="No forecast data" healthStatus={dataHealth.cashflow.status} />
       ) : (
