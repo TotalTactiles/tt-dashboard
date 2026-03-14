@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 const STORAGE_KEY = "dashboard_data_sources";
 const DATA_CACHE_KEY = "dashboard_live_data";
 const POLL_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const DEFAULT_WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/bb826393-569e-4270-a033-6f6d8019e0e0";
 
 export interface DataSourceConfig {
   id: string;
@@ -38,8 +39,8 @@ const DEFAULT_SOURCES: DataSourceConfig[] = [
     name: "Google Sheets",
     description: "Quotes, Cashflow, Revenue & COGS, Business Expenses",
     icon: "📊",
-    connected: false,
-    webhookUrl: "",
+    connected: true,
+    webhookUrl: DEFAULT_WEBHOOK_URL,
     lastSync: "",
     lastError: "",
     loading: false,
@@ -93,9 +94,17 @@ function loadSavedSources(): DataSourceConfig[] {
       const parsed = JSON.parse(saved) as DataSourceConfig[];
       return DEFAULT_SOURCES.map((def) => {
         const existing = parsed.find((s) => s.id === def.id);
-        return existing
-          ? { ...def, ...existing, loading: false }
-          : def;
+        if (existing) {
+          // Ensure google_sheets always has a webhook URL (fallback to default)
+          const webhookUrl = (def.id === "google_sheets" && !existing.webhookUrl)
+            ? DEFAULT_WEBHOOK_URL
+            : existing.webhookUrl;
+          const connected = (def.id === "google_sheets" && !existing.webhookUrl)
+            ? true
+            : existing.connected;
+          return { ...def, ...existing, loading: false, webhookUrl, connected };
+        }
+        return def;
       });
     }
   } catch {}

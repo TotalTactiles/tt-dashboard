@@ -249,11 +249,14 @@ const Settings = () => {
                       n8n Webhook URL
                     </label>
                     <Input
-                      placeholder="https://your-n8n.app/webhook/abc123"
+                      placeholder={source.id === "google_sheets" ? "https://n8n.srv1437130.hstgr.cloud/webhook/..." : "https://your-n8n.app/webhook/abc123"}
                       value={source.webhookUrl || ""}
                       onChange={(e) => updateWebhookUrl(source.id, e.target.value)}
                       className="bg-secondary border-border font-mono text-sm"
                     />
+                    {source.id === "google_sheets" && source.webhookUrl === "https://n8n.srv1437130.hstgr.cloud/webhook/bb826393-569e-4270-a033-6f6d8019e0e0" && (
+                      <span className="text-[10px] text-muted-foreground font-mono mt-1">(default)</span>
+                    )}
                   </div>
 
                   {/* Data mapping */}
