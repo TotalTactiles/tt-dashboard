@@ -75,12 +75,6 @@ const CalendarView = () => {
 
   const handleSaveEvent = useCallback(
     async (action: "create" | "update" | "delete", eventData: Partial<LiveCalendarEvent>) => {
-      const writeUrl = import.meta.env.VITE_CALENDAR_WRITE_WEBHOOK;
-      if (!writeUrl) {
-        toast({ title: "Write webhook not configured", description: "Set VITE_CALENDAR_WRITE_WEBHOOK", variant: "destructive" });
-        return;
-      }
-
       // Optimistic update
       const prevEvents = [...calendarEvents];
       if (action === "create") {
@@ -108,39 +102,37 @@ const CalendarView = () => {
       setModalOpen(false);
 
       try {
-        const { data, error } = await supabase.functions.invoke("n8n-proxy", {
-          body: {
-            webhookUrl: writeUrl,
-            source: "calendar_write",
-            payload: {
-              action,
-              event: {
-                title: eventData.title,
-                description: eventData.description,
-                location: eventData.location,
-                start: eventData.start,
-                end: eventData.end,
-                allDay: eventData.allDay,
-                type: eventData.type,
-                attendees: eventData.attendees,
-                googleId: editingEvent?.googleId,
-                zohoId: editingEvent?.zohoId,
-              },
+        const res = await fetch(CALENDAR_WRITE_WEBHOOK, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action,
+            event: {
+              title: eventData.title,
+              description: eventData.description || "",
+              location: eventData.location || "",
+              start: eventData.start,
+              end: eventData.end,
+              allDay: eventData.allDay,
+              type: eventData.type,
+              attendees: eventData.attendees || [],
+              googleId: editingEvent?.googleId || null,
+              zohoId: editingEvent?.zohoId || null,
             },
-          },
+          }),
         });
 
-        if (error) throw error;
+        if (!res.ok) throw new Error("Webhook returned " + res.status);
 
         toast({
-          title: action === "delete" ? "Event deleted" : "Event saved",
+          title: action === "delete" ? "Event deleted" : "Event saved to Google Calendar",
           className: action === "delete" ? "" : "border-green-500/30",
         });
 
         // Resync after 8 seconds
         setTimeout(() => syncNow("google_sheets"), 8000);
       } catch (err: any) {
-        toast({ title: "Failed to save — please try again", variant: "destructive" });
+        toast({ title: "Failed to save event — please try again", variant: "destructive" });
         setCalendarEvents(prevEvents);
       }
     },
