@@ -255,6 +255,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
   const { liveData, hasLiveData, connectedCount, sources } = ds;
   const isLoading = sources.some((s) => s.loading);
   const { formulas, addFormula, updateFormula, deleteFormula } = useFormulas();
+  const [calendarEventsOverride, setCalendarEventsState] = useState<LiveCalendarEvent[] | null>(null);
 
   const data = useMemo<DashboardData>(() => {
     const webhookResponse: any = liveData;
