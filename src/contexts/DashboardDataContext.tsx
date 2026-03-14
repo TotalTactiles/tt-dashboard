@@ -356,6 +356,8 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         yearlyCost: parseNum(r["Yearly Cost"] ?? r._label_yearlyCost ?? 0),
       }));
 
+    console.log("[Expenses Debug] line items:", expenseItems.length, "categories:", [...new Set(expenseItems.map(i => i.category))]);
+
     const catMap: Record<string, ExpenseItem[]> = {};
     for (const item of expenseItems) {
       if (!catMap[item.category]) catMap[item.category] = [];
