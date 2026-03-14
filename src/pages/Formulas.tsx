@@ -2,14 +2,13 @@ import { useState } from "react";
 import { Plus, FunctionSquare } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { useFormulas, MetricFormula } from "@/hooks/useFormulas";
+import { MetricFormula } from "@/hooks/useFormulas";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import FormulaCard from "@/components/goals/FormulaCard";
 import FormulaForm from "@/components/goals/FormulaForm";
 
 const Formulas = () => {
-  const { formulas, addFormula, updateFormula, deleteFormula } = useFormulas();
-  const { kpiVariables } = useDashboardData();
+  const { formulas, addFormula, updateFormula, deleteFormula, kpiVariables } = useDashboardData();
 
   const [formulaFormOpen, setFormulaFormOpen] = useState(false);
   const [editingFormula, setEditingFormula] = useState<MetricFormula | undefined>();

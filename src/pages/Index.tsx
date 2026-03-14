@@ -18,12 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Unplug, Loader2 } from "lucide-react";
 
-function fmtAUD(n: number): string {
-  const abs = Math.abs(n);
-  if (abs >= 1_000_000) return `${n < 0 ? "-" : ""}$${(abs / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${n < 0 ? "-" : ""}$${(abs / 1_000).toFixed(1)}K`;
-  return `$${n.toLocaleString("en-AU", { maximumFractionDigits: 0 })}`;
-}
+// Use shared formatting
+const fmtAUD = (n: number) => formatMetricValue(n, "currency");
 
 function timeAgo(ts: number | null): string {
   if (!ts) return "never";
