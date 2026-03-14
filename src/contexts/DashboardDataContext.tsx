@@ -298,23 +298,40 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const jobsProbableRow = findCashflowRow("Jobs Probable To Be Won");
     const surplusWithJobsRow = findCashflowRow("Anticipated Cash Surplus/(Deficit) Including Probable Jobs");
 
+    // Determine current month for future detection
+    const now = new Date();
+    const currentMonthIdx = now.getMonth();
+    const currentYear = now.getFullYear();
+    const MONTH_ABBR_LIST = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const parseMonthLabel = (label: string) => {
+      const match = label.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-(\d{2})$/i);
+      if (!match) return null;
+      return { month: MONTH_ABBR_LIST.indexOf(match[1]), year: 2000 + parseInt(match[2]) };
+    };
+
     // Income vs Outgoings bar chart
     const incomeOutgoingsData: IncomeOutgoingsPoint[] = months
       .filter((m) => {
         const inc = sv(cs?.totalIncome, m);
         const outRaw = totalOutgoingsRow ? parseNum(totalOutgoingsRow[m] ?? 0) : (Math.abs(sv(cs?.totalCostOfSales, m)) + Math.abs(sv(cs?.totalOperatingExpenses, m)));
-        return inc !== 0 || outRaw !== 0;
+        const probable = jobsProbableRow ? parseNum(jobsProbableRow[m] ?? 0) : 0;
+        return inc !== 0 || outRaw !== 0 || probable !== 0;
       })
       .map((m) => {
         const inc = sv(cs?.totalIncome, m);
         const out = totalOutgoingsRow
           ? Math.abs(parseNum(totalOutgoingsRow[m] ?? 0))
           : (Math.abs(sv(cs?.totalCostOfSales, m)) + Math.abs(sv(cs?.totalOperatingExpenses, m)));
+        const parsed = parseMonthLabel(m);
+        const isFuture = parsed ? (parsed.year > currentYear || (parsed.year === currentYear && parsed.month > currentMonthIdx)) : false;
+        const probable = isFuture && jobsProbableRow ? parseNum(jobsProbableRow[m] ?? 0) : 0;
         return {
           month: m,
           income: inc,
           outgoings: out,
-          surplus: inc - out,
+          surplus: isFuture ? (probable - out) : (inc - out),
+          probableIncome: probable,
+          isFuture,
         };
       });
 
