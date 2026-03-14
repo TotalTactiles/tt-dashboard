@@ -1,50 +1,159 @@
-import { useMemo } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, ReferenceLine, Cell } from "recharts";
+import { TrendingUp, TrendingDown } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 import NoData from "./NoData";
 
+const MONTH_ABBR_LIST = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+type QuarterFilter = "all" | "Q1" | "Q2" | "Q3" | "Q4";
+
+const QUARTER_MONTHS: Record<string, number[]> = {
+  Q1: [0, 1, 2],
+  Q2: [3, 4, 5],
+  Q3: [6, 7, 8],
+  Q4: [9, 10, 11],
+};
+
+const QUARTER_LABELS: Record<string, string> = {
+  Q1: "Jan–Mar",
+  Q2: "Apr–Jun",
+  Q3: "Jul–Sep",
+  Q4: "Oct–Dec",
+};
+
+function parseMonth(label: string): { month: number; year: number } | null {
+  const match = label.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-(\d{2})$/i);
+  if (!match) return null;
+  return { month: MONTH_ABBR_LIST.indexOf(match[1]), year: 2000 + parseInt(match[2]) };
+}
+
+function loadPref<T>(key: string, fallback: T): T {
+  try {
+    const v = localStorage.getItem(key);
+    if (v === null) return fallback;
+    return JSON.parse(v) as T;
+  } catch { return fallback; }
+}
+
 const PortfolioChart = () => {
   const { incomeOutgoingsData, dataHealth } = useDashboardData();
 
-  // Current month label for today indicator
+  const [showForecast, setShowForecast] = useState(() => loadPref("cashflow_show_forecast", false));
+  const [quarter, setQuarter] = useState<QuarterFilter>(() => loadPref("cashflow_quarter_filter", "all"));
+
+  const toggleForecast = useCallback(() => {
+    setShowForecast((prev) => {
+      const next = !prev;
+      localStorage.setItem("cashflow_show_forecast", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const setQuarterFilter = useCallback((q: QuarterFilter) => {
+    setQuarter(q);
+    localStorage.setItem("cashflow_quarter_filter", JSON.stringify(q));
+  }, []);
+
+  // Current month
   const now = new Date();
+  const currentMonthIdx = now.getMonth();
+  const currentYear = now.getFullYear();
   const currentMonthAbbr = now.toLocaleString("en-US", { month: "short" });
-  const currentYearShort = String(now.getFullYear()).slice(-2);
+  const currentYearShort = String(currentYear).slice(-2);
   const currentMonthLabel = `${currentMonthAbbr}-${currentYearShort}`;
 
+  // Filter data based on forecast toggle + quarter
+  const filteredData = useMemo(() => {
+    let data = incomeOutgoingsData;
+
+    // If forecast is off, only show up to current month
+    if (!showForecast) {
+      data = data.filter((d) => !d.isFuture);
+    }
+
+    // Apply quarter filter
+    if (quarter !== "all") {
+      const qMonths = QUARTER_MONTHS[quarter];
+      data = data.filter((d) => {
+        const parsed = parseMonth(d.month);
+        return parsed ? qMonths.includes(parsed.month) : false;
+      });
+    }
+
+    return data;
+  }, [incomeOutgoingsData, showForecast, quarter]);
+
+  // Check if selected quarter is entirely in the future
+  const quarterIsFuture = useMemo(() => {
+    if (quarter === "all" || showForecast) return false;
+    const qMonths = QUARTER_MONTHS[quarter];
+    // All months in this quarter are after current month
+    return qMonths.every((m) => m > currentMonthIdx);
+  }, [quarter, showForecast, currentMonthIdx]);
+
+  // Determine the year(s) spanned for quarter label
+  const quarterYear = useMemo(() => {
+    if (quarter === "all") return "";
+    // Use the first data point's year or current year
+    const first = incomeOutgoingsData.find((d) => {
+      const p = parseMonth(d.month);
+      return p && QUARTER_MONTHS[quarter].includes(p.month);
+    });
+    if (first) {
+      const p = parseMonth(first.month);
+      return p ? String(p.year) : String(currentYear);
+    }
+    return String(currentYear);
+  }, [quarter, incomeOutgoingsData, currentYear]);
+
   const hasCurrentMonth = useMemo(
-    () => incomeOutgoingsData.some((d) => d.month === currentMonthLabel),
-    [incomeOutgoingsData, currentMonthLabel]
+    () => filteredData.some((d) => d.month === currentMonthLabel),
+    [filteredData, currentMonthLabel]
   );
 
-  // Compute bar-friendly Y-axis domain (based on bars only, not surplus line)
+  // Compute bar-friendly Y-axis domain
   const barDomain = useMemo(() => {
-    if (incomeOutgoingsData.length === 0) return [0, 100000];
+    if (filteredData.length === 0) return [0, 100000];
     let maxBar = 0;
-    for (const d of incomeOutgoingsData) {
+    for (const d of filteredData) {
       maxBar = Math.max(maxBar, d.income, d.outgoings, d.probableIncome);
     }
-    return [0, Math.ceil(maxBar * 1.15 / 10000) * 10000]; // 15% padding, round to 10K
-  }, [incomeOutgoingsData]);
+    return [0, Math.ceil(maxBar * 1.15 / 10000) * 10000 || 10000];
+  }, [filteredData]);
 
-  // Surplus line uses secondary Y-axis to avoid distorting bar scale
   const surplusDomain = useMemo(() => {
-    if (incomeOutgoingsData.length === 0) return [-10000, 10000];
-    const vals = incomeOutgoingsData.map((d) => d.surplus);
+    if (filteredData.length === 0) return [-10000, 10000];
+    const vals = filteredData.map((d) => d.surplus);
     const min = Math.min(...vals);
     const max = Math.max(...vals);
     const pad = Math.max(Math.abs(max - min) * 0.15, 5000);
     return [Math.floor((min - pad) / 5000) * 5000, Math.ceil((max + pad) / 5000) * 5000];
-  }, [incomeOutgoingsData]);
+  }, [filteredData]);
 
-  // Custom dot renderer for surplus line
   const renderSurplusDot = (props: any) => {
     const { cx, cy } = props;
     if (cx == null || cy == null) return null;
     return <circle cx={cx} cy={cy} r={3} fill="hsl(160, 70%, 45%)" stroke="none" />;
   };
+
+  // Build range label for footer
+  const rangeLabel = useMemo(() => {
+    if (filteredData.length === 0) return "";
+    const first = filteredData[0].month;
+    const last = filteredData[filteredData.length - 1].month;
+    return `${first} – ${last}`;
+  }, [filteredData]);
+
+  const quarterButtons: { key: QuarterFilter; label: string }[] = [
+    { key: "all", label: "All" },
+    { key: "Q1", label: "Q1" },
+    { key: "Q2", label: "Q2" },
+    { key: "Q3", label: "Q3" },
+    { key: "Q4", label: "Q4" },
+  ];
 
   return (
     <motion.div
@@ -53,162 +162,236 @@ const PortfolioChart = () => {
       transition={{ duration: 0.5, delay: 0.3 }}
       className="chart-container col-span-2"
     >
-      <div className="flex items-center justify-between mb-4">
-        <div>
+      {/* Header row */}
+      <div className="flex items-start justify-between mb-2 gap-2">
+        <div className="min-w-0">
           <h3 className="text-sm font-medium text-muted-foreground">Income vs Outgoings</h3>
           <p className="text-xl font-mono font-bold text-foreground">Monthly Cash Flow</p>
         </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono">
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "hsl(200, 80%, 50%)" }} />
-            <span className="text-muted-foreground">Income</span>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Quarter pills */}
+          <div className="flex items-center gap-1">
+            {quarterButtons.map((q) => (
+              <button
+                key={q.key}
+                onClick={() => setQuarterFilter(q.key)}
+                className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-medium transition-all ${
+                  quarter === q.key
+                    ? "bg-emerald-600/90 text-white"
+                    : "bg-transparent border border-border text-muted-foreground hover:border-muted-foreground/50"
+                }`}
+              >
+                {q.label}
+              </button>
+            ))}
           </div>
+          {/* Forecast toggle */}
+          <button
+            onClick={toggleForecast}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono font-medium transition-all ${
+              showForecast
+                ? "bg-emerald-600/90 text-white"
+                : "bg-transparent border border-border text-muted-foreground hover:border-muted-foreground/50"
+            }`}
+          >
+            {showForecast ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
+            {showForecast ? "Hide Forecast" : "Show Forecast"}
+          </button>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono mb-3">
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "hsl(200, 80%, 50%)" }} />
+          <span className="text-muted-foreground">Income</span>
+        </div>
+        {showForecast && (
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "hsl(200, 80%, 50%)", opacity: 0.35 }} />
             <span className="text-muted-foreground">Income (Probable)</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "hsl(0, 72%, 55%)" }} />
-            <span className="text-muted-foreground">Outgoings</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-0.5 rounded" style={{ backgroundColor: "hsl(160, 70%, 45%)" }} />
-            <span className="text-muted-foreground">Surplus</span>
-          </div>
+        )}
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "hsl(0, 72%, 55%)" }} />
+          <span className="text-muted-foreground">Outgoings</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-0.5 rounded" style={{ backgroundColor: "hsl(160, 70%, 45%)" }} />
+          <span className="text-muted-foreground">Surplus</span>
         </div>
       </div>
+
       {incomeOutgoingsData.length === 0 ? (
         <NoData message="No cashflow data" healthStatus={dataHealth.cashflow.status} />
+      ) : quarterIsFuture ? (
+        /* Future quarter with forecast off */
+        <div className="flex flex-col items-center justify-center h-[220px] gap-3">
+          <p className="text-sm text-muted-foreground font-mono">
+            {quarter} {quarterYear} is in the future
+          </p>
+          <button
+            onClick={toggleForecast}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-mono font-medium bg-emerald-600/90 text-white hover:bg-emerald-600 transition-all"
+          >
+            <TrendingUp className="w-3.5 h-3.5" />
+            Enable forecast to view {quarter} data
+          </button>
+        </div>
+      ) : filteredData.length === 0 ? (
+        <div className="flex items-center justify-center h-[220px]">
+          <p className="text-sm text-muted-foreground font-mono">No data for this period</p>
+        </div>
       ) : (
-        <ResponsiveContainer width="100%" height={260}>
-          <ComposedChart data={incomeOutgoingsData} barGap={2}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
-            <XAxis dataKey="month" stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" />
-            {/* Primary Y-axis for bars */}
-            <YAxis
-              yAxisId="bars"
-              stroke="hsl(215, 12%, 50%)"
-              fontSize={11}
-              fontFamily="JetBrains Mono"
-              domain={barDomain}
-              tickFormatter={(v) => {
-                const abs = Math.abs(v);
-                return abs >= 1000 ? `$${(abs / 1000).toFixed(0)}K` : `$${abs}`;
-              }}
-            />
-            {/* Secondary Y-axis for surplus line (hidden axis, just scales the line) */}
-            <YAxis
-              yAxisId="surplus"
-              orientation="right"
-              stroke="hsl(215, 12%, 50%)"
-              fontSize={10}
-              fontFamily="JetBrains Mono"
-              domain={surplusDomain}
-              tickFormatter={(v) => {
-                const abs = Math.abs(v);
-                const label = abs >= 1000 ? `$${(abs / 1000).toFixed(0)}K` : `$${abs}`;
-                return v < 0 ? `-${label}` : label;
-              }}
-            />
-            <Tooltip
-              content={({ active, payload, label }) => {
-                if (!active || !payload || payload.length === 0) return null;
-                const point = payload[0]?.payload;
-                if (!point) return null;
-                const isFuture = point.isFuture;
-                const surplusVal = point.surplus ?? 0;
-                const isNeg = surplusVal < 0;
-                return (
-                  <div style={{
-                    backgroundColor: "hsl(220, 18%, 10%)",
-                    border: "1px solid hsl(220, 14%, 18%)",
-                    borderRadius: "8px",
-                    fontFamily: "JetBrains Mono",
-                    fontSize: "12px",
-                    padding: "8px 12px",
-                  }}>
-                    <p style={{ color: "hsl(215, 12%, 70%)", marginBottom: 4 }}>{label}</p>
-                    {isFuture ? (
-                      <>
-                        <p style={{ color: "hsl(200, 80%, 50%)" }}>Income (Probable): {formatMetricValue(point.probableIncome, "currency")}</p>
-                        <p style={{ color: "hsl(0, 72%, 55%)" }}>Outgoings (Estimated): {formatMetricValue(point.outgoings, "currency")}</p>
-                        <p style={{
-                          color: isNeg ? "hsl(0, 84%, 60%)" : "hsl(160, 70%, 45%)",
-                          marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4,
-                        }}>
-                          Projected {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <p style={{ color: "hsl(200, 80%, 50%)" }}>Income: {formatMetricValue(point.income, "currency")}</p>
-                        <p style={{ color: "hsl(0, 72%, 55%)" }}>Outgoings: {formatMetricValue(point.outgoings, "currency")}</p>
-                        <p style={{
-                          color: isNeg ? "hsl(0, 84%, 60%)" : "hsl(160, 70%, 45%)",
-                          marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4,
-                        }}>
-                          {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
-                        </p>
-                      </>
-                    )}
-                  </div>
-                );
-              }}
-            />
-            {/* Today indicator */}
-            {hasCurrentMonth && (
-              <ReferenceLine
+        <div className="relative">
+          <ResponsiveContainer width="100%" height={260}>
+            <ComposedChart data={filteredData} barGap={2}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
+              <XAxis dataKey="month" stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" />
+              <YAxis
                 yAxisId="bars"
-                x={currentMonthLabel}
-                stroke="hsl(215, 12%, 45%)"
-                strokeDasharray="4 4"
-                strokeWidth={1}
-                label={{
-                  value: currentMonthLabel,
-                  position: "top",
-                  fill: "hsl(215, 12%, 55%)",
-                  fontSize: 10,
-                  fontFamily: "JetBrains Mono",
+                stroke="hsl(215, 12%, 50%)"
+                fontSize={11}
+                fontFamily="JetBrains Mono"
+                domain={barDomain}
+                tickFormatter={(v) => {
+                  const abs = Math.abs(v);
+                  return abs >= 1000 ? `$${(abs / 1000).toFixed(0)}K` : `$${abs}`;
                 }}
               />
-            )}
-            {/* Income bars — solid for past, hidden for future */}
-            <Bar yAxisId="bars" dataKey="income" radius={[3, 3, 0, 0]} animationDuration={1500}>
-              {incomeOutgoingsData.map((entry, index) => (
-                <Cell
-                  key={`income-${index}`}
-                  fill="hsl(200, 80%, 50%)"
-                  fillOpacity={entry.isFuture ? 0 : 1}
+              <YAxis
+                yAxisId="surplus"
+                orientation="right"
+                stroke="hsl(215, 12%, 50%)"
+                fontSize={10}
+                fontFamily="JetBrains Mono"
+                domain={surplusDomain}
+                tickFormatter={(v) => {
+                  const abs = Math.abs(v);
+                  const label = abs >= 1000 ? `$${(abs / 1000).toFixed(0)}K` : `$${abs}`;
+                  return v < 0 ? `-${label}` : label;
+                }}
+              />
+              <Tooltip
+                content={({ active, payload, label }) => {
+                  if (!active || !payload || payload.length === 0) return null;
+                  const point = payload[0]?.payload;
+                  if (!point) return null;
+                  const isFuture = point.isFuture;
+                  const surplusVal = point.surplus ?? 0;
+                  const isNeg = surplusVal < 0;
+                  return (
+                    <div style={{
+                      backgroundColor: "hsl(220, 18%, 10%)",
+                      border: "1px solid hsl(220, 14%, 18%)",
+                      borderRadius: "8px",
+                      fontFamily: "JetBrains Mono",
+                      fontSize: "12px",
+                      padding: "8px 12px",
+                    }}>
+                      <p style={{ color: "hsl(215, 12%, 70%)", marginBottom: 4 }}>{label}</p>
+                      {isFuture ? (
+                        <>
+                          <p style={{ color: "hsl(200, 80%, 50%)" }}>Income (Probable): {formatMetricValue(point.probableIncome, "currency")}</p>
+                          <p style={{ color: "hsl(0, 72%, 55%)" }}>Outgoings (Estimated): {formatMetricValue(point.outgoings, "currency")}</p>
+                          <p style={{
+                            color: isNeg ? "hsl(0, 84%, 60%)" : "hsl(160, 70%, 45%)",
+                            marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4,
+                          }}>
+                            Projected {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p style={{ color: "hsl(200, 80%, 50%)" }}>Income: {formatMetricValue(point.income, "currency")}</p>
+                          <p style={{ color: "hsl(0, 72%, 55%)" }}>Outgoings: {formatMetricValue(point.outgoings, "currency")}</p>
+                          <p style={{
+                            color: isNeg ? "hsl(0, 84%, 60%)" : "hsl(160, 70%, 45%)",
+                            marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4,
+                          }}>
+                            {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  );
+                }}
+              />
+              {/* Today indicator */}
+              {hasCurrentMonth && showForecast && (
+                <ReferenceLine
+                  yAxisId="bars"
+                  x={currentMonthLabel}
+                  stroke="hsl(215, 12%, 45%)"
+                  strokeDasharray="4 4"
+                  strokeWidth={1}
+                  label={{
+                    value: currentMonthLabel,
+                    position: "top",
+                    fill: "hsl(215, 12%, 55%)",
+                    fontSize: 10,
+                    fontFamily: "JetBrains Mono",
+                  }}
                 />
-              ))}
-            </Bar>
-            {/* Probable income bars — only visible for future months */}
-            <Bar yAxisId="bars" dataKey="probableIncome" radius={[3, 3, 0, 0]} animationDuration={1500}>
-              {incomeOutgoingsData.map((entry, index) => (
-                <Cell
-                  key={`probable-${index}`}
-                  fill="hsl(200, 80%, 50%)"
-                  fillOpacity={entry.isFuture ? 0.35 : 0}
-                />
-              ))}
-            </Bar>
-            {/* Outgoings bars */}
-            <Bar yAxisId="bars" dataKey="outgoings" fill="hsl(0, 72%, 55%)" radius={[3, 3, 0, 0]} animationDuration={1500} />
-            {/* Zero line on surplus axis */}
-            <ReferenceLine yAxisId="surplus" y={0} stroke="hsl(215, 12%, 25%)" strokeDasharray="3 3" />
-            {/* Surplus line */}
-            <Line
-              yAxisId="surplus"
-              type="monotone"
-              dataKey="surplus"
-              stroke="hsl(160, 70%, 45%)"
-              strokeWidth={2}
-              dot={renderSurplusDot}
-              animationDuration={1500}
+              )}
+              {/* Income bars */}
+              <Bar yAxisId="bars" dataKey="income" radius={[3, 3, 0, 0]} animationDuration={800}>
+                {filteredData.map((entry, index) => (
+                  <Cell
+                    key={`income-${index}`}
+                    fill="hsl(200, 80%, 50%)"
+                    fillOpacity={entry.isFuture ? 0 : 1}
+                  />
+                ))}
+              </Bar>
+              {/* Probable income bars */}
+              <Bar yAxisId="bars" dataKey="probableIncome" radius={[3, 3, 0, 0]} animationDuration={800}>
+                {filteredData.map((entry, index) => (
+                  <Cell
+                    key={`probable-${index}`}
+                    fill="hsl(200, 80%, 50%)"
+                    fillOpacity={entry.isFuture ? 0.35 : 0}
+                  />
+                ))}
+              </Bar>
+              {/* Outgoings bars */}
+              <Bar yAxisId="bars" dataKey="outgoings" fill="hsl(0, 72%, 55%)" radius={[3, 3, 0, 0]} animationDuration={800} />
+              {/* Zero line on surplus axis */}
+              <ReferenceLine yAxisId="surplus" y={0} stroke="hsl(215, 12%, 25%)" strokeDasharray="3 3" />
+              {/* Surplus line */}
+              <Line
+                yAxisId="surplus"
+                type="monotone"
+                dataKey="surplus"
+                stroke="hsl(160, 70%, 45%)"
+                strokeWidth={2}
+                dot={renderSurplusDot}
+                animationDuration={800}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+          {/* Right-edge fade when forecast is hidden */}
+          {!showForecast && quarter === "all" && (
+            <div
+              className="absolute top-0 right-0 w-16 h-full pointer-events-none"
+              style={{
+                background: "linear-gradient(to right, transparent, hsl(220, 18%, 8%) 80%)",
+              }}
             />
-          </ComposedChart>
-        </ResponsiveContainer>
+          )}
+        </div>
       )}
+
+      {/* Footer label */}
+      <div className="mt-2 text-[10px] font-mono text-muted-foreground/60">
+        {quarter !== "all" ? (
+          <span>Viewing {quarter} {quarterYear} · {QUARTER_LABELS[quarter]}</span>
+        ) : !showForecast ? (
+          <span>Showing {rangeLabel} · Toggle forecast to see full year</span>
+        ) : (
+          <span>Showing {rangeLabel} · Forecast enabled</span>
+        )}
+      </div>
     </motion.div>
   );
 };
