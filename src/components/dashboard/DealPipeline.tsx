@@ -96,7 +96,7 @@ const DealPipeline = () => {
   const totalValue = useMemo(() => quotedJobs.reduce((s, j) => s + j.value, 0), [quotedJobs]);
 
   const clearFilters = useCallback(() => {
-    setSortBy("date-desc");
+    setSortBy("date-closest");
     setStatusFilter("all");
     setDateFilter("all");
     setPage(1);
