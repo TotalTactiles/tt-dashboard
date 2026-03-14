@@ -274,8 +274,7 @@ const DealPipeline = () => {
                   <th className="pb-3 pr-4">Project</th>
                   <th className="pb-3 pr-4 text-right">Value</th>
                   <th className="pb-3 pr-4 text-center">Status</th>
-                  <th className="pb-3 pr-4">Date</th>
-                  <th className="pb-3">Sales Owner</th>
+                  <th className="pb-3">Date</th>
                 </tr>
               </thead>
               <tbody>
