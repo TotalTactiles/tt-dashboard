@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import CalendarCard from "@/components/calendar/CalendarCard";
+import CalendarGrid from "@/components/calendar/CalendarGrid";
 import CalendarFilters from "@/components/calendar/CalendarFilters";
+import DaySchedulePanel from "@/components/calendar/DaySchedulePanel";
 import DeadlineTracker from "@/components/calendar/DeadlineTracker";
 import EventTimeline from "@/components/calendar/EventTimeline";
 import EventDensityChart from "@/components/calendar/EventDensityChart";
@@ -14,7 +15,7 @@ const allSources: ("google" | "zoho")[] = ["google", "zoho"];
 const CalendarView = () => {
   const [activeTypes, setActiveTypes] = useState<CalendarEvent["type"][]>(allTypes);
   const [activeSources, setActiveSources] = useState<("google" | "zoho")[]>(allSources);
-  const [viewMode, setViewMode] = useState<"side-by-side" | "cards">("side-by-side");
+  const [selectedDate, setSelectedDate] = useState(new Date(2026, 2, 14));
 
   const toggleType = (type: CalendarEvent["type"]) => {
     setActiveTypes((prev) =>
@@ -33,8 +34,8 @@ const CalendarView = () => {
     [activeTypes, activeSources]
   );
 
-  const googleEvents = filtered.filter((e) => e.calendar === "google");
-  const zohoEvents = filtered.filter((e) => e.calendar === "zoho");
+  const prevDay = () => setSelectedDate((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1));
+  const nextDay = () => setSelectedDate((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1));
 
   return (
     <DashboardLayout>
@@ -43,33 +44,29 @@ const CalendarView = () => {
         <p className="text-sm text-muted-foreground font-mono">Fund III — Event Schedule &amp; Critical Dates</p>
       </div>
 
+      {/* Filter bar */}
       <div className="mb-5">
         <CalendarFilters
           activeTypes={activeTypes}
           onToggleType={toggleType}
           activeSources={activeSources}
           onToggleSource={toggleSource}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
         />
       </div>
 
-      {/* Calendars */}
-      <div className={viewMode === "side-by-side" ? "grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6" : "grid grid-cols-1 gap-4 mb-6"}>
-        {activeSources.includes("google") && (
-          <CalendarCard title="Google Calendar" source="google" events={googleEvents} />
-        )}
-        {activeSources.includes("zoho") && (
-          <CalendarCard title="Zoho Projects" source="zoho" events={zohoEvents} />
-        )}
+      {/* Main split: Calendar grid + Day schedule panel */}
+      <div className="flex flex-col lg:flex-row gap-4 mb-6">
+        <CalendarGrid events={filtered} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+        <DaySchedulePanel events={filtered} selectedDate={selectedDate} onPrevDay={prevDay} onNextDay={nextDay} />
       </div>
 
-      {/* Date Data Panels */}
+      {/* Bottom row 1: Deadlines + Upcoming Events */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <DeadlineTracker />
         <EventTimeline />
       </div>
 
+      {/* Bottom row 2: Density chart + Quarterly roadmap */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <EventDensityChart />
         <QuarterlyTimeline />

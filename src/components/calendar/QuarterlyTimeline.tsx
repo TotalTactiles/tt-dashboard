@@ -14,18 +14,23 @@ const QuarterlyTimeline = () => {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.25 }}
-      className="stat-card"
+      className="stat-card max-h-[380px] overflow-y-auto"
     >
       <h3 className="text-sm font-semibold text-foreground mb-4">Quarterly Roadmap</h3>
       <div className="space-y-5">
         {quarterlyTimeline.map((q) => (
           <div key={q.quarter}>
-            <p className="text-[10px] font-mono text-primary uppercase tracking-wider mb-2">{q.quarter}</p>
-            <div className="space-y-1.5 ml-1 border-l border-border pl-3">
+            <div className="flex items-center gap-2 mb-2">
+              <p className="text-[10px] font-mono text-primary uppercase tracking-wider font-semibold">{q.quarter}</p>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+            <div className="space-y-2 ml-1 pl-3">
               {q.events.map((ev, i) => (
-                <div key={i} className="flex items-center gap-2">
+                <div key={i} className="flex items-center gap-2.5">
                   {statusIcons[ev.status]}
-                  <span className="text-xs text-foreground/80 flex-1">{ev.label}</span>
+                  <span className={`text-xs flex-1 ${ev.status === "done" ? "text-muted-foreground line-through" : "text-foreground/80"}`}>
+                    {ev.label}
+                  </span>
                   <span className="text-[10px] font-mono text-muted-foreground">{ev.date}</span>
                 </div>
               ))}
