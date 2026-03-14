@@ -235,7 +235,7 @@ const DealPipeline = () => {
                       onClick={() => { setStatusFilter(opt.value); setPage(1); }}
                       className={`text-[11px] px-2 py-1 rounded-full border transition-colors font-mono ${
                         statusFilter === opt.value
-                          ? "bg-chart-green/20 text-chart-green border-chart-green/40"
+                          ? getFilterPillStyle(opt.value)
                           : "border-border text-muted-foreground hover:bg-secondary/50"
                       }`}
                     >
