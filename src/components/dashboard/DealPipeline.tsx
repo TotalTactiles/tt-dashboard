@@ -34,11 +34,12 @@ function getFilterPillStyle(filterValue: string): string {
   }
 }
 
-type SortOption = "date-desc" | "date-asc" | "value-desc" | "value-asc" | "company-asc";
+type SortOption = "date-closest" | "date-desc" | "date-asc" | "value-desc" | "value-asc" | "company-asc";
 type StatusFilter = "all" | "Quote Sent" | "Negotiation/Review" | "Verbal Confirmation (YLW)" | "PO Received (GRN)" | "Completed" | "Lost/Dead";
 type DateFilter = "all" | "2026" | "2025" | "Q1" | "Q2" | "Q3" | "Q4";
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "date-closest", label: "Closest to today" },
   { value: "date-desc", label: "Date (newest)" },
   { value: "date-asc", label: "Date (oldest)" },
   { value: "value-desc", label: "Value (highest)" },
