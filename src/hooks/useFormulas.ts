@@ -45,6 +45,7 @@ const DEFAULT_FORMULAS: Omit<MetricFormula, "id">[] = [
   { name: "Net Revenue", expression: "NetRevenue", description: "Revenue minus cost of sales", unit: "$", category: "Financial", dashboardCard: "Net Revenue", dataSource: "Google Sheets" },
   { name: "Cashflow Position", expression: "CashPosition", description: "Current available cash position", unit: "$", category: "Financial", dashboardCard: "Cashflow Position", dataSource: "Google Sheets" },
   { name: "Monthly Expenses", expression: "MonthlyExpenses", description: "Total monthly operating expenses", unit: "$", category: "Operational", dashboardCard: "Monthly Expenses", dataSource: "Google Sheets" },
+  { name: "Gross Margin Target", expression: "GrossMarginTarget", description: "Target gross profit margin percentage for the GP chart", unit: "%", category: "Growth", dataSource: "Google Sheets" },
 ];
 
 // Simple tokenizer and evaluator for arithmetic expressions with named variables
