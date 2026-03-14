@@ -34,11 +34,12 @@ function getFilterPillStyle(filterValue: string): string {
   }
 }
 
-type SortOption = "date-desc" | "date-asc" | "value-desc" | "value-asc" | "company-asc";
+type SortOption = "date-closest" | "date-desc" | "date-asc" | "value-desc" | "value-asc" | "company-asc";
 type StatusFilter = "all" | "Quote Sent" | "Negotiation/Review" | "Verbal Confirmation (YLW)" | "PO Received (GRN)" | "Completed" | "Lost/Dead";
 type DateFilter = "all" | "2026" | "2025" | "Q1" | "Q2" | "Q3" | "Q4";
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "date-closest", label: "Closest to today" },
   { value: "date-desc", label: "Date (newest)" },
   { value: "date-asc", label: "Date (oldest)" },
   { value: "value-desc", label: "Value (highest)" },
@@ -86,17 +87,17 @@ const DealPipeline = () => {
   const { quotedJobs, dataHealth } = useDashboardData();
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>("date-desc");
+  const [sortBy, setSortBy] = useState<SortOption>("date-closest");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
 
-  const hasActiveFilters = sortBy !== "date-desc" || statusFilter !== "all" || dateFilter !== "all";
+  const hasActiveFilters = sortBy !== "date-closest" || statusFilter !== "all" || dateFilter !== "all";
 
   // Total value for cross-check
   const totalValue = useMemo(() => quotedJobs.reduce((s, j) => s + j.value, 0), [quotedJobs]);
 
   const clearFilters = useCallback(() => {
-    setSortBy("date-desc");
+    setSortBy("date-closest");
     setStatusFilter("all");
     setDateFilter("all");
     setPage(1);
@@ -131,6 +132,16 @@ const DealPipeline = () => {
     // Sort
     jobs.sort((a, b) => {
       switch (sortBy) {
+        case "date-closest": {
+          const today = Date.now();
+          const diffA = parseDateForFilter(a.dateQuoted)
+            ? Math.abs(parseDateForFilter(a.dateQuoted)!.getTime() - today)
+            : Infinity;
+          const diffB = parseDateForFilter(b.dateQuoted)
+            ? Math.abs(parseDateForFilter(b.dateQuoted)!.getTime() - today)
+            : Infinity;
+          return diffA - diffB;
+        }
         case "date-desc": {
           const da = parseDateForFilter(a.dateQuoted)?.getTime() ?? 0;
           const db = parseDateForFilter(b.dateQuoted)?.getTime() ?? 0;
