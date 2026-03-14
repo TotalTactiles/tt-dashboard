@@ -25,10 +25,10 @@ const MONTH_REGEX = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{2}$/i
 
 function normalizeQuoteStatus(raw: string): "won" | "lost" | "pending" | "yellow" {
   const s = (raw ?? "").toUpperCase();
-  if (s.includes("PO RECEIVED") || s.includes("WON") || s === "GREEN") return "won";
+  if (s.includes("PO RECEIVED") || s.includes("WON") || s === "GREEN" || s.includes("COMPLETED") || s.includes("GRN")) return "won";
   if (s.includes("LOST") || s.includes("DEAD")) return "lost";
   if (s.includes("VERBAL") || s.includes("YELLOW") || s.includes("YLW") || s.includes("90%")) return "yellow";
-  if (s.includes("NEGOTIATION") || s.includes("REVIEW") || s.includes("QUOTE SENT") || s.includes("PENDING")) return "pending";
+  if (s.includes("NEGOTIATION") || s.includes("REVIEW") || s.includes("QUOTE SENT") || s.includes("PENDING") || s.includes("SENT")) return "pending";
   return "pending";
 }
 
@@ -203,22 +203,51 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const meta = liveData._meta as any;
 
     // ===== QUOTED JOBS TABLE =====
+    // Debug: log raw quote fields so we can see what n8n sends
+    if (rawQuotes.length > 0) {
+      console.log('RAW QUOTES SAMPLE:', JSON.stringify(rawQuotes.slice(0, 3), null, 2));
+      console.log('RAW QUOTES KEYS:', Object.keys(rawQuotes[0]));
+    }
+
     const quotedJobs: QuotedJob[] = rawQuotes
       .filter((r: any) => r?._label_isLineItem === true)
       .map((r: any, i: number) => {
-        // Try every plausible field name for the contract value
-        const rawVal = r._value ?? r._label_dollarValue ?? r["Contract Value"] ?? r["contract_value"]
-          ?? r["Quoted Value"] ?? r["QUOTED_VALUE"] ?? r["quoted_value"]
-          ?? r["Total Value"] ?? r["total_value"] ?? r.Amount ?? r.amount
-          ?? r.Value ?? r.value ?? r["Quote Value"] ?? r["quote_value"]
-          ?? r._label_countValue ?? 0;
+        // Value — try every possible field name for Contract Value (column D)
+        const rawVal =
+          r["Contract Value ($)"] ?? r["Contract Value"] ?? r["contract_value"] ?? r["ContractValue"] ??
+          r.col_4 ?? r.col_3 ??
+          r._value ?? r._label_dollarValue ??
+          r["Quoted Value"] ?? r["QUOTED_VALUE"] ?? r["quoted_value"] ??
+          r["Total Value"] ?? r["total_value"] ??
+          r.Amount ?? r.amount ?? r.Value ?? r.value ??
+          r["Quote Value"] ?? r["quote_value"] ?? r._label_countValue ?? 0;
+        // Company — column B
+        const company =
+          r["Company Name"] ?? r["company_name"] ?? r.Company ?? r.company ??
+          r.col_2 ?? r.col_1 ??
+          r._company ?? r._label_company ?? "";
+        // Project — column C
+        const project =
+          r["Project Name"] ?? r["project_name"] ?? r.Project ?? r.project ??
+          r.col_3 ?? r.col_2 ??
+          r._project ?? r._label_project ?? "";
+        // Status — column E
+        const status =
+          r["Current Status"] ?? r["current_status"] ??
+          r.Status ?? r.status ??
+          r.col_5 ?? r.col_4 ?? "pending";
+        // Date — column F
+        const dateQuoted =
+          r["Estimated Job Date"] ?? r["Date Quoted"] ?? r["estimated_job_date"] ??
+          r.dateQuoted ?? r.col_6 ?? r.col_5 ?? "";
+
         return {
           id: `Q${i}`,
-          company: r._company ?? r._label_company ?? "",
-          project: r._project ?? r._label_project ?? "",
+          company: String(company),
+          project: String(project),
           value: parseNum(rawVal),
-          status: normalizeQuoteStatus(r.Status ?? r.status ?? "pending"),
-          dateQuoted: r["Date Quoted"] ?? r.dateQuoted ?? "",
+          status: normalizeQuoteStatus(String(status)),
+          dateQuoted: String(dateQuoted),
           notes: r.Notes ?? r.notes ?? "",
         };
       })

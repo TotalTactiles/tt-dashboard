@@ -68,6 +68,8 @@ function getQuarter(month: number): number {
 
 const DealPipeline = () => {
   const { quotedJobs, dataHealth } = useDashboardData();
+  // Access raw quotes for debug via the context's underlying data
+  const dashData = useDashboardData();
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("date-desc");
@@ -75,6 +77,12 @@ const DealPipeline = () => {
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
 
   const hasActiveFilters = sortBy !== "date-desc" || statusFilter !== "all" || dateFilter !== "all";
+
+  // Check if all values are zero (debug mode)
+  const allValuesZero = quotedJobs.length > 0 && quotedJobs.every((j) => j.value === 0);
+
+  // Total value for cross-check
+  const totalValue = useMemo(() => quotedJobs.reduce((s, j) => s + j.value, 0), [quotedJobs]);
 
   const clearFilters = useCallback(() => {
     setSortBy("date-desc");
@@ -262,6 +270,16 @@ const DealPipeline = () => {
         <NoData message="No quote data" healthStatus={dataHealth.quotes.status} />
       ) : (
         <>
+          {/* Debug: show raw field names when all values are zero */}
+          {allValuesZero && quotedJobs.length > 0 && (
+            <div className="mb-3 p-2 rounded bg-secondary/40 border border-border/50">
+              <p className="text-[10px] font-mono text-chart-amber mb-1">⚠ All values are $0 — debug info:</p>
+              <p className="text-[10px] font-mono text-muted-foreground break-all">
+                Available fields on first quote row: check browser console for RAW QUOTES SAMPLE
+              </p>
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -300,6 +318,18 @@ const DealPipeline = () => {
                   </motion.tr>
                 ))}
               </tbody>
+              {/* Total row */}
+              <tfoot>
+                <tr className="border-t border-border">
+                  <td colSpan={2} className="py-3 pr-4 text-xs font-mono text-muted-foreground font-medium">
+                    Total ({quotedJobs.length} jobs)
+                  </td>
+                  <td className="py-3 pr-4 text-right font-mono text-xs font-semibold text-foreground">
+                    {totalValue > 0 ? formatMetricValue(totalValue, "currency") : "TBC"}
+                  </td>
+                  <td colSpan={2} />
+                </tr>
+              </tfoot>
             </table>
           </div>
 
