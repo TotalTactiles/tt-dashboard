@@ -124,7 +124,7 @@ export function getAvailableVariables(kpiVariables?: Record<string, number>): st
   return DEFAULT_VARIABLE_NAMES;
 }
 
-const RESEED_KEY = "meridian_formulas_v2_seeded";
+const RESEED_KEY = "meridian_formulas_v3_seeded";
 
 function loadFormulas(): MetricFormula[] {
   try {
