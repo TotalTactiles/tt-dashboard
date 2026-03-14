@@ -168,6 +168,7 @@ export interface DashboardData {
   quotedJobs: QuotedJob[];
   revenueProjects: RevenueProject[];
   expenseCategories: ExpenseCategoryGroup[];
+  grandTotalExpense: GrandTotalExpense | null;
   kpiStats: KPIStat[];
   incomeOutgoingsData: IncomeOutgoingsPoint[];
   profitMarginData: ProfitMarginPoint[];
