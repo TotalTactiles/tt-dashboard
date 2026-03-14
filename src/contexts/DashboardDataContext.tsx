@@ -143,6 +143,10 @@ export interface DashboardData {
   dataStore: DataStore;
   formulaCache: ReturnType<typeof createFormulaCache>;
   changedFormulas: string[];
+  formulas: import("@/hooks/useFormulas").MetricFormula[];
+  addFormula: (formula: Omit<import("@/hooks/useFormulas").MetricFormula, "id">) => void;
+  updateFormula: (id: string, updates: Partial<import("@/hooks/useFormulas").MetricFormula>) => void;
+  deleteFormula: (id: string) => void;
   dataHealth: DataHealth;
   isLoading: boolean;
   hasLiveData: boolean;
