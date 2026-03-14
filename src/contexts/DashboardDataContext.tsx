@@ -478,6 +478,7 @@ export function useDashboardData(): DashboardData {
       dataStore: { quotes: [], qtsSmmry: [], cashflow: [], revenue: [], expenses: [], labour: [], stock: [], quotesSummary: {}, cashflowSummary: {}, revenueSummary: {}, expensesSummary: {} },
       formulaCache: formulaCacheInstance,
       changedFormulas: [],
+      formulas: [], addFormula: () => {}, updateFormula: () => {}, deleteFormula: () => {},
       dataHealth: {
         quotes: { status: "disconnected", rawCount: 0, mappedCount: 0 },
         cashflow: { status: "disconnected", rawCount: 0, mappedCount: 0 },
