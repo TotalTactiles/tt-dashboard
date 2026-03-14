@@ -109,11 +109,23 @@ const CashflowChart = () => {
                     padding: "8px 12px",
                   }}>
                     <p style={{ color: "hsl(215, 12%, 70%)", marginBottom: 4 }}>{label}</p>
-                    <p style={{ color: "hsl(160, 70%, 45%)" }}>Income: {formatMetricValue(point.income, "currency")}</p>
-                    <p style={{ color: "hsl(0, 84%, 60%)" }}>Outgoings: {formatMetricValue(point.outgoings, "currency")}</p>
-                    <p style={{ color: isNeg ? "hsl(0, 84%, 60%)" : "hsl(160, 70%, 45%)", marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4 }}>
-                      {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
-                    </p>
+                    {point.isFuture ? (
+                      <>
+                        <p style={{ color: "hsl(200, 80%, 50%)" }}>Income (Probable): {formatMetricValue(point.probableIncome ?? 0, "currency")}</p>
+                        <p style={{ color: "hsl(0, 84%, 60%)" }}>Outgoings (Estimated): {formatMetricValue(point.outgoings, "currency")}</p>
+                        <p style={{ color: isNeg ? "hsl(0, 84%, 60%)" : "hsl(160, 70%, 45%)", marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4 }}>
+                          Projected {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p style={{ color: "hsl(160, 70%, 45%)" }}>Income: {formatMetricValue(point.income, "currency")}</p>
+                        <p style={{ color: "hsl(0, 84%, 60%)" }}>Outgoings: {formatMetricValue(point.outgoings, "currency")}</p>
+                        <p style={{ color: isNeg ? "hsl(0, 84%, 60%)" : "hsl(160, 70%, 45%)", marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4 }}>
+                          {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
+                        </p>
+                      </>
+                    )}
                   </div>
                 );
               }}

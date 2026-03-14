@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, ReferenceLine, Cell } from "recharts";
+import { Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, ReferenceLine, Cell } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 import NoData from "./NoData";
@@ -19,19 +19,31 @@ const PortfolioChart = () => {
     [incomeOutgoingsData, currentMonthLabel]
   );
 
-  // Custom dot renderer for surplus line — no change needed, just styling
+  // Compute bar-friendly Y-axis domain (based on bars only, not surplus line)
+  const barDomain = useMemo(() => {
+    if (incomeOutgoingsData.length === 0) return [0, 100000];
+    let maxBar = 0;
+    for (const d of incomeOutgoingsData) {
+      maxBar = Math.max(maxBar, d.income, d.outgoings, d.probableIncome);
+    }
+    return [0, Math.ceil(maxBar * 1.15 / 10000) * 10000]; // 15% padding, round to 10K
+  }, [incomeOutgoingsData]);
+
+  // Surplus line uses secondary Y-axis to avoid distorting bar scale
+  const surplusDomain = useMemo(() => {
+    if (incomeOutgoingsData.length === 0) return [-10000, 10000];
+    const vals = incomeOutgoingsData.map((d) => d.surplus);
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const pad = Math.max(Math.abs(max - min) * 0.15, 5000);
+    return [Math.floor((min - pad) / 5000) * 5000, Math.ceil((max + pad) / 5000) * 5000];
+  }, [incomeOutgoingsData]);
+
+  // Custom dot renderer for surplus line
   const renderSurplusDot = (props: any) => {
-    const { cx, cy, payload } = props;
+    const { cx, cy } = props;
     if (cx == null || cy == null) return null;
-    return (
-      <circle
-        cx={cx}
-        cy={cy}
-        r={3}
-        fill="hsl(160, 70%, 45%)"
-        stroke="none"
-      />
-    );
+    return <circle cx={cx} cy={cy} r={3} fill="hsl(160, 70%, 45%)" stroke="none" />;
   };
 
   return (
@@ -63,10 +75,6 @@ const PortfolioChart = () => {
             <span className="w-3 h-0.5 rounded" style={{ backgroundColor: "hsl(160, 70%, 45%)" }} />
             <span className="text-muted-foreground">Surplus</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-0.5 rounded" style={{ backgroundColor: "hsl(160, 70%, 45%)", borderTop: "1px dashed hsl(160, 70%, 45%)", height: 0 }} />
-            <span className="text-muted-foreground" style={{ borderBottom: "1px dashed hsl(160, 70%, 45%)", lineHeight: "1" }}>Surplus (Projected)</span>
-          </div>
         </div>
       </div>
       {incomeOutgoingsData.length === 0 ? (
@@ -76,10 +84,26 @@ const PortfolioChart = () => {
           <ComposedChart data={incomeOutgoingsData} barGap={2}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
             <XAxis dataKey="month" stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" />
+            {/* Primary Y-axis for bars */}
             <YAxis
+              yAxisId="bars"
               stroke="hsl(215, 12%, 50%)"
               fontSize={11}
               fontFamily="JetBrains Mono"
+              domain={barDomain}
+              tickFormatter={(v) => {
+                const abs = Math.abs(v);
+                return abs >= 1000 ? `$${(abs / 1000).toFixed(0)}K` : `$${abs}`;
+              }}
+            />
+            {/* Secondary Y-axis for surplus line (hidden axis, just scales the line) */}
+            <YAxis
+              yAxisId="surplus"
+              orientation="right"
+              stroke="hsl(215, 12%, 50%)"
+              fontSize={10}
+              fontFamily="JetBrains Mono"
+              domain={surplusDomain}
               tickFormatter={(v) => {
                 const abs = Math.abs(v);
                 const label = abs >= 1000 ? `$${(abs / 1000).toFixed(0)}K` : `$${abs}`;
@@ -134,6 +158,7 @@ const PortfolioChart = () => {
             {/* Today indicator */}
             {hasCurrentMonth && (
               <ReferenceLine
+                yAxisId="bars"
                 x={currentMonthLabel}
                 stroke="hsl(215, 12%, 45%)"
                 strokeDasharray="4 4"
@@ -147,8 +172,8 @@ const PortfolioChart = () => {
                 }}
               />
             )}
-            {/* Income bars — solid for past, faded for future (probable) */}
-            <Bar dataKey="income" radius={[3, 3, 0, 0]} animationDuration={1500}>
+            {/* Income bars — solid for past, hidden for future */}
+            <Bar yAxisId="bars" dataKey="income" radius={[3, 3, 0, 0]} animationDuration={1500}>
               {incomeOutgoingsData.map((entry, index) => (
                 <Cell
                   key={`income-${index}`}
@@ -158,7 +183,7 @@ const PortfolioChart = () => {
               ))}
             </Bar>
             {/* Probable income bars — only visible for future months */}
-            <Bar dataKey="probableIncome" radius={[3, 3, 0, 0]} animationDuration={1500}>
+            <Bar yAxisId="bars" dataKey="probableIncome" radius={[3, 3, 0, 0]} animationDuration={1500}>
               {incomeOutgoingsData.map((entry, index) => (
                 <Cell
                   key={`probable-${index}`}
@@ -168,9 +193,12 @@ const PortfolioChart = () => {
               ))}
             </Bar>
             {/* Outgoings bars */}
-            <Bar dataKey="outgoings" fill="hsl(0, 72%, 55%)" radius={[3, 3, 0, 0]} animationDuration={1500} />
+            <Bar yAxisId="bars" dataKey="outgoings" fill="hsl(0, 72%, 55%)" radius={[3, 3, 0, 0]} animationDuration={1500} />
+            {/* Zero line on surplus axis */}
+            <ReferenceLine yAxisId="surplus" y={0} stroke="hsl(215, 12%, 25%)" strokeDasharray="3 3" />
             {/* Surplus line */}
             <Line
+              yAxisId="surplus"
               type="monotone"
               dataKey="surplus"
               stroke="hsl(160, 70%, 45%)"
