@@ -5,12 +5,24 @@ import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 import NoData from "./NoData";
 
+// Map month abbreviations to 0-indexed month numbers
+const MONTH_ABBR: Record<string, number> = {
+  Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
+  Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11,
+};
+
+function parseMonthLabel(label: string): { month: number; year: number } | null {
+  const match = label.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-(\d{2})$/i);
+  if (!match) return null;
+  return { month: MONTH_ABBR[match[1]], year: 2000 + parseInt(match[2]) };
+}
+
 const CashflowChart = () => {
   const { incomeOutgoingsData, dataHealth } = useDashboardData();
 
   const hasNegative = useMemo(() => incomeOutgoingsData.some((d) => d.surplus < 0), [incomeOutgoingsData]);
 
-  // Compute the fraction along the Y-axis where zero sits (for gradient split)
+  // Gradient offset for split fill at zero
   const gradientOffset = useMemo(() => {
     if (incomeOutgoingsData.length === 0) return 1;
     const values = incomeOutgoingsData.map((d) => d.surplus);
@@ -21,17 +33,32 @@ const CashflowChart = () => {
     return max / (max - min);
   }, [incomeOutgoingsData]);
 
-  const lastValue = incomeOutgoingsData.length > 0 ? incomeOutgoingsData[incomeOutgoingsData.length - 1].surplus : 0;
-  const isDeficit = lastValue < 0;
+  // Determine current month label and its surplus value
+  const now = new Date();
+  const currentMonthAbbr = now.toLocaleString("en-US", { month: "short" });
+  const currentYearShort = String(now.getFullYear()).slice(-2);
+  const currentMonthLabel = `${currentMonthAbbr}-${currentYearShort}`;
+
+  const currentMonthData = useMemo(
+    () => incomeOutgoingsData.find((d) => d.month === currentMonthLabel),
+    [incomeOutgoingsData, currentMonthLabel]
+  );
+
+  // Title color: green if positive, red if negative, default if no data
+  const titleColor = currentMonthData
+    ? currentMonthData.surplus >= 0
+      ? "text-emerald-500"
+      : "text-red-500"
+    : "text-muted-foreground";
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.5 }}
-      className={`chart-container ${isDeficit ? "border-l-2 border-l-destructive" : ""}`}
+      className="chart-container"
     >
-      <h3 className={`text-sm font-medium mb-1 ${isDeficit ? "text-destructive" : "text-muted-foreground"}`}>
+      <h3 className={`text-sm font-medium mb-1 ${titleColor}`}>
         Cash Surplus / Deficit
       </h3>
       <p className="text-xs text-muted-foreground font-mono mb-4">Monthly surplus / deficit trend</p>
@@ -91,7 +118,24 @@ const CashflowChart = () => {
                 );
               }}
             />
+            {/* Zero baseline */}
             <ReferenceLine y={0} stroke="hsl(215, 12%, 30%)" strokeDasharray="3 3" />
+            {/* Current month indicator */}
+            {currentMonthData && (
+              <ReferenceLine
+                x={currentMonthLabel}
+                stroke="hsl(215, 12%, 45%)"
+                strokeDasharray="4 4"
+                strokeWidth={1}
+                label={{
+                  value: currentMonthLabel,
+                  position: "top",
+                  fill: "hsl(215, 12%, 55%)",
+                  fontSize: 10,
+                  fontFamily: "JetBrains Mono",
+                }}
+              />
+            )}
             <Area
               type="monotone"
               dataKey="surplus"
