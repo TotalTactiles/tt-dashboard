@@ -90,7 +90,7 @@ const DealPipeline = () => {
 
     // Status filter
     if (statusFilter !== "all") {
-      jobs = jobs.filter((j) => j.status === statusFilter);
+      jobs = jobs.filter((j) => j.rawStatus === statusFilter);
     }
 
     // Date filter
