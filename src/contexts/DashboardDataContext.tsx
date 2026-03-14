@@ -25,10 +25,10 @@ const MONTH_REGEX = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-\d{2}$/i
 
 function normalizeQuoteStatus(raw: string): "won" | "lost" | "pending" | "yellow" {
   const s = (raw ?? "").toUpperCase();
-  if (s.includes("PO RECEIVED") || s.includes("WON") || s === "GREEN") return "won";
+  if (s.includes("PO RECEIVED") || s.includes("WON") || s === "GREEN" || s.includes("COMPLETED") || s.includes("GRN")) return "won";
   if (s.includes("LOST") || s.includes("DEAD")) return "lost";
   if (s.includes("VERBAL") || s.includes("YELLOW") || s.includes("YLW") || s.includes("90%")) return "yellow";
-  if (s.includes("NEGOTIATION") || s.includes("REVIEW") || s.includes("QUOTE SENT") || s.includes("PENDING")) return "pending";
+  if (s.includes("NEGOTIATION") || s.includes("REVIEW") || s.includes("QUOTE SENT") || s.includes("PENDING") || s.includes("SENT")) return "pending";
   return "pending";
 }
 
