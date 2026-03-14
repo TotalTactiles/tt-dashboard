@@ -95,6 +95,8 @@ export interface IncomeOutgoingsPoint {
   income: number;
   outgoings: number;
   surplus: number;
+  probableIncome: number;
+  isFuture: boolean;
 }
 
 export interface ProfitMarginPoint {
