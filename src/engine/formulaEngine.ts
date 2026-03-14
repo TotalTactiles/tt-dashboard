@@ -570,6 +570,16 @@ export function createFormulaCache() {
 // ---- resolveKpiVariables ----
 
 export function resolveKpiVariables(store: DataStore): Record<string, number> {
+  // Read gross margin target from localStorage
+  let grossMarginTarget = 30;
+  try {
+    const stored = localStorage.getItem("gross_margin_target");
+    if (stored !== null) {
+      const n = parseFloat(stored);
+      if (!isNaN(n) && n >= 0 && n <= 100) grossMarginTarget = n;
+    }
+  } catch {}
+
   return {
     TotalQuoted: resolvePath("quotesSummary.totalQuoted.value", store),
     TotalWon: resolvePath("quotesSummary.totalWon.value", store),
@@ -592,5 +602,6 @@ export function resolveKpiVariables(store: DataStore): Record<string, number> {
     TotalIncome_Current: resolvePath("cashflowSummary.totalIncome.CURRENT_MONTH", store),
     TotalOutgoings_Current: resolvePath("cashflowSummary.totalOutgoings.CURRENT_MONTH", store),
     GrossProfit_Current: resolvePath("cashflowSummary.grossProfit.CURRENT_MONTH", store),
+    GrossMarginTarget: grossMarginTarget,
   };
 }
