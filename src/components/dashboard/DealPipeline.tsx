@@ -293,8 +293,8 @@ const DealPipeline = () => {
                       {job.value > 0 ? formatMetricValue(job.value, "currency") : "TBC"}
                     </td>
                     <td className="py-3 pr-4 text-center">
-                      <span className={`text-xs px-2 py-1 rounded-full font-mono ${statusStyles[job.status]}`}>
-                        {statusLabels[job.status]}
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-mono ${getBadgeStyle(job.rawStatus)}`}>
+                        {job.rawStatus || "Unknown"}
                       </span>
                     </td>
                     <td className="py-3 font-mono text-xs text-muted-foreground">

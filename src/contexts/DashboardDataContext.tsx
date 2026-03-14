@@ -251,12 +251,12 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         status: (r.Status === "won" || r.Status === "lost" || r.Status === "yellow" || r.Status === "pending")
           ? r.Status as "won" | "lost" | "yellow" | "pending"
           : normalizeQuoteStatus(String(r["Current Status"] ?? "pending")),
+        rawStatus: String(r["Current Status"] ?? r["Current\nStatus"] ?? r.Status ?? "").trim(),
         dateQuoted: String(r["Estimated Job Date"] ?? r["Date Quoted"] ?? "").trim(),
         stageValue: parseNum(r["Stage Value ($)"] ?? 0),
-        lostReason: String(r["Lost/Dead Reason"] ?? r["Loss Notes"] ?? "").trim(),
-        salesOwner: String(r["Sales Owner"] ?? "").trim(),
-        zohoId: String(r["Job/Lead ID (Zoho)"] ?? "").trim(),
-        projectYear: String(r["Project Year"] ?? "").trim(),
+        lostReason: String(r["Lost/Dead Reason"] ?? r["Lost/Dead\nReason"] ?? "").trim(),
+        zohoId: String(r["Job/Lead ID (Zoho)"] ?? r["Job / Lead ID\n(Zoho)"] ?? "").trim(),
+        projectYear: String(r["Project Year"] ?? r["Project\nYear"] ?? "").trim(),
       }))
       .filter((j) => j.company || j.project)
       .sort((a: QuotedJob, b: QuotedJob) => {
