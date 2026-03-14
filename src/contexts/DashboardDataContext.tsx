@@ -626,7 +626,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       dataHealth, quotesDebug, isLoading, hasLiveData, connectedCount, lastUpdated,
       sources: ds.sources, toggleConnection: ds.toggleConnection,
       updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow,
-      calendarEvents: rawCalendarEvents,
+      calendarEvents: calendarEventsOverride ?? rawCalendarEvents,
       upcomingEvents: rawUpcomingEvents,
       calendarSummary: rawCalendarSummary,
       setCalendarEvents: setCalendarEventsState,
