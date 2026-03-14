@@ -53,10 +53,10 @@ export interface QuotedJob {
   project: string;
   value: number;
   status: "won" | "lost" | "pending" | "yellow";
+  rawStatus: string;
   dateQuoted: string;
   stageValue: number;
   lostReason: string;
-  salesOwner: string;
   zohoId: string;
   projectYear: string;
 }
