@@ -205,15 +205,23 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     // ===== QUOTED JOBS TABLE =====
     const quotedJobs: QuotedJob[] = rawQuotes
       .filter((r: any) => r?._label_isLineItem === true)
-      .map((r: any, i: number) => ({
-        id: `Q${i}`,
-        company: r._company ?? r._label_company ?? "",
-        project: r._project ?? r._label_project ?? "",
-        value: parseNum(r._value ?? r._label_dollarValue ?? 0),
-        status: normalizeQuoteStatus(r.Status ?? r.status ?? "pending"),
-        dateQuoted: r["Date Quoted"] ?? r.dateQuoted ?? "",
-        notes: r.Notes ?? r.notes ?? "",
-      }))
+      .map((r: any, i: number) => {
+        // Try every plausible field name for the contract value
+        const rawVal = r._value ?? r._label_dollarValue ?? r["Contract Value"] ?? r["contract_value"]
+          ?? r["Quoted Value"] ?? r["QUOTED_VALUE"] ?? r["quoted_value"]
+          ?? r["Total Value"] ?? r["total_value"] ?? r.Amount ?? r.amount
+          ?? r.Value ?? r.value ?? r["Quote Value"] ?? r["quote_value"]
+          ?? r._label_countValue ?? 0;
+        return {
+          id: `Q${i}`,
+          company: r._company ?? r._label_company ?? "",
+          project: r._project ?? r._label_project ?? "",
+          value: parseNum(rawVal),
+          status: normalizeQuoteStatus(r.Status ?? r.status ?? "pending"),
+          dateQuoted: r["Date Quoted"] ?? r.dateQuoted ?? "",
+          notes: r.Notes ?? r.notes ?? "",
+        };
+      })
       .sort((a: QuotedJob, b: QuotedJob) => {
         if (!a.dateQuoted && !b.dateQuoted) return 0;
         if (!a.dateQuoted) return 1;
