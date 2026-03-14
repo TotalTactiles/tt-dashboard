@@ -7,14 +7,16 @@ import NoData from "./NoData";
 const CashflowChart = () => {
   const { incomeOutgoingsData, dataHealth } = useDashboardData();
 
-  const chartData = useMemo(() =>
-    incomeOutgoingsData.map((d) => ({
+  const hasNegative = useMemo(() => incomeOutgoingsData.some((d) => d.surplus < 0), [incomeOutgoingsData]);
+
+  const chartData = useMemo(() => {
+    if (!hasNegative) return incomeOutgoingsData;
+    return incomeOutgoingsData.map((d) => ({
       ...d,
       surplusPos: d.surplus >= 0 ? d.surplus : 0,
       surplusNeg: d.surplus < 0 ? d.surplus : 0,
-    })),
-    [incomeOutgoingsData]
-  );
+    }));
+  }, [incomeOutgoingsData, hasNegative]);
 
   const lastValue = chartData.length > 0 ? chartData[chartData.length - 1].surplus : 0;
   const isDeficit = lastValue < 0;
@@ -40,10 +42,12 @@ const CashflowChart = () => {
                 <stop offset="5%" stopColor="hsl(160, 70%, 45%)" stopOpacity={0.3} />
                 <stop offset="95%" stopColor="hsl(160, 70%, 45%)" stopOpacity={0.05} />
               </linearGradient>
-              <linearGradient id="surplusNegGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0.05} />
-                <stop offset="95%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0.3} />
-              </linearGradient>
+              {hasNegative && (
+                <linearGradient id="surplusNegGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0.05} />
+                  <stop offset="95%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0.4} />
+                </linearGradient>
+              )}
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
             <XAxis dataKey="month" stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" />
@@ -56,7 +60,7 @@ const CashflowChart = () => {
                 const label = abs >= 1000 ? `$${(abs / 1000).toFixed(0)}K` : `$${abs}`;
                 return v < 0 ? `-${label}` : label;
               }}
-              domain={["auto", "auto"]}
+              domain={hasNegative ? ["auto", "auto"] : [0, "auto"]}
             />
             <Tooltip
               contentStyle={{
@@ -67,14 +71,21 @@ const CashflowChart = () => {
                 fontSize: "12px",
               }}
               formatter={(value: number, name: string) => {
-                if (name === "surplusPos") return [`$${value.toLocaleString()}`, "Surplus"];
                 if (name === "surplusNeg") return [`-$${Math.abs(value).toLocaleString()}`, "Deficit"];
-                return [`$${value.toLocaleString()}`, name];
+                return [`$${value.toLocaleString()}`, "Surplus"];
               }}
             />
-            <ReferenceLine y={0} stroke="hsl(215, 12%, 40%)" strokeWidth={1.5} />
-            <Area type="monotone" dataKey="surplusPos" stroke="hsl(160, 70%, 45%)" fill="url(#surplusPosGrad)" strokeWidth={2} animationDuration={2000} connectNulls />
-            <Area type="monotone" dataKey="surplusNeg" stroke="hsl(0, 84%, 60%)" fill="url(#surplusNegGrad)" strokeWidth={2} animationDuration={2000} connectNulls />
+            {hasNegative && (
+              <ReferenceLine y={0} stroke="hsl(215, 12%, 30%)" strokeDasharray="3 3" />
+            )}
+            {hasNegative ? (
+              <>
+                <Area type="monotone" dataKey="surplusPos" stroke="hsl(160, 70%, 45%)" fill="url(#surplusPosGrad)" strokeWidth={2} animationDuration={2000} connectNulls />
+                <Area type="monotone" dataKey="surplusNeg" stroke="hsl(0, 84%, 60%)" fill="url(#surplusNegGrad)" strokeWidth={2} animationDuration={2000} connectNulls />
+              </>
+            ) : (
+              <Area type="monotone" dataKey="surplus" stroke="hsl(160, 70%, 45%)" fill="url(#surplusPosGrad)" strokeWidth={2} animationDuration={2000} />
+            )}
           </AreaChart>
         </ResponsiveContainer>
       )}
