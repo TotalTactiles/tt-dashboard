@@ -6,22 +6,19 @@ import { formatMetricValue } from "@/lib/formatMetricValue";
 import { formatDateMonthYear } from "@/lib/formatDate";
 import NoData from "./NoData";
 
-const statusStyles: Record<string, string> = {
-  won: "bg-chart-green/20 text-chart-green",
-  lost: "bg-chart-red/20 text-chart-red",
-  pending: "bg-secondary text-muted-foreground",
-  yellow: "bg-chart-amber/20 text-chart-amber",
-};
-
-const statusLabels: Record<string, string> = {
-  won: "Won",
-  lost: "Lost",
-  pending: "Pending",
-  yellow: "Verbal/Likely",
-};
+function getBadgeStyle(rawStatus: string): string {
+  const u = (rawStatus ?? "").toUpperCase();
+  if (u.includes("PO RECEIVED") || u.includes("GRN") || u === "COMPLETED" || u.includes("COMPLETED"))
+    return "bg-chart-green/20 text-chart-green border border-chart-green/30";
+  if (u.includes("LOST") || u.includes("DEAD"))
+    return "bg-chart-red/20 text-chart-red border border-chart-red/30";
+  if (u.includes("VERBAL") || u.includes("YLW"))
+    return "bg-chart-amber/20 text-chart-amber border border-chart-amber/30";
+  return "bg-secondary text-muted-foreground border border-border";
+}
 
 type SortOption = "date-desc" | "date-asc" | "value-desc" | "value-asc" | "company-asc";
-type StatusFilter = "all" | "won" | "pending" | "yellow" | "lost";
+type StatusFilter = "all" | "Quote Sent" | "Negotiation/Review" | "Verbal Confirmation (YLW)" | "PO Received (GRN)" | "Completed" | "Lost/Dead";
 type DateFilter = "all" | "2026" | "2025" | "Q1" | "Q2" | "Q3" | "Q4";
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
@@ -34,10 +31,12 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 
 const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: "all", label: "All" },
-  { value: "won", label: "Won" },
-  { value: "pending", label: "Pending" },
-  { value: "yellow", label: "Verbal/Likely" },
-  { value: "lost", label: "Lost" },
+  { value: "Quote Sent", label: "Quote Sent" },
+  { value: "Negotiation/Review", label: "Negotiation/Review" },
+  { value: "Verbal Confirmation (YLW)", label: "Verbal Confirmation (YLW)" },
+  { value: "PO Received (GRN)", label: "PO Received (GRN)" },
+  { value: "Completed", label: "Completed" },
+  { value: "Lost/Dead", label: "Lost/Dead" },
 ];
 
 const DATE_OPTIONS: { value: DateFilter; label: string }[] = [
@@ -91,7 +90,7 @@ const DealPipeline = () => {
 
     // Status filter
     if (statusFilter !== "all") {
-      jobs = jobs.filter((j) => j.status === statusFilter);
+      jobs = jobs.filter((j) => j.rawStatus === statusFilter);
     }
 
     // Date filter
@@ -294,8 +293,8 @@ const DealPipeline = () => {
                       {job.value > 0 ? formatMetricValue(job.value, "currency") : "TBC"}
                     </td>
                     <td className="py-3 pr-4 text-center">
-                      <span className={`text-xs px-2 py-1 rounded-full font-mono ${statusStyles[job.status]}`}>
-                        {statusLabels[job.status]}
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-mono ${getBadgeStyle(job.rawStatus)}`}>
+                        {job.rawStatus || "Unknown"}
                       </span>
                     </td>
                     <td className="py-3 font-mono text-xs text-muted-foreground">
