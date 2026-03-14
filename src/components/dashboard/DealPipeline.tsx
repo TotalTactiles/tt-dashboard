@@ -265,16 +265,6 @@ const DealPipeline = () => {
         <NoData message="No quote data" healthStatus={dataHealth.quotes.status} />
       ) : (
         <>
-          {/* Debug: show raw field names when all values are zero */}
-          {allValuesZero && quotedJobs.length > 0 && (
-            <div className="mb-3 p-2 rounded bg-secondary/40 border border-border/50">
-              <p className="text-[10px] font-mono text-chart-amber mb-1">⚠ All values are $0 — debug info:</p>
-              <p className="text-[10px] font-mono text-muted-foreground break-all">
-                Available fields on first quote row: check browser console for RAW QUOTES SAMPLE
-              </p>
-            </div>
-          )}
-
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -283,7 +273,8 @@ const DealPipeline = () => {
                   <th className="pb-3 pr-4">Project</th>
                   <th className="pb-3 pr-4 text-right">Value</th>
                   <th className="pb-3 pr-4 text-center">Status</th>
-                  <th className="pb-3">Date Quoted</th>
+                  <th className="pb-3 pr-4">Date</th>
+                  <th className="pb-3">Sales Owner</th>
                 </tr>
               </thead>
               <tbody>
@@ -307,9 +298,10 @@ const DealPipeline = () => {
                         {statusLabels[job.status]}
                       </span>
                     </td>
-                    <td className="py-3 font-mono text-xs text-muted-foreground">
+                    <td className="py-3 pr-4 font-mono text-xs text-muted-foreground">
                       {formatDateMonthYear(job.dateQuoted)}
                     </td>
+                    <td className="py-3 text-xs text-muted-foreground">{job.salesOwner}</td>
                   </motion.tr>
                 ))}
               </tbody>
@@ -322,7 +314,7 @@ const DealPipeline = () => {
                   <td className="py-3 pr-4 text-right font-mono text-xs font-semibold text-foreground">
                     {totalValue > 0 ? formatMetricValue(totalValue, "currency") : "TBC"}
                   </td>
-                  <td colSpan={2} />
+                  <td colSpan={3} />
                 </tr>
               </tfoot>
             </table>
