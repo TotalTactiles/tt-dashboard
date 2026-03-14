@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useRef } from "react";
+import React, { createContext, useContext, useMemo, useRef, useState, useCallback } from "react";
 import { useDataSources } from "@/hooks/useDataSources";
 import { resolveKpiVariables, createFormulaCache, DataStore, type EvaluationCache } from "@/engine/formulaEngine";
 import { useFormulas } from "@/hooks/useFormulas";
@@ -164,6 +164,30 @@ export interface QuotesDebugInfo {
   valuePaths: Record<string, unknown>;
 }
 
+export interface LiveCalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  location?: string;
+  start: string;
+  end: string;
+  allDay: boolean;
+  source: string;
+  type: string;
+  attendees: string[];
+  googleId?: string;
+  zohoId?: string;
+  status?: string;
+  organizer?: string;
+  htmlLink?: string;
+}
+
+export interface CalendarSummary {
+  totalEvents: number;
+  upcomingCount: number;
+  byType: Record<string, number>;
+}
+
 export interface DashboardData {
   quotedJobs: QuotedJob[];
   revenueProjects: RevenueProject[];
@@ -193,6 +217,10 @@ export interface DashboardData {
   updateWebhookUrl: ReturnType<typeof useDataSources>["updateWebhookUrl"];
   saveAndTest: ReturnType<typeof useDataSources>["saveAndTest"];
   syncNow: ReturnType<typeof useDataSources>["syncNow"];
+  calendarEvents: LiveCalendarEvent[];
+  upcomingEvents: LiveCalendarEvent[];
+  calendarSummary: CalendarSummary | null;
+  setCalendarEvents: React.Dispatch<React.SetStateAction<LiveCalendarEvent[]>>;
 }
 
 const DashboardDataContext = createContext<DashboardData | null>(null);
@@ -227,6 +255,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
   const { liveData, hasLiveData, connectedCount, sources } = ds;
   const isLoading = sources.some((s) => s.loading);
   const { formulas, addFormula, updateFormula, deleteFormula } = useFormulas();
+  const [calendarEventsOverride, setCalendarEventsState] = useState<LiveCalendarEvent[] | null>(null);
 
   const data = useMemo<DashboardData>(() => {
     const webhookResponse: any = liveData;
@@ -580,6 +609,15 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       }
     }
 
+    // ===== CALENDAR DATA =====
+    const rawCalendarEvents: LiveCalendarEvent[] = Array.isArray(webhookResponse?.calendarEvents)
+      ? webhookResponse.calendarEvents
+      : [];
+    const rawUpcomingEvents: LiveCalendarEvent[] = Array.isArray(webhookResponse?.upcomingEvents)
+      ? webhookResponse.upcomingEvents
+      : [];
+    const rawCalendarSummary: CalendarSummary | null = webhookResponse?.calendarSummary ?? null;
+
     return {
       quotedJobs, revenueProjects, expenseCategories, grandTotalExpense,
       kpiStats, incomeOutgoingsData, profitMarginData, forecastChartData, expenseAllocation,
@@ -588,8 +626,12 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       dataHealth, quotesDebug, isLoading, hasLiveData, connectedCount, lastUpdated,
       sources: ds.sources, toggleConnection: ds.toggleConnection,
       updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow,
+      calendarEvents: calendarEventsOverride ?? rawCalendarEvents,
+      upcomingEvents: rawUpcomingEvents,
+      calendarSummary: rawCalendarSummary,
+      setCalendarEvents: setCalendarEventsState,
     };
-  }, [liveData, hasLiveData, connectedCount, isLoading, ds, formulas, addFormula, updateFormula, deleteFormula]);
+  }, [liveData, hasLiveData, connectedCount, isLoading, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride]);
 
   return <DashboardDataContext.Provider value={data}>{children}</DashboardDataContext.Provider>;
 }
@@ -627,6 +669,7 @@ export function useDashboardData(): DashboardData {
       isLoading: false, hasLiveData: false, connectedCount: 0, lastUpdated: null,
       sources: [], toggleConnection: () => {}, updateWebhookUrl: () => {},
       saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {},
+      calendarEvents: [], upcomingEvents: [], calendarSummary: null, setCalendarEvents: () => {},
     } as DashboardData;
   }
   return ctx;

@@ -1,26 +1,33 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
-import { CalendarEvent, eventTypeColors } from "@/data/calendarMockData";
+import { CalendarDays, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
 
 interface DaySchedulePanelProps {
-  events: CalendarEvent[];
+  events: LiveCalendarEvent[];
   selectedDate: Date;
   onPrevDay: () => void;
   onNextDay: () => void;
+  onEventClick: (event: LiveCalendarEvent) => void;
 }
 
-const typeLabels: Record<CalendarEvent["type"], string> = {
-  meeting: "Meeting", deadline: "Deadline", milestone: "Milestone",
-  call: "Call", filing: "Filing", distribution: "Distribution", valuation: "Valuation",
+const TYPE_COLORS: Record<string, string> = {
+  Meeting: "#378ADD",
+  Deadline: "#E24B4A",
+  Milestone: "#7F77DD",
+  Care: "#639922",
+  Valuation: "#BA7517",
+  Distribution: "#1D9E75",
 };
 
-const HOURS = Array.from({ length: 13 }, (_, i) => i + 7); // 07:00–19:00
+const getTypeColor = (type: string) => TYPE_COLORS[type] || "#378ADD";
 
-const DaySchedulePanel = ({ events, selectedDate, onPrevDay, onNextDay }: DaySchedulePanelProps) => {
+const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 08:00–20:00
+
+const DaySchedulePanel = ({ events, selectedDate, onPrevDay, onNextDay, onEventClick }: DaySchedulePanelProps) => {
   const dayEvents = useMemo(() => {
     return events.filter((e) => {
-      const d = new Date(e.date);
+      const d = new Date(e.start);
       return (
         d.getDate() === selectedDate.getDate() &&
         d.getMonth() === selectedDate.getMonth() &&
@@ -31,21 +38,37 @@ const DaySchedulePanel = ({ events, selectedDate, onPrevDay, onNextDay }: DaySch
 
   const dateStr = selectedDate.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
 
-  // Map events to their hour slot
   const eventsByHour = useMemo(() => {
-    const map: Record<number, CalendarEvent[]> = {};
+    const map: Record<number, LiveCalendarEvent[]> = {};
     dayEvents.forEach((ev) => {
-      const hour = ev.time ? parseInt(ev.time.split(":")[0], 10) : 9;
+      if (ev.allDay) {
+        if (!map[8]) map[8] = [];
+        map[8].push(ev);
+        return;
+      }
+      const hour = new Date(ev.start).getHours();
       if (!map[hour]) map[hour] = [];
       map[hour].push(ev);
     });
     return map;
   }, [dayEvents]);
 
-  // Generate initials for fake attendees
-  const getInitials = (title: string) => {
-    const words = title.split(" ").filter((w) => w.length > 2);
-    return words.slice(0, 2).map((w) => w[0].toUpperCase());
+  const formatTime12 = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  };
+
+  const getDuration = (start: string, end: string) => {
+    const ms = new Date(end).getTime() - new Date(start).getTime();
+    const hrs = ms / (1000 * 60 * 60);
+    if (hrs < 1) return `${Math.round(hrs * 60)} min`;
+    return `${hrs % 1 === 0 ? hrs : hrs.toFixed(1)} hrs`;
+  };
+
+  const getInitials = (email: string) => {
+    const name = email.split("@")[0];
+    const parts = name.split(/[._-]/).filter(Boolean);
+    return parts.slice(0, 2).map((p) => p[0].toUpperCase()).join("");
   };
 
   return (
@@ -86,48 +109,62 @@ const DaySchedulePanel = ({ events, selectedDate, onPrevDay, onNextDay }: DaySch
             return (
               <div key={hour} className="flex gap-3 min-h-[48px]">
                 <span className="text-[10px] font-mono text-muted-foreground/50 w-10 shrink-0 pt-1 text-right">{timeLabel}</span>
-                <div className="flex-1 border-t border-border/30 pt-1 pb-2">
+                <div className={`flex-1 pt-1 pb-2 ${hourEvents.length === 0 ? "border-t border-dashed border-border/20" : "border-t border-border/30"}`}>
                   {hourEvents.map((ev) => (
                     <div
                       key={ev.id}
-                      className="rounded-xl p-3 mb-1.5 transition-all duration-150 hover:scale-[1.01]"
+                      className="rounded-xl p-3 mb-1.5 transition-all duration-150 hover:scale-[1.01] cursor-pointer"
                       style={{
                         background: "hsl(var(--secondary))",
-                        borderTop: `3px solid ${eventTypeColors[ev.type]}`,
+                        borderLeft: `3px solid ${getTypeColor(ev.type)}`,
                       }}
+                      onClick={() => onEventClick(ev)}
                     >
-                      <p className="text-xs font-bold text-foreground">{ev.title}</p>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-1">
+                          <p className="text-xs font-bold text-foreground">{ev.title}</p>
+                          {ev.htmlLink && (
+                            <a href={ev.htmlLink} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                              <ExternalLink className="h-3 w-3 text-muted-foreground hover:text-primary" />
+                            </a>
+                          )}
+                        </div>
+                        <span
+                          className="text-[9px] font-mono px-2 py-0.5 rounded-full shrink-0"
+                          style={{
+                            background: ev.source.includes("Google") ? "hsl(200 80% 50% / 0.15)" : "hsl(270 60% 55% / 0.15)",
+                            color: ev.source.includes("Google") ? "hsl(200 80% 50%)" : "hsl(270 60% 55%)",
+                          }}
+                        >
+                          {ev.source.includes("Google") ? "Google" : "Zoho"}
+                        </span>
+                      </div>
                       {ev.description && (
                         <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{ev.description}</p>
                       )}
-                      <div className="flex items-center gap-2 mt-2">
-                        {ev.time && (
+                      {!ev.allDay && (
+                        <div className="flex items-center gap-2 mt-2">
                           <span className="text-[10px] font-mono text-muted-foreground">
-                            {ev.time} — {parseInt(ev.time) + 1}:00 (1h)
+                            {formatTime12(ev.start)} – {formatTime12(ev.end)} ({getDuration(ev.start, ev.end)})
                           </span>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center gap-1">
-                          {getInitials(ev.title).map((init, i) => (
+                        </div>
+                      )}
+                      {ev.attendees && ev.attendees.length > 0 && (
+                        <div className="flex items-center gap-1 mt-2">
+                          {ev.attendees.slice(0, 3).map((att, i) => (
                             <div
                               key={i}
                               className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[9px] font-bold flex items-center justify-center"
+                              title={att}
                             >
-                              {init}
+                              {getInitials(att)}
                             </div>
                           ))}
+                          {ev.attendees.length > 3 && (
+                            <span className="text-[9px] text-muted-foreground">+{ev.attendees.length - 3}</span>
+                          )}
                         </div>
-                        <span
-                          className="text-[9px] font-mono px-2 py-0.5 rounded-full"
-                          style={{
-                            background: ev.calendar === "google" ? "hsl(200, 80%, 50% / 0.15)" : "hsl(270, 60%, 55% / 0.15)",
-                            color: ev.calendar === "google" ? "hsl(200, 80%, 50%)" : "hsl(270, 60%, 55%)",
-                          }}
-                        >
-                          {ev.calendar === "google" ? "Google" : "Zoho"}
-                        </span>
-                      </div>
+                      )}
                     </div>
                   ))}
                 </div>
