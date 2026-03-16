@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SlidersHorizontal, ChevronLeft, ChevronRight, X, Table2, Search } from "lucide-react";
+import { SlidersHorizontal, ChevronLeft, ChevronRight, X, Table2, Search, Columns3, Check } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatDateMonthYear } from "@/lib/formatDate";
 import NoData from "./NoData";
@@ -24,6 +24,50 @@ function statusBadgeClass(status: string): string {
   const c = STATUS_COLORS[status];
   if (!c) return "bg-secondary/50 text-muted-foreground border-border/50";
   return `${c.bg} ${c.text} ${c.border}`;
+}
+
+/* ── Column definitions ── */
+type ColumnKey = "company" | "project" | "stage" | "stageValue" | "valueInclGST" | "valueExclGST" | "invoice" | "dueDate" | "labour" | "tactile" | "other" | "cogs" | "grossProfit" | "gpPct" | "status";
+
+interface ColumnDef {
+  key: ColumnKey;
+  label: string;
+  align: "left" | "right" | "center";
+  defaultVisible: boolean;
+}
+
+const ALL_COLUMNS: ColumnDef[] = [
+  { key: "company", label: "Company", align: "left", defaultVisible: true },
+  { key: "project", label: "Project", align: "left", defaultVisible: true },
+  { key: "stage", label: "Stage", align: "left", defaultVisible: true },
+  { key: "stageValue", label: "Stage Value", align: "right", defaultVisible: true },
+  { key: "valueInclGST", label: "Value (incl GST)", align: "right", defaultVisible: true },
+  { key: "valueExclGST", label: "Value (excl GST)", align: "right", defaultVisible: true },
+  { key: "invoice", label: "Invoice", align: "left", defaultVisible: true },
+  { key: "dueDate", label: "Due Date", align: "left", defaultVisible: false },
+  { key: "labour", label: "Labour", align: "right", defaultVisible: true },
+  { key: "tactile", label: "Tactile", align: "right", defaultVisible: true },
+  { key: "other", label: "Other", align: "right", defaultVisible: true },
+  { key: "cogs", label: "COGS", align: "right", defaultVisible: true },
+  { key: "grossProfit", label: "Gross Profit", align: "right", defaultVisible: true },
+  { key: "gpPct", label: "GP%", align: "right", defaultVisible: false },
+  { key: "status", label: "Status", align: "center", defaultVisible: true },
+];
+
+const DEFAULT_VISIBLE = ALL_COLUMNS.filter(c => c.defaultVisible).map(c => c.key);
+const LS_KEY = "revenue-cogs-visible-columns";
+
+function loadVisibleColumns(): ColumnKey[] {
+  try {
+    const stored = localStorage.getItem(LS_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored) as string[];
+      // Validate
+      const valid = parsed.filter(k => ALL_COLUMNS.some(c => c.key === k)) as ColumnKey[];
+      if (valid.length > 0) return valid;
+    }
+  } catch { /* ignore */ }
+  return DEFAULT_VISIBLE;
 }
 
 /* ── Sort ── */
@@ -59,7 +103,6 @@ function parseDateForSort(raw: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
-/** Parse "Month YYYY" to { month, year } */
 function parseMonthYear(label: string): { month: number; year: number } | null {
   const d = new Date(label);
   if (!isNaN(d.getTime())) return { month: d.getMonth(), year: d.getFullYear() };
@@ -78,6 +121,34 @@ const RevenueProjectsTable = () => {
   const [monthFilter, setMonthFilter] = useState<string>("all");
   const [companySearch, setCompanySearch] = useState("");
 
+  // Column visibility
+  const [visibleColumns, setVisibleColumns] = useState<ColumnKey[]>(loadVisibleColumns);
+  const [showColumnPicker, setShowColumnPicker] = useState(false);
+  const columnPickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem(LS_KEY, JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
+
+  // Close column picker on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (columnPickerRef.current && !columnPickerRef.current.contains(e.target as Node)) {
+        setShowColumnPicker(false);
+      }
+    };
+    if (showColumnPicker) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showColumnPicker]);
+
+  const toggleColumn = (key: ColumnKey) => {
+    setVisibleColumns(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
+
+  const isColVisible = (key: ColumnKey) => visibleColumns.includes(key);
+
   const hasActiveFilters = sortBy !== "date-closest" || statusFilter !== "all" || stageFilter !== "all" || monthFilter !== "all" || companySearch.length > 0;
 
   const clearFilters = useCallback(() => {
@@ -94,14 +165,12 @@ const RevenueProjectsTable = () => {
     return [...new Set(revenueProjects.map(p => p.projectStage).filter(Boolean))].sort();
   }, [revenueProjects]);
 
-  // Time-aware month pills
   const monthPills = useMemo(() => {
     const currentYear = new Date().getFullYear();
     const parsed = revenueProjects
       .map(p => ({ label: formatDateMonthYear(p.invoiceDate), parsed: parseMonthYear(formatDateMonthYear(p.invoiceDate)) }))
       .filter(x => x.parsed !== null) as { label: string; parsed: { month: number; year: number } }[];
 
-    // Deduplicate
     const seen = new Map<string, { label: string; month: number; year: number }>();
     for (const x of parsed) {
       if (!seen.has(x.label)) seen.set(x.label, { label: x.label, ...x.parsed });
@@ -112,14 +181,12 @@ const RevenueProjectsTable = () => {
 
     for (const [, entry] of seen) {
       if (entry.year === currentYear) {
-        // Individual month pills for current year
         pills.push({ value: entry.label, label: entry.label, sortKey: entry.year * 100 + entry.month });
       } else {
         yearBuckets.set(entry.year, true);
       }
     }
 
-    // Past/future years as collapsed pills
     for (const yr of [...yearBuckets.keys()].sort()) {
       pills.push({ value: `year-${yr}`, label: String(yr), sortKey: yr < currentYear ? yr * 100 : yr * 100 + 50 });
     }
@@ -193,11 +260,12 @@ const RevenueProjectsTable = () => {
   const totalRevenue = filteredProjects.reduce((sum, p) => sum + p.valueExclGST, 0);
   const totalCOGS = filteredProjects.reduce((sum, p) => sum + p.totalCOGS, 0);
   const totalGP = filteredProjects.reduce((sum, p) => sum + p.grossProfit, 0);
-
   const totalValueInclGST = filteredProjects.reduce((sum, p) => sum + p.valueInclGST, 0);
   const totalLabour = filteredProjects.reduce((sum, p) => sum + p.labourCost, 0);
   const totalTactile = filteredProjects.reduce((sum, p) => sum + p.tactileCost, 0);
   const totalOther = filteredProjects.reduce((sum, p) => sum + p.otherCost, 0);
+  const totalStageValue = filteredProjects.reduce((sum, p) => sum + p.stageValue, 0);
+  const totalGpPct = totalRevenue > 0 ? (totalGP / totalRevenue) * 100 : 0;
 
   /* ── Pagination ── */
   const totalPages = Math.max(1, Math.ceil(filteredProjects.length / ITEMS_PER_PAGE));
@@ -250,6 +318,57 @@ const RevenueProjectsTable = () => {
     </div>
   );
 
+  /* ── Render cell by column key ── */
+  const renderCell = (proj: typeof filteredProjects[0], key: ColumnKey) => {
+    switch (key) {
+      case "company": return <span className="font-medium">{proj.company}</span>;
+      case "project": return <span className="text-muted-foreground">{proj.project}</span>;
+      case "stage": return proj.projectStage ? (
+        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary/50 text-muted-foreground font-mono border border-border/50">
+          {proj.projectStage}
+        </span>
+      ) : null;
+      case "stageValue": return <span className="font-mono text-muted-foreground">{proj.stageValue > 0 ? fmtDollar(proj.stageValue) : ""}</span>;
+      case "valueInclGST": return <span className="font-mono">{fmtDollar(proj.valueInclGST)}</span>;
+      case "valueExclGST": return <span className="font-mono">{fmtDollar(proj.valueExclGST)}</span>;
+      case "invoice": return <span className="font-mono text-xs text-muted-foreground">{proj.invoiceDate}</span>;
+      case "dueDate": return <span className="font-mono text-xs text-muted-foreground">{proj.dueDate}</span>;
+      case "labour": return <span className="font-mono text-chart-red">{fmtDollar(proj.labourCost)}</span>;
+      case "tactile": return <span className="font-mono text-chart-red">{fmtDollar(proj.tactileCost)}</span>;
+      case "other": return <span className="font-mono text-chart-red">{fmtDollar(proj.otherCost)}</span>;
+      case "cogs": return <span className="font-mono text-chart-red">{fmtDollar(proj.totalCOGS)}</span>;
+      case "grossProfit": return <span className={`font-mono ${proj.grossProfit >= 0 ? "text-chart-green" : "text-chart-red"}`}>{fmtDollar(proj.grossProfit)}</span>;
+      case "gpPct": {
+        const pct = proj.valueExclGST > 0 ? (proj.grossProfit / proj.valueExclGST) * 100 : 0;
+        return <span className={`font-mono ${pct >= 0 ? "text-chart-green" : "text-chart-red"}`}>{pct.toFixed(2)}%</span>;
+      }
+      case "status": return (
+        <span className={`text-xs px-2 py-1 rounded-full font-mono capitalize border ${statusBadgeClass(proj.status)}`}>
+          {proj.status}
+        </span>
+      );
+      default: return null;
+    }
+  };
+
+  /* ── Render total cell by column key ── */
+  const renderTotalCell = (key: ColumnKey) => {
+    switch (key) {
+      case "stageValue": return <span className="text-foreground">{fmtDollar(totalStageValue)}</span>;
+      case "valueInclGST": return <span className="text-foreground">{fmtDollar(totalValueInclGST)}</span>;
+      case "valueExclGST": return <span className="text-foreground">{fmtDollar(totalRevenue)}</span>;
+      case "labour": return <span className="text-chart-red">{fmtDollar(totalLabour)}</span>;
+      case "tactile": return <span className="text-chart-red">{fmtDollar(totalTactile)}</span>;
+      case "other": return <span className="text-chart-red">{fmtDollar(totalOther)}</span>;
+      case "cogs": return <span className="text-chart-red">{fmtDollar(totalCOGS)}</span>;
+      case "grossProfit": return <span className={totalGP >= 0 ? "text-chart-green" : "text-chart-red"}>{fmtDollar(totalGP)}</span>;
+      case "gpPct": return <span className={totalGpPct >= 0 ? "text-chart-green" : "text-chart-red"}>{totalGpPct.toFixed(2)}%</span>;
+      default: return null;
+    }
+  };
+
+  const visibleColDefs = ALL_COLUMNS.filter(c => isColVisible(c.key));
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -274,6 +393,38 @@ const RevenueProjectsTable = () => {
               </span>
             </div>
           )}
+
+          {/* Column picker */}
+          <div className="relative" ref={columnPickerRef}>
+            <button
+              onClick={() => setShowColumnPicker(!showColumnPicker)}
+              className="p-1.5 rounded-md border border-border hover:bg-secondary/50 transition-colors"
+              title="Toggle columns"
+            >
+              <Columns3 className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+            {showColumnPicker && (
+              <div className="absolute right-0 top-full mt-1 z-50 w-52 rounded-lg border border-border bg-card shadow-xl p-2 space-y-0.5">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono px-2 py-1 block">Columns</span>
+                {ALL_COLUMNS.map(col => {
+                  const checked = isColVisible(col.key);
+                  return (
+                    <button
+                      key={col.key}
+                      onClick={() => toggleColumn(col.key)}
+                      className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded-md text-xs font-mono hover:bg-secondary/50 transition-colors"
+                    >
+                      <span className={`h-3.5 w-3.5 rounded border flex items-center justify-center transition-colors ${checked ? "bg-chart-green border-chart-green" : "border-border"}`}>
+                        {checked && <Check className="h-2.5 w-2.5 text-background" />}
+                      </span>
+                      <span className={checked ? "text-foreground" : "text-muted-foreground"}>{col.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <button
             onClick={() => setShowFilters(!showFilters)}
             className="relative p-1.5 rounded-md border border-border hover:bg-secondary/50 transition-colors"
@@ -367,84 +518,56 @@ const RevenueProjectsTable = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-muted-foreground font-mono border-b border-border">
-                  <th className="pb-3 pr-4">Company</th>
-                  <th className="pb-3 pr-4">Project</th>
-                  <th className="pb-3 pr-4">Stage</th>
-                  <th className="pb-3 pr-4 text-right">Stage Value</th>
-                  <th className="pb-3 pr-4 text-right">Value (incl GST)</th>
-                  <th className="pb-3 pr-4 text-right">Value (excl GST)</th>
-                  <th className="pb-3 pr-4">Invoice</th>
-                  <th className="pb-3 pr-4">Due</th>
-                  <th className="pb-3 pr-4 text-right">Labour</th>
-                  <th className="pb-3 pr-4 text-right">Tactile</th>
-                  <th className="pb-3 pr-4 text-right">Other</th>
-                  <th className="pb-3 pr-4 text-right">COGS</th>
-                  <th className="pb-3 pr-4 text-right">Gross Profit</th>
-                  <th className="pb-3 text-center">Status</th>
+                  {visibleColDefs.map(col => (
+                    <th key={col.key} className={`pb-3 pr-4 ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""}`}>
+                      {col.label}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {pageProjects.map((proj, i) => {
-                  const gpPct = fmtGpPct(proj.grossProfit, proj.valueExclGST);
-                  return (
-                    <motion.tr
-                      key={proj.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.02 }}
-                      className={`border-b border-border/50 hover:bg-secondary/30 transition-colors ${i % 2 === 1 ? "bg-secondary/10" : ""}`}
-                    >
-                      <td className="py-3 pr-4 font-medium">{proj.company}</td>
-                      <td className="py-3 pr-4 text-muted-foreground">{proj.project}</td>
-                      <td className="py-3 pr-4">
-                        {proj.projectStage && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary/50 text-muted-foreground font-mono border border-border/50">
-                            {proj.projectStage}
-                          </span>
-                        )}
+                {pageProjects.map((proj, i) => (
+                  <motion.tr
+                    key={proj.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.02 }}
+                    className={`border-b border-border/50 hover:bg-secondary/30 transition-colors ${i % 2 === 1 ? "bg-secondary/10" : ""}`}
+                  >
+                    {visibleColDefs.map(col => (
+                      <td key={col.key} className={`py-3 pr-4 ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""}`}>
+                        {renderCell(proj, col.key)}
                       </td>
-                      <td className="py-3 pr-4 text-right font-mono text-muted-foreground">
-                        {proj.stageValue > 0 ? fmtDollar(proj.stageValue) : ""}
-                      </td>
-                      <td className="py-3 pr-4 text-right font-mono">{fmtDollar(proj.valueInclGST)}</td>
-                      <td className="py-3 pr-4 text-right font-mono">{fmtDollar(proj.valueExclGST)}</td>
-                      <td className="py-3 pr-4 font-mono text-xs text-muted-foreground">{proj.invoiceDate}</td>
-                      <td className="py-3 pr-4 font-mono text-xs text-muted-foreground">{proj.dueDate}</td>
-                      <td className="py-3 pr-4 text-right font-mono text-chart-red">{fmtDollar(proj.labourCost)}</td>
-                      <td className="py-3 pr-4 text-right font-mono text-chart-red">{fmtDollar(proj.tactileCost)}</td>
-                      <td className="py-3 pr-4 text-right font-mono text-chart-red">{fmtDollar(proj.otherCost)}</td>
-                      <td className="py-3 pr-4 text-right font-mono text-chart-red">{fmtDollar(proj.totalCOGS)}</td>
-                      <td className={`py-3 pr-4 text-right font-mono ${proj.grossProfit >= 0 ? "text-chart-green" : "text-chart-red"}`}>{fmtDollar(proj.grossProfit)}</td>
-                      <td className="py-3 text-center">
-                        <span className={`text-xs px-2 py-1 rounded-full font-mono capitalize border ${statusBadgeClass(proj.status)}`}>
-                          {proj.status}
-                        </span>
-                      </td>
-                    </motion.tr>
-                  );
-                })}
+                    ))}
+                  </motion.tr>
+                ))}
               </tbody>
-              {/* Total row — bold teal style matching Quoted Jobs */}
+              {/* Total row — subtle dark style */}
               <tfoot>
-                <tr className="bg-[#0d9e6e] text-white font-bold text-sm font-mono">
-                  <td className="py-4 pr-4 pl-3" colSpan={2}>
-                    <div className="flex items-center gap-2">
-                      <Table2 className="h-4 w-4" />
-                      <span>Total ({filteredProjects.length} projects)</span>
-                    </div>
-                  </td>
-                  <td className="py-4 pr-4"></td>
-                  <td className="py-4 pr-4"></td>
-                  <td className="py-4 pr-4 text-right">{fmtDollar(totalValueInclGST)}</td>
-                  <td className="py-4 pr-4 text-right">{fmtDollar(totalRevenue)}</td>
-                  <td className="py-4 pr-4"></td>
-                  <td className="py-4 pr-4"></td>
-                  <td className="py-4 pr-4 text-right">{fmtDollar(totalLabour)}</td>
-                  <td className="py-4 pr-4 text-right">{fmtDollar(totalTactile)}</td>
-                  <td className="py-4 pr-4 text-right">{fmtDollar(totalOther)}</td>
-                  <td className="py-4 pr-4 text-right">{fmtDollar(totalCOGS)}</td>
-                  <td className="py-4 pr-4 text-right">{fmtDollar(totalGP)}</td>
-                  <td className="py-4"></td>
+                <tr className="border-t border-chart-green/30 bg-chart-green/[0.08] font-bold text-sm font-mono">
+                  {visibleColDefs.map((col, idx) => {
+                    // First visible column gets the label
+                    if (idx === 0) {
+                      return (
+                        <td key={col.key} className="py-3 pr-4 pl-1" colSpan={1}>
+                          <div className="flex items-center gap-2 text-foreground">
+                            <Table2 className="h-4 w-4" />
+                            <span>Total ({filteredProjects.length} projects)</span>
+                          </div>
+                        </td>
+                      );
+                    }
+                    // Second visible column blank (part of label area)
+                    if (idx === 1) {
+                      return <td key={col.key} className="py-3 pr-4"></td>;
+                    }
+                    const content = renderTotalCell(col.key);
+                    return (
+                      <td key={col.key} className={`py-3 pr-4 ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""}`}>
+                        {content}
+                      </td>
+                    );
+                  })}
                 </tr>
               </tfoot>
             </table>
