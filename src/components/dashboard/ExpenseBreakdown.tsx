@@ -136,6 +136,38 @@ const ExpenseBreakdown = ({ goals = [], activeGoalIds = new Set() }: ExpenseBrea
             </div>
           ))}
 
+          {/* Goals category from merged goals */}
+          {goalsCategory && (
+            <div className="mb-6">
+              <h4 className="text-xs font-mono uppercase tracking-wider mb-3" style={{ color: GOALS_COLOR }}>
+                Goals (Projected)
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                {goalsCategory.goals.map((g, gi) => {
+                  const val = period === "weekly" ? g.monthly / 4.33
+                    : period === "yearly" ? g.monthly * 12
+                    : g.monthly;
+                  return (
+                    <motion.div
+                      key={g.name}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 1.0 + gi * 0.05 }}
+                      className="rounded-lg border p-4 bg-secondary/20"
+                      style={{ borderColor: "hsl(252, 56%, 67%, 0.3)" }}
+                    >
+                      <p className="text-xs font-mono text-muted-foreground mb-2">{g.name}</p>
+                      <p className="text-lg font-mono font-bold text-foreground">
+                        ${Math.round(val).toLocaleString()}
+                        <span className="text-xs text-muted-foreground">{periodSuffix}</span>
+                      </p>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Pie Chart */}
           <div className="mt-6 mb-6">
             <h4 className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-3">
