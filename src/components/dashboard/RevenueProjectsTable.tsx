@@ -1,19 +1,34 @@
 import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SlidersHorizontal, ChevronLeft, ChevronRight, X, Calculator } from "lucide-react";
+import { SlidersHorizontal, ChevronLeft, ChevronRight, X, Table2, Search } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
-import { formatMetricValue } from "@/lib/formatMetricValue";
 import { formatDateMonthYear } from "@/lib/formatDate";
 import NoData from "./NoData";
 
-const statusStyles: Record<string, string> = {
-  invoiced: "bg-chart-green/20 text-chart-green border-chart-green/40",
-  pending: "bg-chart-amber/20 text-chart-amber border-chart-amber/40",
-  overdue: "bg-chart-red/20 text-chart-red border-chart-red/40",
+/* ── Status colour map ── */
+const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  pending:  { bg: "bg-gray-500/20",   text: "text-gray-400",   border: "border-gray-500/40" },
+  invoiced: { bg: "bg-amber-500/20",  text: "text-amber-400",  border: "border-amber-500/40" },
+  overdue:  { bg: "bg-red-500/20",    text: "text-red-400",    border: "border-red-500/40" },
+  paid:     { bg: "bg-emerald-500/20", text: "text-emerald-400", border: "border-emerald-500/40" },
 };
 
-type SortOption = "date-closest" | "date-desc" | "date-asc" | "value-desc" | "value-asc" | "gp-desc" | "company-asc";
-type StatusFilter = "all" | "invoiced" | "pending" | "overdue";
+function statusPillClass(status: string, active: boolean): string {
+  if (!active) return "border-border text-muted-foreground hover:bg-secondary/50";
+  const c = STATUS_COLORS[status];
+  if (!c) return "bg-chart-green/20 text-chart-green border-chart-green/40";
+  return `${c.bg} ${c.text} ${c.border}`;
+}
+
+function statusBadgeClass(status: string): string {
+  const c = STATUS_COLORS[status];
+  if (!c) return "bg-secondary/50 text-muted-foreground border-border/50";
+  return `${c.bg} ${c.text} ${c.border}`;
+}
+
+/* ── Sort ── */
+type SortOption = "date-closest" | "date-desc" | "date-asc" | "value-desc" | "value-asc" | "gp-dollar-desc" | "cogs-desc" | "gp-desc" | "company-asc";
+type StatusFilter = "all" | "invoiced" | "paid" | "pending" | "overdue";
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "date-closest", label: "Closest to today" },
@@ -21,6 +36,8 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "date-asc", label: "Invoice Date (oldest)" },
   { value: "value-desc", label: "Value (highest)" },
   { value: "value-asc", label: "Value (lowest)" },
+  { value: "gp-dollar-desc", label: "Gross Profit (highest)" },
+  { value: "cogs-desc", label: "Total COGS (highest)" },
   { value: "gp-desc", label: "GP% (highest)" },
   { value: "company-asc", label: "Company (A–Z)" },
 ];
@@ -30,16 +47,8 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: "pending", label: "Pending" },
   { value: "invoiced", label: "Invoiced" },
   { value: "overdue", label: "Overdue" },
+  { value: "paid", label: "Paid" },
 ];
-
-function getStatusPillStyle(value: string): string {
-  switch (value) {
-    case "invoiced": return "bg-chart-green/20 text-chart-green border-chart-green/40";
-    case "overdue": return "bg-chart-red/20 text-chart-red border-chart-red/40";
-    case "pending": return "bg-chart-amber/20 text-chart-amber border-chart-amber/40";
-    default: return "bg-chart-green/20 text-chart-green border-chart-green/40";
-  }
-}
 
 function parseDateForSort(raw: string): Date | null {
   if (!raw) return null;
@@ -48,6 +57,13 @@ function parseDateForSort(raw: string): Date | null {
   if (dmyMatch) return new Date(parseInt(dmyMatch[3]), parseInt(dmyMatch[2]) - 1, parseInt(dmyMatch[1]));
   const d = new Date(s);
   return isNaN(d.getTime()) ? null : d;
+}
+
+/** Parse "Month YYYY" to { month, year } */
+function parseMonthYear(label: string): { month: number; year: number } | null {
+  const d = new Date(label);
+  if (!isNaN(d.getTime())) return { month: d.getMonth(), year: d.getFullYear() };
+  return null;
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -60,42 +76,59 @@ const RevenueProjectsTable = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [monthFilter, setMonthFilter] = useState<string>("all");
-  const [companyFilter, setCompanyFilter] = useState<string>("all");
+  const [companySearch, setCompanySearch] = useState("");
 
-  const hasActiveFilters = sortBy !== "date-closest" || statusFilter !== "all" || stageFilter !== "all" || monthFilter !== "all" || companyFilter !== "all";
+  const hasActiveFilters = sortBy !== "date-closest" || statusFilter !== "all" || stageFilter !== "all" || monthFilter !== "all" || companySearch.length > 0;
 
   const clearFilters = useCallback(() => {
     setSortBy("date-closest");
     setStatusFilter("all");
     setStageFilter("all");
     setMonthFilter("all");
-    setCompanyFilter("all");
+    setCompanySearch("");
     setPage(1);
   }, []);
 
-  // Dynamic filter options
+  /* ── Dynamic filter options ── */
   const uniqueStages = useMemo(() => {
-    const stages = [...new Set(revenueProjects.map(p => p.projectStage).filter(Boolean))].sort();
-    return stages;
+    return [...new Set(revenueProjects.map(p => p.projectStage).filter(Boolean))].sort();
   }, [revenueProjects]);
 
-  const uniqueMonths = useMemo(() => {
-    const months = [...new Set(revenueProjects.map(p => formatDateMonthYear(p.invoiceDate)).filter(Boolean))];
-    // Sort by date
-    months.sort((a, b) => {
-      const da = new Date(a);
-      const db = new Date(b);
-      if (!isNaN(da.getTime()) && !isNaN(db.getTime())) return da.getTime() - db.getTime();
-      return a.localeCompare(b);
-    });
-    return months;
+  // Time-aware month pills
+  const monthPills = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const parsed = revenueProjects
+      .map(p => ({ label: formatDateMonthYear(p.invoiceDate), parsed: parseMonthYear(formatDateMonthYear(p.invoiceDate)) }))
+      .filter(x => x.parsed !== null) as { label: string; parsed: { month: number; year: number } }[];
+
+    // Deduplicate
+    const seen = new Map<string, { label: string; month: number; year: number }>();
+    for (const x of parsed) {
+      if (!seen.has(x.label)) seen.set(x.label, { label: x.label, ...x.parsed });
+    }
+
+    const pills: { value: string; label: string; sortKey: number }[] = [];
+    const yearBuckets = new Map<number, boolean>();
+
+    for (const [, entry] of seen) {
+      if (entry.year === currentYear) {
+        // Individual month pills for current year
+        pills.push({ value: entry.label, label: entry.label, sortKey: entry.year * 100 + entry.month });
+      } else {
+        yearBuckets.set(entry.year, true);
+      }
+    }
+
+    // Past/future years as collapsed pills
+    for (const yr of [...yearBuckets.keys()].sort()) {
+      pills.push({ value: `year-${yr}`, label: String(yr), sortKey: yr < currentYear ? yr * 100 : yr * 100 + 50 });
+    }
+
+    pills.sort((a, b) => a.sortKey - b.sortKey);
+    return pills;
   }, [revenueProjects]);
 
-  const uniqueCompanies = useMemo(() => {
-    return [...new Set(revenueProjects.map(p => p.company).filter(Boolean))].sort();
-  }, [revenueProjects]);
-
-  // Filter + sort
+  /* ── Filter + sort ── */
   const filteredProjects = useMemo(() => {
     let projects = [...revenueProjects];
 
@@ -106,10 +139,19 @@ const RevenueProjectsTable = () => {
       projects = projects.filter(p => p.projectStage === stageFilter);
     }
     if (monthFilter !== "all") {
-      projects = projects.filter(p => formatDateMonthYear(p.invoiceDate) === monthFilter);
+      if (monthFilter.startsWith("year-")) {
+        const yr = parseInt(monthFilter.replace("year-", ""));
+        projects = projects.filter(p => {
+          const parsed = parseMonthYear(formatDateMonthYear(p.invoiceDate));
+          return parsed?.year === yr;
+        });
+      } else {
+        projects = projects.filter(p => formatDateMonthYear(p.invoiceDate) === monthFilter);
+      }
     }
-    if (companyFilter !== "all") {
-      projects = projects.filter(p => p.company === companyFilter);
+    if (companySearch.trim()) {
+      const q = companySearch.trim().toLowerCase();
+      projects = projects.filter(p => p.company.toLowerCase().includes(q));
     }
 
     projects.sort((a, b) => {
@@ -132,6 +174,8 @@ const RevenueProjectsTable = () => {
         }
         case "value-desc": return b.valueExclGST - a.valueExclGST;
         case "value-asc": return a.valueExclGST - b.valueExclGST;
+        case "gp-dollar-desc": return b.grossProfit - a.grossProfit;
+        case "cogs-desc": return b.totalCOGS - a.totalCOGS;
         case "gp-desc": {
           const gpA = a.valueExclGST > 0 ? (a.grossProfit / a.valueExclGST) * 100 : 0;
           const gpB = b.valueExclGST > 0 ? (b.grossProfit / b.valueExclGST) * 100 : 0;
@@ -143,14 +187,19 @@ const RevenueProjectsTable = () => {
     });
 
     return projects;
-  }, [revenueProjects, statusFilter, stageFilter, monthFilter, companyFilter, sortBy]);
+  }, [revenueProjects, statusFilter, stageFilter, monthFilter, companySearch, sortBy]);
 
-  // Filtered totals
+  /* ── Totals ── */
   const totalRevenue = filteredProjects.reduce((sum, p) => sum + p.valueExclGST, 0);
   const totalCOGS = filteredProjects.reduce((sum, p) => sum + p.totalCOGS, 0);
   const totalGP = filteredProjects.reduce((sum, p) => sum + p.grossProfit, 0);
 
-  // Pagination
+  const totalValueInclGST = filteredProjects.reduce((sum, p) => sum + p.valueInclGST, 0);
+  const totalLabour = filteredProjects.reduce((sum, p) => sum + p.labourCost, 0);
+  const totalTactile = filteredProjects.reduce((sum, p) => sum + p.tactileCost, 0);
+  const totalOther = filteredProjects.reduce((sum, p) => sum + p.otherCost, 0);
+
+  /* ── Pagination ── */
   const totalPages = Math.max(1, Math.ceil(filteredProjects.length / ITEMS_PER_PAGE));
   const currentPage = Math.min(page, totalPages);
   const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -166,29 +215,36 @@ const RevenueProjectsTable = () => {
     return pages;
   }, [currentPage, totalPages]);
 
+  const fmtDollar = (v: number) => `$${v.toLocaleString()}`;
+
   const renderPillRow = (
     label: string,
     options: { value: string; label: string }[],
     current: string,
     onChange: (v: string) => void,
-    getStyle?: (v: string) => string,
+    getStyle?: (v: string, active: boolean) => string,
   ) => (
     <div>
       <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">{label}</span>
       <div className="flex flex-wrap gap-1.5 mt-1">
-        {options.map((opt) => (
-          <button
-            key={opt.value}
-            onClick={() => { onChange(opt.value); setPage(1); }}
-            className={`text-[11px] px-2 py-1 rounded-full border transition-colors font-mono ${
-              current === opt.value
-                ? (getStyle ? getStyle(opt.value) : "bg-chart-green/20 text-chart-green border-chart-green/40")
-                : "border-border text-muted-foreground hover:bg-secondary/50"
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
+        {options.map((opt) => {
+          const active = current === opt.value;
+          return (
+            <button
+              key={opt.value}
+              onClick={() => { onChange(opt.value); setPage(1); }}
+              className={`text-[11px] px-2 py-1 rounded-full border transition-colors font-mono ${
+                getStyle
+                  ? getStyle(opt.value, active)
+                  : active
+                    ? "bg-chart-green/20 text-chart-green border-chart-green/40"
+                    : "border-border text-muted-foreground hover:bg-secondary/50"
+              }`}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -202,20 +258,18 @@ const RevenueProjectsTable = () => {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-muted-foreground">
-          Revenue & COGS{filteredProjects.length > 0 && ` — ${filteredProjects.length} projects`}
-        </h3>
+        <h3 className="text-sm font-medium text-muted-foreground">Revenue &amp; COGS</h3>
         <div className="flex items-center gap-2">
           {filteredProjects.length > 0 && (
             <div className="flex items-center gap-4 text-xs font-mono">
               <span className="text-muted-foreground">
-                Revenue: <span className="text-chart-green">${totalRevenue.toLocaleString()}</span>
+                Revenue: <span className="text-chart-green">{fmtDollar(totalRevenue)}</span>
               </span>
               <span className="text-muted-foreground">
-                COGS: <span className="text-chart-red">${totalCOGS.toLocaleString()}</span>
+                COGS: <span className="text-chart-red">{fmtDollar(totalCOGS)}</span>
               </span>
               <span className="text-muted-foreground">
-                GP: <span className="text-chart-blue">${totalGP.toLocaleString()}</span>
+                GP: <span className="text-chart-blue">{fmtDollar(totalGP)}</span>
               </span>
             </div>
           )}
@@ -242,14 +296,16 @@ const RevenueProjectsTable = () => {
             className="overflow-hidden"
           >
             <div className="mb-4 p-3 rounded-lg bg-secondary/30 border border-border/50 space-y-3">
-              {renderPillRow("Sort by", SORT_OPTIONS.map(o => ({ value: o.value, label: o.label })), sortBy, (v) => setSortBy(v as SortOption))}
+              {renderPillRow("Sort by", SORT_OPTIONS, sortBy, (v) => setSortBy(v as SortOption))}
 
               {renderPillRow(
                 "Status",
-                STATUS_OPTIONS.map(o => ({ value: o.value, label: o.label })),
+                STATUS_OPTIONS,
                 statusFilter,
                 (v) => setStatusFilter(v as StatusFilter),
-                (v) => v === "all" ? "bg-chart-green/20 text-chart-green border-chart-green/40" : getStatusPillStyle(v),
+                (v, active) => v === "all"
+                  ? (active ? "bg-chart-green/20 text-chart-green border-chart-green/40" : "border-border text-muted-foreground hover:bg-secondary/50")
+                  : statusPillClass(v, active),
               )}
 
               {uniqueStages.length > 0 && renderPillRow(
@@ -261,17 +317,33 @@ const RevenueProjectsTable = () => {
 
               {renderPillRow(
                 "Invoice Month",
-                [{ value: "all", label: "All time" }, ...uniqueMonths.map(m => ({ value: m, label: m }))],
+                [{ value: "all", label: "All time" }, ...monthPills],
                 monthFilter,
                 setMonthFilter,
               )}
 
-              {renderPillRow(
-                "Company",
-                [{ value: "all", label: "All" }, ...uniqueCompanies.map(c => ({ value: c, label: c }))],
-                companyFilter,
-                setCompanyFilter,
-              )}
+              {/* Company search input */}
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">Company</span>
+                <div className="relative mt-1 w-64">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={companySearch}
+                    onChange={(e) => { setCompanySearch(e.target.value); setPage(1); }}
+                    placeholder="Search company..."
+                    className="w-full h-8 pl-8 pr-8 rounded-md border border-border bg-secondary/30 text-sm font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-chart-green/50 focus:border-chart-green/50 transition-colors"
+                  />
+                  {companySearch && (
+                    <button
+                      onClick={() => { setCompanySearch(""); setPage(1); }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
 
               {hasActiveFilters && (
                 <button
@@ -311,43 +383,69 @@ const RevenueProjectsTable = () => {
                 </tr>
               </thead>
               <tbody>
-                {pageProjects.map((proj, i) => (
-                  <motion.tr
-                    key={proj.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.02 }}
-                    className={`border-b border-border/50 hover:bg-secondary/30 transition-colors ${i % 2 === 1 ? "bg-secondary/10" : ""}`}
-                  >
-                    <td className="py-3 pr-4 font-medium">{proj.company}</td>
-                    <td className="py-3 pr-4 text-muted-foreground">{proj.project}</td>
-                    <td className="py-3 pr-4">
-                      {proj.projectStage && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary/50 text-muted-foreground font-mono border border-border/50">
-                          {proj.projectStage}
+                {pageProjects.map((proj, i) => {
+                  const gpPct = proj.valueExclGST > 0 ? ((proj.grossProfit / proj.valueExclGST) * 100).toFixed(1) : "0.0";
+                  return (
+                    <motion.tr
+                      key={proj.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.02 }}
+                      className={`border-b border-border/50 hover:bg-secondary/30 transition-colors ${i % 2 === 1 ? "bg-secondary/10" : ""}`}
+                    >
+                      <td className="py-3 pr-4 font-medium">{proj.company}</td>
+                      <td className="py-3 pr-4 text-muted-foreground">{proj.project}</td>
+                      <td className="py-3 pr-4">
+                        {proj.projectStage && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary/50 text-muted-foreground font-mono border border-border/50">
+                            {proj.projectStage}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 pr-4 text-right font-mono text-muted-foreground">
+                        {proj.stageValue > 0 ? fmtDollar(proj.stageValue) : ""}
+                      </td>
+                      <td className="py-3 pr-4 text-right font-mono">{fmtDollar(proj.valueInclGST)}</td>
+                      <td className="py-3 pr-4 text-right font-mono">{fmtDollar(proj.valueExclGST)}</td>
+                      <td className="py-3 pr-4 font-mono text-xs text-muted-foreground">{proj.invoiceDate}</td>
+                      <td className="py-3 pr-4 font-mono text-xs text-muted-foreground">{proj.dueDate}</td>
+                      <td className="py-3 pr-4 text-right font-mono text-chart-red">{fmtDollar(proj.labourCost)}</td>
+                      <td className="py-3 pr-4 text-right font-mono text-chart-red">{fmtDollar(proj.tactileCost)}</td>
+                      <td className="py-3 pr-4 text-right font-mono text-chart-red">{fmtDollar(proj.otherCost)}</td>
+                      <td className="py-3 pr-4 text-right font-mono text-chart-red">{fmtDollar(proj.totalCOGS)}</td>
+                      <td className={`py-3 pr-4 text-right font-mono ${proj.grossProfit >= 0 ? "text-chart-green" : "text-chart-red"}`}>{fmtDollar(proj.grossProfit)}</td>
+                      <td className="py-3 text-center">
+                        <span className={`text-xs px-2 py-1 rounded-full font-mono capitalize border ${statusBadgeClass(proj.status)}`}>
+                          {proj.status}
                         </span>
-                      )}
-                    </td>
-                    <td className="py-3 pr-4 text-right font-mono text-muted-foreground">
-                      {proj.stageValue > 0 ? `$${proj.stageValue.toLocaleString()}` : ""}
-                    </td>
-                    <td className="py-3 pr-4 text-right font-mono">${proj.valueInclGST.toLocaleString()}</td>
-                    <td className="py-3 pr-4 text-right font-mono">${proj.valueExclGST.toLocaleString()}</td>
-                    <td className="py-3 pr-4 font-mono text-xs text-muted-foreground">{proj.invoiceDate}</td>
-                    <td className="py-3 pr-4 font-mono text-xs text-muted-foreground">{proj.dueDate}</td>
-                    <td className="py-3 pr-4 text-right font-mono text-chart-red">${proj.labourCost.toLocaleString()}</td>
-                    <td className="py-3 pr-4 text-right font-mono text-chart-red">${proj.tactileCost.toLocaleString()}</td>
-                    <td className="py-3 pr-4 text-right font-mono text-chart-red">${proj.otherCost.toLocaleString()}</td>
-                    <td className="py-3 pr-4 text-right font-mono text-chart-red">${proj.totalCOGS.toLocaleString()}</td>
-                    <td className={`py-3 pr-4 text-right font-mono ${proj.grossProfit >= 0 ? "text-chart-green" : "text-chart-red"}`}>${proj.grossProfit.toLocaleString()}</td>
-                    <td className="py-3 text-center">
-                      <span className={`text-xs px-2 py-1 rounded-full font-mono capitalize ${statusStyles[proj.status]}`}>
-                        {proj.status}
-                      </span>
-                    </td>
-                  </motion.tr>
-                ))}
+                      </td>
+                    </motion.tr>
+                  );
+                })}
               </tbody>
+              {/* Sticky total row */}
+              <tfoot>
+                <tr className="border-t-2 border-border bg-secondary/40 font-semibold text-xs font-mono">
+                  <td className="py-3 pr-4" colSpan={2}>
+                    <div className="flex items-center gap-2">
+                      <Table2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>Total ({filteredProjects.length} projects)</span>
+                    </div>
+                  </td>
+                  <td className="py-3 pr-4"></td>{/* Stage */}
+                  <td className="py-3 pr-4"></td>{/* Stage Value */}
+                  <td className="py-3 pr-4 text-right font-mono">{fmtDollar(totalValueInclGST)}</td>
+                  <td className="py-3 pr-4 text-right font-mono">{fmtDollar(totalRevenue)}</td>
+                  <td className="py-3 pr-4"></td>{/* Invoice */}
+                  <td className="py-3 pr-4"></td>{/* Due */}
+                  <td className="py-3 pr-4 text-right font-mono text-chart-red">{fmtDollar(totalLabour)}</td>
+                  <td className="py-3 pr-4 text-right font-mono text-chart-red">{fmtDollar(totalTactile)}</td>
+                  <td className="py-3 pr-4 text-right font-mono text-chart-red">{fmtDollar(totalOther)}</td>
+                  <td className="py-3 pr-4 text-right font-mono text-chart-red">{fmtDollar(totalCOGS)}</td>
+                  <td className={`py-3 pr-4 text-right font-mono ${totalGP >= 0 ? "text-chart-green" : "text-chart-red"}`}>{fmtDollar(totalGP)}</td>
+                  <td className="py-3"></td>{/* Status */}
+                </tr>
+              </tfoot>
             </table>
           </div>
 

@@ -38,9 +38,10 @@ function normalizeQuoteStatus(raw: string): "won" | "lost" | "pending" | "yellow
   return "pending";
 }
 
-function normalizeRevenueStatus(raw: string): "invoiced" | "pending" | "overdue" {
+function normalizeRevenueStatus(raw: string): "invoiced" | "paid" | "pending" | "overdue" {
   const s = (raw ?? "").toUpperCase();
-  if (s.includes("INVOICED") || s.includes("PAID")) return "invoiced";
+  if (s.includes("PAID")) return "paid";
+  if (s.includes("INVOICED")) return "invoiced";
   if (s.includes("OVERDUE")) return "overdue";
   return "pending";
 }
@@ -76,7 +77,7 @@ export interface RevenueProject {
   otherCost: number;
   totalCOGS: number;
   grossProfit: number;
-  status: "invoiced" | "pending" | "overdue";
+  status: "invoiced" | "paid" | "pending" | "overdue";
 }
 
 export interface ExpenseItem {
