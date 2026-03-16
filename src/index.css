@@ -64,6 +64,8 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   .font-mono-display {
@@ -72,8 +74,52 @@
 }
 
 @layer components {
+  /* ── Fluid typography ── */
+  .text-fluid-xs {
+    font-size: clamp(0.65rem, 0.6rem + 0.3vw, 0.8rem);
+  }
+  .text-fluid-sm {
+    font-size: clamp(0.75rem, 0.7rem + 0.4vw, 0.9rem);
+  }
+  .text-fluid-base {
+    font-size: clamp(0.8rem, 0.75rem + 0.4vw, 1rem);
+  }
+  .text-fluid-lg {
+    font-size: clamp(1rem, 0.9rem + 0.5vw, 1.25rem);
+  }
+  .text-fluid-xl {
+    font-size: clamp(1.1rem, 1rem + 0.6vw, 1.5rem);
+  }
+  .text-fluid-2xl {
+    font-size: clamp(1.25rem, 1.1rem + 0.8vw, 2rem);
+  }
+  .text-fluid-kpi {
+    font-size: clamp(1.1rem, 0.9rem + 1.2vw, 2rem);
+  }
+  .text-fluid-heading {
+    font-size: clamp(1rem, 0.85rem + 0.8vw, 1.4rem);
+  }
+
+  /* ── Dashboard layout spacing ── */
+  .dashboard-main-padding {
+    padding: clamp(0.75rem, 1vw + 0.5rem, 1.5rem);
+  }
+
+  /* ── Max width for ultrawide ── */
+  .dashboard-max-width {
+    max-width: 1920px;
+    width: 100%;
+  }
+
+  /* ── Safe area for mobile bottom nav ── */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* ── Card styles ── */
   .stat-card {
-    @apply bg-card border border-border rounded-lg p-5 transition-all duration-300;
+    @apply bg-card border border-border rounded-lg transition-all duration-300;
+    padding: clamp(0.75rem, 1vw + 0.25rem, 1.25rem);
   }
 
   .stat-card:hover {
@@ -82,7 +128,8 @@
   }
 
   .chart-container {
-    @apply bg-card border border-border rounded-lg p-5;
+    @apply bg-card border border-border rounded-lg;
+    padding: clamp(0.75rem, 1vw + 0.25rem, 1.25rem);
   }
 
   .glow-green {
@@ -104,12 +151,26 @@
   }
 
   .data-source-card {
-    @apply bg-card border border-border rounded-lg p-5 transition-all duration-300 cursor-pointer;
+    @apply bg-card border border-border rounded-lg transition-all duration-300 cursor-pointer;
+    padding: clamp(0.75rem, 1vw + 0.25rem, 1.25rem);
   }
 
   .data-source-card:hover {
     @apply border-primary/30;
     box-shadow: 0 0 24px hsl(var(--primary) / 0.06);
+  }
+
+  /* ── Responsive table → card layout on mobile ── */
+  .mobile-card-table {
+    @apply block md:hidden;
+  }
+  .desktop-table {
+    @apply hidden md:block;
+  }
+
+  /* ── Touch targets ── */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
   }
 }
 
