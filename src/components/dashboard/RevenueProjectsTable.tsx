@@ -215,7 +215,8 @@ const RevenueProjectsTable = () => {
     return pages;
   }, [currentPage, totalPages]);
 
-  const fmtDollar = (v: number) => `$${v.toLocaleString()}`;
+  const fmtDollar = (v: number) => `$${v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+  const fmtGpPct = (gp: number, rev: number) => rev > 0 ? `${((gp / rev) * 100).toFixed(2)}%` : "0.00%";
 
   const renderPillRow = (
     label: string,
