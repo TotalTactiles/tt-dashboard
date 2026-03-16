@@ -65,6 +65,8 @@ export interface RevenueProject {
   id: string;
   company: string;
   project: string;
+  projectStage: string;
+  stageValue: number;
   valueInclGST: number;
   valueExclGST: number;
   invoiceDate: string;
