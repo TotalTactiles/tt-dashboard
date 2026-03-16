@@ -156,7 +156,7 @@ const CalendarView = () => {
       </div>
 
       {/* Filter bar */}
-      <div className="mb-5">
+      <div className="mb-4 md:mb-5">
         <CalendarFilters
           activeTypes={activeTypes}
           onToggleType={toggleType}
