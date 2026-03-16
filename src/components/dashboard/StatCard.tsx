@@ -100,9 +100,9 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
         )}
       </div>
 
-      <div className="flex items-end justify-between">
-        <div className="flex items-baseline gap-2">
-          <p className={`text-2xl font-mono font-bold ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}>
+      <div className="flex items-end justify-between gap-1 min-w-0">
+        <div className="flex items-baseline gap-1 md:gap-2 min-w-0">
+          <p className={`text-fluid-kpi font-mono font-bold truncate ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}>
             {displayValue}
           </p>
           {showAlt && altDiff && !noData && (
