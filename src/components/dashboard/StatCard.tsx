@@ -70,21 +70,35 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       className="stat-card relative min-w-0 overflow-hidden"
       style={{ padding: "clamp(10px, 1.5vw, 20px)" }}
     >
-      {formulaDriven && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="absolute top-2 right-2 flex items-center gap-1">
-              <span className="text-[9px] font-mono text-chart-green/70 bg-chart-green/10 border border-chart-green/20 rounded px-1 py-0.5 leading-none">
-                f(x)
-              </span>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs font-mono max-w-[250px]">
-            <p className="font-semibold">Formula: {formulaDriven.name}</p>
-            <p className="text-muted-foreground mt-0.5">Expression: {formulaDriven.expression}</p>
-            <p className="text-muted-foreground mt-0.5">Last computed: {timeAgo(formulaDriven.lastComputed)}</p>
-          </TooltipContent>
-        </Tooltip>
+      {(formulaDriven || goalAdjusted) && (
+        <div className="absolute top-2 right-2 flex items-center gap-1">
+          {goalAdjusted && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-[9px] font-mono text-amber-400/70 bg-amber-400/10 border border-amber-400/20 rounded px-1 py-0.5 leading-none cursor-help">
+                  adj.
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs font-mono max-w-[250px]">
+                Value includes active goal scenarios. Toggle goals off to see baseline.
+              </TooltipContent>
+            </Tooltip>
+          )}
+          {formulaDriven && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-[9px] font-mono text-chart-green/70 bg-chart-green/10 border border-chart-green/20 rounded px-1 py-0.5 leading-none">
+                  f(x)
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs font-mono max-w-[250px]">
+                <p className="font-semibold">Formula: {formulaDriven.name}</p>
+                <p className="text-muted-foreground mt-0.5">Expression: {formulaDriven.expression}</p>
+                <p className="text-muted-foreground mt-0.5">Last computed: {timeAgo(formulaDriven.lastComputed)}</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
       )}
 
       <div className="flex items-center justify-between mb-1 gap-1 min-w-0">
