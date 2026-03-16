@@ -101,9 +101,14 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       </div>
 
       <div className="flex items-end justify-between">
-        <p className={`text-2xl font-mono font-bold ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}>
-          {displayValue}
-        </p>
+        <div className="flex items-baseline gap-2">
+          <p className={`text-2xl font-mono font-bold ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}>
+            {displayValue}
+          </p>
+          {showAlt && altDiff && !noData && (
+            <span className="text-sm font-mono text-amber-400/60">{altDiff}</span>
+          )}
+        </div>
         {!noData && displayChange !== "--" && (
           <div className={`flex items-center gap-1 text-xs font-mono ${accentColor}`}>
             {displayPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
