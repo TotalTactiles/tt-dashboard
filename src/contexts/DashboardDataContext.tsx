@@ -259,7 +259,7 @@ function getMonthValues(row: any, months: string[]): Record<string, number> {
 
 export function DashboardDataProvider({ children }: { children: React.ReactNode }) {
   const ds = useDataSources();
-  const { liveData, hasLiveData, connectedCount, sources } = ds;
+  const { liveData, hasLiveData, connectedCount, sources, calendarData } = ds;
   const isLoading = sources.some((s) => s.loading);
   const { formulas, addFormula, updateFormula, deleteFormula } = useFormulas();
   const [calendarEventsOverride, setCalendarEventsState] = useState<LiveCalendarEvent[] | null>(null);
