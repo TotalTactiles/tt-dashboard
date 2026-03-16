@@ -268,7 +268,7 @@ const DashboardContent = () => {
       {hasLiveData && (
         <>
           {/* KPI Cards - responsive grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4 mb-4 md:mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 items-stretch mb-4 md:mb-6" style={{ gap: "clamp(8px, 1vw, 16px)" }}>
             {adjustedKpiStats.map((stat, i) => (
               <StatCard
                 key={stat.label}
