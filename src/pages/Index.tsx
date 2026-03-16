@@ -154,7 +154,7 @@ const DashboardContent = () => {
 
       {hasLiveData && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4 mb-4 md:mb-6">
             {kpiStats.map((stat, i) => (
               <StatCard
                 key={stat.label}
@@ -171,21 +171,21 @@ const DashboardContent = () => {
 
           <GoalsDashboardWidgets goals={goals} formulas={formulas} />
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
             <PortfolioChart />
             <SectorAllocationChart />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
             <CashflowChart />
             <FundPerformanceChart />
           </div>
 
-          <div className="mb-6">
+          <div className="mb-4 md:mb-6">
             <ForecastChart />
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             <DealPipeline />
             <RevenueProjectsTable />
             <ExpenseBreakdown />
