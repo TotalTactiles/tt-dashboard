@@ -1,7 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+const DEFAULT_WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/bb826393-569e-4270-a033-6f6d8019e0e0";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
@@ -14,16 +17,13 @@ serve(async (req) => {
   try {
     const { webhookUrl, source, payload } = await req.json();
 
-    if (!webhookUrl || typeof webhookUrl !== "string") {
-      return new Response(
-        JSON.stringify({ error: "Missing or invalid webhookUrl", _proxyError: true }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const targetUrl =
+      typeof webhookUrl === "string" && webhookUrl.trim().length > 0
+        ? webhookUrl
+        : DEFAULT_WEBHOOK_URL;
 
-    // Validate URL
     try {
-      new URL(webhookUrl);
+      new URL(targetUrl);
     } catch {
       return new Response(
         JSON.stringify({ error: "Invalid URL format", _proxyError: true }),
@@ -31,14 +31,12 @@ serve(async (req) => {
       );
     }
 
-    // Build the body to forward: if `payload` is provided, use it directly;
-    // otherwise fall back to the legacy { source, timestamp } shape for reads.
-    const forwardBody = payload
-      ? JSON.stringify(payload)
-      : JSON.stringify({ source, timestamp: new Date().toISOString() });
+    const forwardBody =
+      payload !== undefined
+        ? JSON.stringify(payload ?? {})
+        : JSON.stringify(source ? { source, timestamp: new Date().toISOString() } : {});
 
-    // Forward request server-to-server (no CORS restrictions)
-    const response = await fetch(webhookUrl, {
+    const response = await fetch(targetUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Accept": "application/json" },
       body: forwardBody,

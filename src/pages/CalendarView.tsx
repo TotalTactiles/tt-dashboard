@@ -120,15 +120,14 @@ const CalendarView = () => {
           },
         };
 
-        const { data: proxyRes, error: proxyErr } = await supabase.functions.invoke('n8n-proxy', {
+        const { data, error } = await supabase.functions.invoke("n8n-proxy", {
           body: {
             webhookUrl: CALENDAR_WRITE_WEBHOOK,
             payload: writePayload,
           },
         });
 
-        if (proxyErr) throw new Error(proxyErr.message || "Proxy error");
-        if (proxyRes?._proxyError) throw new Error(proxyRes.error || "Write webhook error");
+        if (error || !data?.success) throw new Error("Failed to save event");
 
         const actionLabel = action === "create" ? "Event created" : action === "update" ? "Event updated" : "Event deleted";
         toast({ title: actionLabel, className: action === "delete" ? "" : "border-green-500/30" });
