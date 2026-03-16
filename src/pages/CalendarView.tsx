@@ -120,6 +120,10 @@ const CalendarView = () => {
           },
         };
 
+        console.log("[CalendarWrite] action:", action);
+        console.log("[CalendarWrite] webhookUrl:", CALENDAR_WRITE_WEBHOOK);
+        console.log("[CalendarWrite] payload:", JSON.stringify(writePayload, null, 2));
+
         const { data, error } = await supabase.functions.invoke("n8n-proxy", {
           body: {
             webhookUrl: CALENDAR_WRITE_WEBHOOK,
@@ -127,14 +131,17 @@ const CalendarView = () => {
           },
         });
 
+        console.log("[CalendarWrite] response data:", JSON.stringify(data, null, 2));
+        console.log("[CalendarWrite] response error:", error);
+
         if (error || !data?.success) throw new Error("Failed to save event");
 
         const actionLabel = action === "create" ? "Event created" : action === "update" ? "Event updated" : "Event deleted";
         toast({ title: actionLabel, className: action === "delete" ? "" : "border-green-500/30" });
 
-        // Resync after 5 seconds to pull fresh calendar data
         setTimeout(() => syncCalendar(), 5000);
       } catch (err: any) {
+        console.error("[CalendarWrite] CATCH error:", err);
         toast({ title: "Failed to save event — please try again", variant: "destructive" });
         setCalendarEvents(prevEvents);
       }

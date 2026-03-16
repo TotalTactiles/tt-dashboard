@@ -15,7 +15,9 @@ serve(async (req) => {
   }
 
   try {
-    const { webhookUrl, source, payload } = await req.json();
+    const body = await req.json();
+    const { webhookUrl, source, payload } = body;
+    console.log("[n8n-proxy] method:", req.method, "webhookUrl:", webhookUrl, "payload:", JSON.stringify(payload)?.substring(0, 500));
 
     const targetUrl =
       typeof webhookUrl === "string" && webhookUrl.trim().length > 0
