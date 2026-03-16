@@ -38,6 +38,15 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
   const displayChange = showAlt && altChange ? altChange : change;
   const displayPositive = showAlt && altPositive !== undefined ? altPositive : positive;
 
+  // Yellow theme when "With YLWs" is active
+  const isYellow = hasToggle && showAlt;
+  const accentColor = isYellow ? "text-amber-400" : displayPositive ? "text-chart-green" : "text-chart-red";
+  const accentGlow = isYellow ? "" : displayPositive ? "glow-green" : "glow-red";
+  const barColor = isYellow ? "bg-amber-400" : displayPositive ? "bg-chart-green" : "bg-chart-red";
+  const pillActiveClass = isYellow
+    ? "bg-amber-400/20 text-amber-400 shadow-sm"
+    : "bg-primary text-primary-foreground shadow-sm";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -80,22 +89,22 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
               onClick={() => setShowAlt(true)}
               className={`px-2 py-1 rounded-full transition-all duration-150 ${
                 showAlt
-                  ? "bg-primary text-primary-foreground shadow-sm"
+                  ? pillActiveClass
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Incl. Verbal
+              With YLWs
             </button>
           </div>
         )}
       </div>
 
       <div className="flex items-end justify-between">
-        <p className={`text-2xl font-mono font-bold ${noData ? "text-muted-foreground" : displayPositive ? "glow-green text-chart-green" : "glow-red text-chart-red"}`}>
+        <p className={`text-2xl font-mono font-bold ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}>
           {displayValue}
         </p>
         {!noData && displayChange !== "--" && (
-          <div className={`flex items-center gap-1 text-xs font-mono ${displayPositive ? "text-chart-green" : "text-chart-red"}`}>
+          <div className={`flex items-center gap-1 text-xs font-mono ${accentColor}`}>
             {displayPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
             {displayChange}
           </div>
@@ -106,7 +115,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
           initial={{ width: 0 }}
           animate={{ width: noData ? "0%" : displayPositive ? "72%" : "45%" }}
           transition={{ duration: 1, delay: 0.5 + index * 0.1 }}
-          className={`h-full rounded-full ${displayPositive ? "bg-chart-green" : "bg-chart-red"}`}
+          className={`h-full rounded-full ${barColor}`}
         />
       </div>
     </motion.div>
