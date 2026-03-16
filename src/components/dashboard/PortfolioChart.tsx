@@ -145,7 +145,7 @@ const PortfolioChart = () => {
       className="chart-container col-span-full lg:col-span-2"
     >
       {/* Header row */}
-      <div className="flex items-start justify-between mb-2 gap-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between mb-2 gap-2">
         <div className="min-w-0">
           <h3 className="text-sm font-medium text-muted-foreground">Income vs Outgoings</h3>
           <p className="text-xl font-mono font-bold text-foreground">Monthly Cash Flow</p>
