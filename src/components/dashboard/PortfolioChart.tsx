@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, ReferenceLine, Cell } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatMetricValue } from "@/lib/formatMetricValue";
+import { getMonthAdjustments, type GoalAdjustment } from "@/lib/goalMerge";
+import type { IncomeOutgoingsPoint } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
 
 const MONTH_ABBR_LIST = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -10,17 +12,11 @@ const MONTH_ABBR_LIST = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","
 type QuarterFilter = "all" | "Q1" | "Q2" | "Q3" | "Q4";
 
 const QUARTER_MONTHS: Record<string, number[]> = {
-  Q1: [0, 1, 2],
-  Q2: [3, 4, 5],
-  Q3: [6, 7, 8],
-  Q4: [9, 10, 11],
+  Q1: [0, 1, 2], Q2: [3, 4, 5], Q3: [6, 7, 8], Q4: [9, 10, 11],
 };
 
 const QUARTER_LABELS: Record<string, string> = {
-  Q1: "Jan–Mar",
-  Q2: "Apr–Jun",
-  Q3: "Jul–Sep",
-  Q4: "Oct–Dec",
+  Q1: "Jan–Mar", Q2: "Apr–Jun", Q3: "Jul–Sep", Q4: "Oct–Dec",
 };
 
 function parseMonth(label: string): { month: number; year: number } | null {
@@ -45,8 +41,14 @@ function loadPref<T>(key: string, fallback: T): T {
   } catch { return fallback; }
 }
 
-const PortfolioChart = () => {
+interface PortfolioChartProps {
+  adjustedData?: IncomeOutgoingsPoint[];
+  adjustments?: GoalAdjustment[];
+}
+
+const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps) => {
   const { incomeOutgoingsData, dataHealth } = useDashboardData();
+  const sourceData = adjustedData ?? incomeOutgoingsData;
 
   const [quarter, setQuarter] = useState<QuarterFilter>(() => loadPref("cashflow_quarter_filter", getCurrentQuarter()));
 
@@ -55,17 +57,14 @@ const PortfolioChart = () => {
     localStorage.setItem("cashflow_quarter_filter", JSON.stringify(q));
   }, []);
 
-  // Current month
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonthAbbr = now.toLocaleString("en-US", { month: "short" });
   const currentYearShort = String(currentYear).slice(-2);
   const currentMonthLabel = `${currentMonthAbbr}-${currentYearShort}`;
 
-  // Filter data — always include all data (forecast always on), just filter by quarter
   const filteredData = useMemo(() => {
-    let data = incomeOutgoingsData;
-
+    let data = sourceData;
     if (quarter !== "all") {
       const qMonths = QUARTER_MONTHS[quarter];
       data = data.filter((d) => {
@@ -73,14 +72,22 @@ const PortfolioChart = () => {
         return parsed ? qMonths.includes(parsed.month) : false;
       });
     }
-
+    // Enrich with goal adjustments
+    if (adjustments.length > 0) {
+      data = data.map(point => {
+        const monthAdj = getMonthAdjustments(adjustments, point.month);
+        if (monthAdj.length === 0) return point;
+        const seen = new Set<string>();
+        const unique = monthAdj.filter(a => { if (seen.has(a.goalId)) return false; seen.add(a.goalId); return true; });
+        return { ...point, _goalAdjustments: unique };
+      });
+    }
     return data;
-  }, [incomeOutgoingsData, quarter]);
+  }, [sourceData, quarter, adjustments]);
 
-  // Determine the year(s) spanned for quarter label
   const quarterYear = useMemo(() => {
     if (quarter === "all") return "";
-    const first = incomeOutgoingsData.find((d) => {
+    const first = sourceData.find((d) => {
       const p = parseMonth(d.month);
       return p && QUARTER_MONTHS[quarter].includes(p.month);
     });
@@ -89,14 +96,13 @@ const PortfolioChart = () => {
       return p ? String(p.year) : String(currentYear);
     }
     return String(currentYear);
-  }, [quarter, incomeOutgoingsData, currentYear]);
+  }, [quarter, sourceData, currentYear]);
 
   const hasCurrentMonth = useMemo(
     () => filteredData.some((d) => d.month === currentMonthLabel),
     [filteredData, currentMonthLabel]
   );
 
-  // Compute bar-friendly Y-axis domain
   const barDomain = useMemo(() => {
     if (filteredData.length === 0) return [0, 100000];
     let maxBar = 0;
@@ -116,17 +122,26 @@ const PortfolioChart = () => {
   }, [filteredData]);
 
   const renderSurplusDot = (props: any) => {
-    const { cx, cy } = props;
+    const { cx, cy, payload } = props;
     if (cx == null || cy == null) return null;
+    const goalAdj = (payload as any)?._goalAdjustments;
+    if (goalAdj?.length) {
+      const color = goalAdj[0].goalType === "revenue" ? "hsl(160, 70%, 45%)" : "hsl(38, 92%, 55%)";
+      return (
+        <polygon
+          points={`${cx},${cy - 5} ${cx + 4},${cy} ${cx},${cy + 5} ${cx - 4},${cy}`}
+          fill={color}
+          stroke="hsl(220, 18%, 10%)"
+          strokeWidth={1}
+        />
+      );
+    }
     return <circle cx={cx} cy={cy} r={3} fill="hsl(160, 70%, 45%)" stroke="none" />;
   };
 
-  // Build range label for footer
   const rangeLabel = useMemo(() => {
     if (filteredData.length === 0) return "";
-    const first = filteredData[0].month;
-    const last = filteredData[filteredData.length - 1].month;
-    return `${first} – ${last}`;
+    return `${filteredData[0].month} – ${filteredData[filteredData.length - 1].month}`;
   }, [filteredData]);
 
   const quarterButtons: { key: QuarterFilter; label: string }[] = [
@@ -144,7 +159,6 @@ const PortfolioChart = () => {
       transition={{ duration: 0.5, delay: 0.3 }}
       className="chart-container col-span-full lg:col-span-2"
     >
-      {/* Header row */}
       <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between mb-2 gap-2">
         <div className="min-w-0">
           <h3 className="text-sm font-medium text-muted-foreground">Income vs Outgoings</h3>
@@ -167,7 +181,6 @@ const PortfolioChart = () => {
         </div>
       </div>
 
-      {/* Legend */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono mb-3">
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "hsl(200, 80%, 50%)" }} />
@@ -231,6 +244,7 @@ const PortfolioChart = () => {
                   const isFuture = point.isFuture;
                   const surplusVal = point.surplus ?? 0;
                   const isNeg = surplusVal < 0;
+                  const goalAdj: GoalAdjustment[] = (point as any)._goalAdjustments ?? [];
                   return (
                     <div style={{
                       backgroundColor: "hsl(220, 18%, 10%)",
@@ -239,16 +253,14 @@ const PortfolioChart = () => {
                       fontFamily: "JetBrains Mono",
                       fontSize: "12px",
                       padding: "8px 12px",
+                      maxWidth: 280,
                     }}>
                       <p style={{ color: "hsl(215, 12%, 70%)", marginBottom: 4 }}>{label}</p>
                       {isFuture ? (
                         <>
                           <p style={{ color: "hsl(200, 80%, 50%)" }}>Income (Probable): {formatMetricValue(point.probableIncome, "currency")}</p>
                           <p style={{ color: "hsl(0, 72%, 55%)" }}>Outgoings (Estimated): {formatMetricValue(point.outgoings, "currency")}</p>
-                          <p style={{
-                            color: isNeg ? "hsl(0, 84%, 60%)" : "hsl(160, 70%, 45%)",
-                            marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4,
-                          }}>
+                          <p style={{ color: isNeg ? "hsl(0, 84%, 60%)" : "hsl(160, 70%, 45%)", marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4 }}>
                             Projected {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
                           </p>
                         </>
@@ -256,19 +268,24 @@ const PortfolioChart = () => {
                         <>
                           <p style={{ color: "hsl(200, 80%, 50%)" }}>Income: {formatMetricValue(point.income, "currency")}</p>
                           <p style={{ color: "hsl(0, 72%, 55%)" }}>Outgoings: {formatMetricValue(point.outgoings, "currency")}</p>
-                          <p style={{
-                            color: isNeg ? "hsl(0, 84%, 60%)" : "hsl(160, 70%, 45%)",
-                            marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4,
-                          }}>
+                          <p style={{ color: isNeg ? "hsl(0, 84%, 60%)" : "hsl(160, 70%, 45%)", marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4 }}>
                             {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
                           </p>
                         </>
+                      )}
+                      {goalAdj.length > 0 && (
+                        <div style={{ marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4 }}>
+                          {goalAdj.map((a, i) => (
+                            <p key={i} style={{ color: a.goalType === "revenue" ? "hsl(160, 70%, 45%)" : "hsl(38, 92%, 55%)", fontSize: 10 }}>
+                              Goal: {a.goalName} {a.amount >= 0 ? "+" : ""}{formatMetricValue(a.amount, "currency")}
+                            </p>
+                          ))}
+                        </div>
                       )}
                     </div>
                   );
                 }}
               />
-              {/* Today indicator */}
               {hasCurrentMonth && (
                 <ReferenceLine
                   yAxisId="bars"
@@ -285,31 +302,18 @@ const PortfolioChart = () => {
                   }}
                 />
               )}
-              {/* Income bars */}
               <Bar yAxisId="bars" dataKey="income" radius={[3, 3, 0, 0]} animationDuration={800}>
                 {filteredData.map((entry, index) => (
-                  <Cell
-                    key={`income-${index}`}
-                    fill="hsl(200, 80%, 50%)"
-                    fillOpacity={entry.isFuture ? 0 : 1}
-                  />
+                  <Cell key={`income-${index}`} fill="hsl(200, 80%, 50%)" fillOpacity={entry.isFuture ? 0 : 1} />
                 ))}
               </Bar>
-              {/* Probable income bars */}
               <Bar yAxisId="bars" dataKey="probableIncome" radius={[3, 3, 0, 0]} animationDuration={800}>
                 {filteredData.map((entry, index) => (
-                  <Cell
-                    key={`probable-${index}`}
-                    fill="hsl(200, 80%, 50%)"
-                    fillOpacity={entry.isFuture ? 0.35 : 0}
-                  />
+                  <Cell key={`probable-${index}`} fill="hsl(200, 80%, 50%)" fillOpacity={entry.isFuture ? 0.35 : 0} />
                 ))}
               </Bar>
-              {/* Outgoings bars */}
               <Bar yAxisId="bars" dataKey="outgoings" fill="hsl(0, 72%, 55%)" radius={[3, 3, 0, 0]} animationDuration={800} />
-              {/* Zero line on surplus axis */}
               <ReferenceLine yAxisId="surplus" y={0} stroke="hsl(215, 12%, 25%)" strokeDasharray="3 3" />
-              {/* Surplus line */}
               <Line
                 yAxisId="surplus"
                 type="monotone"
@@ -324,7 +328,6 @@ const PortfolioChart = () => {
         </div>
       )}
 
-      {/* Footer label */}
       <div className="mt-2 text-[10px] font-mono text-muted-foreground/60">
         {quarter !== "all" ? (
           <span>Viewing {quarter} {quarterYear} · {QUARTER_LABELS[quarter]}</span>

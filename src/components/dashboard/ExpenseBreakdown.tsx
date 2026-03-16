@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
 import ExpenseCategoryModal from "./ExpenseCategoryModal";
+import { getGoalExpenseCategory } from "@/lib/goalMerge";
+import type { Goal } from "@/hooks/useGoals";
 
 type Period = "weekly" | "monthly" | "yearly";
 
@@ -24,24 +26,44 @@ const PIE_COLORS = [
   "hsl(190, 60%, 45%)",
 ];
 
+const GOALS_COLOR = "hsl(252, 56%, 67%)"; // #7F77DD
+
 function getCostByPeriod(item: { weeklyCost: number; monthlyCost: number; yearlyCost: number }, period: Period) {
   if (period === "weekly") return item.weeklyCost;
   if (period === "yearly") return item.yearlyCost;
   return item.monthlyCost;
 }
 
-const ExpenseBreakdown = () => {
+interface ExpenseBreakdownProps {
+  goals?: Goal[];
+  activeGoalIds?: Set<string>;
+}
+
+const ExpenseBreakdown = ({ goals = [], activeGoalIds = new Set() }: ExpenseBreakdownProps) => {
   const { expenseCategories, grandTotalExpense, dataHealth } = useDashboardData();
   const [period, setPeriod] = useState<Period>("monthly");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<{ cardName: string; categoryGroup: string } | null>(null);
 
+  // Goals expense category
+  const goalsCategory = useMemo(() => getGoalExpenseCategory(goals, activeGoalIds), [goals, activeGoalIds]);
+
   const allItems = expenseCategories.flatMap((c) => c.items);
-  const pieData = allItems.map((item, i) => ({
+  const basePieData = allItems.map((item, i) => ({
     name: item.name,
     value: getCostByPeriod(item, period),
     fill: PIE_COLORS[i % PIE_COLORS.length],
   }));
+
+  // Add goals segment to pie
+  const pieData = useMemo(() => {
+    if (!goalsCategory) return basePieData;
+    const goalValue = period === "weekly" ? goalsCategory.monthlyCost / 4.33
+      : period === "yearly" ? goalsCategory.monthlyCost * 12
+      : goalsCategory.monthlyCost;
+    return [...basePieData, { name: "Goals", value: goalValue, fill: GOALS_COLOR }];
+  }, [basePieData, goalsCategory, period]);
+
   const pieTotal = pieData.reduce((s, d) => s + d.value, 0);
 
   const periodSuffix = period === "weekly" ? "/wk" : period === "yearly" ? "/yr" : "/mo";
@@ -113,6 +135,38 @@ const ExpenseBreakdown = () => {
               </div>
             </div>
           ))}
+
+          {/* Goals category from merged goals */}
+          {goalsCategory && (
+            <div className="mb-6">
+              <h4 className="text-xs font-mono uppercase tracking-wider mb-3" style={{ color: GOALS_COLOR }}>
+                Goals (Projected)
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                {goalsCategory.goals.map((g, gi) => {
+                  const val = period === "weekly" ? g.monthly / 4.33
+                    : period === "yearly" ? g.monthly * 12
+                    : g.monthly;
+                  return (
+                    <motion.div
+                      key={g.name}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 1.0 + gi * 0.05 }}
+                      className="rounded-lg border p-4 bg-secondary/20"
+                      style={{ borderColor: "hsl(252, 56%, 67%, 0.3)" }}
+                    >
+                      <p className="text-xs font-mono text-muted-foreground mb-2">{g.name}</p>
+                      <p className="text-lg font-mono font-bold text-foreground">
+                        ${Math.round(val).toLocaleString()}
+                        <span className="text-xs text-muted-foreground">{periodSuffix}</span>
+                      </p>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Pie Chart */}
           <div className="mt-6 mb-6">

@@ -3,6 +3,7 @@ import { Goal, resolveGoalAutoValue } from "@/hooks/useGoals";
 import { MetricFormula } from "@/hooks/useFormulas";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 import { Target, ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,9 +13,18 @@ const COLLAPSE_KEY = "tt_goals_widget_collapsed";
 interface GoalsDashboardWidgetsProps {
   goals: Goal[];
   formulas: MetricFormula[];
+  activeGoalIds?: Set<string>;
+  onToggleGoal?: (id: string) => void;
+  onToggleMerge?: (id: string, mergeOn: boolean) => void;
 }
 
-export default function GoalsDashboardWidgets({ goals, formulas }: GoalsDashboardWidgetsProps) {
+export default function GoalsDashboardWidgets({
+  goals,
+  formulas,
+  activeGoalIds,
+  onToggleGoal,
+  onToggleMerge,
+}: GoalsDashboardWidgetsProps) {
   const { dataStore } = useDashboardData();
   const qs = dataStore.quotesSummary;
   const cs = dataStore.cashflowSummary;
@@ -42,7 +52,6 @@ export default function GoalsDashboardWidgets({ goals, formulas }: GoalsDashboar
     })
     .slice(0, 5);
 
-  // Only render when goals exist
   if (activeGoals.length === 0) return null;
 
   return (
@@ -67,18 +76,36 @@ export default function GoalsDashboardWidgets({ goals, formulas }: GoalsDashboar
           <div className="space-y-3">
             {activeGoals.map((g) => {
               const progress = g.targetValue > 0 ? Math.min((g.currentValue / g.targetValue) * 100, 100) : 0;
+              const isMerged = g.merge === true;
+              const isActive = activeGoalIds?.has(g.id) ?? false;
+              const isRevenue = (g.goalType ?? "expenditure") === "revenue";
               return (
-                <div key={g.id} className="flex items-center gap-3">
-                  <span className="text-xs text-foreground truncate min-w-0 flex-shrink flex items-center gap-1" style={{ flexBasis: "40%" }}>
-                    {g.name}
-                    {g._isAuto && (
-                      <Badge variant="secondary" className="text-[8px] px-1 py-0 h-3.5 bg-primary/15 text-primary border-0">
-                        auto
-                      </Badge>
+                <div key={g.id} className="space-y-1">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-foreground truncate min-w-0 flex-shrink flex items-center gap-1" style={{ flexBasis: "40%" }}>
+                      {g.name}
+                      {g._isAuto && (
+                        <Badge variant="secondary" className="text-[8px] px-1 py-0 h-3.5 bg-primary/15 text-primary border-0">
+                          auto
+                        </Badge>
+                      )}
+                      {isMerged && (
+                        <span
+                          className="w-1.5 h-1.5 rounded-full inline-block ml-1"
+                          style={{ backgroundColor: isRevenue ? "hsl(160, 70%, 45%)" : "hsl(38, 92%, 55%)" }}
+                        />
+                      )}
+                    </span>
+                    <Progress value={progress} className="h-1.5 flex-1" />
+                    <span className="text-xs text-muted-foreground font-mono shrink-0 w-10 text-right">{progress.toFixed(0)}%</span>
+                    {isMerged && onToggleGoal && (
+                      <Switch
+                        checked={isActive}
+                        onCheckedChange={() => onToggleGoal(g.id)}
+                        className="scale-75"
+                      />
                     )}
-                  </span>
-                  <Progress value={progress} className="h-1.5 flex-1" />
-                  <span className="text-xs text-muted-foreground font-mono shrink-0 w-10 text-right">{progress.toFixed(0)}%</span>
+                  </div>
                 </div>
               );
             })}
