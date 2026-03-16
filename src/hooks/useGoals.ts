@@ -11,7 +11,12 @@ export interface Goal {
   endDate: string;
   category: string;
   createdAt: string;
-  manualCurrentValue?: boolean; // true if user manually set currentValue
+  manualCurrentValue?: boolean;
+  goalType?: "expenditure" | "revenue";
+  amountStructure?: "lump_sum" | "recurring";
+  period?: "weekly" | "monthly" | "yearly";
+  lumpSumDate?: string;
+  merge?: boolean;
 }
 
 const STORAGE_KEY = "meridian_goals";
@@ -67,26 +72,34 @@ export function resolveGoalAutoValue(
   goal: Goal,
   quotesSummary: any,
   cashflowSummary: any
-): { value: number; isAuto: boolean } | null {
+): { value: number; isAuto: true } | null {
   if (goal.manualCurrentValue && goal.currentValue > 0) return null;
 
+  const goalType = goal.goalType ?? "";
   const cat = (goal.category ?? "").toLowerCase();
   const name = (goal.name ?? "").toLowerCase();
 
-  // Revenue / Customer → totalWon value
-  if (cat === "revenue" || cat === "customer") {
+  // Revenue goals → totalWon value
+  if (goalType === "revenue" || cat === "revenue" || cat === "customer" || cat === "sales target") {
     const val = parseFloat(String(quotesSummary?.totalWon?.value ?? 0).replace(/[^0-9.-]/g, "")) || 0;
     if (val > 0) return { value: val, isAuto: true };
   }
 
-  // Financial or salary/cashflow keywords → last non-zero anticipatedSurplus
-  if (cat === "financial" || cat === "profitability" || name.includes("salary") || name.includes("cashflow") || name.includes("cash flow")) {
+  // Expenditure / Payroll goals → expenses or cashflow
+  if (goalType === "expenditure" || cat === "financial" || cat === "profitability" || cat === "payroll" || cat === "operating expense" || 
+      name.includes("salary") || name.includes("cashflow") || name.includes("cash flow") || name.includes("wage")) {
+    // Lump sum: past date = 100%, before = 0%
+    if (goal.amountStructure === "lump_sum" && goal.lumpSumDate) {
+      const isPast = new Date(goal.lumpSumDate) <= new Date();
+      return { value: isPast ? goal.targetValue : 0, isAuto: true };
+    }
+    // Recurring: use cashflow anticipated surplus
     const months: string[] = cashflowSummary?.months ?? [];
     const surplus = cashflowSummary?.anticipatedSurplus ?? {};
     for (let i = months.length - 1; i >= 0; i--) {
       const raw = surplus[months[i]];
       const val = typeof raw === "number" ? raw : parseFloat(String(raw ?? "0").replace(/[^0-9.-]/g, "")) || 0;
-      if (val !== 0) return { value: val, isAuto: true };
+      if (val !== 0) return { value: Math.abs(val), isAuto: true };
     }
   }
 

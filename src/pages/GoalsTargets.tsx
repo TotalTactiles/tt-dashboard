@@ -9,7 +9,7 @@ import GoalCard from "@/components/goals/GoalCard";
 import GoalForm from "@/components/goals/GoalForm";
 import GoalProgressChart from "@/components/goals/GoalProgressChart";
 
-const CATEGORIES = ["All", "Revenue", "Operations", "Growth", "Profitability", "Customer", "Product"];
+const CATEGORIES = ["All", "Revenue", "Customer", "Sales Target", "Operating Expense", "Capital Expense", "Payroll", "Marketing", "Other"];
 
 const GoalsTargets = () => {
   const { goals, addGoal, updateGoal, deleteGoal } = useGoals();
@@ -21,13 +21,10 @@ const GoalsTargets = () => {
   const [editingGoal, setEditingGoal] = useState<Goal | undefined>();
   const [categoryFilter, setCategoryFilter] = useState("All");
 
-  // Enrich goals with auto-populated values
   const enrichedGoals = useMemo(() => {
     return goals.map((g) => {
       const auto = resolveGoalAutoValue(g, qs, cs);
-      if (auto) {
-        return { ...g, currentValue: auto.value, _isAuto: true };
-      }
+      if (auto) return { ...g, currentValue: auto.value, _isAuto: true };
       return { ...g, _isAuto: false };
     });
   }, [goals, qs, cs]);
@@ -40,11 +37,10 @@ const GoalsTargets = () => {
   };
 
   const handleGoalSubmit = (data: Omit<Goal, "id" | "createdAt">) => {
-    const hasManualValue = data.currentValue > 0;
     if (editingGoal) {
-      updateGoal(editingGoal.id, { ...data, manualCurrentValue: hasManualValue });
+      updateGoal(editingGoal.id, data);
     } else {
-      addGoal({ ...data, manualCurrentValue: hasManualValue });
+      addGoal(data);
     }
     setEditingGoal(undefined);
   };
