@@ -53,7 +53,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className="stat-card relative"
+      className="stat-card relative min-w-0"
     >
       {formulaDriven && (
         <Tooltip>
