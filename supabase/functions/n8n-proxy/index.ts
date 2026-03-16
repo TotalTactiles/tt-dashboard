@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { webhookUrl, source } = await req.json();
+    const { webhookUrl, source, payload } = await req.json();
 
     if (!webhookUrl || typeof webhookUrl !== "string") {
       return new Response(
@@ -31,11 +31,17 @@ serve(async (req) => {
       );
     }
 
+    // Build the body to forward: if `payload` is provided, use it directly;
+    // otherwise fall back to the legacy { source, timestamp } shape for reads.
+    const forwardBody = payload
+      ? JSON.stringify(payload)
+      : JSON.stringify({ source, timestamp: new Date().toISOString() });
+
     // Forward request server-to-server (no CORS restrictions)
     const response = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Accept": "application/json" },
-      body: JSON.stringify({ source, timestamp: new Date().toISOString() }),
+      body: forwardBody,
     });
 
     const rawText = await response.text();

@@ -640,7 +640,11 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const rawUpcomingEvents: LiveCalendarEvent[] = Array.isArray(webhookResponse?.upcomingEvents)
       ? webhookResponse.upcomingEvents
       : [];
-    const rawCalendarSummary: CalendarSummary | null = webhookResponse?.calendarSummary ?? null;
+    const rawCalendarSummary: CalendarSummary = webhookResponse?.calendarSummary ?? { totalEvents: 0, upcomingCount: 0, byType: {} };
+
+    if (rawCalendarEvents.length === 0 && hasLiveData) {
+      console.warn('[Calendar] calendarEvents empty in webhook response — check n8n read workflow returns this key');
+    }
 
     return {
       quotedJobs, revenueProjects, expenseCategories, grandTotalExpense,
