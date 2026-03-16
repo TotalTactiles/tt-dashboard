@@ -105,6 +105,9 @@ export interface KPIStat {
   change: string;
   positive: boolean;
   noData?: boolean;
+  altValue?: string;
+  altChange?: string;
+  altPositive?: boolean;
 }
 
 export interface IncomeOutgoingsPoint {
