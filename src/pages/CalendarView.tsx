@@ -21,7 +21,7 @@ type EventType = typeof EVENT_TYPES[number];
 type EventSource = typeof EVENT_SOURCES[number];
 
 const CalendarView = () => {
-  const { calendarEvents, upcomingEvents, calendarSummary, setCalendarEvents, syncNow } = useDashboardData();
+  const { calendarEvents, upcomingEvents, calendarSummary, setCalendarEvents, syncCalendar } = useDashboardData();
   const { toast } = useToast();
 
   const [activeTypes, setActiveTypes] = useState<EventType[]>([...EVENT_TYPES]);
