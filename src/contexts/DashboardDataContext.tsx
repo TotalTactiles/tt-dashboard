@@ -224,6 +224,7 @@ export interface DashboardData {
   updateWebhookUrl: ReturnType<typeof useDataSources>["updateWebhookUrl"];
   saveAndTest: ReturnType<typeof useDataSources>["saveAndTest"];
   syncNow: ReturnType<typeof useDataSources>["syncNow"];
+  syncCalendar: () => Promise<void>;
   calendarEvents: LiveCalendarEvent[];
   upcomingEvents: LiveCalendarEvent[];
   calendarSummary: CalendarSummary | null;
