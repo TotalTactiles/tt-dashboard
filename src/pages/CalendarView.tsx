@@ -166,19 +166,17 @@ const CalendarView = () => {
       </div>
 
       {/* Main split: Calendar grid + Day schedule panel */}
-      <div className="flex flex-col lg:flex-row gap-4 mb-6">
+      <div className="flex flex-col lg:flex-row gap-3 md:gap-4 mb-4 md:mb-6">
         <CalendarGrid events={filtered} selectedDate={selectedDate} onSelectDate={setSelectedDate} onEventClick={handleOpenEdit} onAddEvent={handleOpenCreate} />
         <DaySchedulePanel events={filtered} selectedDate={selectedDate} onPrevDay={prevDay} onNextDay={nextDay} onEventClick={handleOpenEdit} />
       </div>
 
-      {/* Bottom row 1: Deadlines + Upcoming Events */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
         <DeadlineTracker events={filtered} />
         <EventTimeline events={filteredUpcoming} onEventClick={handleOpenEdit} />
       </div>
 
-      {/* Bottom row 2: Density chart + Quarterly roadmap */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
         <EventDensityChart summary={calendarSummary} />
         <QuarterlyTimeline />
       </div>
