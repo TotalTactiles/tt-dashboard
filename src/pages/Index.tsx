@@ -173,7 +173,9 @@ const DashboardContent = () => {
     return { formula, cached };
   };
 
-  const getCardValue = (stat: typeof kpiStats[0]) => {
+  const getCardValue = (stat: any) => {
+    // If goal-adjusted, use the pre-computed adjusted value
+    if (stat.goalAdjusted) return stat.value;
     const match = getFormulaForCard(stat.label);
     if (match) {
       const v = match.cached.value!;
