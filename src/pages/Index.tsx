@@ -162,6 +162,9 @@ const DashboardContent = () => {
                 value={getCardValue(stat)}
                 index={i}
                 formulaDriven={getFormulaInfo(stat.label)}
+                altValue={stat.altValue}
+                altChange={stat.altChange}
+                altPositive={stat.altPositive}
               />
             ))}
           </div>

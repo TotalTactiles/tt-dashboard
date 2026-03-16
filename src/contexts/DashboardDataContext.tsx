@@ -105,6 +105,9 @@ export interface KPIStat {
   change: string;
   positive: boolean;
   noData?: boolean;
+  altValue?: string;
+  altChange?: string;
+  altPositive?: boolean;
 }
 
 export interface IncomeOutgoingsPoint {
@@ -556,6 +559,14 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         value: noData ? "--" : `${parseNum(qs?.conversionRate ?? 0)}%`,
         change: noData ? "--" : `${parseNum(qs?.totalWon?.count ?? 0)} won of ${parseNum(qs?.totalQuoted?.count ?? 0)}`,
         positive: parseNum(qs?.conversionRate ?? 0) >= 20, noData,
+        altValue: noData ? "--" : (() => {
+          const ylwCount = parseNum(qs?.ylwPlusGrn?.count ?? 0);
+          const totalCount = parseNum(qs?.totalQuoted?.count ?? 0);
+          const rate = totalCount > 0 ? (ylwCount / totalCount) * 100 : 0;
+          return `${rate.toFixed(1)}%`;
+        })(),
+        altChange: noData ? "--" : `${parseNum(qs?.ylwPlusGrn?.count ?? 0)} incl. verbal of ${parseNum(qs?.totalQuoted?.count ?? 0)}`,
+        altPositive: parseNum(qs?.ylwPlusGrn?.count ?? 0) > 0,
       },
     ];
 

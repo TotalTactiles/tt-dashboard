@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Calculator } from "lucide-react";
+import { TrendingUp, TrendingDown } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface FormulaInfo {
@@ -16,6 +17,9 @@ interface StatCardProps {
   index: number;
   noData?: boolean;
   formulaDriven?: FormulaInfo | null;
+  altValue?: string;
+  altChange?: string;
+  altPositive?: boolean;
 }
 
 function timeAgo(ts: number | null): string {
@@ -26,7 +30,14 @@ function timeAgo(ts: number | null): string {
   return `${Math.floor(diff / 3600)}h ago`;
 }
 
-const StatCard = ({ label, value, change, positive, index, noData, formulaDriven }: StatCardProps) => {
+const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive }: StatCardProps) => {
+  const [showAlt, setShowAlt] = useState(false);
+  const hasToggle = !!altValue;
+
+  const displayValue = showAlt && altValue ? altValue : value;
+  const displayChange = showAlt && altChange ? altChange : change;
+  const displayPositive = showAlt && altPositive !== undefined ? altPositive : positive;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -50,24 +61,52 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
           </TooltipContent>
         </Tooltip>
       )}
-      <p className="text-sm text-muted-foreground mb-1">{label}</p>
+
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-sm text-muted-foreground">{label}</p>
+        {hasToggle && !noData && (
+          <div className="flex rounded-full bg-secondary/80 p-0.5 text-[10px] font-mono leading-none">
+            <button
+              onClick={() => setShowAlt(false)}
+              className={`px-2 py-1 rounded-full transition-all duration-150 ${
+                !showAlt
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Confirmed
+            </button>
+            <button
+              onClick={() => setShowAlt(true)}
+              className={`px-2 py-1 rounded-full transition-all duration-150 ${
+                showAlt
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Incl. Verbal
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="flex items-end justify-between">
-        <p className={`text-2xl font-mono font-bold ${noData ? "text-muted-foreground" : positive ? "glow-green text-chart-green" : "glow-red text-chart-red"}`}>
-          {value}
+        <p className={`text-2xl font-mono font-bold ${noData ? "text-muted-foreground" : displayPositive ? "glow-green text-chart-green" : "glow-red text-chart-red"}`}>
+          {displayValue}
         </p>
-        {!noData && change !== "--" && (
-          <div className={`flex items-center gap-1 text-xs font-mono ${positive ? "text-chart-green" : "text-chart-red"}`}>
-            {positive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-            {change}
+        {!noData && displayChange !== "--" && (
+          <div className={`flex items-center gap-1 text-xs font-mono ${displayPositive ? "text-chart-green" : "text-chart-red"}`}>
+            {displayPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+            {displayChange}
           </div>
         )}
       </div>
       <div className="mt-3 h-1 bg-secondary rounded-full overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
-          animate={{ width: noData ? "0%" : positive ? "72%" : "45%" }}
+          animate={{ width: noData ? "0%" : displayPositive ? "72%" : "45%" }}
           transition={{ duration: 1, delay: 0.5 + index * 0.1 }}
-          className={`h-full rounded-full ${positive ? "bg-chart-green" : "bg-chart-red"}`}
+          className={`h-full rounded-full ${displayPositive ? "bg-chart-green" : "bg-chart-red"}`}
         />
       </div>
     </motion.div>
