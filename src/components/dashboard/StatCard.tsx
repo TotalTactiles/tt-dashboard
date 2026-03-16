@@ -31,7 +31,7 @@ function timeAgo(ts: number | null): string {
   return `${Math.floor(diff / 3600)}h ago`;
 }
 
-const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive }: StatCardProps) => {
+const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff }: StatCardProps) => {
   const [showAlt, setShowAlt] = useState(false);
   const hasToggle = !!altValue;
 
