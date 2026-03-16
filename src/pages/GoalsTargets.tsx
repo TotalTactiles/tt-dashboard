@@ -35,9 +35,9 @@ const GoalsTargets = () => {
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold">Goals & Targets</h1>
-        <p className="text-sm text-muted-foreground font-mono">Track objectives and business targets</p>
+      <div className="mb-4 md:mb-6">
+        <h1 className="text-fluid-2xl font-semibold">Goals & Targets</h1>
+        <p className="text-fluid-xs text-muted-foreground font-mono">Track objectives and business targets</p>
       </div>
 
       <div className="space-y-4">
