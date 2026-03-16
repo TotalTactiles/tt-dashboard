@@ -10,6 +10,7 @@ import QuarterlyTimeline from "@/components/calendar/QuarterlyTimeline";
 import EventModal from "@/components/calendar/EventModal";
 import { useDashboardData, type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const CALENDAR_WRITE_WEBHOOK = 'https://n8n.srv1437130.hstgr.cloud/webhook/calendar-write';
 
@@ -103,35 +104,37 @@ const CalendarView = () => {
       setModalOpen(false);
 
       try {
-        const res = await fetch(CALENDAR_WRITE_WEBHOOK, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action,
-            event: {
-              title: eventData.title,
-              description: eventData.description || "",
-              location: eventData.location || "",
-              start: eventData.start,
-              end: eventData.end,
-              allDay: eventData.allDay,
-              type: eventData.type,
-              attendees: eventData.attendees || [],
-              googleId: editingEvent?.googleId || null,
-              zohoId: editingEvent?.zohoId || null,
-            },
-          }),
+        const writePayload = {
+          action,
+          event: {
+            title: eventData.title,
+            description: eventData.description || "",
+            location: eventData.location || "",
+            start: eventData.start,
+            end: eventData.end,
+            allDay: eventData.allDay,
+            type: eventData.type || "Meeting",
+            attendees: eventData.attendees || [],
+            googleId: editingEvent?.googleId || null,
+            zohoId: editingEvent?.zohoId || null,
+          },
+        };
+
+        const { data: proxyRes, error: proxyErr } = await supabase.functions.invoke('n8n-proxy', {
+          body: {
+            webhookUrl: CALENDAR_WRITE_WEBHOOK,
+            payload: writePayload,
+          },
         });
 
-        if (!res.ok) throw new Error("Webhook returned " + res.status);
+        if (proxyErr) throw new Error(proxyErr.message || "Proxy error");
+        if (proxyRes?._proxyError) throw new Error(proxyRes.error || "Write webhook error");
 
-        toast({
-          title: action === "delete" ? "Event deleted" : "Event saved to Google Calendar",
-          className: action === "delete" ? "" : "border-green-500/30",
-        });
+        const actionLabel = action === "create" ? "Event created" : action === "update" ? "Event updated" : "Event deleted";
+        toast({ title: actionLabel, className: action === "delete" ? "" : "border-green-500/30" });
 
-        // Resync after 8 seconds
-        setTimeout(() => syncNow("google_sheets"), 8000);
+        // Resync after 5 seconds to pull fresh calendar data
+        setTimeout(() => syncNow("google_sheets"), 5000);
       } catch (err: any) {
         toast({ title: "Failed to save event — please try again", variant: "destructive" });
         setCalendarEvents(prevEvents);
