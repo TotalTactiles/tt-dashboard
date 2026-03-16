@@ -9,9 +9,10 @@ interface GoalCardProps {
   goal: Goal;
   onEdit: (goal: Goal) => void;
   onDelete: (id: string) => void;
+  isAuto?: boolean;
 }
 
-export default function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
+export default function GoalCard({ goal, onEdit, onDelete, isAuto }: GoalCardProps) {
   const progress = goal.targetValue > 0 ? Math.min((goal.currentValue / goal.targetValue) * 100, 100) : 0;
   const daysLeft = differenceInDays(parseISO(goal.endDate), new Date());
   const isOverdue = daysLeft < 0;
@@ -40,8 +41,13 @@ export default function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
 
       <div className="space-y-1.5">
         <div className="flex justify-between text-xs font-mono">
-          <span className="text-muted-foreground">
+          <span className="text-muted-foreground flex items-center gap-1.5">
             {formatValue(goal.currentValue)} / {formatValue(goal.targetValue)}
+            {isAuto && (
+              <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 bg-primary/15 text-primary border-0">
+                auto
+              </Badge>
+            )}
           </span>
           <span className={isComplete ? "text-primary glow-green" : "text-foreground"}>
             {progress.toFixed(0)}%

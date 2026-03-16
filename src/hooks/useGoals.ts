@@ -11,6 +11,7 @@ export interface Goal {
   endDate: string;
   category: string;
   createdAt: string;
+  manualCurrentValue?: boolean; // true if user manually set currentValue
 }
 
 const STORAGE_KEY = "meridian_goals";
@@ -59,4 +60,35 @@ export function useGoals() {
   }, []);
 
   return { goals, addGoal, updateGoal, deleteGoal };
+}
+
+/** Resolve auto-populated current value from webhook data */
+export function resolveGoalAutoValue(
+  goal: Goal,
+  quotesSummary: any,
+  cashflowSummary: any
+): { value: number; isAuto: boolean } | null {
+  if (goal.manualCurrentValue && goal.currentValue > 0) return null;
+
+  const cat = (goal.category ?? "").toLowerCase();
+  const name = (goal.name ?? "").toLowerCase();
+
+  // Revenue / Customer → totalWon value
+  if (cat === "revenue" || cat === "customer") {
+    const val = parseFloat(String(quotesSummary?.totalWon?.value ?? 0).replace(/[^0-9.-]/g, "")) || 0;
+    if (val > 0) return { value: val, isAuto: true };
+  }
+
+  // Financial or salary/cashflow keywords → last non-zero anticipatedSurplus
+  if (cat === "financial" || cat === "profitability" || name.includes("salary") || name.includes("cashflow") || name.includes("cash flow")) {
+    const months: string[] = cashflowSummary?.months ?? [];
+    const surplus = cashflowSummary?.anticipatedSurplus ?? {};
+    for (let i = months.length - 1; i >= 0; i--) {
+      const raw = surplus[months[i]];
+      const val = typeof raw === "number" ? raw : parseFloat(String(raw ?? "0").replace(/[^0-9.-]/g, "")) || 0;
+      if (val !== 0) return { value: val, isAuto: true };
+    }
+  }
+
+  return null;
 }
