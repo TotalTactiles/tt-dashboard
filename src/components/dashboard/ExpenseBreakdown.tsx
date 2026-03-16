@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
 import ExpenseCategoryModal from "./ExpenseCategoryModal";
+import { getGoalExpenseCategory } from "@/lib/goalMerge";
+import type { Goal } from "@/hooks/useGoals";
 
 type Period = "weekly" | "monthly" | "yearly";
 
@@ -24,24 +26,44 @@ const PIE_COLORS = [
   "hsl(190, 60%, 45%)",
 ];
 
+const GOALS_COLOR = "hsl(252, 56%, 67%)"; // #7F77DD
+
 function getCostByPeriod(item: { weeklyCost: number; monthlyCost: number; yearlyCost: number }, period: Period) {
   if (period === "weekly") return item.weeklyCost;
   if (period === "yearly") return item.yearlyCost;
   return item.monthlyCost;
 }
 
-const ExpenseBreakdown = () => {
+interface ExpenseBreakdownProps {
+  goals?: Goal[];
+  activeGoalIds?: Set<string>;
+}
+
+const ExpenseBreakdown = ({ goals = [], activeGoalIds = new Set() }: ExpenseBreakdownProps) => {
   const { expenseCategories, grandTotalExpense, dataHealth } = useDashboardData();
   const [period, setPeriod] = useState<Period>("monthly");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<{ cardName: string; categoryGroup: string } | null>(null);
 
+  // Goals expense category
+  const goalsCategory = useMemo(() => getGoalExpenseCategory(goals, activeGoalIds), [goals, activeGoalIds]);
+
   const allItems = expenseCategories.flatMap((c) => c.items);
-  const pieData = allItems.map((item, i) => ({
+  const basePieData = allItems.map((item, i) => ({
     name: item.name,
     value: getCostByPeriod(item, period),
     fill: PIE_COLORS[i % PIE_COLORS.length],
   }));
+
+  // Add goals segment to pie
+  const pieData = useMemo(() => {
+    if (!goalsCategory) return basePieData;
+    const goalValue = period === "weekly" ? goalsCategory.monthlyCost / 4.33
+      : period === "yearly" ? goalsCategory.monthlyCost * 12
+      : goalsCategory.monthlyCost;
+    return [...basePieData, { name: "Goals", value: goalValue, fill: GOALS_COLOR }];
+  }, [basePieData, goalsCategory, period]);
+
   const pieTotal = pieData.reduce((s, d) => s + d.value, 0);
 
   const periodSuffix = period === "weekly" ? "/wk" : period === "yearly" ? "/yr" : "/mo";
