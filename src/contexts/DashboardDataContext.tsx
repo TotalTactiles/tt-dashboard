@@ -633,17 +633,17 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       }
     }
 
-    // ===== CALENDAR DATA =====
-    const rawCalendarEvents: LiveCalendarEvent[] = Array.isArray(webhookResponse?.calendarEvents)
-      ? webhookResponse.calendarEvents
+    // ===== CALENDAR DATA (from dedicated calendar poll) =====
+    const rawCalendarEvents: LiveCalendarEvent[] = Array.isArray(calendarData?.calendarEvents)
+      ? calendarData.calendarEvents
       : [];
-    const rawUpcomingEvents: LiveCalendarEvent[] = Array.isArray(webhookResponse?.upcomingEvents)
-      ? webhookResponse.upcomingEvents
+    const rawUpcomingEvents: LiveCalendarEvent[] = Array.isArray(calendarData?.upcomingEvents)
+      ? calendarData.upcomingEvents
       : [];
-    const rawCalendarSummary: CalendarSummary = webhookResponse?.calendarSummary ?? { totalEvents: 0, upcomingCount: 0, byType: {} };
+    const rawCalendarSummary: CalendarSummary = calendarData?.calendarSummary ?? { totalEvents: 0, upcomingCount: 0, byType: {} };
 
     if (rawCalendarEvents.length === 0 && hasLiveData) {
-      console.warn('[Calendar] calendarEvents empty in webhook response — check n8n read workflow returns this key');
+      console.warn('[Calendar] calendarEvents empty — check tt-calendar-read webhook returns this key');
     }
 
     return {
