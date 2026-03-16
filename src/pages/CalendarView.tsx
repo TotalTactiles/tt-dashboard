@@ -140,7 +140,7 @@ const CalendarView = () => {
         setCalendarEvents(prevEvents);
       }
     },
-    [calendarEvents, editingEvent, setCalendarEvents, syncNow, toast]
+    [calendarEvents, editingEvent, setCalendarEvents, syncCalendar, toast]
   );
 
   return (
