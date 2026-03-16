@@ -385,7 +385,7 @@ const RevenueProjectsTable = () => {
               </thead>
               <tbody>
                 {pageProjects.map((proj, i) => {
-                  const gpPct = proj.valueExclGST > 0 ? ((proj.grossProfit / proj.valueExclGST) * 100).toFixed(1) : "0.0";
+                  const gpPct = fmtGpPct(proj.grossProfit, proj.valueExclGST);
                   return (
                     <motion.tr
                       key={proj.id}
