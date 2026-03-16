@@ -85,10 +85,10 @@ const DashboardContent = () => {
 
   return (
     <DashboardLayout>
-      <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div className="mb-4 md:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Business Dashboard</h1>
-          <p className="text-sm text-muted-foreground font-mono">FY 2026 Overview — Quotes · Cashflow · Revenue · Expenses</p>
+          <h1 className="text-fluid-2xl font-semibold">Business Dashboard</h1>
+          <p className="text-fluid-xs text-muted-foreground font-mono">FY 2026 Overview — Quotes · Cashflow · Revenue · Expenses</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right">
