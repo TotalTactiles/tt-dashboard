@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Target } from "lucide-react";
-import { useGoals, Goal } from "@/hooks/useGoals";
+import { useGoals, Goal, resolveGoalAutoValue } from "@/hooks/useGoals";
+import { useDashboardData } from "@/contexts/DashboardDataContext";
 import GoalCard from "@/components/goals/GoalCard";
 import GoalForm from "@/components/goals/GoalForm";
 import GoalProgressChart from "@/components/goals/GoalProgressChart";
@@ -12,12 +13,26 @@ const CATEGORIES = ["All", "Revenue", "Operations", "Growth", "Profitability", "
 
 const GoalsTargets = () => {
   const { goals, addGoal, updateGoal, deleteGoal } = useGoals();
+  const { dataStore } = useDashboardData();
+  const qs = dataStore.quotesSummary;
+  const cs = dataStore.cashflowSummary;
 
   const [goalFormOpen, setGoalFormOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | undefined>();
   const [categoryFilter, setCategoryFilter] = useState("All");
 
-  const filteredGoals = categoryFilter === "All" ? goals : goals.filter((g) => g.category === categoryFilter);
+  // Enrich goals with auto-populated values
+  const enrichedGoals = useMemo(() => {
+    return goals.map((g) => {
+      const auto = resolveGoalAutoValue(g, qs, cs);
+      if (auto) {
+        return { ...g, currentValue: auto.value, _isAuto: true };
+      }
+      return { ...g, _isAuto: false };
+    });
+  }, [goals, qs, cs]);
+
+  const filteredGoals = categoryFilter === "All" ? enrichedGoals : enrichedGoals.filter((g) => g.category === categoryFilter);
 
   const handleEditGoal = (goal: Goal) => {
     setEditingGoal(goal);
@@ -25,10 +40,11 @@ const GoalsTargets = () => {
   };
 
   const handleGoalSubmit = (data: Omit<Goal, "id" | "createdAt">) => {
+    const hasManualValue = data.currentValue > 0;
     if (editingGoal) {
-      updateGoal(editingGoal.id, data);
+      updateGoal(editingGoal.id, { ...data, manualCurrentValue: hasManualValue });
     } else {
-      addGoal(data);
+      addGoal({ ...data, manualCurrentValue: hasManualValue });
     }
     setEditingGoal(undefined);
   };
@@ -61,7 +77,7 @@ const GoalsTargets = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
           {filteredGoals.map((goal) => (
-            <GoalCard key={goal.id} goal={goal} onEdit={handleEditGoal} onDelete={deleteGoal} />
+            <GoalCard key={goal.id} goal={goal} onEdit={handleEditGoal} onDelete={deleteGoal} isAuto={(goal as any)._isAuto} />
           ))}
         </div>
 

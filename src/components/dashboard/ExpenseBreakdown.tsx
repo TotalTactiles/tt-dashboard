@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
+import ExpenseCategoryModal from "./ExpenseCategoryModal";
 
 type Period = "weekly" | "monthly" | "yearly";
 
@@ -32,6 +33,8 @@ function getCostByPeriod(item: { weeklyCost: number; monthlyCost: number; yearly
 const ExpenseBreakdown = () => {
   const { expenseCategories, grandTotalExpense, dataHealth } = useDashboardData();
   const [period, setPeriod] = useState<Period>("monthly");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedCard, setSelectedCard] = useState<{ cardName: string; categoryGroup: string } | null>(null);
 
   const allItems = expenseCategories.flatMap((c) => c.items);
   const pieData = allItems.map((item, i) => ({
@@ -42,6 +45,11 @@ const ExpenseBreakdown = () => {
   const pieTotal = pieData.reduce((s, d) => s + d.value, 0);
 
   const periodSuffix = period === "weekly" ? "/wk" : period === "yearly" ? "/yr" : "/mo";
+
+  const handleCardClick = (cardName: string, categoryGroup: string) => {
+    setSelectedCard({ cardName, categoryGroup });
+    setModalOpen(true);
+  };
 
   return (
     <motion.div
@@ -87,7 +95,8 @@ const ExpenseBreakdown = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.9 + ci * 0.1 + ii * 0.05 }}
-                    className="rounded-lg border border-border p-4 bg-secondary/20"
+                    className="rounded-lg border border-border p-4 bg-secondary/20 cursor-pointer transition-all hover:bg-secondary/40 hover:border-primary/30"
+                    onClick={() => handleCardClick(item.name, cat.category)}
                   >
                     <p className="text-xs font-mono text-muted-foreground mb-2">{item.name}</p>
                     <p className="text-lg font-mono font-bold text-foreground">
@@ -192,6 +201,17 @@ const ExpenseBreakdown = () => {
             </motion.div>
           )}
         </>
+      )}
+
+      {/* Detail modal */}
+      {selectedCard && (
+        <ExpenseCategoryModal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          cardName={selectedCard.cardName}
+          categoryGroup={selectedCard.categoryGroup}
+          activePeriod={period}
+        />
       )}
     </motion.div>
   );
