@@ -172,6 +172,13 @@
   .touch-target {
     @apply min-h-[44px] min-w-[44px];
   }
+
+  /* ── Overflow prevention ── */
+  .stat-card,
+  .chart-container {
+    overflow: hidden;
+    word-break: break-word;
+  }
 }
 
 @keyframes formula-pulse {
