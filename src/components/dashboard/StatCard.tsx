@@ -72,8 +72,8 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
         </Tooltip>
       )}
 
-      <div className="flex items-center justify-between mb-1">
-        <p className="text-sm text-muted-foreground">{label}</p>
+      <div className="flex items-center justify-between mb-1 gap-1">
+        <p className="text-fluid-xs text-muted-foreground truncate">{label}</p>
         {hasToggle && !noData && (
           <div className="flex rounded-full bg-secondary/80 p-0.5 text-[10px] font-mono leading-none">
             <button
@@ -100,9 +100,9 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
         )}
       </div>
 
-      <div className="flex items-end justify-between">
-        <div className="flex items-baseline gap-2">
-          <p className={`text-2xl font-mono font-bold ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}>
+      <div className="flex items-end justify-between gap-1 min-w-0">
+        <div className="flex items-baseline gap-1 md:gap-2 min-w-0">
+          <p className={`text-fluid-kpi font-mono font-bold truncate ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}>
             {displayValue}
           </p>
           {showAlt && altDiff && !noData && (

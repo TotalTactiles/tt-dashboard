@@ -85,10 +85,10 @@ const DashboardContent = () => {
 
   return (
     <DashboardLayout>
-      <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div className="mb-4 md:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Business Dashboard</h1>
-          <p className="text-sm text-muted-foreground font-mono">FY 2026 Overview — Quotes · Cashflow · Revenue · Expenses</p>
+          <h1 className="text-fluid-2xl font-semibold">Business Dashboard</h1>
+          <p className="text-fluid-xs text-muted-foreground font-mono">FY 2026 Overview — Quotes · Cashflow · Revenue · Expenses</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right">
@@ -154,7 +154,7 @@ const DashboardContent = () => {
 
       {hasLiveData && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4 mb-4 md:mb-6">
             {kpiStats.map((stat, i) => (
               <StatCard
                 key={stat.label}
@@ -171,21 +171,21 @@ const DashboardContent = () => {
 
           <GoalsDashboardWidgets goals={goals} formulas={formulas} />
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
             <PortfolioChart />
             <SectorAllocationChart />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
             <CashflowChart />
             <FundPerformanceChart />
           </div>
 
-          <div className="mb-6">
+          <div className="mb-4 md:mb-6">
             <ForecastChart />
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             <DealPipeline />
             <RevenueProjectsTable />
             <ExpenseBreakdown />

@@ -142,10 +142,10 @@ const PortfolioChart = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.3 }}
-      className="chart-container col-span-2"
+      className="chart-container col-span-full lg:col-span-2"
     >
       {/* Header row */}
-      <div className="flex items-start justify-between mb-2 gap-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between mb-2 gap-2">
         <div className="min-w-0">
           <h3 className="text-sm font-medium text-muted-foreground">Income vs Outgoings</h3>
           <p className="text-xl font-mono font-bold text-foreground">Monthly Cash Flow</p>
@@ -195,7 +195,7 @@ const PortfolioChart = () => {
         </div>
       ) : (
         <div className="relative">
-          <ResponsiveContainer width="100%" height={260}>
+          <ResponsiveContainer width="100%" height={220} minHeight={180}>
             <ComposedChart data={filteredData} barGap={2}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
               <XAxis dataKey="month" stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" />

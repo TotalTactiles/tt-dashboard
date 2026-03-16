@@ -29,10 +29,10 @@ const Formulas = () => {
 
   return (
     <DashboardLayout>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-4 md:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Formulas</h1>
-          <p className="text-sm text-muted-foreground font-mono">
+          <h1 className="text-fluid-2xl font-semibold">Formulas</h1>
+          <p className="text-fluid-xs text-muted-foreground font-mono">
             Manage dashboard metrics and their data expressions
           </p>
         </div>
@@ -47,7 +47,7 @@ const Formulas = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
         {formulas.map((formula) => (
           <FormulaCard
             key={formula.id}

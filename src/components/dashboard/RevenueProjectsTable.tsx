@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SlidersHorizontal, ChevronLeft, ChevronRight, X, Table2, Search, Columns3, Check } from "lucide-react";
+import { SlidersHorizontal, ChevronLeft, ChevronRight, X, Table2, Search, Columns3, Check, ChevronDown } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatDateMonthYear } from "@/lib/formatDate";
 import NoData from "./NoData";
@@ -62,7 +62,6 @@ function loadVisibleColumns(): ColumnKey[] {
     const stored = localStorage.getItem(LS_KEY);
     if (stored) {
       const parsed = JSON.parse(stored) as string[];
-      // Validate
       const valid = parsed.filter(k => ALL_COLUMNS.some(c => c.key === k)) as ColumnKey[];
       if (valid.length > 0) return valid;
     }
@@ -120,6 +119,7 @@ const RevenueProjectsTable = () => {
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [monthFilter, setMonthFilter] = useState<string>("all");
   const [companySearch, setCompanySearch] = useState("");
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
   // Column visibility
   const [visibleColumns, setVisibleColumns] = useState<ColumnKey[]>(loadVisibleColumns);
@@ -130,7 +130,6 @@ const RevenueProjectsTable = () => {
     localStorage.setItem(LS_KEY, JSON.stringify(visibleColumns));
   }, [visibleColumns]);
 
-  // Close column picker on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (columnPickerRef.current && !columnPickerRef.current.contains(e.target as Node)) {
@@ -160,7 +159,6 @@ const RevenueProjectsTable = () => {
     setPage(1);
   }, []);
 
-  /* ── Dynamic filter options ── */
   const uniqueStages = useMemo(() => {
     return [...new Set(revenueProjects.map(p => p.projectStage).filter(Boolean))].sort();
   }, [revenueProjects]);
@@ -195,16 +193,10 @@ const RevenueProjectsTable = () => {
     return pills;
   }, [revenueProjects]);
 
-  /* ── Filter + sort ── */
   const filteredProjects = useMemo(() => {
     let projects = [...revenueProjects];
-
-    if (statusFilter !== "all") {
-      projects = projects.filter(p => p.status === statusFilter);
-    }
-    if (stageFilter !== "all") {
-      projects = projects.filter(p => p.projectStage === stageFilter);
-    }
+    if (statusFilter !== "all") projects = projects.filter(p => p.status === statusFilter);
+    if (stageFilter !== "all") projects = projects.filter(p => p.projectStage === stageFilter);
     if (monthFilter !== "all") {
       if (monthFilter.startsWith("year-")) {
         const yr = parseInt(monthFilter.replace("year-", ""));
@@ -220,7 +212,6 @@ const RevenueProjectsTable = () => {
       const q = companySearch.trim().toLowerCase();
       projects = projects.filter(p => p.company.toLowerCase().includes(q));
     }
-
     projects.sort((a, b) => {
       switch (sortBy) {
         case "date-closest": {
@@ -229,16 +220,8 @@ const RevenueProjectsTable = () => {
           const diffB = parseDateForSort(b.invoiceDate) ? Math.abs(parseDateForSort(b.invoiceDate)!.getTime() - today) : Infinity;
           return diffA - diffB;
         }
-        case "date-desc": {
-          const da = parseDateForSort(a.invoiceDate)?.getTime() ?? 0;
-          const db = parseDateForSort(b.invoiceDate)?.getTime() ?? 0;
-          return db - da;
-        }
-        case "date-asc": {
-          const da = parseDateForSort(a.invoiceDate)?.getTime() ?? 0;
-          const db = parseDateForSort(b.invoiceDate)?.getTime() ?? 0;
-          return da - db;
-        }
+        case "date-desc": return (parseDateForSort(b.invoiceDate)?.getTime() ?? 0) - (parseDateForSort(a.invoiceDate)?.getTime() ?? 0);
+        case "date-asc": return (parseDateForSort(a.invoiceDate)?.getTime() ?? 0) - (parseDateForSort(b.invoiceDate)?.getTime() ?? 0);
         case "value-desc": return b.valueExclGST - a.valueExclGST;
         case "value-asc": return a.valueExclGST - b.valueExclGST;
         case "gp-dollar-desc": return b.grossProfit - a.grossProfit;
@@ -252,7 +235,6 @@ const RevenueProjectsTable = () => {
         default: return 0;
       }
     });
-
     return projects;
   }, [revenueProjects, statusFilter, stageFilter, monthFilter, companySearch, sortBy]);
 
@@ -286,6 +268,15 @@ const RevenueProjectsTable = () => {
   const fmtDollar = (v: number) => `$${v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
   const fmtGpPct = (gp: number, rev: number) => rev > 0 ? `${((gp / rev) * 100).toFixed(2)}%` : "0.00%";
 
+  const toggleCardExpand = (id: string) => {
+    setExpandedCards(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const renderPillRow = (
     label: string,
     options: { value: string; label: string }[],
@@ -302,7 +293,7 @@ const RevenueProjectsTable = () => {
             <button
               key={opt.value}
               onClick={() => { onChange(opt.value); setPage(1); }}
-              className={`text-[11px] px-2 py-1 rounded-full border transition-colors font-mono ${
+              className={`text-[11px] px-2 py-1.5 md:py-1 rounded-full border transition-colors font-mono touch-target md:min-h-0 md:min-w-0 ${
                 getStyle
                   ? getStyle(opt.value, active)
                   : active
@@ -321,8 +312,8 @@ const RevenueProjectsTable = () => {
   /* ── Render cell by column key ── */
   const renderCell = (proj: typeof filteredProjects[0], key: ColumnKey) => {
     switch (key) {
-      case "company": return <span className="font-medium">{proj.company}</span>;
-      case "project": return <span className="text-muted-foreground">{proj.project}</span>;
+      case "company": return <span className="font-medium truncate block max-w-[200px]">{proj.company}</span>;
+      case "project": return <span className="text-muted-foreground truncate block max-w-[200px]">{proj.project}</span>;
       case "stage": return proj.projectStage ? (
         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary/50 text-muted-foreground font-mono border border-border/50">
           {proj.projectStage}
@@ -351,7 +342,6 @@ const RevenueProjectsTable = () => {
     }
   };
 
-  /* ── Render total cell by column key ── */
   const renderTotalCell = (key: ColumnKey) => {
     switch (key) {
       case "stageValue": return <span className="text-foreground">{fmtDollar(totalStageValue)}</span>;
@@ -377,11 +367,11 @@ const RevenueProjectsTable = () => {
       className="chart-container col-span-full"
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-muted-foreground">Revenue &amp; COGS</h3>
+      <div className="flex items-center justify-between mb-4 gap-2">
+        <h3 className="text-fluid-sm font-medium text-muted-foreground">Revenue &amp; COGS</h3>
         <div className="flex items-center gap-2">
           {filteredProjects.length > 0 && (
-            <div className="flex items-center gap-4 text-xs font-mono">
+            <div className="hidden lg:flex items-center gap-4 text-xs font-mono">
               <span className="text-muted-foreground">
                 Revenue: <span className="text-chart-green">{fmtDollar(totalRevenue)}</span>
               </span>
@@ -394,8 +384,8 @@ const RevenueProjectsTable = () => {
             </div>
           )}
 
-          {/* Column picker */}
-          <div className="relative" ref={columnPickerRef}>
+          {/* Column picker - desktop only */}
+          <div className="relative hidden md:block" ref={columnPickerRef}>
             <button
               onClick={() => setShowColumnPicker(!showColumnPicker)}
               className="p-1.5 rounded-md border border-border hover:bg-secondary/50 transition-colors"
@@ -427,7 +417,7 @@ const RevenueProjectsTable = () => {
 
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="relative p-1.5 rounded-md border border-border hover:bg-secondary/50 transition-colors"
+            className="relative p-1.5 rounded-md border border-border hover:bg-secondary/50 transition-colors touch-target md:min-h-0 md:min-w-0"
           >
             <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
             {hasActiveFilters && (
@@ -477,14 +467,14 @@ const RevenueProjectsTable = () => {
               {/* Company search input */}
               <div>
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">Company</span>
-                <div className="relative mt-1 w-64">
+                <div className="relative mt-1 w-full md:w-64">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                   <input
                     type="text"
                     value={companySearch}
                     onChange={(e) => { setCompanySearch(e.target.value); setPage(1); }}
                     placeholder="Search company..."
-                    className="w-full h-8 pl-8 pr-8 rounded-md border border-border bg-secondary/30 text-sm font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-chart-green/50 focus:border-chart-green/50 transition-colors"
+                    className="w-full h-10 md:h-8 pl-8 pr-8 rounded-md border border-border bg-secondary/30 text-sm font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-chart-green/50 focus:border-chart-green/50 transition-colors"
                   />
                   {companySearch && (
                     <button
@@ -514,12 +504,13 @@ const RevenueProjectsTable = () => {
         <NoData message="No revenue data" healthStatus={dataHealth.revenue.status} />
       ) : (
         <>
-          <div className="overflow-x-auto">
+          {/* Desktop table */}
+          <div className="desktop-table overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-muted-foreground font-mono border-b border-border">
                   {visibleColDefs.map(col => (
-                    <th key={col.key} className={`pb-3 pr-4 ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""}`}>
+                    <th key={col.key} className={`pb-3 pr-4 whitespace-nowrap ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""}`}>
                       {col.label}
                     </th>
                   ))}
@@ -542,11 +533,9 @@ const RevenueProjectsTable = () => {
                   </motion.tr>
                 ))}
               </tbody>
-              {/* Total row — subtle dark style */}
               <tfoot>
                 <tr className="border-t border-chart-green/30 bg-chart-green/[0.08] font-bold text-sm font-mono">
                   {visibleColDefs.map((col, idx) => {
-                    // First visible column gets the label
                     if (idx === 0) {
                       return (
                         <td key={col.key} className="py-3 pr-4 pl-1" colSpan={1}>
@@ -557,7 +546,6 @@ const RevenueProjectsTable = () => {
                         </td>
                       );
                     }
-                    // Second visible column blank (part of label area)
                     if (idx === 1) {
                       return <td key={col.key} className="py-3 pr-4"></td>;
                     }
@@ -573,17 +561,112 @@ const RevenueProjectsTable = () => {
             </table>
           </div>
 
+          {/* Mobile card layout */}
+          <div className="mobile-card-table space-y-2">
+            {pageProjects.map((proj) => {
+              const isExpanded = expandedCards.has(proj.id);
+              const gpPct = proj.valueExclGST > 0 ? (proj.grossProfit / proj.valueExclGST) * 100 : 0;
+              return (
+                <motion.div
+                  key={proj.id}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="border border-border/50 rounded-lg p-3 bg-secondary/10"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm truncate">{proj.company}</p>
+                      <p className="text-xs text-muted-foreground truncate">{proj.project}</p>
+                    </div>
+                    <span className="font-mono text-sm font-bold text-foreground whitespace-nowrap">
+                      {fmtDollar(proj.valueInclGST)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono capitalize border ${statusBadgeClass(proj.status)}`}>
+                      {proj.status}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[10px] text-muted-foreground">{proj.invoiceDate}</span>
+                      <button onClick={() => toggleCardExpand(proj.id)} className="text-muted-foreground p-1">
+                        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                      </button>
+                    </div>
+                  </div>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      className="mt-2 pt-2 border-t border-border/30 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs font-mono"
+                    >
+                      <div>
+                        <span className="text-muted-foreground">Excl GST</span>
+                        <span className="block text-foreground">{fmtDollar(proj.valueExclGST)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">COGS</span>
+                        <span className="block text-chart-red">{fmtDollar(proj.totalCOGS)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Labour</span>
+                        <span className="block text-chart-red">{fmtDollar(proj.labourCost)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Tactile</span>
+                        <span className="block text-chart-red">{fmtDollar(proj.tactileCost)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Other</span>
+                        <span className="block text-chart-red">{fmtDollar(proj.otherCost)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Gross Profit</span>
+                        <span className={`block ${proj.grossProfit >= 0 ? "text-chart-green" : "text-chart-red"}`}>{fmtDollar(proj.grossProfit)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">GP%</span>
+                        <span className={`block ${gpPct >= 0 ? "text-chart-green" : "text-chart-red"}`}>{gpPct.toFixed(2)}%</span>
+                      </div>
+                    </motion.div>
+                  )}
+                </motion.div>
+              );
+            })}
+            {/* Mobile total card */}
+            <div className="border border-chart-green/30 rounded-lg p-3" style={{ backgroundColor: "rgba(16, 185, 129, 0.05)" }}>
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 font-mono font-bold text-sm text-foreground">
+                  <Table2 className="h-3.5 w-3.5 text-chart-green" />
+                  Total ({filteredProjects.length})
+                </span>
+                <span className="font-mono font-bold text-sm text-chart-green">
+                  {fmtDollar(totalRevenue)}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs font-mono">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">COGS</span>
+                  <span className="text-chart-red">{fmtDollar(totalCOGS)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">GP</span>
+                  <span className={totalGP >= 0 ? "text-chart-green" : "text-chart-red"}>{fmtDollar(totalGP)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/50">
               <span className="text-xs text-muted-foreground font-mono">
-                Showing {startIdx + 1}–{Math.min(startIdx + ITEMS_PER_PAGE, filteredProjects.length)} of {filteredProjects.length} projects
+                {startIdx + 1}–{Math.min(startIdx + ITEMS_PER_PAGE, filteredProjects.length)} of {filteredProjects.length}
               </span>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage <= 1}
-                  className="p-1.5 rounded-md border border-border hover:bg-secondary/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="p-1.5 rounded-md border border-border hover:bg-secondary/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed touch-target md:min-h-0 md:min-w-0"
                 >
                   <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground" />
                 </button>
@@ -591,7 +674,7 @@ const RevenueProjectsTable = () => {
                   <button
                     key={pn}
                     onClick={() => setPage(pn)}
-                    className={`h-7 w-7 rounded-md text-xs font-mono transition-colors ${
+                    className={`h-8 w-8 md:h-7 md:w-7 rounded-md text-xs font-mono transition-colors ${
                       pn === currentPage
                         ? "bg-chart-green text-background font-semibold"
                         : "text-muted-foreground hover:bg-secondary/50"
@@ -603,7 +686,7 @@ const RevenueProjectsTable = () => {
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage >= totalPages}
-                  className="p-1.5 rounded-md border border-border hover:bg-secondary/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="p-1.5 rounded-md border border-border hover:bg-secondary/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed touch-target md:min-h-0 md:min-w-0"
                 >
                   <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
                 </button>

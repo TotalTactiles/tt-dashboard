@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SlidersHorizontal, ChevronLeft, ChevronRight, X, Calculator } from "lucide-react";
+import { SlidersHorizontal, ChevronLeft, ChevronRight, X, Calculator, ChevronDown, Filter } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 import { formatDateMonthYear } from "@/lib/formatDate";
@@ -18,7 +18,6 @@ function getBadgeStyle(rawStatus: string): string {
     return "bg-pink-400/20 text-pink-300 border border-pink-400/40";
   if (u.includes("LOST") || u.includes("DEAD"))
     return "bg-red-500/25 text-red-400 border border-red-500/40";
-  // Quote Sent — neutral/white toned
   return "bg-slate-400/15 text-slate-300 border border-slate-400/30";
 }
 
@@ -72,7 +71,6 @@ const ITEMS_PER_PAGE = 10;
 function parseDateForFilter(raw: string): Date | null {
   if (!raw) return null;
   const s = raw.trim();
-  // DD-MM-YYYY or DD/MM/YYYY with optional time
   const dmyMatch = s.match(/^(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})/);
   if (dmyMatch) return new Date(parseInt(dmyMatch[3]), parseInt(dmyMatch[2]) - 1, parseInt(dmyMatch[1]));
   const d = new Date(s);
@@ -90,10 +88,11 @@ const DealPipeline = () => {
   const [sortBy, setSortBy] = useState<SortOption>("date-closest");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
   const hasActiveFilters = sortBy !== "date-closest" || statusFilter !== "all" || dateFilter !== "all";
+  const activeFilterCount = [sortBy !== "date-closest", statusFilter !== "all", dateFilter !== "all"].filter(Boolean).length;
 
-  // Total value for cross-check
   const totalValue = useMemo(() => quotedJobs.reduce((s, j) => s + j.value, 0), [quotedJobs]);
 
   const clearFilters = useCallback(() => {
@@ -105,13 +104,9 @@ const DealPipeline = () => {
 
   const filteredJobs = useMemo(() => {
     let jobs = [...quotedJobs];
-
-    // Status filter
     if (statusFilter !== "all") {
       jobs = jobs.filter((j) => j.rawStatus === statusFilter);
     }
-
-    // Date filter
     if (dateFilter !== "all") {
       const currentYear = new Date().getFullYear();
       jobs = jobs.filter((j) => {
@@ -119,7 +114,6 @@ const DealPipeline = () => {
         if (!d) return false;
         if (dateFilter === "2026") return d.getFullYear() === 2026;
         if (dateFilter === "2025") return d.getFullYear() === 2025;
-        // Quarter filters apply to current year
         const q = getQuarter(d.getMonth());
         if (dateFilter === "Q1") return d.getFullYear() === currentYear && q === 1;
         if (dateFilter === "Q2") return d.getFullYear() === currentYear && q === 2;
@@ -128,50 +122,32 @@ const DealPipeline = () => {
         return true;
       });
     }
-
-    // Sort
     jobs.sort((a, b) => {
       switch (sortBy) {
         case "date-closest": {
           const today = Date.now();
-          const diffA = parseDateForFilter(a.dateQuoted)
-            ? Math.abs(parseDateForFilter(a.dateQuoted)!.getTime() - today)
-            : Infinity;
-          const diffB = parseDateForFilter(b.dateQuoted)
-            ? Math.abs(parseDateForFilter(b.dateQuoted)!.getTime() - today)
-            : Infinity;
+          const diffA = parseDateForFilter(a.dateQuoted) ? Math.abs(parseDateForFilter(a.dateQuoted)!.getTime() - today) : Infinity;
+          const diffB = parseDateForFilter(b.dateQuoted) ? Math.abs(parseDateForFilter(b.dateQuoted)!.getTime() - today) : Infinity;
           return diffA - diffB;
         }
-        case "date-desc": {
-          const da = parseDateForFilter(a.dateQuoted)?.getTime() ?? 0;
-          const db = parseDateForFilter(b.dateQuoted)?.getTime() ?? 0;
-          return db - da;
-        }
-        case "date-asc": {
-          const da = parseDateForFilter(a.dateQuoted)?.getTime() ?? 0;
-          const db = parseDateForFilter(b.dateQuoted)?.getTime() ?? 0;
-          return da - db;
-        }
-        case "value-desc":
-          return b.value - a.value;
-        case "value-asc":
-          return a.value - b.value;
-        case "company-asc":
-          return a.company.localeCompare(b.company);
-        default:
-          return 0;
+        case "date-desc": return (parseDateForFilter(b.dateQuoted)?.getTime() ?? 0) - (parseDateForFilter(a.dateQuoted)?.getTime() ?? 0);
+        case "date-asc": return (parseDateForFilter(a.dateQuoted)?.getTime() ?? 0) - (parseDateForFilter(b.dateQuoted)?.getTime() ?? 0);
+        case "value-desc": return b.value - a.value;
+        case "value-asc": return a.value - b.value;
+        case "company-asc": return a.company.localeCompare(b.company);
+        default: return 0;
       }
     });
-
     return jobs;
   }, [quotedJobs, statusFilter, dateFilter, sortBy]);
+
+  const filteredTotal = useMemo(() => filteredJobs.reduce((s, j) => s + j.value, 0), [filteredJobs]);
 
   const totalPages = Math.max(1, Math.ceil(filteredJobs.length / ITEMS_PER_PAGE));
   const currentPage = Math.min(page, totalPages);
   const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
   const pageJobs = filteredJobs.slice(startIdx, startIdx + ITEMS_PER_PAGE);
 
-  // Generate page numbers to show
   const pageNumbers = useMemo(() => {
     const pages: number[] = [];
     const maxVisible = 5;
@@ -182,6 +158,85 @@ const DealPipeline = () => {
     return pages;
   }, [currentPage, totalPages]);
 
+  const toggleCardExpand = (id: string) => {
+    setExpandedCards(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const renderFilterContent = () => (
+    <div className="space-y-3">
+      {/* Sort */}
+      <div>
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">Sort by</span>
+        <div className="flex flex-wrap gap-1.5 mt-1">
+          {SORT_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => { setSortBy(opt.value); setPage(1); }}
+              className={`text-[11px] px-2 py-1.5 md:py-1 rounded-full border transition-colors font-mono touch-target md:min-h-0 md:min-w-0 ${
+                sortBy === opt.value
+                  ? "bg-chart-green/20 text-chart-green border-chart-green/40"
+                  : "border-border text-muted-foreground hover:bg-secondary/50"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* Status */}
+      <div>
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">Status</span>
+        <div className="flex flex-wrap gap-1.5 mt-1">
+          {STATUS_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => { setStatusFilter(opt.value); setPage(1); }}
+              className={`text-[11px] px-2 py-1.5 md:py-1 rounded-full border transition-colors font-mono touch-target md:min-h-0 md:min-w-0 ${
+                statusFilter === opt.value
+                  ? getFilterPillStyle(opt.value)
+                  : "border-border text-muted-foreground hover:bg-secondary/50"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* Date */}
+      <div>
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">Date</span>
+        <div className="flex flex-wrap gap-1.5 mt-1">
+          {DATE_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => { setDateFilter(opt.value); setPage(1); }}
+              className={`text-[11px] px-2 py-1.5 md:py-1 rounded-full border transition-colors font-mono touch-target md:min-h-0 md:min-w-0 ${
+                dateFilter === opt.value
+                  ? "bg-chart-green/20 text-chart-green border-chart-green/40"
+                  : "border-border text-muted-foreground hover:bg-secondary/50"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {hasActiveFilters && (
+        <button
+          onClick={clearFilters}
+          className="text-[11px] text-chart-green hover:underline font-mono flex items-center gap-1"
+        >
+          <X className="h-3 w-3" /> Clear filters
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -191,12 +246,13 @@ const DealPipeline = () => {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-muted-foreground">Quoted Jobs</h3>
+        <h3 className="text-fluid-sm font-medium text-muted-foreground">Quoted Jobs</h3>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono text-muted-foreground">{quotedJobs.length} jobs</span>
+          <span className="text-xs font-mono text-muted-foreground hidden sm:inline">{quotedJobs.length} jobs</span>
+          {/* Mobile filter button */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="relative p-1.5 rounded-md border border-border hover:bg-secondary/50 transition-colors"
+            className="relative p-1.5 rounded-md border border-border hover:bg-secondary/50 transition-colors touch-target md:min-h-0 md:min-w-0"
           >
             <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
             {hasActiveFilters && (
@@ -216,84 +272,19 @@ const DealPipeline = () => {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="mb-4 p-3 rounded-lg bg-secondary/30 border border-border/50 space-y-3">
-              {/* Sort */}
-              <div>
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">Sort by</span>
-                <div className="flex flex-wrap gap-1.5 mt-1">
-                  {SORT_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => { setSortBy(opt.value); setPage(1); }}
-                      className={`text-[11px] px-2 py-1 rounded-full border transition-colors font-mono ${
-                        sortBy === opt.value
-                          ? "bg-chart-green/20 text-chart-green border-chart-green/40"
-                          : "border-border text-muted-foreground hover:bg-secondary/50"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {/* Status filter */}
-              <div>
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">Status</span>
-                <div className="flex flex-wrap gap-1.5 mt-1">
-                  {STATUS_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => { setStatusFilter(opt.value); setPage(1); }}
-                      className={`text-[11px] px-2 py-1 rounded-full border transition-colors font-mono ${
-                        statusFilter === opt.value
-                          ? getFilterPillStyle(opt.value)
-                          : "border-border text-muted-foreground hover:bg-secondary/50"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {/* Date filter */}
-              <div>
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">Date</span>
-                <div className="flex flex-wrap gap-1.5 mt-1">
-                  {DATE_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => { setDateFilter(opt.value); setPage(1); }}
-                      className={`text-[11px] px-2 py-1 rounded-full border transition-colors font-mono ${
-                        dateFilter === opt.value
-                          ? "bg-chart-green/20 text-chart-green border-chart-green/40"
-                          : "border-border text-muted-foreground hover:bg-secondary/50"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {/* Clear */}
-              {hasActiveFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="text-[11px] text-chart-green hover:underline font-mono flex items-center gap-1"
-                >
-                  <X className="h-3 w-3" /> Clear filters
-                </button>
-              )}
+            <div className="mb-4 p-3 rounded-lg bg-secondary/30 border border-border/50">
+              {renderFilterContent()}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-
       {quotedJobs.length === 0 ? (
         <NoData message="No quote data" healthStatus={dataHealth.quotes.status} />
       ) : (
         <>
-          <div className="overflow-x-auto">
+          {/* Desktop table */}
+          <div className="desktop-table overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-muted-foreground font-mono border-b border-border">
@@ -331,17 +322,16 @@ const DealPipeline = () => {
                   </motion.tr>
                 ))}
               </tbody>
-              {/* Total row */}
               <tfoot>
                 <tr className="border-t-2 border-chart-green/60" style={{ backgroundColor: "rgba(16, 185, 129, 0.05)" }}>
                   <td colSpan={2} className="py-3 pr-4 font-mono font-bold text-foreground">
                     <span className="flex items-center gap-1.5">
                       <Calculator className="h-3.5 w-3.5 text-chart-green" />
-                      Total ({quotedJobs.length} jobs)
+                      Total ({filteredJobs.length} jobs)
                     </span>
                   </td>
                   <td className="py-3 pr-4 text-right font-mono text-base font-bold text-chart-green">
-                    {totalValue > 0 ? formatMetricValue(totalValue, "currency") : "TBC"}
+                    {filteredTotal > 0 ? formatMetricValue(filteredTotal, "currency") : "TBC"}
                   </td>
                   <td colSpan={2} />
                 </tr>
@@ -349,16 +339,64 @@ const DealPipeline = () => {
             </table>
           </div>
 
+          {/* Mobile card layout */}
+          <div className="mobile-card-table space-y-2">
+            {pageJobs.map((job) => {
+              const isExpanded = expandedCards.has(job.id);
+              return (
+                <motion.div
+                  key={job.id}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="border border-border/50 rounded-lg p-3 bg-secondary/10"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm truncate">{job.company}</p>
+                      <p className="text-xs text-muted-foreground truncate">{job.project}</p>
+                    </div>
+                    <span className="font-mono text-sm font-bold text-foreground whitespace-nowrap">
+                      {job.value > 0 ? formatMetricValue(job.value, "currency") : "TBC"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${getBadgeStyle(job.rawStatus)}`}>
+                      {job.rawStatus || "Unknown"}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[10px] text-muted-foreground">{formatDateMonthYear(job.dateQuoted)}</span>
+                      <button onClick={() => toggleCardExpand(job.id)} className="text-muted-foreground">
+                        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+            {/* Mobile total card */}
+            <div className="border border-chart-green/30 rounded-lg p-3" style={{ backgroundColor: "rgba(16, 185, 129, 0.05)" }}>
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 font-mono font-bold text-sm text-foreground">
+                  <Calculator className="h-3.5 w-3.5 text-chart-green" />
+                  Total ({filteredJobs.length} jobs)
+                </span>
+                <span className="font-mono font-bold text-sm text-chart-green">
+                  {filteredTotal > 0 ? formatMetricValue(filteredTotal, "currency") : "TBC"}
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Pagination */}
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/50">
             <span className="text-xs text-muted-foreground font-mono">
-              Showing {startIdx + 1}–{Math.min(startIdx + ITEMS_PER_PAGE, filteredJobs.length)} of {filteredJobs.length} jobs
+              {startIdx + 1}–{Math.min(startIdx + ITEMS_PER_PAGE, filteredJobs.length)} of {filteredJobs.length}
             </span>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage <= 1}
-                className="p-1.5 rounded-md border border-border hover:bg-secondary/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-1.5 rounded-md border border-border hover:bg-secondary/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed touch-target md:min-h-0 md:min-w-0"
               >
                 <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground" />
               </button>
@@ -366,7 +404,7 @@ const DealPipeline = () => {
                 <button
                   key={pn}
                   onClick={() => setPage(pn)}
-                  className={`h-7 w-7 rounded-md text-xs font-mono transition-colors ${
+                  className={`h-8 w-8 md:h-7 md:w-7 rounded-md text-xs font-mono transition-colors ${
                     pn === currentPage
                       ? "bg-chart-green text-background font-semibold"
                       : "text-muted-foreground hover:bg-secondary/50"
@@ -378,7 +416,7 @@ const DealPipeline = () => {
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage >= totalPages}
-                className="p-1.5 rounded-md border border-border hover:bg-secondary/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-1.5 rounded-md border border-border hover:bg-secondary/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed touch-target md:min-h-0 md:min-w-0"
               >
                 <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
               </button>

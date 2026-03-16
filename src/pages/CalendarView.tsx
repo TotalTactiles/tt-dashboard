@@ -142,21 +142,21 @@ const CalendarView = () => {
 
   return (
     <DashboardLayout>
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-4 md:mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Calendar &amp; Deadlines</h1>
-          <p className="text-sm text-muted-foreground font-mono">Event Schedule &amp; Critical Dates</p>
+          <h1 className="text-fluid-2xl font-semibold">Calendar &amp; Deadlines</h1>
+          <p className="text-fluid-xs text-muted-foreground font-mono">Event Schedule &amp; Critical Dates</p>
         </div>
         <button
           onClick={handleOpenCreate}
-          className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors duration-150"
+          className="px-4 py-2.5 md:py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors duration-150 touch-target md:min-h-0"
         >
           + Add Event
         </button>
       </div>
 
       {/* Filter bar */}
-      <div className="mb-5">
+      <div className="mb-4 md:mb-5">
         <CalendarFilters
           activeTypes={activeTypes}
           onToggleType={toggleType}
@@ -166,19 +166,17 @@ const CalendarView = () => {
       </div>
 
       {/* Main split: Calendar grid + Day schedule panel */}
-      <div className="flex flex-col lg:flex-row gap-4 mb-6">
+      <div className="flex flex-col lg:flex-row gap-3 md:gap-4 mb-4 md:mb-6">
         <CalendarGrid events={filtered} selectedDate={selectedDate} onSelectDate={setSelectedDate} onEventClick={handleOpenEdit} onAddEvent={handleOpenCreate} />
         <DaySchedulePanel events={filtered} selectedDate={selectedDate} onPrevDay={prevDay} onNextDay={nextDay} onEventClick={handleOpenEdit} />
       </div>
 
-      {/* Bottom row 1: Deadlines + Upcoming Events */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
         <DeadlineTracker events={filtered} />
         <EventTimeline events={filteredUpcoming} onEventClick={handleOpenEdit} />
       </div>
 
-      {/* Bottom row 2: Density chart + Quarterly roadmap */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
         <EventDensityChart summary={calendarSummary} />
         <QuarterlyTimeline />
       </div>
