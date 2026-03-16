@@ -72,8 +72,8 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
         </Tooltip>
       )}
 
-      <div className="flex items-center justify-between mb-1">
-        <p className="text-sm text-muted-foreground">{label}</p>
+      <div className="flex items-center justify-between mb-1 gap-1">
+        <p className="text-fluid-xs text-muted-foreground truncate">{label}</p>
         {hasToggle && !noData && (
           <div className="flex rounded-full bg-secondary/80 p-0.5 text-[10px] font-mono leading-none">
             <button
