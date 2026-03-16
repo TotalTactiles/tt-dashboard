@@ -142,7 +142,7 @@ const PortfolioChart = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.3 }}
-      className="chart-container col-span-2"
+      className="chart-container col-span-full lg:col-span-2"
     >
       {/* Header row */}
       <div className="flex items-start justify-between mb-2 gap-2">
