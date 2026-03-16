@@ -77,7 +77,7 @@ export interface RevenueProject {
   otherCost: number;
   totalCOGS: number;
   grossProfit: number;
-  status: "invoiced" | "pending" | "overdue";
+  status: "invoiced" | "paid" | "pending" | "overdue";
 }
 
 export interface ExpenseItem {
