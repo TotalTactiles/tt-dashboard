@@ -659,7 +659,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       calendarSummary: rawCalendarSummary,
       setCalendarEvents: setCalendarEventsState,
     };
-  }, [liveData, hasLiveData, connectedCount, isLoading, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride]);
+  }, [liveData, hasLiveData, connectedCount, isLoading, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride, calendarData]);
 
   return <DashboardDataContext.Provider value={data}>{children}</DashboardDataContext.Provider>;
 }
