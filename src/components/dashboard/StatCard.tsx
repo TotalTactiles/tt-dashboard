@@ -21,6 +21,7 @@ interface StatCardProps {
   altChange?: string;
   altPositive?: boolean;
   altDiff?: string;
+  goalAdjusted?: boolean;
 }
 
 function timeAgo(ts: number | null): string {
