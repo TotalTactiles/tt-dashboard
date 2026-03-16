@@ -1,3 +1,4 @@
+import { useState, useMemo, useCallback } from "react";
 import { RefreshCw } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import { formatMetricValue } from "@/lib/formatMetricValue";
@@ -11,8 +12,10 @@ import RevenueProjectsTable from "@/components/dashboard/RevenueProjectsTable";
 import ExpenseBreakdown from "@/components/dashboard/ExpenseBreakdown";
 import DashboardLayout from "@/components/DashboardLayout";
 import GoalsDashboardWidgets from "@/components/goals/GoalsDashboardWidgets";
+import GoalScenarioBar from "@/components/dashboard/GoalScenarioBar";
 import { useGoals } from "@/hooks/useGoals";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
+import { applyGoalMerge } from "@/lib/goalMerge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Unplug, Loader2 } from "lucide-react";
@@ -28,9 +31,82 @@ function timeAgo(ts: number | null): string {
   return `${Math.floor(diff / 3600)}h ago`;
 }
 
+const ACTIVE_GOALS_KEY = "tt_active_goal_ids";
+
+function loadActiveGoalIds(allGoals: { id: string; merge?: boolean }[]): Set<string> {
+  try {
+    const raw = localStorage.getItem(ACTIVE_GOALS_KEY);
+    if (raw) return new Set(JSON.parse(raw));
+  } catch {}
+  // Default: all merged goals active
+  return new Set(allGoals.filter(g => g.merge).map(g => g.id));
+}
+
 const DashboardContent = () => {
-  const { goals } = useGoals();
-  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, lastUpdated, sources, syncNow, formulaCache } = useDashboardData();
+  const { goals, updateGoal } = useGoals();
+  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData } = useDashboardData();
+
+  // Active goal IDs for scenario toggling
+  const [activeGoalIds, setActiveGoalIds] = useState<Set<string>>(() => loadActiveGoalIds(goals));
+
+  const setAndPersistActiveIds = useCallback((ids: Set<string>) => {
+    setActiveGoalIds(ids);
+    localStorage.setItem(ACTIVE_GOALS_KEY, JSON.stringify([...ids]));
+  }, []);
+
+  const handleToggleGoal = useCallback((id: string) => {
+    setActiveGoalIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      localStorage.setItem(ACTIVE_GOALS_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
+
+  const handleSetAll = useCallback(() => {
+    const ids = new Set(goals.filter(g => g.merge).map(g => g.id));
+    setAndPersistActiveIds(ids);
+  }, [goals, setAndPersistActiveIds]);
+
+  const handleClearAll = useCallback(() => {
+    setAndPersistActiveIds(new Set());
+  }, [setAndPersistActiveIds]);
+
+  // Toggle merge from dashboard widget
+  const handleToggleMerge = useCallback((id: string, mergeOn: boolean) => {
+    updateGoal(id, { merge: mergeOn });
+    if (mergeOn) {
+      setActiveGoalIds(prev => {
+        const next = new Set(prev);
+        next.add(id);
+        localStorage.setItem(ACTIVE_GOALS_KEY, JSON.stringify([...next]));
+        return next;
+      });
+    }
+  }, [updateGoal]);
+
+  // Derive adjusted cashflow data
+  const { adjustedData, adjustments, netMonthlyEffect } = useMemo(
+    () => applyGoalMerge(incomeOutgoingsData, goals, activeGoalIds),
+    [incomeOutgoingsData, goals, activeGoalIds]
+  );
+
+  // Adjusted Cashflow Position KPI
+  const adjustedKpiStats = useMemo(() => {
+    if (adjustedData === incomeOutgoingsData) return kpiStats;
+    // Find last non-zero surplus from adjusted data
+    let adjustedCashflowPos = 0;
+    for (let i = adjustedData.length - 1; i >= 0; i--) {
+      if (adjustedData[i].surplus !== 0) { adjustedCashflowPos = adjustedData[i].surplus; break; }
+    }
+    return kpiStats.map(stat => {
+      if (stat.label === "Cashflow Position") {
+        return { ...stat, value: fmtAUD(adjustedCashflowPos), positive: adjustedCashflowPos >= 0 };
+      }
+      return stat;
+    });
+  }, [kpiStats, adjustedData, incomeOutgoingsData]);
 
   const handleRefresh = () => {
     const gSheets = sources.find((s) => s.id === "google_sheets");
@@ -59,7 +135,6 @@ const DashboardContent = () => {
     const match = getFormulaForCard(stat.label);
     if (match) {
       const v = match.cached.value!;
-      // Format based on card type
       if (stat.label === "Conversion Rate") return `${v.toFixed(1)}%`;
       return fmtAUD(v);
     }
@@ -155,7 +230,7 @@ const DashboardContent = () => {
       {hasLiveData && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-4 md:mb-6">
-            {kpiStats.map((stat, i) => (
+            {adjustedKpiStats.map((stat, i) => (
               <StatCard
                 key={stat.label}
                 {...stat}
@@ -169,15 +244,30 @@ const DashboardContent = () => {
             ))}
           </div>
 
-          <GoalsDashboardWidgets goals={goals} formulas={formulas} />
+          <GoalsDashboardWidgets
+            goals={goals}
+            formulas={formulas}
+            activeGoalIds={activeGoalIds}
+            onToggleGoal={handleToggleGoal}
+            onToggleMerge={handleToggleMerge}
+          />
+
+          <GoalScenarioBar
+            goals={goals}
+            activeGoalIds={activeGoalIds}
+            onToggleGoal={handleToggleGoal}
+            onSetAll={handleSetAll}
+            onClearAll={handleClearAll}
+            netMonthlyEffect={netMonthlyEffect}
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
-            <PortfolioChart />
+            <PortfolioChart adjustedData={adjustedData} adjustments={adjustments} />
             <SectorAllocationChart />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
-            <CashflowChart />
+            <CashflowChart adjustedData={adjustedData} adjustments={adjustments} />
             <FundPerformanceChart />
           </div>
 
@@ -188,7 +278,7 @@ const DashboardContent = () => {
           <div className="space-y-4 md:space-y-6">
             <DealPipeline />
             <RevenueProjectsTable />
-            <ExpenseBreakdown />
+            <ExpenseBreakdown goals={goals} activeGoalIds={activeGoalIds} />
           </div>
         </>
       )}
