@@ -87,19 +87,73 @@ const DashboardContent = () => {
     [incomeOutgoingsData, goals, activeGoalIds]
   );
 
+  const hasActiveGoals = useMemo(() => {
+    return goals.some(g => g.merge && activeGoalIds.has(g.id));
+  }, [goals, activeGoalIds]);
+
   const adjustedKpiStats = useMemo(() => {
-    if (adjustedData === incomeOutgoingsData) return kpiStats;
+    if (!hasActiveGoals) return kpiStats;
+
+    // Current month key e.g. "Mar-26"
+    const now = new Date();
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const currentMonthKey = `${MONTHS[now.getMonth()]}-${String(now.getFullYear()).slice(-2)}`;
+
+    // Cashflow Position: use current month from adjusted data, fallback to nearest future
     let adjustedCashflowPos = 0;
-    for (let i = adjustedData.length - 1; i >= 0; i--) {
-      if (adjustedData[i].surplus !== 0) { adjustedCashflowPos = adjustedData[i].surplus; break; }
+    const currentPoint = adjustedData.find(p => p.month === currentMonthKey);
+    if (currentPoint && currentPoint.surplus !== 0) {
+      adjustedCashflowPos = currentPoint.surplus;
+    } else {
+      // Find nearest future month with non-zero surplus
+      const currentIdx = adjustedData.findIndex(p => p.month === currentMonthKey);
+      const startIdx = currentIdx >= 0 ? currentIdx : 0;
+      for (let i = startIdx; i < adjustedData.length; i++) {
+        if (adjustedData[i].surplus !== 0) { adjustedCashflowPos = adjustedData[i].surplus; break; }
+      }
+      // If still 0, search backwards
+      if (adjustedCashflowPos === 0) {
+        for (let i = adjustedData.length - 1; i >= 0; i--) {
+          if (adjustedData[i].surplus !== 0) { adjustedCashflowPos = adjustedData[i].surplus; break; }
+        }
+      }
     }
+
+    // Net Revenue adjustment from active goals
+    let netRevenueAdj = 0;
+    const activeGoals = goals.filter(g => g.merge && activeGoalIds.has(g.id));
+    for (const goal of activeGoals) {
+      const goalType = goal.goalType ?? "expenditure";
+      if (goal.amountStructure === "lump_sum" && goal.lumpSumDate) {
+        const lumpDate = new Date(goal.lumpSumDate);
+        if (lumpDate <= now) {
+          netRevenueAdj += goalType === "revenue" ? goal.targetValue : -goal.targetValue;
+        }
+      } else if (goal.amountStructure === "recurring") {
+        const start = new Date(goal.startDate);
+        if (start <= now) {
+          const monthsElapsed = Math.max(1, (now.getFullYear() - start.getFullYear()) * 12 + now.getMonth() - start.getMonth() + 1);
+          let monthly = goal.targetValue || 0;
+          if (goal.period === "weekly") monthly = monthly * 4.33;
+          else if (goal.period === "yearly") monthly = monthly / 12;
+          netRevenueAdj += goalType === "revenue" ? monthly * monthsElapsed : -monthly * monthsElapsed;
+        }
+      }
+    }
+
     return kpiStats.map(stat => {
       if (stat.label === "Cashflow Position") {
-        return { ...stat, value: fmtAUD(adjustedCashflowPos), positive: adjustedCashflowPos >= 0 };
+        return { ...stat, value: fmtAUD(adjustedCashflowPos), positive: adjustedCashflowPos >= 0, goalAdjusted: true };
+      }
+      if (stat.label === "Net Revenue") {
+        const baseValue = parseFloat(stat.value.replace(/[^0-9.-]/g, "")) || 0;
+        // Reconstruct from raw value stored in kpiStats
+        const adjustedNetRev = baseValue + netRevenueAdj;
+        return { ...stat, value: fmtAUD(adjustedNetRev), positive: adjustedNetRev >= 0, goalAdjusted: true };
       }
       return stat;
     });
-  }, [kpiStats, adjustedData, incomeOutgoingsData]);
+  }, [kpiStats, adjustedData, goals, activeGoalIds, hasActiveGoals]);
 
   const handleRefresh = () => {
     const gSheets = sources.find((s) => s.id === "google_sheets");
@@ -119,7 +173,9 @@ const DashboardContent = () => {
     return { formula, cached };
   };
 
-  const getCardValue = (stat: typeof kpiStats[0]) => {
+  const getCardValue = (stat: any) => {
+    // If goal-adjusted, use the pre-computed adjusted value
+    if (stat.goalAdjusted) return stat.value;
     const match = getFormulaForCard(stat.label);
     if (match) {
       const v = match.cached.value!;
