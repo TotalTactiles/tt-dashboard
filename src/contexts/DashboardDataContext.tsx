@@ -224,6 +224,7 @@ export interface DashboardData {
   updateWebhookUrl: ReturnType<typeof useDataSources>["updateWebhookUrl"];
   saveAndTest: ReturnType<typeof useDataSources>["saveAndTest"];
   syncNow: ReturnType<typeof useDataSources>["syncNow"];
+  syncCalendar: () => Promise<void>;
   calendarEvents: LiveCalendarEvent[];
   upcomingEvents: LiveCalendarEvent[];
   calendarSummary: CalendarSummary | null;
@@ -259,7 +260,7 @@ function getMonthValues(row: any, months: string[]): Record<string, number> {
 
 export function DashboardDataProvider({ children }: { children: React.ReactNode }) {
   const ds = useDataSources();
-  const { liveData, hasLiveData, connectedCount, sources } = ds;
+  const { liveData, hasLiveData, connectedCount, sources, calendarData } = ds;
   const isLoading = sources.some((s) => s.loading);
   const { formulas, addFormula, updateFormula, deleteFormula } = useFormulas();
   const [calendarEventsOverride, setCalendarEventsState] = useState<LiveCalendarEvent[] | null>(null);
@@ -633,17 +634,17 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       }
     }
 
-    // ===== CALENDAR DATA =====
-    const rawCalendarEvents: LiveCalendarEvent[] = Array.isArray(webhookResponse?.calendarEvents)
-      ? webhookResponse.calendarEvents
+    // ===== CALENDAR DATA (from dedicated calendar poll) =====
+    const rawCalendarEvents: LiveCalendarEvent[] = Array.isArray(calendarData?.calendarEvents)
+      ? calendarData.calendarEvents
       : [];
-    const rawUpcomingEvents: LiveCalendarEvent[] = Array.isArray(webhookResponse?.upcomingEvents)
-      ? webhookResponse.upcomingEvents
+    const rawUpcomingEvents: LiveCalendarEvent[] = Array.isArray(calendarData?.upcomingEvents)
+      ? calendarData.upcomingEvents
       : [];
-    const rawCalendarSummary: CalendarSummary = webhookResponse?.calendarSummary ?? { totalEvents: 0, upcomingCount: 0, byType: {} };
+    const rawCalendarSummary: CalendarSummary = calendarData?.calendarSummary ?? { totalEvents: 0, upcomingCount: 0, byType: {} };
 
     if (rawCalendarEvents.length === 0 && hasLiveData) {
-      console.warn('[Calendar] calendarEvents empty in webhook response — check n8n read workflow returns this key');
+      console.warn('[Calendar] calendarEvents empty — check tt-calendar-read webhook returns this key');
     }
 
     return {
@@ -653,13 +654,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       formulas, addFormula, updateFormula, deleteFormula,
       dataHealth, quotesDebug, isLoading, hasLiveData, connectedCount, lastUpdated,
       sources: ds.sources, toggleConnection: ds.toggleConnection,
-      updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow,
+      updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow, syncCalendar: ds.syncCalendar,
       calendarEvents: calendarEventsOverride ?? rawCalendarEvents,
       upcomingEvents: rawUpcomingEvents,
       calendarSummary: rawCalendarSummary,
       setCalendarEvents: setCalendarEventsState,
     };
-  }, [liveData, hasLiveData, connectedCount, isLoading, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride]);
+  }, [liveData, hasLiveData, connectedCount, isLoading, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride, calendarData]);
 
   return <DashboardDataContext.Provider value={data}>{children}</DashboardDataContext.Provider>;
 }
@@ -696,7 +697,7 @@ export function useDashboardData(): DashboardData {
       },
       isLoading: false, hasLiveData: false, connectedCount: 0, lastUpdated: null,
       sources: [], toggleConnection: () => {}, updateWebhookUrl: () => {},
-      saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {},
+      saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {}, syncCalendar: async () => {},
       calendarEvents: [], upcomingEvents: [], calendarSummary: null, setCalendarEvents: () => {},
     } as DashboardData;
   }

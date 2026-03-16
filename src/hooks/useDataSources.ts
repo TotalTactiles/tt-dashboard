@@ -3,8 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 const STORAGE_KEY = "dashboard_data_sources";
 const DATA_CACHE_KEY = "dashboard_live_data";
+const CALENDAR_CACHE_KEY = "dashboard_calendar_data";
 const POLL_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const CALENDAR_POLL_INTERVAL = 3 * 60 * 1000; // 3 minutes
 const DEFAULT_WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/bb826393-569e-4270-a033-6f6d8019e0e0";
+const CALENDAR_READ_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-calendar-read";
 
 export interface DataSourceConfig {
   id: string;
@@ -119,6 +122,14 @@ function loadCachedData(): LiveData {
   return {};
 }
 
+function loadCachedCalendar(): { calendarEvents: any[]; upcomingEvents: any[]; calendarSummary: any } {
+  try {
+    const cached = localStorage.getItem(CALENDAR_CACHE_KEY);
+    if (cached) return JSON.parse(cached);
+  } catch {}
+  return { calendarEvents: [], upcomingEvents: [], calendarSummary: { totalEvents: 0, upcomingCount: 0, byType: {} } };
+}
+
 function saveSources(sources: DataSourceConfig[]) {
   const toSave = sources.map((s) => ({ ...s, loading: false }));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
@@ -132,6 +143,9 @@ export function useDataSources() {
   const [sources, setSources] = useState<DataSourceConfig[]>(loadSavedSources);
   const [liveData, setLiveData] = useState<LiveData>(loadCachedData);
   const intervals = useRef<Record<string, ReturnType<typeof setInterval>>>({});
+
+  const [calendarData, setCalendarData] = useState(loadCachedCalendar);
+  const calendarInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const persistSources = useCallback((updated: DataSourceConfig[]) => {
     setSources(updated);
@@ -367,15 +381,58 @@ export function useDataSources() {
   const connectedCount = sources.filter((s) => s.connected).length;
   const hasLiveData = Object.keys(liveData).some((k) => !k.startsWith("_"));
 
+  // ===== Calendar-specific polling (3 min) =====
+  const fetchCalendar = useCallback(async () => {
+    try {
+      const { data: responseData, error } = await supabase.functions.invoke("n8n-proxy", {
+        body: { webhookUrl: CALENDAR_READ_WEBHOOK, source: "calendar" },
+      });
+
+      if (error) throw new Error(error.message || "Calendar proxy request failed");
+      if (responseData?._proxyError) throw new Error(responseData.error || "Calendar proxy error");
+
+      // Unwrap n8n envelope
+      let unwrapped = responseData;
+      if (Array.isArray(unwrapped)) unwrapped = unwrapped[0];
+      if (unwrapped?.json && typeof unwrapped.json === "object") unwrapped = unwrapped.json;
+
+      const calEvents = Array.isArray(unwrapped?.calendarEvents) ? unwrapped.calendarEvents : [];
+      const upEvents = Array.isArray(unwrapped?.upcomingEvents) ? unwrapped.upcomingEvents : [];
+      const calSummary = unwrapped?.calendarSummary ?? { totalEvents: 0, upcomingCount: 0, byType: {} };
+
+      if (calEvents.length === 0) {
+        console.warn('[Calendar Poll] calendarEvents empty from tt-calendar-read webhook');
+      }
+
+      const newData = { calendarEvents: calEvents, upcomingEvents: upEvents, calendarSummary: calSummary };
+      setCalendarData(newData);
+      localStorage.setItem(CALENDAR_CACHE_KEY, JSON.stringify(newData));
+      console.log(`[Calendar Poll] Fetched ${calEvents.length} events`);
+    } catch (err: any) {
+      console.error('[Calendar Poll] Error:', err.message);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Initial fetch + 3 min interval
+    fetchCalendar();
+    calendarInterval.current = setInterval(fetchCalendar, CALENDAR_POLL_INTERVAL);
+    return () => {
+      if (calendarInterval.current) clearInterval(calendarInterval.current);
+    };
+  }, [fetchCalendar]);
+
   return {
     sources,
     liveData,
+    calendarData,
     hasLiveData,
     connectedCount,
     toggleConnection,
     updateWebhookUrl,
     saveAndTest,
     syncNow,
+    syncCalendar: fetchCalendar,
     updateScreenshot,
     removeScreenshot,
   };

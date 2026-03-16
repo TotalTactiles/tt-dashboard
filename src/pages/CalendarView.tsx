@@ -15,13 +15,13 @@ import { supabase } from "@/integrations/supabase/client";
 const CALENDAR_WRITE_WEBHOOK = 'https://n8n.srv1437130.hstgr.cloud/webhook/calendar-write';
 
 const EVENT_TYPES = ["Meeting", "Deadline", "Milestone", "Care", "Valuation", "Distribution"] as const;
-const EVENT_SOURCES = ["Google Calendar", "Zoho Calendar"] as const;
+const EVENT_SOURCES = ["Google Calendar", "Zoho Calendar", "Zoho Projects"] as const;
 
 type EventType = typeof EVENT_TYPES[number];
 type EventSource = typeof EVENT_SOURCES[number];
 
 const CalendarView = () => {
-  const { calendarEvents, upcomingEvents, calendarSummary, setCalendarEvents, syncNow } = useDashboardData();
+  const { calendarEvents, upcomingEvents, calendarSummary, setCalendarEvents, syncCalendar } = useDashboardData();
   const { toast } = useToast();
 
   const [activeTypes, setActiveTypes] = useState<EventType[]>([...EVENT_TYPES]);
@@ -134,13 +134,13 @@ const CalendarView = () => {
         toast({ title: actionLabel, className: action === "delete" ? "" : "border-green-500/30" });
 
         // Resync after 5 seconds to pull fresh calendar data
-        setTimeout(() => syncNow("google_sheets"), 5000);
+        setTimeout(() => syncCalendar(), 5000);
       } catch (err: any) {
         toast({ title: "Failed to save event — please try again", variant: "destructive" });
         setCalendarEvents(prevEvents);
       }
     },
-    [calendarEvents, editingEvent, setCalendarEvents, syncNow, toast]
+    [calendarEvents, editingEvent, setCalendarEvents, syncCalendar, toast]
   );
 
   return (
