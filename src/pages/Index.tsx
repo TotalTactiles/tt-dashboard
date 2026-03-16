@@ -171,7 +171,7 @@ const DashboardContent = () => {
 
           <GoalsDashboardWidgets goals={goals} formulas={formulas} />
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
             <PortfolioChart />
             <SectorAllocationChart />
           </div>
