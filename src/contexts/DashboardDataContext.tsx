@@ -537,8 +537,12 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         change: noData ? "--" : `${parseNum(qs?.totalWon?.count ?? 0)} jobs`,
         positive: true, noData,
         altValue: noData ? "--" : fmtAUD(parseNum(qs?.ylwPlusGrn?.value ?? 0)),
-        altChange: noData ? "--" : `${parseNum(qs?.ylwPlusGrn?.count ?? 0)} jobs incl. verbal`,
+        altChange: noData ? "--" : `${parseNum(qs?.ylwPlusGrn?.count ?? 0)} jobs With YLWs`,
         altPositive: parseNum(qs?.ylwPlusGrn?.value ?? 0) > 0,
+        altDiff: noData ? undefined : (() => {
+          const diff = parseNum(qs?.ylwPlusGrn?.value ?? 0) - parseNum(qs?.totalWon?.value ?? 0);
+          return diff > 0 ? `+${fmtAUD(diff)}` : undefined;
+        })(),
       },
       {
         label: "Quoted Remaining",

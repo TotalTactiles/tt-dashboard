@@ -20,6 +20,7 @@ interface StatCardProps {
   altValue?: string;
   altChange?: string;
   altPositive?: boolean;
+  altDiff?: string;
 }
 
 function timeAgo(ts: number | null): string {
