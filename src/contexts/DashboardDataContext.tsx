@@ -535,6 +535,9 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         value: noData ? "--" : fmtAUD(parseNum(qs?.totalWon?.value ?? 0)),
         change: noData ? "--" : `${parseNum(qs?.totalWon?.count ?? 0)} jobs`,
         positive: true, noData,
+        altValue: noData ? "--" : fmtAUD(parseNum(qs?.ylwPlusGrn?.value ?? 0)),
+        altChange: noData ? "--" : `${parseNum(qs?.ylwPlusGrn?.count ?? 0)} jobs incl. verbal`,
+        altPositive: parseNum(qs?.ylwPlusGrn?.value ?? 0) > 0,
       },
       {
         label: "Quoted Remaining",
