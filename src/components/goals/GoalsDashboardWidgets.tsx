@@ -87,7 +87,7 @@ export default function GoalsDashboardWidgets({ goals, formulas }: GoalsDashboar
               <div key={f.id} className="flex justify-between text-xs">
                 <span className="text-foreground truncate mr-2">{f.name}</span>
                 <span className="text-muted-foreground font-mono shrink-0">
-                  {f.result != null ? (f.outputFormat === "percentage" ? `${f.result.toFixed(1)}%` : `$${f.result.toLocaleString()}`) : "—"}
+                  {f.result != null ? (f.unit === "%" ? `${f.result.toFixed(1)}%` : `$${f.result.toLocaleString()}`) : "—"}
                 </span>
               </div>
             ))}
