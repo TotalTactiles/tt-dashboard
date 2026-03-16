@@ -20,7 +20,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Unplug, Loader2 } from "lucide-react";
 
-// Use shared formatting
 const fmtAUD = (n: number) => formatMetricValue(n, "currency");
 
 function timeAgo(ts: number | null): string {
@@ -38,7 +37,6 @@ function loadActiveGoalIds(allGoals: { id: string; merge?: boolean }[]): Set<str
     const raw = localStorage.getItem(ACTIVE_GOALS_KEY);
     if (raw) return new Set(JSON.parse(raw));
   } catch {}
-  // Default: all merged goals active
   return new Set(allGoals.filter(g => g.merge).map(g => g.id));
 }
 
@@ -46,7 +44,6 @@ const DashboardContent = () => {
   const { goals, updateGoal } = useGoals();
   const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData } = useDashboardData();
 
-  // Active goal IDs for scenario toggling
   const [activeGoalIds, setActiveGoalIds] = useState<Set<string>>(() => loadActiveGoalIds(goals));
 
   const setAndPersistActiveIds = useCallback((ids: Set<string>) => {
@@ -73,7 +70,6 @@ const DashboardContent = () => {
     setAndPersistActiveIds(new Set());
   }, [setAndPersistActiveIds]);
 
-  // Toggle merge from dashboard widget
   const handleToggleMerge = useCallback((id: string, mergeOn: boolean) => {
     updateGoal(id, { merge: mergeOn });
     if (mergeOn) {
@@ -86,16 +82,13 @@ const DashboardContent = () => {
     }
   }, [updateGoal]);
 
-  // Derive adjusted cashflow data
   const { adjustedData, adjustments, netMonthlyEffect } = useMemo(
     () => applyGoalMerge(incomeOutgoingsData, goals, activeGoalIds),
     [incomeOutgoingsData, goals, activeGoalIds]
   );
 
-  // Adjusted Cashflow Position KPI
   const adjustedKpiStats = useMemo(() => {
     if (adjustedData === incomeOutgoingsData) return kpiStats;
-    // Find last non-zero surplus from adjusted data
     let adjustedCashflowPos = 0;
     for (let i = adjustedData.length - 1; i >= 0; i--) {
       if (adjustedData[i].surplus !== 0) { adjustedCashflowPos = adjustedData[i].surplus; break; }
@@ -115,14 +108,9 @@ const DashboardContent = () => {
 
   const formatLastUpdated = (ts: string | null) => {
     if (!ts) return null;
-    try {
-      return new Date(ts).toLocaleString();
-    } catch {
-      return ts;
-    }
+    try { return new Date(ts).toLocaleString(); } catch { return ts; }
   };
 
-  // Build formula-driven lookup for KPI cards
   const getFormulaForCard = (cardLabel: string) => {
     const formula = formulas.find((f) => f.dashboardCard === cardLabel);
     if (!formula) return null;
@@ -153,19 +141,19 @@ const DashboardContent = () => {
     };
   };
 
-  // Formula sync stats
   const allResults = formulaCache.getAll();
   const activeFormulaCount = Object.values(allResults).filter((r) => r.value !== null).length;
   const formulaLastComputed = formulaCache.lastComputedAt_value;
 
   return (
     <DashboardLayout>
+      {/* Header */}
       <div className="mb-4 md:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-fluid-2xl font-semibold">Business Dashboard</h1>
-          <p className="text-fluid-xs text-muted-foreground font-mono">FY 2026 Overview — Quotes · Cashflow · Revenue · Expenses</p>
+        <div className="min-w-0">
+          <h1 className="font-semibold" style={{ fontSize: "clamp(20px, 3vw, 32px)" }}>Business Dashboard</h1>
+          <p className="text-muted-foreground font-mono" style={{ fontSize: "clamp(9px, 1vw, 11px)" }}>FY 2026 Overview — Quotes · Cashflow · Revenue · Expenses</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <div className="text-right">
             {lastUpdated && (
               <span className="text-xs font-mono text-muted-foreground block">
@@ -187,15 +175,9 @@ const DashboardContent = () => {
             className={`font-mono text-xs ${hasLiveData ? "bg-chart-green/20 text-chart-green border-chart-green/30" : ""}`}
           >
             {hasLiveData ? (
-              <>
-                <CheckCircle className="w-3 h-3 mr-1" />
-                Live
-              </>
+              <><CheckCircle className="w-3 h-3 mr-1" />Live</>
             ) : (
-              <>
-                <Unplug className="w-3 h-3 mr-1" />
-                No Data
-              </>
+              <><Unplug className="w-3 h-3 mr-1" />No Data</>
             )}
           </Badge>
         </div>
@@ -229,7 +211,8 @@ const DashboardContent = () => {
 
       {hasLiveData && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-4 md:mb-6">
+          {/* KPI Cards - responsive grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4 mb-4 md:mb-6">
             {adjustedKpiStats.map((stat, i) => (
               <StatCard
                 key={stat.label}
@@ -244,6 +227,7 @@ const DashboardContent = () => {
             ))}
           </div>
 
+          {/* Active Goals */}
           <GoalsDashboardWidgets
             goals={goals}
             formulas={formulas}
@@ -252,6 +236,7 @@ const DashboardContent = () => {
             onToggleMerge={handleToggleMerge}
           />
 
+          {/* Goal Scenarios */}
           <GoalScenarioBar
             goals={goals}
             activeGoalIds={activeGoalIds}
@@ -261,6 +246,7 @@ const DashboardContent = () => {
             netMonthlyEffect={netMonthlyEffect}
           />
 
+          {/* Charts */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
             <PortfolioChart adjustedData={adjustedData} adjustments={adjustments} />
             <SectorAllocationChart />

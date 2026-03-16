@@ -27,19 +27,17 @@ export default function GoalScenarioBar({
   const noneActive = mergedGoals.every(g => !activeGoalIds.has(g.id));
   const someActive = !allActive && !noneActive;
 
-  // Scenario banner text
   const activeNames = mergedGoals.filter(g => activeGoalIds.has(g.id)).map(g => g.name);
 
   return (
     <div className="mb-4 space-y-2">
-      <div className="stat-card !py-3">
+      <div className="stat-card !py-3 overflow-hidden">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
+          <p className="text-muted-foreground font-mono uppercase tracking-wider" style={{ fontSize: "clamp(9px, 1vw, 11px)" }}>
             Goal Scenarios
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          {/* All pill */}
           <button
             onClick={onSetAll}
             className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-medium transition-all ${
@@ -50,7 +48,6 @@ export default function GoalScenarioBar({
           >
             All
           </button>
-          {/* None pill */}
           <button
             onClick={onClearAll}
             className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-medium transition-all ${
@@ -64,16 +61,15 @@ export default function GoalScenarioBar({
 
           <span className="w-px h-4 bg-border mx-1" />
 
-          {/* Individual goal pills */}
           {mergedGoals.map(g => {
             const isActive = activeGoalIds.has(g.id);
             const isRevenue = (g.goalType ?? "expenditure") === "revenue";
-            const dotColor = isRevenue ? "hsl(160, 70%, 45%)" : "hsl(38, 92%, 55%)";
+            const dotColor = isRevenue ? "hsl(var(--chart-green))" : "hsl(var(--chart-amber))";
             return (
               <button
                 key={g.id}
                 onClick={() => onToggleGoal(g.id)}
-                className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-medium transition-all flex items-center gap-1.5 ${
+                className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-medium transition-all flex items-center gap-1.5 max-w-[200px] ${
                   isActive
                     ? isRevenue
                       ? "bg-emerald-600/20 text-emerald-400 border border-emerald-500/40"
@@ -81,15 +77,14 @@ export default function GoalScenarioBar({
                     : "bg-transparent border border-border text-muted-foreground hover:border-muted-foreground/50"
                 }`}
               >
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: dotColor }} />
-                {g.name}
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: dotColor }} />
+                <span className="truncate">{g.name}</span>
               </button>
             );
           })}
 
           <span className="w-px h-4 bg-border mx-1" />
 
-          {/* Combined pill */}
           <button
             onClick={onSetAll}
             className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-medium transition-all flex items-center gap-1.5 ${
@@ -108,13 +103,13 @@ export default function GoalScenarioBar({
         </div>
       </div>
 
-      {/* Scenario comparison banner */}
       {someActive && (
         <div
-          className="rounded-lg px-3 py-2 text-[10px] font-mono text-muted-foreground"
+          className="rounded-lg px-3 py-2 font-mono text-muted-foreground"
           style={{
-            background: "hsl(220, 18%, 10%)",
-            borderLeft: `3px solid ${netMonthlyEffect >= 0 ? "hsl(160, 70%, 45%)" : "hsl(38, 92%, 55%)"}`,
+            fontSize: "clamp(9px, 1vw, 11px)",
+            background: "hsl(var(--card))",
+            borderLeft: `3px solid ${netMonthlyEffect >= 0 ? "hsl(var(--chart-green))" : "hsl(var(--chart-amber))"}`,
           }}
         >
           Scenario: {activeNames.join(" + ")} active — net effect:{" "}
