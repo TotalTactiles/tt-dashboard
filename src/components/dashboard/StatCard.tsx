@@ -32,9 +32,7 @@ function timeAgo(ts: number | null): string {
   return `${Math.floor(diff / 3600)}h ago`;
 }
 
-/** Abbreviate a dollar string for display when it overflows */
 function abbreviateValue(raw: string): { display: string; abbreviated: boolean } {
-  // Extract numeric value from string like "$1,234,567" or "$45,123.45"
   const numeric = parseFloat(raw.replace(/[^0-9.-]/g, ""));
   if (isNaN(numeric)) return { display: raw, abbreviated: false };
   const abs = Math.abs(numeric);
@@ -60,22 +58,32 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
     ? "bg-amber-400/20 text-amber-400 shadow-sm"
     : "bg-primary text-primary-foreground shadow-sm";
 
-  const { display: abbreviatedDisplay, abbreviated } = abbreviateValue(displayValue);
+  const { display: abbreviatedDisplay } = abbreviateValue(displayValue);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className="stat-card relative min-w-0 overflow-hidden"
-      style={{ padding: "clamp(10px, 1.5vw, 20px)" }}
+      className="stat-card relative overflow-hidden flex flex-col"
+      style={{ padding: "clamp(10px, 1.5vw, 18px)", minHeight: "90px" }}
     >
-      {(formulaDriven || goalAdjusted) && (
-        <div className="absolute top-2 right-2 flex items-center gap-1">
+      {/* ROW 1 — Label + badges */}
+      <div className="flex items-start justify-between gap-1 min-w-0 mb-auto">
+        <div className="min-w-0 flex-1">
+          <p
+            className="text-muted-foreground font-mono uppercase tracking-wide truncate"
+            style={{ fontSize: "clamp(8px, 0.9vw, 11px)" }}
+            title={label}
+          >
+            {label}
+          </p>
+        </div>
+        <div className="flex items-center gap-0.5 shrink-0 flex-wrap justify-end" style={{ maxWidth: "50%" }}>
           {goalAdjusted && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="text-[9px] font-mono text-amber-400/70 bg-amber-400/10 border border-amber-400/20 rounded px-1 py-0.5 leading-none cursor-help">
+                <span className="text-[9px] font-mono text-amber-400/70 bg-amber-400/10 border border-amber-400/20 rounded px-1 py-0.5 leading-none cursor-help whitespace-nowrap">
                   adj.
                 </span>
               </TooltipTrigger>
@@ -87,7 +95,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
           {formulaDriven && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="text-[9px] font-mono text-chart-green/70 bg-chart-green/10 border border-chart-green/20 rounded px-1 py-0.5 leading-none">
+                <span className="text-[9px] font-mono text-chart-green/70 bg-chart-green/10 border border-chart-green/20 rounded px-1 py-0.5 leading-none whitespace-nowrap">
                   f(x)
                 </span>
               </TooltipTrigger>
@@ -99,12 +107,12 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
             </Tooltip>
           )}
         </div>
-      )}
+      </div>
 
-      <div className="flex items-center justify-between mb-1 gap-1 min-w-0">
-        <p className="text-muted-foreground truncate" style={{ fontSize: "clamp(9px, 1vw, 11px)" }}>{label}</p>
-        {hasToggle && !noData && (
-          <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none shrink-0" style={{ fontSize: "clamp(8px, 0.9vw, 10px)" }}>
+      {/* Toggle pills — own row below label when present */}
+      {hasToggle && !noData && (
+        <div className="flex mt-1 mb-1">
+          <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(7px, 0.8vw, 10px)" }}>
             <button
               onClick={() => setShowAlt(false)}
               className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
@@ -113,7 +121,8 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Confirmed
+              <span className="hidden sm:inline">Confirmed</span>
+              <span className="sm:hidden">✓</span>
             </button>
             <button
               onClick={() => setShowAlt(true)}
@@ -123,39 +132,48 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              With YLWs
+              <span className="hidden xl:inline">With YLWs</span>
+              <span className="xl:hidden">YLW</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ROW 2 — Main value */}
+      <div className="min-w-0 my-1">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <p
+              className={`font-mono font-bold whitespace-nowrap min-w-0 ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}
+              style={{ fontSize: "clamp(18px, 3.5vw, 32px)", lineHeight: 1.1 }}
+              title={displayValue}
+            >
+              {abbreviatedDisplay}
+            </p>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs font-mono">
+            {displayValue}
+          </TooltipContent>
+        </Tooltip>
+      </div>
+
+      {/* ROW 3 — Secondary metric / change + alt diff */}
+      <div className="min-w-0 mb-1">
+        {showAlt && altDiff && !noData && (
+          <p className="font-mono text-amber-400/70 truncate" style={{ fontSize: "clamp(9px, 1vw, 11px)" }} title={`${altDiff} with YLWs`}>
+            ↑ {altDiff} with YLWs
+          </p>
+        )}
+        {!noData && displayChange !== "--" && (
+          <div className={`flex items-center gap-0.5 font-mono ${accentColor}`} style={{ fontSize: "clamp(9px, 1vw, 12px)" }}>
+            {displayPositive ? <TrendingUp className="w-3 h-3 shrink-0" /> : <TrendingDown className="w-3 h-3 shrink-0" />}
+            <span className="truncate" title={displayChange}>{displayChange}</span>
           </div>
         )}
       </div>
 
-      <div className="flex items-end justify-between gap-1 min-w-0">
-        <div className="flex items-baseline gap-1 min-w-0 overflow-hidden">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <p
-                className={`font-mono font-bold truncate min-w-0 ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}
-                style={{ fontSize: "clamp(16px, 2.5vw, 28px)", lineHeight: 1.2 }}
-              >
-                {abbreviated ? abbreviatedDisplay : displayValue}
-              </p>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs font-mono">
-              {displayValue}
-            </TooltipContent>
-          </Tooltip>
-          {showAlt && altDiff && !noData && (
-            <span className="font-mono text-amber-400/60 shrink-0" style={{ fontSize: "clamp(10px, 1.2vw, 14px)" }}>{altDiff}</span>
-          )}
-        </div>
-        {!noData && displayChange !== "--" && (
-          <div className={`flex items-center gap-0.5 font-mono shrink-0 ${accentColor}`} style={{ fontSize: "clamp(9px, 1vw, 12px)" }}>
-            {displayPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-            <span className="whitespace-nowrap" style={{ wordBreak: "keep-all" }}>{displayChange}</span>
-          </div>
-        )}
-      </div>
-      <div className="mt-3 h-1 bg-secondary rounded-full overflow-hidden">
+      {/* ROW 4 — Progress bar */}
+      <div className="mt-auto h-[3px] bg-secondary rounded-full overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: noData ? "0%" : displayPositive ? "72%" : "45%" }}
