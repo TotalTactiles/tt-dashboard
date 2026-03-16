@@ -11,6 +11,7 @@ import EventModal from "@/components/calendar/EventModal";
 import { useDashboardData, type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const CALENDAR_WRITE_WEBHOOK = 'https://n8n.srv1437130.hstgr.cloud/webhook/calendar-write';
 
@@ -19,6 +20,13 @@ const EVENT_SOURCES = ["Google Calendar", "Zoho Calendar", "Zoho Projects"] as c
 
 type EventType = typeof EVENT_TYPES[number];
 type EventSource = typeof EVENT_SOURCES[number];
+
+interface WriteDebug {
+  lastAction: string | null;
+  lastError: string | null;
+  lastSuccess: boolean | null;
+  timestamp: string | null;
+}
 
 const CalendarView = () => {
   const { calendarEvents, upcomingEvents, calendarSummary, setCalendarEvents, syncCalendar } = useDashboardData();
@@ -29,6 +37,9 @@ const CalendarView = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<LiveCalendarEvent | null>(null);
+  const [calendarDebug, setCalendarDebug] = useState<WriteDebug>({
+    lastAction: null, lastError: null, lastSuccess: null, timestamp: null,
+  });
 
   const toggleType = (type: EventType) => {
     setActiveTypes((prev) =>
@@ -77,7 +88,6 @@ const CalendarView = () => {
 
   const handleSaveEvent = useCallback(
     async (action: "create" | "update" | "delete", eventData: Partial<LiveCalendarEvent>) => {
-      // Optimistic update
       const prevEvents = [...calendarEvents];
       if (action === "create") {
         const newEvent: LiveCalendarEvent = {
@@ -120,10 +130,6 @@ const CalendarView = () => {
           },
         };
 
-        console.log("[CalendarWrite] action:", action);
-        console.log("[CalendarWrite] webhookUrl:", CALENDAR_WRITE_WEBHOOK);
-        console.log("[CalendarWrite] payload:", JSON.stringify(writePayload, null, 2));
-
         const { data, error } = await supabase.functions.invoke("n8n-proxy", {
           body: {
             webhookUrl: CALENDAR_WRITE_WEBHOOK,
@@ -131,23 +137,67 @@ const CalendarView = () => {
           },
         });
 
-        console.log("[CalendarWrite] response data:", JSON.stringify(data, null, 2));
-        console.log("[CalendarWrite] response error:", error);
+        if (error || data?._proxyError) {
+          throw new Error(error?.message || data?.error || "Failed to save event");
+        }
 
-        if (error || !data?.success) throw new Error("Failed to save event");
+        setCalendarDebug({
+          lastAction: action,
+          lastError: null,
+          lastSuccess: true,
+          timestamp: new Date().toLocaleString(),
+        });
 
         const actionLabel = action === "create" ? "Event created" : action === "update" ? "Event updated" : "Event deleted";
         toast({ title: actionLabel, className: action === "delete" ? "" : "border-green-500/30" });
 
         setTimeout(() => syncCalendar(), 5000);
       } catch (err: any) {
-        console.error("[CalendarWrite] CATCH error:", err);
+        const errMsg = err?.message || "Unknown error";
+        setCalendarDebug({
+          lastAction: action,
+          lastError: errMsg,
+          lastSuccess: false,
+          timestamp: new Date().toLocaleString(),
+        });
         toast({ title: "Failed to save event — please try again", variant: "destructive" });
         setCalendarEvents(prevEvents);
       }
     },
     [calendarEvents, editingEvent, setCalendarEvents, syncCalendar, toast]
   );
+
+  const debugBadge = (() => {
+    if (calendarDebug.lastSuccess === null) {
+      return (
+        <span className="px-2.5 py-1 rounded-full text-[10px] font-medium bg-muted text-muted-foreground">
+          No writes yet
+        </span>
+      );
+    }
+    if (calendarDebug.lastSuccess) {
+      return (
+        <span className="px-2.5 py-1 rounded-full text-[10px] font-medium bg-emerald-500/15 text-emerald-400">
+          ✓ Last write OK
+        </span>
+      );
+    }
+    return (
+      <Popover>
+        <PopoverTrigger asChild>
+          <button className="px-2.5 py-1 rounded-full text-[10px] font-medium bg-destructive/15 text-destructive cursor-pointer hover:bg-destructive/25 transition-colors">
+            ✕ Last write failed
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-72 text-xs space-y-1.5" side="bottom" align="end">
+          <p className="font-semibold text-destructive">Write Error</p>
+          <p className="text-muted-foreground">Action: <span className="text-foreground">{calendarDebug.lastAction}</span></p>
+          <p className="text-muted-foreground">Time: <span className="text-foreground">{calendarDebug.timestamp}</span></p>
+          <p className="text-muted-foreground break-all">Error: <span className="text-foreground">{calendarDebug.lastError}</span></p>
+        </PopoverContent>
+      </Popover>
+    );
+  })();
 
   return (
     <DashboardLayout>
@@ -156,15 +206,17 @@ const CalendarView = () => {
           <h1 className="text-fluid-2xl font-semibold">Calendar &amp; Deadlines</h1>
           <p className="text-fluid-xs text-muted-foreground font-mono">Event Schedule &amp; Critical Dates</p>
         </div>
-        <button
-          onClick={handleOpenCreate}
-          className="px-4 py-2.5 md:py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors duration-150 touch-target md:min-h-0"
-        >
-          + Add Event
-        </button>
+        <div className="flex items-center gap-2">
+          {debugBadge}
+          <button
+            onClick={handleOpenCreate}
+            className="px-4 py-2.5 md:py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors duration-150 touch-target md:min-h-0"
+          >
+            + Add Event
+          </button>
+        </div>
       </div>
 
-      {/* Filter bar */}
       <div className="mb-4 md:mb-5">
         <CalendarFilters
           activeTypes={activeTypes}
@@ -174,7 +226,6 @@ const CalendarView = () => {
         />
       </div>
 
-      {/* Main split: Calendar grid + Day schedule panel */}
       <div className="flex flex-col lg:flex-row gap-3 md:gap-4 mb-4 md:mb-6">
         <CalendarGrid events={filtered} selectedDate={selectedDate} onSelectDate={setSelectedDate} onEventClick={handleOpenEdit} onAddEvent={handleOpenCreate} />
         <DaySchedulePanel events={filtered} selectedDate={selectedDate} onPrevDay={prevDay} onNextDay={nextDay} onEventClick={handleOpenEdit} />

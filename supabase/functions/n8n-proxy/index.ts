@@ -15,9 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    const body = await req.json();
-    const { webhookUrl, source, payload } = body;
-    console.log("[n8n-proxy] method:", req.method, "webhookUrl:", webhookUrl, "payload:", JSON.stringify(payload)?.substring(0, 500));
+    const { webhookUrl, source, payload } = await req.json();
 
     const targetUrl =
       typeof webhookUrl === "string" && webhookUrl.trim().length > 0
@@ -40,48 +38,39 @@ serve(async (req) => {
 
     const response = await fetch(targetUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      headers: { "Content-Type": "application/json" },
       body: forwardBody,
     });
 
-    const rawText = await response.text();
+    // Handle empty or non-JSON upstream responses gracefully
+    let data: any = {};
+    const text = await response.text();
+    if (text && text.trim().length > 0) {
+      try {
+        let parsed = JSON.parse(text);
+        // Unwrap n8n array envelope
+        if (Array.isArray(parsed)) parsed = parsed[0];
+        // Unwrap n8n Code node { json: {...} } convention
+        if (parsed && typeof parsed === "object" && parsed.json && typeof parsed.json === "object") {
+          parsed = parsed.json;
+        }
+        data = parsed ?? {};
+      } catch {
+        data = { raw: text, _proxyError: false };
+      }
+    }
 
-    // If upstream returned an error, wrap it so client gets a 200 with error info
+    // If upstream returned an error status, flag it
     if (!response.ok) {
-      console.error(`n8n upstream error: ${response.status}`, rawText);
-      return new Response(
-        JSON.stringify({
-          _proxyError: true,
-          error: `n8n returned ${response.status}`,
-          hint: rawText.substring(0, 500),
-          upstreamStatus: response.status,
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      data = { ...data, _proxyError: true, error: `n8n returned ${response.status}`, upstreamStatus: response.status };
     }
 
-    // Parse and unwrap n8n Code node output
-    let parsed: any;
-    try {
-      parsed = JSON.parse(rawText);
-    } catch {
-      return new Response(rawText, {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": response.headers.get("Content-Type") || "text/plain" },
-      });
+    // For write webhooks that return empty 200s, ensure success flag exists
+    if (response.ok && Object.keys(data).length === 0) {
+      data = { success: true };
     }
 
-    // Unwrap: array → first element
-    if (Array.isArray(parsed)) {
-      parsed = parsed[0];
-    }
-
-    // Unwrap: { json: { ... } } → inner object (n8n Code node convention)
-    if (parsed && typeof parsed === "object" && parsed.json && typeof parsed.json === "object") {
-      parsed = parsed.json;
-    }
-
-    return new Response(JSON.stringify(parsed), {
+    return new Response(JSON.stringify(data), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
