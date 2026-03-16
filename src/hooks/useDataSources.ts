@@ -144,6 +144,9 @@ export function useDataSources() {
   const [liveData, setLiveData] = useState<LiveData>(loadCachedData);
   const intervals = useRef<Record<string, ReturnType<typeof setInterval>>>({});
 
+  const [calendarData, setCalendarData] = useState(loadCachedCalendar);
+  const calendarInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const persistSources = useCallback((updated: DataSourceConfig[]) => {
     setSources(updated);
     saveSources(updated);
