@@ -154,7 +154,7 @@ const DashboardContent = () => {
 
       {hasLiveData && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4 mb-4 md:mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-4 md:mb-6">
             {kpiStats.map((stat, i) => (
               <StatCard
                 key={stat.label}
