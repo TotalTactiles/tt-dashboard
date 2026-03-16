@@ -65,6 +65,8 @@ export interface RevenueProject {
   id: string;
   company: string;
   project: string;
+  projectStage: string;
+  stageValue: number;
   valueInclGST: number;
   valueExclGST: number;
   invoiceDate: string;
@@ -353,6 +355,8 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
           id: `R${i}`,
           company: r._label_company ?? "",
           project: r._label_project ?? "",
+          projectStage: String(r._label_projectStage ?? "").trim(),
+          stageValue: parseNum(r._label_stageValue ?? 0),
           valueInclGST: valInc,
           valueExclGST: Math.round(valExc * 100) / 100,
           invoiceDate: r._label_invoiceDate ?? "",
