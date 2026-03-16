@@ -134,7 +134,7 @@ const CalendarView = () => {
         toast({ title: actionLabel, className: action === "delete" ? "" : "border-green-500/30" });
 
         // Resync after 5 seconds to pull fresh calendar data
-        setTimeout(() => syncNow("google_sheets"), 5000);
+        setTimeout(() => syncCalendar(), 5000);
       } catch (err: any) {
         toast({ title: "Failed to save event — please try again", variant: "destructive" });
         setCalendarEvents(prevEvents);
