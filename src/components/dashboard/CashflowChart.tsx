@@ -65,7 +65,7 @@ const CashflowChart = () => {
       {incomeOutgoingsData.length === 0 ? (
         <NoData message="No cashflow data" healthStatus={dataHealth.cashflow.status} />
       ) : (
-        <ResponsiveContainer width="100%" height={220}>
+        <ResponsiveContainer width="100%" height={220} minHeight={160}>
           <AreaChart data={incomeOutgoingsData}>
             <defs>
               <linearGradient id="splitFill" x1="0" y1="0" x2="0" y2="1">

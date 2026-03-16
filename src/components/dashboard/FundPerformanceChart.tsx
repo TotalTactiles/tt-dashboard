@@ -72,7 +72,7 @@ const FundPerformanceChart = () => {
         <NoData message="No profit margin data" healthStatus={dataHealth.cashflow.status} />
       ) : (
         <>
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height={200} minHeight={160}>
             <LineChart data={profitMarginData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
               <XAxis dataKey="month" stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" />

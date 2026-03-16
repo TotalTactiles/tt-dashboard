@@ -195,7 +195,7 @@ const PortfolioChart = () => {
         </div>
       ) : (
         <div className="relative">
-          <ResponsiveContainer width="100%" height={260}>
+          <ResponsiveContainer width="100%" height={220} minHeight={180}>
             <ComposedChart data={filteredData} barGap={2}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
               <XAxis dataKey="month" stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" />
