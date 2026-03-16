@@ -1,7 +1,6 @@
 import { useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, ReferenceLine, Cell } from "recharts";
-import { TrendingUp, TrendingDown } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 import NoData from "./NoData";
@@ -30,6 +29,14 @@ function parseMonth(label: string): { month: number; year: number } | null {
   return { month: MONTH_ABBR_LIST.indexOf(match[1]), year: 2000 + parseInt(match[2]) };
 }
 
+function getCurrentQuarter(): QuarterFilter {
+  const m = new Date().getMonth();
+  if (m <= 2) return "Q1";
+  if (m <= 5) return "Q2";
+  if (m <= 8) return "Q3";
+  return "Q4";
+}
+
 function loadPref<T>(key: string, fallback: T): T {
   try {
     const v = localStorage.getItem(key);
@@ -41,16 +48,7 @@ function loadPref<T>(key: string, fallback: T): T {
 const PortfolioChart = () => {
   const { incomeOutgoingsData, dataHealth } = useDashboardData();
 
-  const [showForecast, setShowForecast] = useState(() => loadPref("cashflow_show_forecast", false));
-  const [quarter, setQuarter] = useState<QuarterFilter>(() => loadPref("cashflow_quarter_filter", "all"));
-
-  const toggleForecast = useCallback(() => {
-    setShowForecast((prev) => {
-      const next = !prev;
-      localStorage.setItem("cashflow_show_forecast", JSON.stringify(next));
-      return next;
-    });
-  }, []);
+  const [quarter, setQuarter] = useState<QuarterFilter>(() => loadPref("cashflow_quarter_filter", getCurrentQuarter()));
 
   const setQuarterFilter = useCallback((q: QuarterFilter) => {
     setQuarter(q);
@@ -59,22 +57,15 @@ const PortfolioChart = () => {
 
   // Current month
   const now = new Date();
-  const currentMonthIdx = now.getMonth();
   const currentYear = now.getFullYear();
   const currentMonthAbbr = now.toLocaleString("en-US", { month: "short" });
   const currentYearShort = String(currentYear).slice(-2);
   const currentMonthLabel = `${currentMonthAbbr}-${currentYearShort}`;
 
-  // Filter data based on forecast toggle + quarter
+  // Filter data — always include all data (forecast always on), just filter by quarter
   const filteredData = useMemo(() => {
     let data = incomeOutgoingsData;
 
-    // If forecast is off, only show up to current month
-    if (!showForecast) {
-      data = data.filter((d) => !d.isFuture);
-    }
-
-    // Apply quarter filter
     if (quarter !== "all") {
       const qMonths = QUARTER_MONTHS[quarter];
       data = data.filter((d) => {
@@ -84,20 +75,11 @@ const PortfolioChart = () => {
     }
 
     return data;
-  }, [incomeOutgoingsData, showForecast, quarter]);
-
-  // Check if selected quarter is entirely in the future
-  const quarterIsFuture = useMemo(() => {
-    if (quarter === "all" || showForecast) return false;
-    const qMonths = QUARTER_MONTHS[quarter];
-    // All months in this quarter are after current month
-    return qMonths.every((m) => m > currentMonthIdx);
-  }, [quarter, showForecast, currentMonthIdx]);
+  }, [incomeOutgoingsData, quarter]);
 
   // Determine the year(s) spanned for quarter label
   const quarterYear = useMemo(() => {
     if (quarter === "all") return "";
-    // Use the first data point's year or current year
     const first = incomeOutgoingsData.find((d) => {
       const p = parseMonth(d.month);
       return p && QUARTER_MONTHS[quarter].includes(p.month);
@@ -168,35 +150,20 @@ const PortfolioChart = () => {
           <h3 className="text-sm font-medium text-muted-foreground">Income vs Outgoings</h3>
           <p className="text-xl font-mono font-bold text-foreground">Monthly Cash Flow</p>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Quarter pills */}
-          <div className="flex items-center gap-1">
-            {quarterButtons.map((q) => (
-              <button
-                key={q.key}
-                onClick={() => setQuarterFilter(q.key)}
-                className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-medium transition-all ${
-                  quarter === q.key
-                    ? "bg-emerald-600/90 text-white"
-                    : "bg-transparent border border-border text-muted-foreground hover:border-muted-foreground/50"
-                }`}
-              >
-                {q.label}
-              </button>
-            ))}
-          </div>
-          {/* Forecast toggle */}
-          <button
-            onClick={toggleForecast}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono font-medium transition-all ${
-              showForecast
-                ? "bg-emerald-600/90 text-white"
-                : "bg-transparent border border-border text-muted-foreground hover:border-muted-foreground/50"
-            }`}
-          >
-            {showForecast ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
-            {showForecast ? "Hide Forecast" : "Show Forecast"}
-          </button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {quarterButtons.map((q) => (
+            <button
+              key={q.key}
+              onClick={() => setQuarterFilter(q.key)}
+              className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-medium transition-all ${
+                quarter === q.key
+                  ? "bg-emerald-600/90 text-white"
+                  : "bg-transparent border border-border text-muted-foreground hover:border-muted-foreground/50"
+              }`}
+            >
+              {q.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -206,12 +173,10 @@ const PortfolioChart = () => {
           <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "hsl(200, 80%, 50%)" }} />
           <span className="text-muted-foreground">Income</span>
         </div>
-        {showForecast && (
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "hsl(200, 80%, 50%)", opacity: 0.35 }} />
-            <span className="text-muted-foreground">Income (Probable)</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "hsl(200, 80%, 50%)", opacity: 0.35 }} />
+          <span className="text-muted-foreground">Income (Probable)</span>
+        </div>
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "hsl(0, 72%, 55%)" }} />
           <span className="text-muted-foreground">Outgoings</span>
@@ -224,20 +189,6 @@ const PortfolioChart = () => {
 
       {incomeOutgoingsData.length === 0 ? (
         <NoData message="No cashflow data" healthStatus={dataHealth.cashflow.status} />
-      ) : quarterIsFuture ? (
-        /* Future quarter with forecast off */
-        <div className="flex flex-col items-center justify-center h-[220px] gap-3">
-          <p className="text-sm text-muted-foreground font-mono">
-            {quarter} {quarterYear} is in the future
-          </p>
-          <button
-            onClick={toggleForecast}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-mono font-medium bg-emerald-600/90 text-white hover:bg-emerald-600 transition-all"
-          >
-            <TrendingUp className="w-3.5 h-3.5" />
-            Enable forecast to view {quarter} data
-          </button>
-        </div>
       ) : filteredData.length === 0 ? (
         <div className="flex items-center justify-center h-[220px]">
           <p className="text-sm text-muted-foreground font-mono">No data for this period</p>
@@ -318,7 +269,7 @@ const PortfolioChart = () => {
                 }}
               />
               {/* Today indicator */}
-              {hasCurrentMonth && showForecast && (
+              {hasCurrentMonth && (
                 <ReferenceLine
                   yAxisId="bars"
                   x={currentMonthLabel}
@@ -370,15 +321,6 @@ const PortfolioChart = () => {
               />
             </ComposedChart>
           </ResponsiveContainer>
-          {/* Right-edge fade when forecast is hidden */}
-          {!showForecast && quarter === "all" && (
-            <div
-              className="absolute top-0 right-0 w-16 h-full pointer-events-none"
-              style={{
-                background: "linear-gradient(to right, transparent, hsl(220, 18%, 8%) 80%)",
-              }}
-            />
-          )}
         </div>
       )}
 
@@ -386,10 +328,8 @@ const PortfolioChart = () => {
       <div className="mt-2 text-[10px] font-mono text-muted-foreground/60">
         {quarter !== "all" ? (
           <span>Viewing {quarter} {quarterYear} · {QUARTER_LABELS[quarter]}</span>
-        ) : !showForecast ? (
-          <span>Showing {rangeLabel} · Toggle forecast to see full year</span>
         ) : (
-          <span>Showing {rangeLabel} · Forecast enabled</span>
+          <span>Showing {rangeLabel}</span>
         )}
       </div>
     </motion.div>
