@@ -215,7 +215,8 @@ const RevenueProjectsTable = () => {
     return pages;
   }, [currentPage, totalPages]);
 
-  const fmtDollar = (v: number) => `$${v.toLocaleString()}`;
+  const fmtDollar = (v: number) => `$${v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+  const fmtGpPct = (gp: number, rev: number) => rev > 0 ? `${((gp / rev) * 100).toFixed(2)}%` : "0.00%";
 
   const renderPillRow = (
     label: string,
@@ -384,7 +385,7 @@ const RevenueProjectsTable = () => {
               </thead>
               <tbody>
                 {pageProjects.map((proj, i) => {
-                  const gpPct = proj.valueExclGST > 0 ? ((proj.grossProfit / proj.valueExclGST) * 100).toFixed(1) : "0.0";
+                  const gpPct = fmtGpPct(proj.grossProfit, proj.valueExclGST);
                   return (
                     <motion.tr
                       key={proj.id}
@@ -423,27 +424,27 @@ const RevenueProjectsTable = () => {
                   );
                 })}
               </tbody>
-              {/* Sticky total row */}
+              {/* Total row — bold teal style matching Quoted Jobs */}
               <tfoot>
-                <tr className="border-t-2 border-border bg-secondary/40 font-semibold text-xs font-mono">
-                  <td className="py-3 pr-4" colSpan={2}>
+                <tr className="bg-[#0d9e6e] text-white font-bold text-sm font-mono">
+                  <td className="py-4 pr-4 pl-3" colSpan={2}>
                     <div className="flex items-center gap-2">
-                      <Table2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      <Table2 className="h-4 w-4" />
                       <span>Total ({filteredProjects.length} projects)</span>
                     </div>
                   </td>
-                  <td className="py-3 pr-4"></td>{/* Stage */}
-                  <td className="py-3 pr-4"></td>{/* Stage Value */}
-                  <td className="py-3 pr-4 text-right font-mono">{fmtDollar(totalValueInclGST)}</td>
-                  <td className="py-3 pr-4 text-right font-mono">{fmtDollar(totalRevenue)}</td>
-                  <td className="py-3 pr-4"></td>{/* Invoice */}
-                  <td className="py-3 pr-4"></td>{/* Due */}
-                  <td className="py-3 pr-4 text-right font-mono text-chart-red">{fmtDollar(totalLabour)}</td>
-                  <td className="py-3 pr-4 text-right font-mono text-chart-red">{fmtDollar(totalTactile)}</td>
-                  <td className="py-3 pr-4 text-right font-mono text-chart-red">{fmtDollar(totalOther)}</td>
-                  <td className="py-3 pr-4 text-right font-mono text-chart-red">{fmtDollar(totalCOGS)}</td>
-                  <td className={`py-3 pr-4 text-right font-mono ${totalGP >= 0 ? "text-chart-green" : "text-chart-red"}`}>{fmtDollar(totalGP)}</td>
-                  <td className="py-3"></td>{/* Status */}
+                  <td className="py-4 pr-4"></td>
+                  <td className="py-4 pr-4"></td>
+                  <td className="py-4 pr-4 text-right">{fmtDollar(totalValueInclGST)}</td>
+                  <td className="py-4 pr-4 text-right">{fmtDollar(totalRevenue)}</td>
+                  <td className="py-4 pr-4"></td>
+                  <td className="py-4 pr-4"></td>
+                  <td className="py-4 pr-4 text-right">{fmtDollar(totalLabour)}</td>
+                  <td className="py-4 pr-4 text-right">{fmtDollar(totalTactile)}</td>
+                  <td className="py-4 pr-4 text-right">{fmtDollar(totalOther)}</td>
+                  <td className="py-4 pr-4 text-right">{fmtDollar(totalCOGS)}</td>
+                  <td className="py-4 pr-4 text-right">{fmtDollar(totalGP)}</td>
+                  <td className="py-4"></td>
                 </tr>
               </tfoot>
             </table>
