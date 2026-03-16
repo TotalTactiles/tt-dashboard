@@ -122,6 +122,14 @@ function loadCachedData(): LiveData {
   return {};
 }
 
+function loadCachedCalendar(): { calendarEvents: any[]; upcomingEvents: any[]; calendarSummary: any } {
+  try {
+    const cached = localStorage.getItem(CALENDAR_CACHE_KEY);
+    if (cached) return JSON.parse(cached);
+  } catch {}
+  return { calendarEvents: [], upcomingEvents: [], calendarSummary: { totalEvents: 0, upcomingCount: 0, byType: {} } };
+}
+
 function saveSources(sources: DataSourceConfig[]) {
   const toSave = sources.map((s) => ({ ...s, loading: false }));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
