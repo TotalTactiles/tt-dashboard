@@ -381,15 +381,58 @@ export function useDataSources() {
   const connectedCount = sources.filter((s) => s.connected).length;
   const hasLiveData = Object.keys(liveData).some((k) => !k.startsWith("_"));
 
+  // ===== Calendar-specific polling (3 min) =====
+  const fetchCalendar = useCallback(async () => {
+    try {
+      const { data: responseData, error } = await supabase.functions.invoke("n8n-proxy", {
+        body: { webhookUrl: CALENDAR_READ_WEBHOOK, source: "calendar" },
+      });
+
+      if (error) throw new Error(error.message || "Calendar proxy request failed");
+      if (responseData?._proxyError) throw new Error(responseData.error || "Calendar proxy error");
+
+      // Unwrap n8n envelope
+      let unwrapped = responseData;
+      if (Array.isArray(unwrapped)) unwrapped = unwrapped[0];
+      if (unwrapped?.json && typeof unwrapped.json === "object") unwrapped = unwrapped.json;
+
+      const calEvents = Array.isArray(unwrapped?.calendarEvents) ? unwrapped.calendarEvents : [];
+      const upEvents = Array.isArray(unwrapped?.upcomingEvents) ? unwrapped.upcomingEvents : [];
+      const calSummary = unwrapped?.calendarSummary ?? { totalEvents: 0, upcomingCount: 0, byType: {} };
+
+      if (calEvents.length === 0) {
+        console.warn('[Calendar Poll] calendarEvents empty from tt-calendar-read webhook');
+      }
+
+      const newData = { calendarEvents: calEvents, upcomingEvents: upEvents, calendarSummary: calSummary };
+      setCalendarData(newData);
+      localStorage.setItem(CALENDAR_CACHE_KEY, JSON.stringify(newData));
+      console.log(`[Calendar Poll] Fetched ${calEvents.length} events`);
+    } catch (err: any) {
+      console.error('[Calendar Poll] Error:', err.message);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Initial fetch + 3 min interval
+    fetchCalendar();
+    calendarInterval.current = setInterval(fetchCalendar, CALENDAR_POLL_INTERVAL);
+    return () => {
+      if (calendarInterval.current) clearInterval(calendarInterval.current);
+    };
+  }, [fetchCalendar]);
+
   return {
     sources,
     liveData,
+    calendarData,
     hasLiveData,
     connectedCount,
     toggleConnection,
     updateWebhookUrl,
     saveAndTest,
     syncNow,
+    syncCalendar: fetchCalendar,
     updateScreenshot,
     removeScreenshot,
   };
