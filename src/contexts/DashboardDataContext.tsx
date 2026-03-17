@@ -543,9 +543,9 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         value: noData ? "--" : fmtAUD(parseNum(qs?.totalWon?.value ?? 0)),
         change: noData ? "--" : `${parseNum(qs?.totalWon?.count ?? 0)} jobs`,
         positive: true, noData,
-        altValue: noData ? "--" : fmtAUD(parseNum(qs?.totalYellow?.value ?? 0)),
+        altValue: noData ? "--" : fmtAUD(parseNum(qs?.totalWon?.value ?? 0) + parseNum(qs?.totalYellow?.value ?? 0)),
         altChange: noData ? "--" : `${parseNum(qs?.totalYellow?.count ?? 0)} YLW jobs`,
-        altPositive: parseNum(qs?.totalYellow?.value ?? 0) > 0,
+        altPositive: (parseNum(qs?.totalWon?.value ?? 0) + parseNum(qs?.totalYellow?.value ?? 0)) > 0,
         altDiff: noData ? undefined : (() => {
           const diff = parseNum(qs?.totalYellow?.value ?? 0);
           return diff > 0 ? `+${fmtAUD(diff)}` : undefined;
