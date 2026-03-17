@@ -510,8 +510,9 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     // ===== KPI STAT CARDS =====
     const noData = !hasLiveData;
 
-    // Card 4: Net Revenue = sum(totalIncome) - sum(totalCostOfSales)
-    const netRevenue = months.reduce((s, m) => s + sv(cs?.totalIncome, m) - Math.abs(sv(cs?.totalCostOfSales, m)), 0);
+    // Card 4: Net Revenue = revenueSummary.totalValue - revenueSummary.totalCOGS (unified with formulaEngine)
+    const rs = liveData?.revenueSummary as any;
+    const netRevenue = (parseNum(rs?.totalValue ?? 0)) - (parseNum(rs?.totalCOGS ?? 0));
 
     // Card 5: Cashflow Position = last non-zero anticipatedSurplus, fallback to Closing Balance
     let cashflowPosition = 0;
