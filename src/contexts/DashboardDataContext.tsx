@@ -510,8 +510,9 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     // ===== KPI STAT CARDS =====
     const noData = !hasLiveData;
 
-    // Card 4: Net Revenue = sum(totalIncome) - sum(totalCostOfSales)
-    const netRevenue = months.reduce((s, m) => s + sv(cs?.totalIncome, m) - Math.abs(sv(cs?.totalCostOfSales, m)), 0);
+    // Card 4: Net Revenue = revenueSummary.totalValue - revenueSummary.totalCOGS (unified with formulaEngine)
+    const rs = liveData?.revenueSummary as any;
+    const netRevenue = (parseNum(rs?.totalValue ?? 0)) - (parseNum(rs?.totalCOGS ?? 0));
 
     // Card 5: Cashflow Position = last non-zero anticipatedSurplus, fallback to Closing Balance
     let cashflowPosition = 0;
@@ -542,11 +543,11 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         value: noData ? "--" : fmtAUD(parseNum(qs?.totalWon?.value ?? 0)),
         change: noData ? "--" : `${parseNum(qs?.totalWon?.count ?? 0)} jobs`,
         positive: true, noData,
-        altValue: noData ? "--" : fmtAUD(parseNum(qs?.ylwPlusGrn?.value ?? 0)),
-        altChange: noData ? "--" : `${parseNum(qs?.ylwPlusGrn?.count ?? 0)} jobs With YLWs`,
-        altPositive: parseNum(qs?.ylwPlusGrn?.value ?? 0) > 0,
+        altValue: noData ? "--" : fmtAUD(parseNum(qs?.totalYellow?.value ?? 0)),
+        altChange: noData ? "--" : `${parseNum(qs?.totalYellow?.count ?? 0)} YLW jobs`,
+        altPositive: parseNum(qs?.totalYellow?.value ?? 0) > 0,
         altDiff: noData ? undefined : (() => {
-          const diff = parseNum(qs?.ylwPlusGrn?.value ?? 0) - parseNum(qs?.totalWon?.value ?? 0);
+          const diff = parseNum(qs?.totalYellow?.value ?? 0);
           return diff > 0 ? `+${fmtAUD(diff)}` : undefined;
         })(),
       },
@@ -574,13 +575,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         change: noData ? "--" : `${parseNum(qs?.totalWon?.count ?? 0)} won of ${parseNum(qs?.totalQuoted?.count ?? 0)}`,
         positive: parseNum(qs?.conversionRate ?? 0) >= 20, noData,
         altValue: noData ? "--" : (() => {
-          const ylwCount = parseNum(qs?.ylwPlusGrn?.count ?? 0);
+          const ylwCount = parseNum(qs?.totalYellow?.count ?? 0);
           const totalCount = parseNum(qs?.totalQuoted?.count ?? 0);
           const rate = totalCount > 0 ? (ylwCount / totalCount) * 100 : 0;
           return `${rate.toFixed(1)}%`;
         })(),
-        altChange: noData ? "--" : `${parseNum(qs?.ylwPlusGrn?.count ?? 0)} incl. verbal of ${parseNum(qs?.totalQuoted?.count ?? 0)}`,
-        altPositive: parseNum(qs?.ylwPlusGrn?.count ?? 0) > 0,
+        altChange: noData ? "--" : `${parseNum(qs?.totalYellow?.count ?? 0)} verbal of ${parseNum(qs?.totalQuoted?.count ?? 0)}`,
+        altPositive: parseNum(qs?.totalYellow?.count ?? 0) > 0,
       },
     ];
 

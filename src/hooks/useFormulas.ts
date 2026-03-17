@@ -7,7 +7,6 @@ export interface MetricFormula {
   description: string;
   unit: string;
   category: string;
-  screenshotUrl?: string;
   dashboardCard?: string;
   dataSource?: string;
 }

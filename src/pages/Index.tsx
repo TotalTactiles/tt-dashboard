@@ -174,14 +174,21 @@ const DashboardContent = () => {
   };
 
   const getCardValue = (stat: any) => {
-    // If goal-adjusted, use the pre-computed adjusted value
-    if (stat.goalAdjusted) return stat.value;
+    // Priority: 1) formula cache as BASE, 2) apply goal delta on top, 3) raw stat.value
     const match = getFormulaForCard(stat.label);
     if (match) {
-      const v = match.cached.value!;
-      if (stat.label === "Conversion Rate") return `${v.toFixed(1)}%`;
-      return fmtAUD(v);
+      let baseValue = match.cached.value!;
+      // If goal-adjusted, apply the goal delta on top of formula result
+      if (stat.goalAdjusted) {
+        const rawStatNum = parseFloat(kpiStats.find(s => s.label === stat.label)?.value?.replace(/[^0-9.-]/g, "") ?? "0") || 0;
+        const adjustedNum = parseFloat(stat.value.replace(/[^0-9.-]/g, "")) || 0;
+        const goalDelta = adjustedNum - rawStatNum;
+        baseValue = baseValue + goalDelta;
+      }
+      if (stat.label === "Conversion Rate") return `${baseValue.toFixed(1)}%`;
+      return fmtAUD(baseValue);
     }
+    // No formula — use goal-adjusted or raw value as-is
     return stat.value;
   };
 
