@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { MetricFormula, getAvailableVariables, DASHBOARD_CARDS, DATA_SOURCES } from "@/hooks/useFormulas";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,9 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import ScreenshotUpload from "@/components/shared/ScreenshotUpload";
 import FieldPicker from "@/components/goals/FieldPicker";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
+import { formatMetricValue } from "@/lib/formatMetricValue";
 
 const CATEGORIES = ["Financial", "Operational", "Growth", "Efficiency", "Custom"];
 const UNITS = ["$", "%", "#", "x"];
@@ -32,7 +32,6 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial, kpi
   const [description, setDescription] = useState(initial?.description ?? "");
   const [unit, setUnit] = useState(initial?.unit ?? "%");
   const [category, setCategory] = useState(initial?.category ?? "Financial");
-  const [screenshotUrl, setScreenshotUrl] = useState(initial?.screenshotUrl ?? "");
   const [dashboardCard, setDashboardCard] = useState(initial?.dashboardCard ?? "");
   const [dataSource, setDataSource] = useState(initial?.dataSource ?? "Google Sheets");
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -44,7 +43,6 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial, kpi
       setDescription(initial.description ?? "");
       setUnit(initial.unit ?? "%");
       setCategory(initial.category ?? "Financial");
-      setScreenshotUrl(initial.screenshotUrl ?? "");
       setDashboardCard(initial.dashboardCard ?? "");
       setDataSource(initial.dataSource ?? "Google Sheets");
     } else {
@@ -53,17 +51,28 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial, kpi
       setDescription("");
       setUnit("%");
       setCategory("Financial");
-      setScreenshotUrl("");
       setDashboardCard("");
       setDataSource("Google Sheets");
     }
   }, [initial]);
 
+  // Live Values: parse expression tokens and match against kpiVariables
+  const liveValues = useMemo(() => {
+    if (!expression || !resolvedKpi || Object.keys(resolvedKpi).length === 0) return [];
+    const tokens = expression
+      .split(/[+\-*/() ]+/)
+      .map(t => t.trim())
+      .filter(t => t && isNaN(Number(t)));
+    const seen = new Set<string>();
+    return tokens
+      .filter(t => t in resolvedKpi && !seen.has(t) && (seen.add(t), true))
+      .map(t => ({ name: t, value: resolvedKpi[t] }));
+  }, [expression, resolvedKpi]);
+
   const handleSubmit = () => {
     if (!name || !expression) return;
     onSubmit({
       name, expression, description, unit, category,
-      screenshotUrl: screenshotUrl || undefined,
       dashboardCard: dashboardCard || undefined,
       dataSource: dataSource || undefined,
     });
@@ -119,6 +128,21 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial, kpi
               ))}
             </div>
 
+            {/* Live Values */}
+            {liveValues.length > 0 && (
+              <div className="mt-2">
+                <p className="text-[10px] text-muted-foreground font-mono mb-1">Live Values</p>
+                <div className="flex flex-wrap gap-1">
+                  {liveValues.map(({ name: vName, value }) => (
+                    <span key={vName} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 bg-secondary text-[10px] font-mono">
+                      <span className="text-muted-foreground">{vName}</span>
+                      <span className="text-emerald-400">= {formatMetricValue(value, "currency")}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Field Picker toggle */}
             <Collapsible open={pickerOpen} onOpenChange={setPickerOpen}>
               <CollapsibleTrigger className="text-[10px] font-mono text-muted-foreground hover:text-foreground cursor-pointer mt-2 inline-block">
@@ -156,15 +180,6 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial, kpi
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Reference Screenshot (where data lives in source)</Label>
-            <ScreenshotUpload
-              currentUrl={screenshotUrl}
-              onUpload={setScreenshotUrl}
-              onRemove={() => setScreenshotUrl("")}
-            />
           </div>
 
           <Button onClick={handleSubmit} className="w-full" disabled={!name || !expression}>
