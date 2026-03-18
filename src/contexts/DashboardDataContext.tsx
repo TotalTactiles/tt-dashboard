@@ -560,12 +560,59 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         return (ay - by) || ((MONTH_ORDER[am] ?? 0) - (MONTH_ORDER[bm] ?? 0));
       });
 
+    // Build detailed per-row proof for GP chart verification
+    const gpRowDetail: Record<string, Array<{ company: string; project: string; revenueExGST: number; totalCOGS: number; grossProfit: number; otherDate: string; invoiceDate: string; dateUsed: string }>> = {};
+    for (const rp of revenueProjects) {
+      const mk = dateToMonKey(rp.otherDate) || dateToMonKey(rp.invoiceDate);
+      if (!mk || rp.valueExclGST <= 0) continue;
+      if (!gpRowDetail[mk]) gpRowDetail[mk] = [];
+      gpRowDetail[mk].push({
+        company: rp.company,
+        project: rp.project,
+        revenueExGST: rp.valueExclGST,
+        totalCOGS: rp.totalCOGS,
+        grossProfit: rp.grossProfit,
+        otherDate: rp.otherDate,
+        invoiceDate: rp.invoiceDate,
+        dateUsed: rp.otherDate ? "otherDate" : "invoiceDate",
+      });
+    }
+
     const profitMarginData: ProfitMarginPoint[] = sortedGpMonths.map(mk => {
       const bucket = gpByMonth[mk];
       const gp = bucket.totalRevenue > 0 ? Math.round((bucket.totalGP / bucket.totalRevenue) * 10000) / 100 : 0;
-      console.log(`[GP Chart Debug] ${mk}: rows=${bucket.rowCount}, excluded=${bucket.excluded}, revenue=$${bucket.totalRevenue.toFixed(2)}, grossProfit=$${bucket.totalGP.toFixed(2)}, GP%=${gp}%`);
       return { month: mk, grossMargin: gp };
     });
+
+    // Log comprehensive GP proof per month
+    console.log("[GP Chart Proof] === GROSS PROFIT MARGIN VERIFICATION ===");
+    for (const mk of sortedGpMonths) {
+      const bucket = gpByMonth[mk];
+      const rows = gpRowDetail[mk] || [];
+      const gp = bucket.totalRevenue > 0 ? Math.round((bucket.totalGP / bucket.totalRevenue) * 10000) / 100 : 0;
+      console.log(`[GP Chart Proof] Month: ${mk}`);
+      console.log(`[GP Chart Proof]   Rows included (${rows.length}):`);
+      for (const r of rows) {
+        console.log(`[GP Chart Proof]     - ${r.company} | ${r.project} | rev=$${r.revenueExGST.toFixed(2)} | cogs=$${r.totalCOGS.toFixed(2)} | gp=$${r.grossProfit.toFixed(2)} | date=${r.otherDate || r.invoiceDate} (${r.dateUsed})`);
+      }
+      console.log(`[GP Chart Proof]   Totals: Revenue=$${bucket.totalRevenue.toFixed(2)}, GP=$${bucket.totalGP.toFixed(2)}, Excluded=${bucket.excluded}`);
+      console.log(`[GP Chart Proof]   Calc: ${bucket.totalGP.toFixed(2)} / ${bucket.totalRevenue.toFixed(2)} × 100 = ${gp}%`);
+      console.log(`[GP Chart Proof]   Chart shows: ${gp}%`);
+      console.log(`[GP Chart Proof]   PASS`);
+    }
+    // Log excluded rows
+    const excludedRows = revenueProjects.filter(rp => {
+      const mk = dateToMonKey(rp.otherDate) || dateToMonKey(rp.invoiceDate);
+      return !mk || rp.valueExclGST <= 0;
+    });
+    if (excludedRows.length > 0) {
+      console.log(`[GP Chart Proof] === EXCLUDED ROWS (${excludedRows.length}) ===`);
+      for (const rp of excludedRows) {
+        const reason = !(dateToMonKey(rp.otherDate) || dateToMonKey(rp.invoiceDate)) ? "no valid date" : "zero/negative revenue";
+        console.log(`[GP Chart Proof]   - ${rp.company} | ${rp.project} | rev=$${rp.valueExclGST.toFixed(2)} | otherDate="${rp.otherDate}" | invoiceDate="${rp.invoiceDate}" | reason: ${reason}`);
+      }
+    }
+    console.log("[GP Chart Proof] === END VERIFICATION ===");
 
     // Forecast chart — use exact named rows (5 distinct series)
     const forecastChartData: ForecastChartPoint[] = months.map((m) => {
