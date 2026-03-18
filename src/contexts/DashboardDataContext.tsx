@@ -634,7 +634,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     }
     // Final fallback: Closing Balance
     if (cashflowPosition === 0) {
-      const closingRow = findCashflowRow("Closing Balance");
+      const closingRow = findCashflowRowExact("Closing Balance");
       const closingKey = closingRow ? findMatchingRowKey(closingRow, currentKeyNorm) : null;
       if (closingRow && closingKey) {
         const val = parseNum(closingRow[closingKey] ?? 0);
