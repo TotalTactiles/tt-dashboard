@@ -300,7 +300,7 @@ function calcWeightedGrossMargin(revenue: RevenueProject[], period: PeriodSpec):
     changeFormatted: diff !== null ? `${diff >= 0 ? "+" : ""}${diff.toFixed(1)}pp` : "--",
     context: isForecast ? `Forecast · ${contextBase}` : contextBase,
     isForecast,
-  } as KPIResult;
+  };
 }
 
 // ── 5. REVENUE PER JOB ────────────────────────────────────────────
