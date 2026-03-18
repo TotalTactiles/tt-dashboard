@@ -46,16 +46,54 @@ const DashboardContent = () => {
   const { goals, updateGoal } = useGoals();
   const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData, quotedJobs } = useDashboardData();
 
-  // ── Shared period state for Project Execution KPIs + Quoted Jobs table ──
+  // ── Shared period state ──
   const periodOptions = useMemo(() => buildPeriodOptions(quotedJobs), [quotedJobs]);
   const defaultPeriodIdx = useMemo(() => {
     const currentKey = getCurrentMonthKey();
     const idx = periodOptions.findIndex((p) => p.mode === "month" && p.months.includes(currentKey));
-    return idx >= 0 ? idx : 0;
+    // fallback to last month option if current month has no data
+    if (idx >= 0) return idx;
+    const monthOptions = periodOptions.filter((p) => p.mode === "month");
+    if (monthOptions.length > 0) {
+      return periodOptions.indexOf(monthOptions[monthOptions.length - 1]);
+    }
+    return 0;
   }, [periodOptions]);
   const [selectedPeriodIdx, setSelectedPeriodIdx] = useState(defaultPeriodIdx);
 
   const selectedPeriod = periodOptions[selectedPeriodIdx] ?? null;
+
+  // ── Independent "All" toggles for each table ──
+  const [showAllQuotedJobs, setShowAllQuotedJobs] = useState(false);
+  const [showAllRevenue, setShowAllRevenue] = useState(false);
+
+  // Find current-year YTD index for auto-switch
+  const currentYearYtdIdx = useMemo(() => {
+    const yr2 = String(new Date().getFullYear()).slice(-2);
+    return periodOptions.findIndex((p) => p.mode === "ytd" && p.key === `YTD-${yr2}`);
+  }, [periodOptions]);
+
+  // When user clicks "All" on a table → switch selector to YTD
+  const handleQuotedJobsAllToggle = useCallback((allOn: boolean) => {
+    setShowAllQuotedJobs(allOn);
+    if (allOn && currentYearYtdIdx >= 0) {
+      setSelectedPeriodIdx(currentYearYtdIdx);
+    }
+  }, [currentYearYtdIdx]);
+
+  const handleRevenueAllToggle = useCallback((allOn: boolean) => {
+    setShowAllRevenue(allOn);
+    if (allOn && currentYearYtdIdx >= 0) {
+      setSelectedPeriodIdx(currentYearYtdIdx);
+    }
+  }, [currentYearYtdIdx]);
+
+  // When user changes the period selector → exit All mode for both tables
+  const handlePeriodChange = useCallback((idx: number) => {
+    setSelectedPeriodIdx(idx);
+    setShowAllQuotedJobs(false);
+    setShowAllRevenue(false);
+  }, []);
 
   const [activeGoalIds, setActiveGoalIds] = useState<Set<string>>(() => loadActiveGoalIds(goals));
 
@@ -107,24 +145,20 @@ const DashboardContent = () => {
   const adjustedKpiStats = useMemo(() => {
     if (!hasActiveGoals) return kpiStats;
 
-    // Current month key e.g. "Mar-26"
     const now = new Date();
     const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const currentMonthKey = `${MONTHS[now.getMonth()]}-${String(now.getFullYear()).slice(-2)}`;
 
-    // Cashflow Position: use current month from adjusted data, fallback to nearest future
     let adjustedCashflowPos = 0;
     const currentPoint = adjustedData.find((p) => p.month === currentMonthKey);
     if (currentPoint && currentPoint.surplus !== 0) {
       adjustedCashflowPos = currentPoint.surplus;
     } else {
-      // Find nearest future month with non-zero surplus
       const currentIdx = adjustedData.findIndex((p) => p.month === currentMonthKey);
       const startIdx = currentIdx >= 0 ? currentIdx : 0;
       for (let i = startIdx; i < adjustedData.length; i++) {
         if (adjustedData[i].surplus !== 0) {adjustedCashflowPos = adjustedData[i].surplus;break;}
       }
-      // If still 0, search backwards
       if (adjustedCashflowPos === 0) {
         for (let i = adjustedData.length - 1; i >= 0; i--) {
           if (adjustedData[i].surplus !== 0) {adjustedCashflowPos = adjustedData[i].surplus;break;}
@@ -132,7 +166,6 @@ const DashboardContent = () => {
       }
     }
 
-    // Net Revenue adjustment from active goals
     let netRevenueAdj = 0;
     const activeGoals = goals.filter((g) => g.merge && activeGoalIds.has(g.id));
     for (const goal of activeGoals) {
@@ -160,7 +193,6 @@ const DashboardContent = () => {
       }
       if (stat.label === "Net Revenue") {
         const baseValue = parseFloat(stat.value.replace(/[^0-9.-]/g, "")) || 0;
-        // Reconstruct from raw value stored in kpiStats
         const adjustedNetRev = baseValue + netRevenueAdj;
         return { ...stat, value: fmtAUD(adjustedNetRev), positive: adjustedNetRev >= 0, goalAdjusted: true };
       }
@@ -187,11 +219,9 @@ const DashboardContent = () => {
   };
 
   const getCardValue = (stat: any) => {
-    // Priority: 1) formula cache as BASE, 2) apply goal delta on top, 3) raw stat.value
     const match = getFormulaForCard(stat.label);
     if (match) {
       let baseValue = match.cached.value!;
-      // If goal-adjusted, apply the goal delta on top of formula result
       if (stat.goalAdjusted) {
         const rawStatNum = parseFloat(kpiStats.find((s) => s.label === stat.label)?.value?.replace(/[^0-9.-]/g, "") ?? "0") || 0;
         const adjustedNum = parseFloat(stat.value.replace(/[^0-9.-]/g, "")) || 0;
@@ -201,7 +231,6 @@ const DashboardContent = () => {
       if (stat.label === "Conversion Rate") return `${baseValue.toFixed(1)}%`;
       return fmtAUD(baseValue);
     }
-    // No formula — use goal-adjusted or raw value as-is
     return stat.value;
   };
 
@@ -337,11 +366,19 @@ const DashboardContent = () => {
             <ForecastChart />
           </div>
 
-          <ProjectExecutionKPIs selectedPeriodIdx={selectedPeriodIdx} onPeriodChange={setSelectedPeriodIdx} />
+          <ProjectExecutionKPIs selectedPeriodIdx={selectedPeriodIdx} onPeriodChange={handlePeriodChange} />
 
           <div className="space-y-4 md:space-y-6">
-            <DealPipeline periodFilter={selectedPeriod} />
-            <RevenueProjectsTable />
+            <DealPipeline
+              periodFilter={selectedPeriod}
+              showAll={showAllQuotedJobs}
+              onAllToggle={handleQuotedJobsAllToggle}
+            />
+            <RevenueProjectsTable
+              periodFilter={selectedPeriod}
+              showAll={showAllRevenue}
+              onAllToggle={handleRevenueAllToggle}
+            />
             <ExpenseBreakdown goals={goals} activeGoalIds={activeGoalIds} />
           </div>
         </>

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { SlidersHorizontal, ChevronLeft, ChevronRight, X, Table2, Search, Columns3, Check, ChevronDown } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatDateMonthYear } from "@/lib/formatDate";
+import type { PeriodSpec } from "@/lib/projectExecutionKpis";
 import NoData from "./NoData";
 
 /* ── Status colour map ── */
@@ -110,7 +111,13 @@ function parseMonthYear(label: string): { month: number; year: number } | null {
 
 const ITEMS_PER_PAGE = 10;
 
-const RevenueProjectsTable = () => {
+interface RevenueProjectsTableProps {
+  periodFilter?: PeriodSpec | null;
+  showAll?: boolean;
+  onAllToggle?: (allOn: boolean) => void;
+}
+
+const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: RevenueProjectsTableProps) => {
   const { revenueProjects, dataHealth } = useDashboardData();
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
@@ -195,6 +202,17 @@ const RevenueProjectsTable = () => {
 
   const filteredProjects = useMemo(() => {
     let projects = [...revenueProjects];
+    // Period filter from master selector (unless "All" is toggled)
+    if (!showAll && periodFilter && periodFilter.months.length > 0) {
+      const monthSet = new Set(periodFilter.months);
+      const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      projects = projects.filter((p) => {
+        const d = parseDateForSort(p.otherDate) || parseDateForSort(p.invoiceDate);
+        if (!d) return false;
+        const key = `${MONTH_ABBR[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
+        return monthSet.has(key);
+      });
+    }
     if (statusFilter !== "all") projects = projects.filter(p => p.status === statusFilter);
     if (stageFilter !== "all") projects = projects.filter(p => p.projectStage === stageFilter);
     if (monthFilter !== "all") {
@@ -368,7 +386,26 @@ const RevenueProjectsTable = () => {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4 gap-2">
-        <h3 className="text-fluid-sm font-medium text-muted-foreground">Revenue &amp; COGS</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-fluid-sm font-medium text-muted-foreground">Revenue &amp; COGS</h3>
+          {periodFilter && (
+            <button
+              onClick={() => { onAllToggle?.(!showAll); setPage(1); }}
+              className={`text-[11px] px-2.5 py-1 rounded-full border font-mono transition-colors ${
+                showAll
+                  ? "bg-chart-green/20 text-chart-green border-chart-green/40"
+                  : "border-border text-muted-foreground hover:bg-secondary/50"
+              }`}
+            >
+              All
+            </button>
+          )}
+          {!showAll && periodFilter && (
+            <span className="text-[10px] font-mono text-muted-foreground/70">
+              {periodFilter.label}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {filteredProjects.length > 0 && (
             <div className="hidden lg:flex items-center gap-4 text-xs font-mono">
