@@ -24,6 +24,8 @@ interface StatCardProps {
   goalAdjusted?: boolean;
   toggleLabelBase?: string;
   toggleLabelAlt?: string;
+  momDelta?: string;
+  momContext?: string;
 }
 
 function timeAgo(ts: number | null): string {
@@ -44,7 +46,7 @@ function abbreviateValue(raw: string): { display: string; abbreviated: boolean }
   return { display: raw, abbreviated: false };
 }
 
-const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted, toggleLabelBase, toggleLabelAlt }: StatCardProps) => {
+const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted, toggleLabelBase, toggleLabelAlt, momDelta, momContext }: StatCardProps) => {
   const [showAlt, setShowAlt] = useState(false);
   const hasToggle = !!altValue;
 
@@ -62,12 +64,15 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
 
   const { display: abbreviatedDisplay } = abbreviateValue(displayValue);
 
+  // Yellow glow on card container when YLW toggle is active
+  const ylwGlowClass = isYellow ? "ring-1 ring-amber-400/40 shadow-[0_0_12px_-3px_hsl(38,92%,55%,0.3)]" : "";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className="stat-card relative overflow-hidden flex flex-col"
+      className={`stat-card relative overflow-hidden flex flex-col ${ylwGlowClass}`}
       style={{ padding: "clamp(10px, 1.5vw, 18px)", minHeight: "90px" }}
     >
       {/* ROW 1 — Label + badges */}
@@ -159,7 +164,29 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
         </Tooltip>
       </div>
 
-      {/* ROW 3 — Secondary metric / change + alt diff */}
+      {/* ROW 3 — MoM delta */}
+      {!noData && momDelta && (
+        <p
+          className="font-mono text-muted-foreground/80 truncate"
+          style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}
+          title={momDelta}
+        >
+          {momDelta}
+        </p>
+      )}
+
+      {/* ROW 3b — Monthly context */}
+      {!noData && momContext && (
+        <p
+          className="font-mono text-muted-foreground/60 truncate"
+          style={{ fontSize: "clamp(7px, 0.75vw, 9px)" }}
+          title={momContext}
+        >
+          {momContext}
+        </p>
+      )}
+
+      {/* ROW 4 — Secondary metric / change + alt diff */}
       <div className="min-w-0 mb-1">
         {showAlt && altDiff && !noData && (
           <p className="font-mono text-amber-400/70 truncate" style={{ fontSize: "clamp(9px, 1vw, 11px)" }} title={`${altDiff} with YLWs`}>
@@ -174,7 +201,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
         )}
       </div>
 
-      {/* ROW 4 — Progress bar */}
+      {/* ROW 5 — Progress bar */}
       <div className="mt-auto h-[3px] bg-secondary rounded-full overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
