@@ -350,7 +350,7 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
                     <td className="py-3.5 pr-4 text-right font-mono">
                       {job.value > 0 ? formatMetricValue(job.value, "currency") : "TBC"}
                     </td>
-                    <td className="py-3 pr-4 text-center">
+                    <td className="py-3.5 pr-4 text-center">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-mono ${getBadgeStyle(job.rawStatus)}`}>
                         {job.rawStatus || "Unknown"}
                       </span>
