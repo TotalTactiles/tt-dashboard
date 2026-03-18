@@ -552,18 +552,16 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       },
       {
         label: "Total Won",
-        value: noData ? "--" : fmtAUD(parseNum(qs?.totalWon?.value ?? 0) + parseNum(qs?.totalYellow?.value ?? 0)),
-        change: noData ? "--" : `${parseNum(qs?.totalWon?.count ?? 0) + parseNum(qs?.totalYellow?.count ?? 0)} jobs`,
+        value: noData ? "--" : fmtAUD(parseNum(qs?.totalWon?.value ?? 0)),
+        change: noData ? "--" : `${parseNum(qs?.totalWon?.count ?? 0)} jobs`,
         positive: true, noData,
-        altValue: noData ? "--" : fmtAUD(parseNum(qs?.totalWon?.value ?? 0)),
-        altChange: noData ? "--" : `${parseNum(qs?.totalWon?.count ?? 0)} confirmed jobs`,
-        altPositive: parseNum(qs?.totalWon?.value ?? 0) > 0,
+        altValue: noData ? "--" : fmtAUD(parseNum(qs?.totalWon?.value ?? 0) + parseNum(qs?.totalYellow?.value ?? 0)),
+        altChange: noData ? "--" : `${parseNum(qs?.totalYellow?.count ?? 0)} YLW jobs`,
+        altPositive: (parseNum(qs?.totalWon?.value ?? 0) + parseNum(qs?.totalYellow?.value ?? 0)) > 0,
         altDiff: noData ? undefined : (() => {
           const ylwVal = parseNum(qs?.totalYellow?.value ?? 0);
-          return ylwVal > 0 ? `incl. ${fmtAUD(ylwVal)} YLW` : undefined;
+          return ylwVal > 0 ? `+${fmtAUD(ylwVal)}` : undefined;
         })(),
-        toggleLabelBase: "All Won",
-        toggleLabelAlt: "Confirmed",
       },
       {
         label: "Quoted Remaining",
