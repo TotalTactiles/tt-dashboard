@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { SlidersHorizontal, ChevronLeft, ChevronRight, X, Table2, Search, Columns3, Check, ChevronDown } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatDateMonthYear } from "@/lib/formatDate";
+import type { PeriodSpec } from "@/lib/projectExecutionKpis";
 import NoData from "./NoData";
 
 /* ── Status colour map ── */

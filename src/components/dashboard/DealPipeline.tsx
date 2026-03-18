@@ -270,7 +270,7 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
           <h3 className="text-fluid-sm font-medium text-muted-foreground">Quoted Jobs</h3>
           {periodFilter && (
             <button
-              onClick={() => { setShowAll((v) => !v); setPage(1); }}
+              onClick={() => { const next = !showAll; onAllToggle?.(next); setPage(1); }}
               className={`text-[11px] px-2.5 py-1 rounded-full border font-mono transition-colors ${
                 showAll
                   ? "bg-chart-green/20 text-chart-green border-chart-green/40"
