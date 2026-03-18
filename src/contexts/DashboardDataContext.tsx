@@ -112,6 +112,8 @@ export interface KPIStat {
   altChange?: string;
   altPositive?: boolean;
   altDiff?: string;
+  toggleLabelBase?: string;
+  toggleLabelAlt?: string;
 }
 
 export interface IncomeOutgoingsPoint {
@@ -148,7 +150,6 @@ export interface SectionHealth {
   status: DataHealthStatus;
   rawCount: number;
   mappedCount: number;
-  estimated?: boolean;
 }
 
 export interface DataHealth {
@@ -233,25 +234,6 @@ export interface DashboardData {
 }
 
 const DashboardDataContext = createContext<DashboardData | null>(null);
-
-// ---- Field resolution helper ----
-// Tries multiple key variants including trimmed versions.
-// This handles column name fragility from Google Sheets (e.g. "Stage " trailing space,
-// "Jobs Stages" vs "Stage", etc.) without requiring n8n to perfectly normalise every field.
-function getFieldValue(row: any, ...keys: string[]): any {
-  if (!row || typeof row !== "object") return undefined;
-  const entries = Object.entries(row);
-  for (const key of keys) {
-    // 1. Direct lookup (fast path)
-    if (row[key] != null) return row[key];
-    // 2. Trimmed + case-insensitive lookup (handles trailing spaces, case differences)
-    const keyNorm = key.trim().toLowerCase();
-    for (const [k, v] of entries) {
-      if (k.trim().toLowerCase() === keyNorm && v != null) return v;
-    }
-  }
-  return undefined;
-}
 
 // ---- Category colors for expenses ----
 const CATEGORY_FILLS: Record<string, string> = {
@@ -364,41 +346,25 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     };
 
     // ===== REVENUE PROJECTS TABLE =====
-    // Filter logic:
-    //   1. If n8n sets _label_isLineItem → trust it (true = include, false = exclude)
-    //   2. Otherwise fall back to heuristic: row must have company/project AND a positive value
-    // Field mapping:
-    //   Tries _label_* prefix first (n8n-normalised), then raw Google Sheets column names.
-    //   getFieldValue also handles trailing-space column names (e.g. "Stage ").
     const revenueProjects: RevenueProject[] = rawRevenue
-      .filter((r: any) => {
-        if (r?._label_isLineItem === true) return true;
-        if (r?._label_isLineItem === false) return false;
-        // Heuristic fallback for raw Google Sheets data
-        const company = String(getFieldValue(r, "Company Name", "Company") ?? "").trim();
-        const project = String(getFieldValue(r, "Project Name", "Deal Name", "Job Name") ?? "").trim();
-        const value = parseNum(getFieldValue(r, "Contract Value ($)", "Total Value", "Amount") ?? 0);
-        const isSummaryRow = /^(grand\s+total|total|sub[\s-]?total|subtotal|all)$/i.test(company) ||
-                             /^(grand\s+total|total|sub[\s-]?total|subtotal|all)$/i.test(project);
-        return !isSummaryRow && (company.length > 0 || project.length > 0) && value > 0;
-      })
+      .filter((r: any) => r?._label_isLineItem === true)
       .map((r: any, i: number) => {
-        const valInc = parseNum(r._label_value ?? getFieldValue(r, "Contract Value ($)", "Total Value", "Amount") ?? 0);
+        const valInc = parseNum(r._label_value ?? 0);
         const valExc = valInc / 1.1;
-        const labour = parseNum(r._label_labourCost ?? getFieldValue(r, "Labour Cost", "Labour") ?? 0);
-        const tactile = parseNum(r._label_tactileCost ?? getFieldValue(r, "Tactile Cost", "Tactile", "Materials Cost") ?? 0);
-        const other = parseNum(r._label_otherCost ?? getFieldValue(r, "Other Cost", "Other") ?? 0);
-        const totalCost = parseNum(r._label_totalCost ?? getFieldValue(r, "Total Costs", "Total Cost", "COGS") ?? 0) || (labour + tactile + other);
+        const labour = parseNum(r._label_labourCost ?? 0);
+        const tactile = parseNum(r._label_tactileCost ?? 0);
+        const other = parseNum(r._label_otherCost ?? 0);
+        const totalCost = parseNum(r._label_totalCost ?? 0) || (labour + tactile + other);
         return {
           id: `R${i}`,
-          company: String(r._label_company ?? getFieldValue(r, "Company Name", "Company") ?? "").trim(),
-          project: String(r._label_project ?? getFieldValue(r, "Project Name", "Deal Name", "Job Name") ?? "").trim(),
-          projectStage: String(r._label_projectStage ?? getFieldValue(r, "Stage", "Job Stage", "Jobs Stage", "Jobs Stages") ?? "").trim(),
-          stageValue: parseNum(r._label_stageValue ?? getFieldValue(r, "Stage Value ($)", "Stage Value") ?? 0),
+          company: r._label_company ?? "",
+          project: r._label_project ?? "",
+          projectStage: String(r._label_projectStage ?? "").trim(),
+          stageValue: parseNum(r._label_stageValue ?? 0),
           valueInclGST: valInc,
           valueExclGST: Math.round(valExc * 100) / 100,
-          invoiceDate: String(r._label_invoiceDate ?? getFieldValue(r, "Invoice Date", "Date", "Closing Date") ?? "").trim(),
-          dueDate: String(r._label_dueDate ?? getFieldValue(r, "Due Date", "Payment Due Date") ?? "").trim(),
+          invoiceDate: r._label_invoiceDate ?? "",
+          dueDate: r._label_dueDate ?? "",
           labourCost: labour,
           tactileCost: tactile,
           otherCost: other,
@@ -409,27 +375,26 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       });
 
     // ===== EXPENSE ITEMS & CATEGORIES =====
-    // Supports three formats in order of preference:
-    //   1. Legacy _label_ prefix (n8n-normalised with _label_isLineItem flag)
-    //   2. New webhook format: { Category, "Sub-Category", "Weekly Cost", ... }
-    //   3. Raw Google Sheets column names via getFieldValue (handles name variants + trailing spaces)
+    // New webhook format: { Category, "Sub-Category", "Weekly Cost", "Monthly Cost", "Yearly Cost" }
+    // Fallback to legacy _label_ format
     const expenseItems: ExpenseItem[] = rawExpenses
       .filter((r: any) => {
-        // Legacy format: trust the explicit flag
+        // New format: exclude TOTAL sub-categories and GRAND TOTAL
+        const subCat = r["Sub-Category"] ?? r._label_name ?? "";
+        const cat = r["Category"] ?? r._label_category ?? "";
+        if (String(subCat).toUpperCase() === "TOTAL" || String(subCat).toUpperCase() === "ALL") return false;
+        if (String(cat).toUpperCase() === "GRAND TOTAL") return false;
+        // Legacy format
         if (r._label_isLineItem !== undefined) return r._label_isLineItem === true;
-        // Otherwise resolve sub-category and category with all known column name variants
-        const subCat = String(getFieldValue(r, "Sub-Category", "Description", "Item", "Name", "_label_name") ?? "").trim();
-        const cat = String(getFieldValue(r, "Category", "Group", "Type", "_label_category") ?? "").trim();
-        if (subCat.toUpperCase() === "TOTAL" || subCat.toUpperCase() === "ALL") return false;
-        if (cat.toUpperCase() === "GRAND TOTAL") return false;
-        return subCat.length > 0;
+        // New format: must have a sub-category
+        return !!subCat;
       })
       .map((r: any) => ({
-        name: String(r._label_name ?? getFieldValue(r, "Sub-Category", "Description", "Item", "Name") ?? "").trim(),
-        category: String(r._label_category ?? getFieldValue(r, "Category", "Group", "Type") ?? "Uncategorised").trim(),
-        weeklyCost: parseNum(r._label_weeklyCost ?? getFieldValue(r, "Weekly Cost", "$/week", "Weekly") ?? 0),
-        monthlyCost: parseNum(r._label_monthlyCost ?? getFieldValue(r, "Monthly Cost", "$/month", "Monthly") ?? 0),
-        yearlyCost: parseNum(r._label_yearlyCost ?? getFieldValue(r, "Yearly Cost", "$/year", "Yearly") ?? 0),
+        name: String(r["Sub-Category"] ?? r._label_name ?? "").trim(),
+        category: String(r["Category"] ?? r._label_category ?? "Uncategorised").trim(),
+        weeklyCost: parseNum(r["Weekly Cost"] ?? r._label_weeklyCost ?? 0),
+        monthlyCost: parseNum(r["Monthly Cost"] ?? r._label_monthlyCost ?? 0),
+        yearlyCost: parseNum(r["Yearly Cost"] ?? r._label_yearlyCost ?? 0),
       }));
 
     console.log("[Expenses Debug] line items:", expenseItems.length, "categories:", [...new Set(expenseItems.map(i => i.category))]);
@@ -447,24 +412,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       totalYearly: items.reduce((s, i) => s + i.yearlyCost, 0),
     }));
 
-    // Grand total row — try both raw column names and _label_ prefix
-    const grandTotalRow = rawExpenses.find(
-      (r: any) => String(getFieldValue(r, "Category", "Group", "Type", "_label_category") ?? "").toUpperCase() === "GRAND TOTAL"
-    );
-    // If n8n sends a GRAND TOTAL row, use it; otherwise compute from line items.
-    const grandTotalExpense: GrandTotalExpense | null = grandTotalRow
-      ? {
-          weeklyCost: parseNum(grandTotalRow._label_weeklyCost ?? getFieldValue(grandTotalRow, "Weekly Cost", "$/week", "Weekly") ?? 0),
-          monthlyCost: parseNum(grandTotalRow._label_monthlyCost ?? getFieldValue(grandTotalRow, "Monthly Cost", "$/month", "Monthly") ?? 0),
-          yearlyCost: parseNum(grandTotalRow._label_yearlyCost ?? getFieldValue(grandTotalRow, "Yearly Cost", "$/year", "Yearly") ?? 0),
-        }
-      : expenseItems.length > 0
-        ? {
-            weeklyCost: expenseItems.reduce((s, i) => s + i.weeklyCost, 0),
-            monthlyCost: expenseItems.reduce((s, i) => s + i.monthlyCost, 0),
-            yearlyCost: expenseItems.reduce((s, i) => s + i.yearlyCost, 0),
-          }
-        : null;
+    // Grand total row
+    const grandTotalRow = rawExpenses.find((r: any) => String(r["Category"] ?? "").toUpperCase() === "GRAND TOTAL");
+    const grandTotalExpense: GrandTotalExpense | null = grandTotalRow ? {
+      weeklyCost: parseNum(grandTotalRow["Weekly Cost"] ?? 0),
+      monthlyCost: parseNum(grandTotalRow["Monthly Cost"] ?? 0),
+      yearlyCost: parseNum(grandTotalRow["Yearly Cost"] ?? 0),
+    } : null;
 
     // ===== EXPENSE ALLOCATION (PIE) =====
     let fillIdx = 0;
@@ -558,30 +512,34 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     // ===== KPI STAT CARDS =====
     const noData = !hasLiveData;
 
-    // Card 4: Net Revenue = revenueSummary.totalValue - revenueSummary.totalCOGS
-    // Primary path: use n8n-computed revenueSummary (totalValue is incl GST from the REVENUE tab).
-    // Fallback: if revenueSummary is absent/zero, derive from already-parsed revenueProjects
-    //   (sum of grossProfit = sum of valueExclGST - totalCOGS).
+    // Card 4: Net Revenue = revenueSummary.totalValue - revenueSummary.totalCOGS (unified with formulaEngine)
     const rs = liveData?.revenueSummary as any;
-    const rsNetRevenue = parseNum(rs?.totalValue ?? 0) - parseNum(rs?.totalCOGS ?? 0);
-    const netRevenue = rsNetRevenue !== 0
-      ? rsNetRevenue
-      : revenueProjects.reduce((sum, p) => sum + p.grossProfit, 0);
+    const netRevenue = (parseNum(rs?.totalValue ?? 0)) - (parseNum(rs?.totalCOGS ?? 0));
 
-    // Card 5: Cashflow Position = last non-zero anticipatedSurplus, fallback to Closing Balance
+    // Card 5: Cashflow Position = current month's anticipatedSurplus, fallback to most recent past month
+    const currentMonthKey = `${MONTH_ABBR_LIST[currentMonthIdx]}-${String(currentYear).slice(-2)}`;
     let cashflowPosition = 0;
-    for (let i = months.length - 1; i >= 0; i--) {
-      const val = sv(cs?.anticipatedSurplus, months[i]);
-      if (val !== 0) { cashflowPosition = val; break; }
+    // Try current month first
+    const currentMonthSurplus = sv(cs?.anticipatedSurplus, currentMonthKey);
+    if (currentMonthSurplus !== 0 || (cs?.anticipatedSurplus && currentMonthKey in cs.anticipatedSurplus)) {
+      cashflowPosition = currentMonthSurplus;
+    } else {
+      // Fallback: most recent past month with non-zero value
+      for (let i = months.length - 1; i >= 0; i--) {
+        const parsed = parseMonthLabel(months[i]);
+        if (!parsed) continue;
+        // Skip future months
+        if (parsed.year > currentYear || (parsed.year === currentYear && parsed.month > currentMonthIdx)) continue;
+        const val = sv(cs?.anticipatedSurplus, months[i]);
+        if (val !== 0) { cashflowPosition = val; break; }
+      }
     }
-    // Fallback: try Closing Balance row from raw cashflow
+    // Final fallback: try Closing Balance row
     if (cashflowPosition === 0) {
       const closingRow = findCashflowRow("Closing Balance");
       if (closingRow) {
-        for (let i = months.length - 1; i >= 0; i--) {
-          const val = parseNum(closingRow[months[i]] ?? 0);
-          if (val !== 0) { cashflowPosition = val; break; }
-        }
+        const val = parseNum(closingRow[currentMonthKey] ?? 0);
+        if (val !== 0) cashflowPosition = val;
       }
     }
 
@@ -594,16 +552,18 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       },
       {
         label: "Total Won",
-        value: noData ? "--" : fmtAUD(parseNum(qs?.totalWon?.value ?? 0)),
-        change: noData ? "--" : `${parseNum(qs?.totalWon?.count ?? 0)} jobs`,
+        value: noData ? "--" : fmtAUD(parseNum(qs?.totalWon?.value ?? 0) + parseNum(qs?.totalYellow?.value ?? 0)),
+        change: noData ? "--" : `${parseNum(qs?.totalWon?.count ?? 0) + parseNum(qs?.totalYellow?.count ?? 0)} jobs`,
         positive: true, noData,
-        altValue: noData ? "--" : fmtAUD(parseNum(qs?.totalWon?.value ?? 0) + parseNum(qs?.totalYellow?.value ?? 0)),
-        altChange: noData ? "--" : `${parseNum(qs?.totalYellow?.count ?? 0)} YLW jobs`,
-        altPositive: (parseNum(qs?.totalWon?.value ?? 0) + parseNum(qs?.totalYellow?.value ?? 0)) > 0,
+        altValue: noData ? "--" : fmtAUD(parseNum(qs?.totalWon?.value ?? 0)),
+        altChange: noData ? "--" : `${parseNum(qs?.totalWon?.count ?? 0)} confirmed jobs`,
+        altPositive: parseNum(qs?.totalWon?.value ?? 0) > 0,
         altDiff: noData ? undefined : (() => {
-          const diff = parseNum(qs?.totalYellow?.value ?? 0);
-          return diff > 0 ? `+${fmtAUD(diff)}` : undefined;
+          const ylwVal = parseNum(qs?.totalYellow?.value ?? 0);
+          return ylwVal > 0 ? `incl. ${fmtAUD(ylwVal)} YLW` : undefined;
         })(),
+        toggleLabelBase: "All Won",
+        toggleLabelAlt: "Confirmed",
       },
       {
         label: "Quoted Remaining",
@@ -640,28 +600,6 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     ];
 
     // KPI variables via formula engine
-    // expensesSummary fallback: if n8n doesn't return it, estimate from parsed expense items.
-    // WARNING: this is an estimate — it excludes subtotal rows and may miss columns not in the
-    // alias list. It will not match n8n's pre-computed value exactly. Prefer fixing the n8n
-    // workflow to always return expensesSummary.
-    const expensesSummaryIsEstimated = !liveData.expensesSummary;
-    if (expensesSummaryIsEstimated) {
-      console.warn(
-        "[DashboardData] expensesSummary absent from webhook — falling back to client-side estimate. " +
-        "MonthlyExpenses / YearlyExpenses KPI values may be understated. Fix: ensure n8n returns expensesSummary."
-      );
-    }
-    const computedExpensesSummary = liveData.expensesSummary ?? (
-      expenseItems.length > 0
-        ? {
-            totalWeekly: expenseItems.reduce((s, i) => s + i.weeklyCost, 0),
-            totalMonthly: expenseItems.reduce((s, i) => s + i.monthlyCost, 0),
-            totalYearly: expenseItems.reduce((s, i) => s + i.yearlyCost, 0),
-            _estimated: true,
-          }
-        : { _estimated: true }
-    );
-
     const storeSnapshot: DataStore = {
       quotes: rawQuotes,
       qtsSmmry: liveData.qtsSmmry ?? [],
@@ -673,7 +611,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       quotesSummary: qs ?? {},
       cashflowSummary: cs ?? {},
       revenueSummary: liveData.revenueSummary ?? {},
-      expensesSummary: computedExpensesSummary,
+      expensesSummary: liveData.expensesSummary ?? {},
     };
     const kpiVariables = resolveKpiVariables(storeSnapshot);
 
@@ -687,7 +625,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       quotes: health(rawQuotes, quotedJobs),
       cashflow: months.length > 0 ? { status: "healthy", rawCount: rawCashflow.length, mappedCount: months.length } : health(rawCashflow, []),
       revenue: health(rawRevenue, revenueProjects),
-      expenses: { ...health(rawExpenses, expenseItems), ...(expensesSummaryIsEstimated ? { estimated: true } : {}) },
+      expenses: health(rawExpenses, expenseItems),
     };
 
     const lastUpdated = meta?.pulledAt ?? null;

@@ -22,6 +22,8 @@ interface StatCardProps {
   altPositive?: boolean;
   altDiff?: string;
   goalAdjusted?: boolean;
+  toggleLabelBase?: string;
+  toggleLabelAlt?: string;
 }
 
 function timeAgo(ts: number | null): string {
@@ -42,7 +44,7 @@ function abbreviateValue(raw: string): { display: string; abbreviated: boolean }
   return { display: raw, abbreviated: false };
 }
 
-const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted }: StatCardProps) => {
+const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted, toggleLabelBase, toggleLabelAlt }: StatCardProps) => {
   const [showAlt, setShowAlt] = useState(false);
   const hasToggle = !!altValue;
 
@@ -121,7 +123,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <span className="hidden sm:inline">Confirmed</span>
+              <span className="hidden sm:inline">{toggleLabelBase ?? "Confirmed"}</span>
               <span className="sm:hidden">✓</span>
             </button>
             <button
@@ -132,8 +134,8 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <span className="hidden xl:inline">With YLWs</span>
-              <span className="xl:hidden">YLW</span>
+              <span className="hidden xl:inline">{toggleLabelAlt ?? "With YLWs"}</span>
+              <span className="xl:hidden">{toggleLabelAlt ? toggleLabelAlt.slice(0, 4) : "YLW"}</span>
             </button>
           </div>
         </div>

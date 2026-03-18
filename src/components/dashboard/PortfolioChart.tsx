@@ -64,7 +64,11 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
   const currentMonthLabel = `${currentMonthAbbr}-${currentYearShort}`;
 
   const filteredData = useMemo(() => {
-    let data = sourceData;
+    let data = sourceData.map(d => ({
+      ...d,
+      // Ensure outgoings always display as positive magnitude (safety for mixed-sign source data)
+      outgoings: Math.abs(d.outgoings),
+    }));
     if (quarter !== "all") {
       const qMonths = QUARTER_MONTHS[quarter];
       data = data.filter((d) => {
