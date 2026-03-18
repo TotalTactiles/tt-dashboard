@@ -4,6 +4,7 @@ import { SlidersHorizontal, ChevronLeft, ChevronRight, X, Calculator, ChevronDow
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 import { formatDateMonthYear } from "@/lib/formatDate";
+import type { PeriodSpec } from "@/lib/projectExecutionKpis";
 import NoData from "./NoData";
 
 function getBadgeStyle(rawStatus: string): string {
