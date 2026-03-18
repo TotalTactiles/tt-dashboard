@@ -97,7 +97,9 @@ export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardPr
             <Calculator className="h-3.5 w-3.5 text-accent shrink-0" />
             <h3 className="text-sm font-semibold text-foreground truncate">{formula.name}</h3>
           </div>
-          <p className="text-xs text-muted-foreground line-clamp-1">{formula.description}</p>
+          <p className="text-xs text-muted-foreground whitespace-pre-line leading-relaxed max-h-40 overflow-y-auto pr-1">
+            {formula.description}
+          </p>
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
           <Badge variant="outline" className="text-[10px] border-border text-muted-foreground">

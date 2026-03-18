@@ -19,17 +19,21 @@ function loadTarget(): number {
   return 30;
 }
 
-const GP_EXPLANATION = `Source: REVENUE sheet (deal-level rows)
-Month grouping: "Other Date" field (fallback: Invoice Date), normalised to Mon-YY
-Revenue used: Value ex. GST
-Cost used: Total COGS
-Gross Profit = Revenue ex. GST − Total COGS
+const GP_EXPLANATION = `Gross Profit Margin
+• Source: REVENUE sheet (deal-level rows)
+• Month grouping: Other Date, fallback Invoice Date, normalised to Mon-YY
+• Revenue used: Value ex GST
+• Cost used: Total COGS
+• Gross Profit = Revenue ex GST − Total COGS
+• Monthly GP% = Σ(Gross Profit) ÷ Σ(Revenue ex GST) × 100
+• This is a weighted monthly GP%, not a simple average of row GP%s
 
-Monthly GP% = Σ(Gross Profit) ÷ Σ(Revenue ex. GST) × 100
-This is a weighted monthly GP%, not a simple average of row-level GP%.
-
-Net Profit Margin% = (Total Income − Total Outgoings) ÷ Total Income × 100
-Sourced from the CASHFLOW sheet monthly totals.`;
+Net Profit Margin
+• Source basis: same REVENUE month buckets as Gross Profit Margin
+• Operating Expenses source: Business Expenses monthly operating total
+• Net Profit = Σ(Gross Profit) − Monthly Operating Expenses
+• Net Profit % = Net Profit ÷ Σ(Revenue ex GST) × 100
+• Directly comparable to GP% because both lines use the same months and denominator`;
 
 const FundPerformanceChart = () => {
   const { profitMarginData, dataHealth } = useDashboardData();
@@ -71,7 +75,7 @@ const FundPerformanceChart = () => {
     if (e.key === "Escape") cancelEdit();
   };
 
-  const hasNetProfit = profitMarginData.some(d => d.netProfitMargin !== null);
+  const hasNetProfit = profitMarginData.some((d) => d.netProfitMargin !== null);
 
   return (
     <motion.div
@@ -95,7 +99,7 @@ const FundPerformanceChart = () => {
         </Popover>
       </div>
       {profitMarginData.length === 0 ? (
-        <NoData message="No profit margin data" healthStatus={dataHealth.cashflow.status} />
+        <NoData message="No profit margin data" healthStatus={dataHealth.revenue.status} />
       ) : (
         <>
           <ResponsiveContainer width="100%" height={220} minHeight={180}>

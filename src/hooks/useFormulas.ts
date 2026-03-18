@@ -19,6 +19,7 @@ export const DASHBOARD_CARDS = [
   "Net Revenue",
   "Cashflow Position",
   "Monthly Expenses",
+  "Gross Profit Margin",
   "Forecast Chart",
   "Deal Pipeline",
   "Revenue Projects Table",
@@ -35,6 +36,43 @@ export const DATA_SOURCES = [
 
 const STORAGE_KEY = "meridian_formulas";
 const SEED_KEY = "meridian_formulas_seeded";
+const FORMULA_MIGRATION_KEY = "meridian_formulas_v4_gross_margin_split";
+
+const GROSS_PROFIT_MARGIN_DESCRIPTION = `What is calculated:
+• Gross Profit Margin % for each month shown in the chart
+• The formula card result mirrors the latest available chart month
+
+How it is calculated:
+• Source: REVENUE sheet (deal-level rows)
+• Month grouping: Other Date, fallback Invoice Date, normalised to Mon-YY
+• Revenue used: Value ex GST (valueExclGST)
+• Cost used: Total COGS (totalCOGS)
+• Gross Profit = Revenue ex GST − Total COGS
+• Monthly GP% = Σ(monthly Gross Profit) ÷ Σ(monthly Revenue ex GST) × 100
+• This is a weighted monthly GP%, not a simple average of row GP%s
+
+Why it matters:
+• Shows how efficiently project revenue converts into gross profit before operating expenses
+• Lets the dashboard compare monthly delivery margin against the saved target threshold
+
+Source fields / rows used:
+• REVENUE line-item rows only
+• Other Date / Invoice Date
+• _label_value, _label_totalCost, _label_labourCost, _label_tactileCost, _label_otherCost`;
+
+const GROSS_MARGIN_TARGET_DESCRIPTION = `Target threshold only for the Gross Profit Margin chart.
+
+What this controls:
+• The dashed target reference line shown on the chart face
+
+How it works:
+• Editable manual value
+• Saved to localStorage under gross_margin_target
+• Persists until manually edited and saved again
+
+Important:
+• This does not define Gross Profit Margin logic
+• This does not change how GP% is calculated`;
 
 const DEFAULT_FORMULAS: Omit<MetricFormula, "id">[] = [
   { name: "Total Quoted", expression: "TotalQuoted", description: "Sum of all quoted project values", unit: "$", category: "Financial", dashboardCard: "Total Quoted", dataSource: "Google Sheets" },
@@ -44,7 +82,8 @@ const DEFAULT_FORMULAS: Omit<MetricFormula, "id">[] = [
   { name: "Net Revenue", expression: "NetRevenue", description: "Revenue minus cost of sales", unit: "$", category: "Financial", dashboardCard: "Net Revenue", dataSource: "Google Sheets" },
   { name: "Cashflow Position", expression: "CashPosition", description: "Current available cash position", unit: "$", category: "Financial", dashboardCard: "Cashflow Position", dataSource: "Google Sheets" },
   { name: "Monthly Expenses", expression: "MonthlyExpenses", description: "Total monthly operating expenses", unit: "$", category: "Operational", dashboardCard: "Monthly Expenses", dataSource: "Google Sheets" },
-  { name: "Gross Margin Target", expression: "GrossMarginTarget", description: "Editable target threshold for the Gross Profit Margin chart.\n\nChart Calculation (Gross Profit Margin %):\n• Source: REVENUE sheet (deal-level rows)\n• Month grouping: 'Other Date' field (fallback: Invoice Date), normalised to Mon-YY\n• Revenue used: Value ex. GST (valueExclGST)\n• Cost used: Total COGS (totalCOGS)\n• Gross Profit = Revenue ex. GST − Total COGS\n• Monthly GP% = Σ(monthly Gross Profit) ÷ Σ(monthly Revenue ex. GST) × 100\n• This is a weighted monthly GP%, NOT a simple average of row-level GP%.\n\nThe target value is a manually set threshold (default 30%) shown as a dashed reference line on the chart. It persists in localStorage and does not change unless manually edited.", unit: "%", category: "Growth", dataSource: "Google Sheets" },
+  { name: "Gross Profit Margin", expression: "GrossProfitMargin", description: GROSS_PROFIT_MARGIN_DESCRIPTION, unit: "%", category: "Growth", dashboardCard: "Gross Profit Margin", dataSource: "Google Sheets" },
+  { name: "Gross Margin Target", expression: "GrossMarginTarget", description: GROSS_MARGIN_TARGET_DESCRIPTION, unit: "%", category: "Growth", dataSource: "Manual" },
   { name: "Conversion Rate (Incl. Verbal)", expression: "YLWplusGRN / TotalQuoted * 100", description: "Won + Verbal Confirmation vs total quoted percentage", unit: "%", category: "Growth", dashboardCard: "Conversion Rate", dataSource: "Google Sheets" },
   { name: "Total Won (With YLWs)", expression: "YLWplusGRN", description: "Total won value including Verbal Confirmation (YLW) jobs", unit: "$", category: "Financial", dashboardCard: "Total Won", dataSource: "Google Sheets" },
 ];
@@ -116,6 +155,7 @@ export function evaluateExpression(
 const DEFAULT_VARIABLE_NAMES = [
   "TotalQuoted", "TotalWon", "QuotedRemaining",
   "ConversionRate", "NetRevenue", "CashPosition", "MonthlyExpenses",
+  "GrossProfitMargin", "GrossMarginTarget",
 ];
 
 export function getAvailableVariables(kpiVariables?: Record<string, number>): string[] {
@@ -125,28 +165,74 @@ export function getAvailableVariables(kpiVariables?: Record<string, number>): st
   return DEFAULT_VARIABLE_NAMES;
 }
 
-const RESEED_KEY = "meridian_formulas_v3_seeded";
+function upsertSystemFormula(
+  formulas: MetricFormula[],
+  systemFormula: Omit<MetricFormula, "id">
+): { formulas: MetricFormula[]; changed: boolean } {
+  const index = formulas.findIndex((formula) => formula.name === systemFormula.name);
+  if (index === -1) {
+    return {
+      formulas: [...formulas, { ...systemFormula, id: crypto.randomUUID() }],
+      changed: true,
+    };
+  }
+
+  const existing = formulas[index];
+  const nextFormula: MetricFormula = {
+    ...existing,
+    expression: systemFormula.expression,
+    description: systemFormula.description,
+    unit: systemFormula.unit,
+    category: systemFormula.category,
+    dashboardCard: systemFormula.dashboardCard,
+    dataSource: systemFormula.dataSource,
+  };
+
+  const changed = JSON.stringify(existing) !== JSON.stringify(nextFormula);
+  if (!changed) return { formulas, changed: false };
+
+  const next = [...formulas];
+  next[index] = nextFormula;
+  return { formulas: next, changed: true };
+}
+
+function migrateStoredFormulas(formulas: MetricFormula[]): MetricFormula[] {
+  let next = [...formulas];
+  let changed = false;
+
+  for (const systemFormulaName of ["Gross Profit Margin", "Gross Margin Target"]) {
+    const systemFormula = DEFAULT_FORMULAS.find((formula) => formula.name === systemFormulaName);
+    if (!systemFormula) continue;
+    const result = upsertSystemFormula(next, systemFormula);
+    next = result.formulas;
+    changed = changed || result.changed;
+  }
+
+  return changed ? next : formulas;
+}
 
 function loadFormulas(): MetricFormula[] {
   try {
-    // Force re-seed if old defaults are present
-    if (!localStorage.getItem(RESEED_KEY)) {
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(SEED_KEY);
-      localStorage.setItem(RESEED_KEY, "true");
-    }
-
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-    
-    // Seed defaults on first load
-    if (!localStorage.getItem(SEED_KEY)) {
-      const seeded = DEFAULT_FORMULAS.map((f) => ({ ...f, id: crypto.randomUUID() }));
+
+    if (!raw) {
+      const seeded = DEFAULT_FORMULAS.map((formula) => ({ ...formula, id: crypto.randomUUID() }));
       localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
       localStorage.setItem(SEED_KEY, "true");
+      localStorage.setItem(FORMULA_MIGRATION_KEY, "true");
       return seeded;
     }
-    return [];
+
+    const parsed = JSON.parse(raw) as MetricFormula[];
+
+    if (!localStorage.getItem(FORMULA_MIGRATION_KEY)) {
+      const migrated = migrateStoredFormulas(parsed);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+      localStorage.setItem(FORMULA_MIGRATION_KEY, "true");
+      return migrated;
+    }
+
+    return parsed;
   } catch {
     return [];
   }
