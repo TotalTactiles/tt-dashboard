@@ -8,6 +8,7 @@ import DealPipeline from "@/components/dashboard/DealPipeline";
 import CashflowChart from "@/components/dashboard/CashflowChart";
 import FundPerformanceChart from "@/components/dashboard/FundPerformanceChart";
 import ForecastChart from "@/components/dashboard/ForecastChart";
+import ProjectExecutionKPIs from "@/components/dashboard/ProjectExecutionKPIs";
 import RevenueProjectsTable from "@/components/dashboard/RevenueProjectsTable";
 import ExpenseBreakdown from "@/components/dashboard/ExpenseBreakdown";
 import DashboardLayout from "@/components/DashboardLayout";
