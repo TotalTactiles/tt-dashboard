@@ -355,7 +355,7 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
                         {job.rawStatus || "Unknown"}
                       </span>
                     </td>
-                    <td className="py-3 font-mono text-xs text-muted-foreground">
+                    <td className="py-3.5 font-mono text-xs text-muted-foreground">
                       {formatDateMonthYear(job.dateQuoted)}
                     </td>
                   </motion.tr>

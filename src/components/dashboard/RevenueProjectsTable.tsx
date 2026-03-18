@@ -563,7 +563,7 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
                     className={`border-b border-border/50 hover:bg-secondary/30 transition-colors ${i % 2 === 1 ? "bg-secondary/[0.06]" : ""}`}
                   >
                     {visibleColDefs.map(col => (
-                      <td key={col.key} className={`py-3 pr-4 ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""}`}>
+                       <td key={col.key} className={`py-3.5 pr-4 ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""}`}>
                         {renderCell(proj, col.key)}
                       </td>
                     ))}

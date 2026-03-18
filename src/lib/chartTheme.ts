@@ -25,6 +25,7 @@ export function chartColors() {
     blue: getVar("--chart-blue"),
     amber: getVar("--chart-amber"),
     purple: getVar("--chart-purple"),
+    orange: getVar("--chart-orange"),
     card: getVar("--card"),
     border: getVar("--border"),
     foreground: getVar("--foreground"),

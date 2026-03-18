@@ -88,7 +88,9 @@ const FundPerformanceChart = () => {
                   border: `1px solid ${tc.tooltipBorder}`,
                   borderRadius: "8px",
                   fontFamily: "JetBrains Mono",
-                  fontSize: "12px",
+                  fontSize: "11px",
+                  padding: "8px 12px",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
                 }}
                 formatter={(value: number | null, name: string) => {
                   if (value === null || value === undefined) return ["—", name];

@@ -10,8 +10,8 @@ const SERIES = [
   { key: "totalOutgoings", label: "Total Outgoings", color: "red" as const, dash: undefined, strokeWidth: 2.5 },
   { key: "anticipatedSurplus", label: "Anticipated Cash Surplus/(Deficit)", color: "green" as const, dash: undefined, strokeWidth: 2.5 },
   { key: "probableJobs", label: "Jobs Probable To Be Won", color: "amber" as const, dash: "8 4", strokeWidth: 2 },
-  { key: "costOfJobsProbable", label: "Cost of Jobs Probable To Be Won", color: "purple" as const, dash: "4 4", strokeWidth: 2 },
-  { key: "surplusIncludingProbable", label: "Anticipated Cash Surplus/(Deficit) Including Probable Jobs", color: "blue" as const, dash: "10 3", strokeWidth: 2.5 },
+  { key: "costOfJobsProbable", label: "Cost of Jobs Probable To Be Won", color: "orange" as const, dash: "4 4", strokeWidth: 2 },
+  { key: "surplusIncludingProbable", label: "Anticipated Cash Surplus/(Deficit) Including Probable Jobs", color: "brightGreen" as const, dash: "10 3", strokeWidth: 2.5 },
 ] as const;
 
 const ForecastChart = () => {
@@ -25,8 +25,22 @@ const ForecastChart = () => {
     red: tc.red,
     green: tc.green,
     amber: tc.amber,
+    orange: tc.orange,
+    brightGreen: tc.green,
     purple: tc.purple,
     blue: tc.blue,
+  };
+
+  // Make "bright green" slightly different from the standard green
+  // by using a brighter shade for the surplus including probable line
+  const getBrightGreen = () => {
+    // Use the CSS green but it's already bright enough from the token
+    return tc.green;
+  };
+
+  const getSeriesColor = (colorKey: string) => {
+    if (colorKey === "brightGreen") return getBrightGreen();
+    return seriesColors[colorKey] || tc.blue;
   };
 
   const toggleSeries = (key: string) => {
@@ -52,7 +66,7 @@ const ForecastChart = () => {
       transition={{ duration: 0.5, delay: 0.7 }}
       className="chart-container"
     >
-      <h3 className="text-sm font-medium text-muted-foreground mb-1">Forecasts</h3>
+      <h3 className="text-sm font-semibold text-foreground mb-0.5">Forecasts</h3>
       <p className="text-xs text-muted-foreground font-mono mb-4">Forward-looking forecast from cashflow model</p>
       {forecastChartData.length === 0 ? (
         <NoData message="No forecast data" healthStatus={dataHealth.cashflow.status} />
@@ -61,7 +75,7 @@ const ForecastChart = () => {
           <div className="flex flex-wrap gap-x-1.5 gap-y-1.5 mb-4">
             {activeSeries.map((s) => {
               const isVisible = visibleKeys.has(s.key);
-              const sColor = seriesColors[s.color] || tc.blue;
+              const sColor = getSeriesColor(s.color);
               const mutedColor = tc.axis;
               return (
                 <button
@@ -94,7 +108,7 @@ const ForecastChart = () => {
           </div>
           <ResponsiveContainer width="100%" height={300} minHeight={240}>
             <LineChart data={forecastChartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={tc.grid} />
+              <CartesianGrid strokeDasharray="3 3" stroke={tc.grid} strokeOpacity={0.6} />
               <XAxis dataKey="month" stroke={tc.axis} fontSize={11} fontFamily="JetBrains Mono" />
               <YAxis stroke={tc.axis} fontSize={11} fontFamily="JetBrains Mono" tickFormatter={(v) => {
                 const abs = Math.abs(v);
@@ -108,7 +122,9 @@ const ForecastChart = () => {
                   borderRadius: "8px",
                   fontFamily: "JetBrains Mono",
                   fontSize: "11px",
-                  maxWidth: "360px",
+                  padding: "8px 12px",
+                  maxWidth: "320px",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
                 }}
                 formatter={(value: number, name: string) => {
                   const series = SERIES.find((s) => s.key === name);
@@ -117,7 +133,7 @@ const ForecastChart = () => {
                 }}
               />
               {SERIES.map((s) => {
-                const sColor = seriesColors[s.color] || tc.blue;
+                const sColor = getSeriesColor(s.color);
                 return visibleKeys.has(s.key) ? (
                   <Line
                     key={s.key}

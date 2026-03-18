@@ -72,15 +72,15 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className={`stat-card relative overflow-hidden flex flex-col ${ylwGlowClass}`}
-      style={{ padding: "clamp(10px, 1.5vw, 18px)", minHeight: "90px" }}
+      className={`stat-card relative overflow-hidden flex flex-col gap-0.5 ${ylwGlowClass}`}
+      style={{ minHeight: "100px" }}
     >
       {/* ROW 1 — Label + badges */}
-      <div className="flex items-start justify-between gap-1 min-w-0 mb-auto">
+      <div className="flex items-start justify-between gap-1 min-w-0">
         <div className="min-w-0 flex-1">
           <p
-            className="text-muted-foreground font-mono uppercase tracking-wide truncate"
-            style={{ fontSize: "clamp(8px, 0.9vw, 11px)" }}
+            className="text-muted-foreground font-mono uppercase tracking-wider truncate font-medium"
+            style={{ fontSize: "clamp(9px, 1vw, 11px)" }}
             title={label}
           >
             {label}
@@ -118,8 +118,8 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
 
       {/* Toggle pills — own row below label when present */}
       {hasToggle && !noData && (
-        <div className="flex mt-1 mb-1">
-          <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(7px, 0.8vw, 10px)" }}>
+        <div className="flex mt-0.5 mb-0.5">
+          <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
             <button
               onClick={() => setShowAlt(false)}
               className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
@@ -147,12 +147,12 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       )}
 
       {/* ROW 2 — Main value */}
-      <div className="min-w-0 my-1">
+      <div className="min-w-0 my-0.5">
         <Tooltip>
           <TooltipTrigger asChild>
             <p
               className={`font-mono font-bold whitespace-nowrap min-w-0 ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}
-              style={{ fontSize: "clamp(18px, 3.5vw, 32px)", lineHeight: 1.1 }}
+              style={{ fontSize: "clamp(20px, 3.5vw, 32px)", lineHeight: 1.15 }}
               title={displayValue}
             >
               {abbreviatedDisplay}
@@ -167,8 +167,8 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       {/* ROW 3 — MoM delta */}
       {!noData && momDelta && (
         <p
-          className="font-mono text-muted-foreground/80 truncate"
-          style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}
+          className="font-mono text-muted-foreground truncate leading-snug"
+          style={{ fontSize: "clamp(9px, 0.9vw, 11px)" }}
           title={momDelta}
         >
           {momDelta}
@@ -178,8 +178,8 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       {/* ROW 3b — Monthly context */}
       {!noData && momContext && (
         <p
-          className="font-mono text-muted-foreground/60 truncate"
-          style={{ fontSize: "clamp(7px, 0.75vw, 9px)" }}
+          className="font-mono text-muted-foreground/80 truncate leading-snug"
+          style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}
           title={momContext}
         >
           {momContext}
@@ -187,9 +187,9 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       )}
 
       {/* ROW 4 — Secondary metric / change + alt diff */}
-      <div className="min-w-0 mb-1">
+      <div className="min-w-0 mt-auto pt-1">
         {showAlt && altDiff && !noData && (
-          <p className="font-mono text-amber-400/70 truncate" style={{ fontSize: "clamp(9px, 1vw, 11px)" }} title={`${altDiff} with YLWs`}>
+          <p className="font-mono text-amber-400/80 truncate" style={{ fontSize: "clamp(9px, 1vw, 11px)" }} title={`${altDiff} with YLWs`}>
             ↑ {altDiff} with YLWs
           </p>
         )}
@@ -202,7 +202,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       </div>
 
       {/* ROW 5 — Progress bar */}
-      <div className="mt-auto h-[3px] bg-secondary rounded-full overflow-hidden">
+      <div className="mt-1.5 h-[3px] bg-secondary rounded-full overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: noData ? "0%" : displayPositive ? "72%" : "45%" }}
