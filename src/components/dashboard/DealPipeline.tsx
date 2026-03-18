@@ -265,9 +265,28 @@ const DealPipeline = ({ periodFilter }: DealPipelineProps) => {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-fluid-sm font-medium text-muted-foreground">Quoted Jobs</h3>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono text-muted-foreground hidden sm:inline">{quotedJobs.length} jobs</span>
+          <h3 className="text-fluid-sm font-medium text-muted-foreground">Quoted Jobs</h3>
+          {periodFilter && (
+            <button
+              onClick={() => { setShowAll((v) => !v); setPage(1); }}
+              className={`text-[11px] px-2.5 py-1 rounded-full border font-mono transition-colors ${
+                showAll
+                  ? "bg-chart-green/20 text-chart-green border-chart-green/40"
+                  : "border-border text-muted-foreground hover:bg-secondary/50"
+              }`}
+            >
+              All
+            </button>
+          )}
+          {!showAll && periodFilter && (
+            <span className="text-[10px] font-mono text-muted-foreground/70">
+              {periodFilter.label}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-mono text-muted-foreground hidden sm:inline">{filteredJobs.length} jobs</span>
           {/* Mobile filter button */}
           <button
             onClick={() => setShowFilters(!showFilters)}
