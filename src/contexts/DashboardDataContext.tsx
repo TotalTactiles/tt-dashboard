@@ -115,6 +115,8 @@ export interface KPIStat {
   altDiff?: string;
   toggleLabelBase?: string;
   toggleLabelAlt?: string;
+  momDelta?: string;
+  momContext?: string;
 }
 
 export interface IncomeOutgoingsPoint {
