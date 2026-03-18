@@ -377,7 +377,9 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         const company = String(getFieldValue(r, "Company Name", "Company") ?? "").trim();
         const project = String(getFieldValue(r, "Project Name", "Deal Name", "Job Name") ?? "").trim();
         const value = parseNum(getFieldValue(r, "Contract Value ($)", "Total Value", "Amount") ?? 0);
-        return (company.length > 0 || project.length > 0) && value > 0;
+        const isSummaryRow = /^(grand\s+total|total|sub[\s-]?total|subtotal|all)$/i.test(company) ||
+                             /^(grand\s+total|total|sub[\s-]?total|subtotal|all)$/i.test(project);
+        return !isSummaryRow && (company.length > 0 || project.length > 0) && value > 0;
       })
       .map((r: any, i: number) => {
         const valInc = parseNum(r._label_value ?? getFieldValue(r, "Contract Value ($)", "Total Value", "Amount") ?? 0);
