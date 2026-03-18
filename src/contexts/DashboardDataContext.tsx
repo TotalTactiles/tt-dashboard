@@ -356,6 +356,8 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         const tactile = parseNum(r._label_tactileCost ?? 0);
         const other = parseNum(r._label_otherCost ?? 0);
         const totalCost = parseNum(r._label_totalCost ?? 0) || (labour + tactile + other);
+        // "Other Date" is the business date for month grouping; fall back to invoiceDate
+        const otherDate = String(r["Other Date"] ?? r._label_otherDate ?? r._label_invoiceDate ?? "").trim();
         return {
           id: `R${i}`,
           company: r._label_company ?? "",
@@ -372,6 +374,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
           totalCOGS: totalCost,
           grossProfit: Math.round((valExc - totalCost) * 100) / 100,
           status: normalizeRevenueStatus(r.Status ?? r.status ?? "pending"),
+          otherDate,
         };
       });
 
