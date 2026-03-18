@@ -86,17 +86,6 @@ const FundPerformanceChart = () => {
     >
       <div className="flex items-center gap-2 mb-4">
         <h3 className="text-sm font-medium text-muted-foreground">Gross Profit Margin (%)</h3>
-        <Popover>
-          <PopoverTrigger asChild>
-            <button className="text-muted-foreground hover:text-foreground transition-colors">
-              <Info className="h-3.5 w-3.5" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-96 text-xs font-mono leading-relaxed whitespace-pre-line" side="bottom" align="start">
-            <p className="font-semibold text-foreground mb-2">How this chart is calculated</p>
-            <p className="text-muted-foreground">{GP_EXPLANATION}</p>
-          </PopoverContent>
-        </Popover>
       </div>
       {profitMarginData.length === 0 ? (
         <NoData message="No profit margin data" healthStatus={dataHealth.revenue.status} />
