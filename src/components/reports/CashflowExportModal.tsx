@@ -89,6 +89,8 @@ export function CashflowExportModal({ open, onOpenChange }: CashflowExportModalP
         incomeOutgoingsData,
         kpiStats,
         profitMarginData,
+        cashflowPositionRaw,
+        expenseCategories,
       );
 
       if (errors.length > 0 || !reportData) {
