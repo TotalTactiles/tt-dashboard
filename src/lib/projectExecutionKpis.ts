@@ -76,12 +76,13 @@ export function buildPeriodOptions(jobs: QuotedJob[]): PeriodSpec[] {
   // ── Individual month options ──
   for (const { key, date } of parsed) {
     const yr = date.getFullYear();
+    const yr2 = String(yr).slice(-2);
     const mi = date.getMonth();
     const prevMonth = new Date(yr, mi - 1, 1);
     options.push({
       mode: "month",
       key,
-      label: `${MONTH_ABBR[mi]} ${yr}`,
+      label: `${MONTH_ABBR[mi]} ${yr2}`,
       months: [key],
       priorMonths: [dateToMonKey(prevMonth)],
     });
@@ -115,7 +116,7 @@ export function buildPeriodOptions(jobs: QuotedJob[]): PeriodSpec[] {
     options.push({
       mode: "quarter",
       key: qKey,
-      label: `Q${q} ${yr}`,
+      label: `Q${q} ${String(yr).slice(-2)}`,
       months: qMonths,
       priorMonths: prevQMonths,
     });
@@ -134,7 +135,7 @@ export function buildPeriodOptions(jobs: QuotedJob[]): PeriodSpec[] {
     options.push({
       mode: "ytd",
       key: `YTD-${yr2}`,
-      label: `YTD ${yr}`,
+      label: `YTD ${yr2}`,
       months: ytdMonths,
       priorMonths: prevYtdMonths,
     });

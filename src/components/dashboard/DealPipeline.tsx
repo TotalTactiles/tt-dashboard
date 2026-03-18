@@ -4,6 +4,7 @@ import { SlidersHorizontal, ChevronLeft, ChevronRight, X, Calculator, ChevronDow
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 import { formatDateMonthYear } from "@/lib/formatDate";
+import type { PeriodSpec } from "@/lib/projectExecutionKpis";
 import NoData from "./NoData";
 
 function getBadgeStyle(rawStatus: string): string {
@@ -81,10 +82,15 @@ function getQuarter(month: number): number {
   return Math.floor(month / 3) + 1;
 }
 
-const DealPipeline = () => {
+interface DealPipelineProps {
+  periodFilter?: PeriodSpec | null;
+}
+
+const DealPipeline = ({ periodFilter }: DealPipelineProps) => {
   const { quotedJobs, dataHealth } = useDashboardData();
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("date-closest");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
@@ -104,6 +110,19 @@ const DealPipeline = () => {
 
   const filteredJobs = useMemo(() => {
     let jobs = [...quotedJobs];
+
+    // Period filter from Project Execution KPIs (unless "All" is toggled)
+    if (!showAll && periodFilter && periodFilter.months.length > 0) {
+      const monthSet = new Set(periodFilter.months);
+      const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      jobs = jobs.filter((j) => {
+        const d = parseDateForFilter(j.dateQuoted);
+        if (!d) return false;
+        const key = `${MONTH_ABBR[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
+        return monthSet.has(key);
+      });
+    }
+
     if (statusFilter !== "all") {
       jobs = jobs.filter((j) => j.rawStatus === statusFilter);
     }
@@ -139,7 +158,7 @@ const DealPipeline = () => {
       }
     });
     return jobs;
-  }, [quotedJobs, statusFilter, dateFilter, sortBy]);
+  }, [quotedJobs, statusFilter, dateFilter, sortBy, showAll, periodFilter]);
 
   const filteredTotal = useMemo(() => filteredJobs.reduce((s, j) => s + j.value, 0), [filteredJobs]);
 
@@ -246,9 +265,28 @@ const DealPipeline = () => {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-fluid-sm font-medium text-muted-foreground">Quoted Jobs</h3>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono text-muted-foreground hidden sm:inline">{quotedJobs.length} jobs</span>
+          <h3 className="text-fluid-sm font-medium text-muted-foreground">Quoted Jobs</h3>
+          {periodFilter && (
+            <button
+              onClick={() => { setShowAll((v) => !v); setPage(1); }}
+              className={`text-[11px] px-2.5 py-1 rounded-full border font-mono transition-colors ${
+                showAll
+                  ? "bg-chart-green/20 text-chart-green border-chart-green/40"
+                  : "border-border text-muted-foreground hover:bg-secondary/50"
+              }`}
+            >
+              All
+            </button>
+          )}
+          {!showAll && periodFilter && (
+            <span className="text-[10px] font-mono text-muted-foreground/70">
+              {periodFilter.label}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-mono text-muted-foreground hidden sm:inline">{filteredJobs.length} jobs</span>
           {/* Mobile filter button */}
           <button
             onClick={() => setShowFilters(!showFilters)}

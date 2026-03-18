@@ -17,6 +17,7 @@ import GoalScenarioBar from "@/components/dashboard/GoalScenarioBar";
 import { useGoals } from "@/hooks/useGoals";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { applyGoalMerge } from "@/lib/goalMerge";
+import { buildPeriodOptions, getCurrentMonthKey } from "@/lib/projectExecutionKpis";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Unplug, Loader2 } from "lucide-react";
@@ -43,7 +44,18 @@ function loadActiveGoalIds(allGoals: {id: string;merge?: boolean;}[]): Set<strin
 
 const DashboardContent = () => {
   const { goals, updateGoal } = useGoals();
-  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData } = useDashboardData();
+  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData, quotedJobs } = useDashboardData();
+
+  // ── Shared period state for Project Execution KPIs + Quoted Jobs table ──
+  const periodOptions = useMemo(() => buildPeriodOptions(quotedJobs), [quotedJobs]);
+  const defaultPeriodIdx = useMemo(() => {
+    const currentKey = getCurrentMonthKey();
+    const idx = periodOptions.findIndex((p) => p.mode === "month" && p.months.includes(currentKey));
+    return idx >= 0 ? idx : 0;
+  }, [periodOptions]);
+  const [selectedPeriodIdx, setSelectedPeriodIdx] = useState(defaultPeriodIdx);
+
+  const selectedPeriod = periodOptions[selectedPeriodIdx] ?? null;
 
   const [activeGoalIds, setActiveGoalIds] = useState<Set<string>>(() => loadActiveGoalIds(goals));
 
@@ -325,10 +337,10 @@ const DashboardContent = () => {
             <ForecastChart />
           </div>
 
-          <ProjectExecutionKPIs />
+          <ProjectExecutionKPIs selectedPeriodIdx={selectedPeriodIdx} onPeriodChange={setSelectedPeriodIdx} />
 
           <div className="space-y-4 md:space-y-6">
-            <DealPipeline />
+            <DealPipeline periodFilter={selectedPeriod} />
             <RevenueProjectsTable />
             <ExpenseBreakdown goals={goals} activeGoalIds={activeGoalIds} />
           </div>
