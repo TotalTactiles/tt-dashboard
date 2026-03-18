@@ -148,6 +148,7 @@ export interface SectionHealth {
   status: DataHealthStatus;
   rawCount: number;
   mappedCount: number;
+  estimated?: boolean;
 }
 
 export interface DataHealth {
@@ -639,16 +640,26 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     ];
 
     // KPI variables via formula engine
-    // expensesSummary fallback: if n8n doesn't return it, compute from parsed expense items
-    // so that MonthlyExpenses / YearlyExpenses KPI variables are accurate.
+    // expensesSummary fallback: if n8n doesn't return it, estimate from parsed expense items.
+    // WARNING: this is an estimate — it excludes subtotal rows and may miss columns not in the
+    // alias list. It will not match n8n's pre-computed value exactly. Prefer fixing the n8n
+    // workflow to always return expensesSummary.
+    const expensesSummaryIsEstimated = !liveData.expensesSummary;
+    if (expensesSummaryIsEstimated) {
+      console.warn(
+        "[DashboardData] expensesSummary absent from webhook — falling back to client-side estimate. " +
+        "MonthlyExpenses / YearlyExpenses KPI values may be understated. Fix: ensure n8n returns expensesSummary."
+      );
+    }
     const computedExpensesSummary = liveData.expensesSummary ?? (
       expenseItems.length > 0
         ? {
             totalWeekly: expenseItems.reduce((s, i) => s + i.weeklyCost, 0),
             totalMonthly: expenseItems.reduce((s, i) => s + i.monthlyCost, 0),
             totalYearly: expenseItems.reduce((s, i) => s + i.yearlyCost, 0),
+            _estimated: true,
           }
-        : {}
+        : { _estimated: true }
     );
 
     const storeSnapshot: DataStore = {
@@ -676,7 +687,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       quotes: health(rawQuotes, quotedJobs),
       cashflow: months.length > 0 ? { status: "healthy", rawCount: rawCashflow.length, mappedCount: months.length } : health(rawCashflow, []),
       revenue: health(rawRevenue, revenueProjects),
-      expenses: health(rawExpenses, expenseItems),
+      expenses: { ...health(rawExpenses, expenseItems), ...(expensesSummaryIsEstimated ? { estimated: true } : {}) },
     };
 
     const lastUpdated = meta?.pulledAt ?? null;
