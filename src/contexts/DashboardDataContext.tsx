@@ -559,15 +559,8 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         return (ay - by) || ((MONTH_ORDER[am] ?? 0) - (MONTH_ORDER[bm] ?? 0));
       });
 
-    const operatingExpenseFromGrandTotal = grandTotalExpense?.monthlyCost;
-    const operatingExpenseFromSummaryRaw = (liveData.expensesSummary as any)?.totalMonthly;
-    const hasOperatingExpenseSource = operatingExpenseFromGrandTotal !== undefined || operatingExpenseFromSummaryRaw !== undefined;
-    const monthlyOperatingExpenses = operatingExpenseFromGrandTotal ?? parseNum(operatingExpenseFromSummaryRaw ?? 0);
-    const operatingExpenseSourceLabel = operatingExpenseFromGrandTotal !== undefined
-      ? "Business Expenses GRAND TOTAL monthlyCost"
-      : operatingExpenseFromSummaryRaw !== undefined
-        ? "expensesSummary.totalMonthly"
-        : "missing";
+    // Net Profit source: "Anticipated Cash Surplus/(Deficit)" row from CASHFLOW sheet
+    const hasNetProfitSource = !!anticipatedSurplusRow;
 
     const gpRowDetail: Record<string, Array<{ company: string; project: string; revenueExGST: number; totalCOGS: number; grossProfit: number; otherDate: string; invoiceDate: string; dateUsed: string }>> = {};
     for (const rp of revenueProjects) {
