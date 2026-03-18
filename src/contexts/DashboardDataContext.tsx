@@ -509,13 +509,14 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         return { month: m, grossMargin: inc > 0 ? Math.round((gp / inc) * 100) : 0 };
       });
 
-    // Forecast chart — use exact named rows
+    // Forecast chart — use exact named rows (5 distinct series)
     const forecastChartData: ForecastChartPoint[] = months.map((m) => {
       const totalOut = totalOutgoingsRow ? Math.abs(parseNum(totalOutgoingsRow[m] ?? 0)) : 0;
       const anticipated = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[m] ?? 0) : sv(cs?.anticipatedSurplus, m);
       const probable = jobsProbableRow ? parseNum(jobsProbableRow[m] ?? 0) : 0;
+      const costProbable = costOfJobsProbableRow ? parseNum(costOfJobsProbableRow[m] ?? 0) : 0;
       const surplusWithJobs = surplusWithJobsRow ? parseNum(surplusWithJobsRow[m] ?? 0) : (cs?.anticipatedSurplusWithJobs ? sv(cs.anticipatedSurplusWithJobs, m) : 0);
-      return { month: m, totalOutgoings: totalOut, anticipatedSurplus: anticipated, probableJobs: probable, surplusIncludingProbable: surplusWithJobs };
+      return { month: m, totalOutgoings: totalOut, anticipatedSurplus: anticipated, probableJobs: probable, costOfJobsProbable: costProbable, surplusIncludingProbable: surplusWithJobs };
     });
 
     // ===== KPI STAT CARDS =====
