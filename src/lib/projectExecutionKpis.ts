@@ -51,50 +51,94 @@ export function getQuarterForMonth(monthIdx: number): number {
   return Math.floor(monthIdx / 3) + 1;
 }
 
-export function buildPeriodOptions(now: Date = new Date()): PeriodSpec[] {
-  const yr = now.getFullYear();
-  const yr2 = String(yr).slice(-2);
-  const mi = now.getMonth();
+/**
+ * Build period options driven by actual quoted jobs data.
+ * Only months/quarters with real jobs appear; empty ones are excluded.
+ */
+export function buildPeriodOptions(jobs: QuotedJob[]): PeriodSpec[] {
+  // Collect all valid month keys from job dates
+  const monthKeySet = new Set<string>();
+  for (const job of jobs) {
+    const d = tryParseDate(job.dateQuoted);
+    if (d) monthKeySet.add(dateToMonKey(d));
+  }
+
+  if (monthKeySet.size === 0) return [];
+
+  // Parse and sort month keys chronologically
+  const parsed = Array.from(monthKeySet)
+    .map((k) => ({ key: k, date: monKeyToDate(k)! }))
+    .filter((p) => p.date !== null)
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+
   const options: PeriodSpec[] = [];
 
-  // Current month
-  const curKey = dateToMonKey(now);
-  const prevMonth = new Date(yr, mi - 1, 1);
-  options.push({
-    mode: "month",
-    key: curKey,
-    label: `${MONTH_ABBR[mi]} ${yr}`,
-    months: [curKey],
-    priorMonths: [dateToMonKey(prevMonth)],
+  // ── Individual month options ──
+  for (const { key, date } of parsed) {
+    const yr = date.getFullYear();
+    const mi = date.getMonth();
+    const prevMonth = new Date(yr, mi - 1, 1);
+    options.push({
+      mode: "month",
+      key,
+      label: `${MONTH_ABBR[mi]} ${yr}`,
+      months: [key],
+      priorMonths: [dateToMonKey(prevMonth)],
+    });
+  }
+
+  // ── Quarter options (only quarters with jobs) ──
+  const quarterMap = new Map<string, { months: string[]; yr: number; q: number }>();
+  for (const { key, date } of parsed) {
+    const yr = date.getFullYear();
+    const q = getQuarterForMonth(date.getMonth());
+    const qKey = `Q${q}-${String(yr).slice(-2)}`;
+    if (!quarterMap.has(qKey)) {
+      const qStart = (q - 1) * 3;
+      const yr2 = String(yr).slice(-2);
+      const qMonths = Array.from({ length: 3 }, (_, i) => `${MONTH_ABBR[qStart + i]}-${yr2}`);
+      quarterMap.set(qKey, { months: qMonths, yr, q });
+    }
+  }
+
+  const sortedQuarters = Array.from(quarterMap.entries()).sort((a, b) => {
+    const diff = a[1].yr - b[1].yr;
+    return diff !== 0 ? diff : a[1].q - b[1].q;
   });
 
-  // Current quarter
-  const q = getQuarterForMonth(mi);
-  const qStart = (q - 1) * 3;
-  const qMonths = Array.from({ length: 3 }, (_, i) => `${MONTH_ABBR[qStart + i]}-${yr2}`);
-  const prevQStart = qStart - 3;
-  const prevYr = prevQStart < 0 ? yr - 1 : yr;
-  const prevQStartAdj = prevQStart < 0 ? prevQStart + 12 : prevQStart;
-  const prevYr2 = String(prevYr).slice(-2);
-  const prevQMonths = Array.from({ length: 3 }, (_, i) => `${MONTH_ABBR[prevQStartAdj + i]}-${prevYr2}`);
-  options.push({
-    mode: "quarter",
-    key: `Q${q}-${yr2}`,
-    label: `Q${q} ${yr}`,
-    months: qMonths,
-    priorMonths: prevQMonths,
-  });
+  for (const [qKey, { months: qMonths, yr, q }] of sortedQuarters) {
+    const prevQStart = (q - 1) * 3 - 3;
+    const prevYr = prevQStart < 0 ? yr - 1 : yr;
+    const prevQStartAdj = prevQStart < 0 ? prevQStart + 12 : prevQStart;
+    const prevYr2 = String(prevYr).slice(-2);
+    const prevQMonths = Array.from({ length: 3 }, (_, i) => `${MONTH_ABBR[prevQStartAdj + i]}-${prevYr2}`);
+    options.push({
+      mode: "quarter",
+      key: qKey,
+      label: `Q${q} ${yr}`,
+      months: qMonths,
+      priorMonths: prevQMonths,
+    });
+  }
 
-  // YTD
-  const ytdMonths = Array.from({ length: mi + 1 }, (_, i) => `${MONTH_ABBR[i]}-${yr2}`);
-  const prevYtdMonths = Array.from({ length: mi + 1 }, (_, i) => `${MONTH_ABBR[i]}-${String(yr - 1).slice(-2)}`);
-  options.push({
-    mode: "ytd",
-    key: `YTD-${yr2}`,
-    label: `YTD ${yr}`,
-    months: ytdMonths,
-    priorMonths: prevYtdMonths,
-  });
+  // ── YTD options (per year that has jobs) ──
+  const years = new Set(parsed.map((p) => p.date.getFullYear()));
+  for (const yr of Array.from(years).sort()) {
+    const yr2 = String(yr).slice(-2);
+    const maxMonth = parsed
+      .filter((p) => p.date.getFullYear() === yr)
+      .reduce((m, p) => Math.max(m, p.date.getMonth()), 0);
+    const ytdMonths = Array.from({ length: maxMonth + 1 }, (_, i) => `${MONTH_ABBR[i]}-${yr2}`);
+    const prevYr2 = String(yr - 1).slice(-2);
+    const prevYtdMonths = Array.from({ length: maxMonth + 1 }, (_, i) => `${MONTH_ABBR[i]}-${prevYr2}`);
+    options.push({
+      mode: "ytd",
+      key: `YTD-${yr2}`,
+      label: `YTD ${yr}`,
+      months: ytdMonths,
+      priorMonths: prevYtdMonths,
+    });
+  }
 
   return options;
 }
@@ -128,6 +172,7 @@ export interface KPIResult {
   changeFormatted: string;
   context: string;
   unavailableReason?: string;
+  isForecast?: boolean;
 }
 
 function unavailable(reason: string): KPIResult {
@@ -210,19 +255,34 @@ function calcJobsDuePeriod(jobs: QuotedJob[], period: PeriodSpec): KPIResult {
 // ── 4. WEIGHTED GROSS MARGIN ──────────────────────────────────────
 
 function calcWeightedGrossMargin(revenue: RevenueProject[], period: PeriodSpec): KPIResult {
-  const periodItems = filterByPeriod(revenue, revenueMonthKey, period.months)
-    .filter((r) => r.status === "paid" || r.status === "invoiced");
-  const priorItems = filterByPeriod(revenue, revenueMonthKey, period.priorMonths)
-    .filter((r) => r.status === "paid" || r.status === "invoiced");
+  const completedStatuses = new Set(["paid", "invoiced"]);
 
+  // Try period-specific completed revenue first
+  let periodItems = filterByPeriod(revenue, revenueMonthKey, period.months)
+    .filter((r) => completedStatuses.has(r.status));
+  let isForecast = false;
+
+  // Fallback: if no completed revenue in period, try ALL completed revenue (full dataset)
   if (periodItems.length === 0) {
-    return unavailable("No completed revenue in period");
+    periodItems = revenue.filter((r) => completedStatuses.has(r.status));
+    isForecast = false; // still actual data, just not period-filtered
+    if (periodItems.length === 0) {
+      // Second fallback: use all revenue rows regardless of status (pipeline/forecast)
+      periodItems = revenue.filter((r) => r.valueExclGST > 0);
+      isForecast = true;
+      if (periodItems.length === 0) {
+        return unavailable("No revenue data available");
+      }
+    }
   }
+
+  const priorItems = filterByPeriod(revenue, revenueMonthKey, period.priorMonths)
+    .filter((r) => completedStatuses.has(r.status));
 
   const totalRev = periodItems.reduce((s, r) => s + r.valueExclGST, 0);
   const totalGP = periodItems.reduce((s, r) => s + r.grossProfit, 0);
 
-  if (totalRev <= 0) return unavailable("Zero revenue in period");
+  if (totalRev <= 0) return unavailable("Zero revenue in dataset");
 
   const margin = (totalGP / totalRev) * 100;
 
@@ -231,12 +291,15 @@ function calcWeightedGrossMargin(revenue: RevenueProject[], period: PeriodSpec):
   const priorMargin = priorRev > 0 ? (priorGP / priorRev) * 100 : null;
   const diff = priorMargin !== null ? margin - priorMargin : null;
 
+  const contextBase = `${formatMetricValue(totalGP, "currency")} GP on ${formatMetricValue(totalRev, "currency")} rev`;
+
   return {
     value: margin,
     formatted: `${margin.toFixed(1)}%`,
     change: diff,
     changeFormatted: diff !== null ? `${diff >= 0 ? "+" : ""}${diff.toFixed(1)}pp` : "--",
-    context: `${formatMetricValue(totalGP, "currency")} GP on ${formatMetricValue(totalRev, "currency")} rev`,
+    context: isForecast ? `Forecast · ${contextBase}` : contextBase,
+    isForecast,
   };
 }
 
