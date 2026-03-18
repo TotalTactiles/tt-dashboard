@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { RefreshCw } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import { formatMetricValue } from "@/lib/formatMetricValue";
