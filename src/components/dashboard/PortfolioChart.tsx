@@ -1,11 +1,13 @@
 import { useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, ReferenceLine, Cell } from "recharts";
+import { Download } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 import { getMonthAdjustments, type GoalAdjustment } from "@/lib/goalMerge";
 import type { IncomeOutgoingsPoint } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
+import { CashflowExportModal } from "@/components/reports/CashflowExportModal";
 
 const MONTH_ABBR_LIST = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
