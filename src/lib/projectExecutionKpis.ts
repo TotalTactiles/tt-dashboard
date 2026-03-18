@@ -135,7 +135,7 @@ export function buildPeriodOptions(jobs: QuotedJob[]): PeriodSpec[] {
     options.push({
       mode: "ytd",
       key: `YTD-${yr2}`,
-      label: `YTD ${yr}`,
+      label: `YTD ${yr2}`,
       months: ytdMonths,
       priorMonths: prevYtdMonths,
     });
