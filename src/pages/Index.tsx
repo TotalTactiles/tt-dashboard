@@ -63,9 +63,8 @@ const DashboardContent = () => {
 
   const selectedPeriod = periodOptions[selectedPeriodIdx] ?? null;
 
-  // ── Independent "All" toggles for each table ──
-  const [showAllQuotedJobs, setShowAllQuotedJobs] = useState(false);
-  const [showAllRevenue, setShowAllRevenue] = useState(false);
+  // ── Shared "All" toggle for both tables ──
+  const [showAllTables, setShowAllTables] = useState(false);
 
   // Find current-year YTD index for auto-switch
   const currentYearYtdIdx = useMemo(() => {
@@ -73,16 +72,9 @@ const DashboardContent = () => {
     return periodOptions.findIndex((p) => p.mode === "ytd" && p.key === `YTD-${yr2}`);
   }, [periodOptions]);
 
-  // When user clicks "All" on a table → switch selector to YTD
-  const handleQuotedJobsAllToggle = useCallback((allOn: boolean) => {
-    setShowAllQuotedJobs(allOn);
-    if (allOn && currentYearYtdIdx >= 0) {
-      setSelectedPeriodIdx(currentYearYtdIdx);
-    }
-  }, [currentYearYtdIdx]);
-
-  const handleRevenueAllToggle = useCallback((allOn: boolean) => {
-    setShowAllRevenue(allOn);
+  // When user clicks "All" on either table → both tables enter/exit All mode
+  const handleTableAllToggle = useCallback((allOn: boolean) => {
+    setShowAllTables(allOn);
     if (allOn && currentYearYtdIdx >= 0) {
       setSelectedPeriodIdx(currentYearYtdIdx);
     }
@@ -91,8 +83,7 @@ const DashboardContent = () => {
   // When user changes the period selector → exit All mode for both tables
   const handlePeriodChange = useCallback((idx: number) => {
     setSelectedPeriodIdx(idx);
-    setShowAllQuotedJobs(false);
-    setShowAllRevenue(false);
+    setShowAllTables(false);
   }, []);
 
   const [activeGoalIds, setActiveGoalIds] = useState<Set<string>>(() => loadActiveGoalIds(goals));
@@ -371,13 +362,13 @@ const DashboardContent = () => {
           <div className="space-y-4 md:space-y-6">
             <DealPipeline
               periodFilter={selectedPeriod}
-              showAll={showAllQuotedJobs}
-              onAllToggle={handleQuotedJobsAllToggle}
+              showAll={showAllTables}
+              onAllToggle={handleTableAllToggle}
             />
             <RevenueProjectsTable
               periodFilter={selectedPeriod}
-              showAll={showAllRevenue}
-              onAllToggle={handleRevenueAllToggle}
+              showAll={showAllTables}
+              onAllToggle={handleTableAllToggle}
             />
             <ExpenseBreakdown goals={goals} activeGoalIds={activeGoalIds} />
           </div>
