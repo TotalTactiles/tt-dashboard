@@ -4,7 +4,7 @@
  * Sources data from the same DashboardData context used by the live dashboard.
  */
 
-import type { IncomeOutgoingsPoint, KPIStat } from "@/contexts/DashboardDataContext";
+import type { IncomeOutgoingsPoint, KPIStat, ExpenseCategoryGroup } from "@/contexts/DashboardDataContext";
 
 // ---- Types ----
 
@@ -27,10 +27,30 @@ export interface ReportPeriodSummary {
   monthCount: number;
 }
 
+export interface TrendRow {
+  label: string;
+  current: number;
+  prior: number;
+  change: number;
+  changePercent: number | null;
+}
+
+export interface CashflowBridge {
+  cashReceived: number;
+  cashOutgoings: number;
+  netMovement: number;
+  cashflowPosition: number | null;
+}
+
+export interface ExpenseSummaryItem {
+  category: string;
+  monthly: number;
+}
+
 export interface MonthlyReportData {
   type: "monthly";
-  periodLabel: string; // e.g. "March 2026"
-  periodKey: string; // e.g. "Mar-26"
+  periodLabel: string;
+  periodKey: string;
   current: ReportMonthData | null;
   previous: ReportMonthData | null;
   varianceIncome: number | null;
@@ -41,25 +61,34 @@ export interface MonthlyReportData {
   varianceSurplusPercent: number | null;
   cashflowPosition: number | null;
   grossProfitMargin: number | null;
+  bridge: CashflowBridge | null;
+  trend: TrendRow[];
+  qtdSummary: ReportPeriodSummary | null;
+  qtdLabel: string | null;
+  expenseSummary: ExpenseSummaryItem[];
+  totalExpenses: number;
 }
 
 export interface QuarterlyReportData {
   type: "quarterly";
-  periodLabel: string; // e.g. "Q1 2026"
-  quarterKey: string; // e.g. "Q1"
+  periodLabel: string;
+  quarterKey: string;
   year: number;
   months: ReportMonthData[];
   summary: ReportPeriodSummary;
   cashflowPosition: number | null;
   grossProfitMargin: number | null;
+  bridge: CashflowBridge | null;
+  expenseSummary: ExpenseSummaryItem[];
+  totalExpenses: number;
 }
 
 export type ReportData = MonthlyReportData | QuarterlyReportData;
 
 export interface ReportOptions {
   reportType: "monthly" | "quarterly";
-  month?: string; // Mon-YY format e.g. "Mar-26"
-  quarter?: string; // "Q1" | "Q2" | "Q3" | "Q4"
+  month?: string;
+  quarter?: string;
   year?: number;
   includeExecutiveSummary: boolean;
   includeDetailTable: boolean;
@@ -136,6 +165,13 @@ function summarise(months: ReportMonthData[]): ReportPeriodSummary {
   };
 }
 
+function getQuarterForMonth(monthIdx: number): string {
+  if (monthIdx <= 2) return "Q1";
+  if (monthIdx <= 5) return "Q2";
+  if (monthIdx <= 8) return "Q3";
+  return "Q4";
+}
+
 // ---- Available periods ----
 
 export function getAvailableMonths(data: IncomeOutgoingsPoint[]): { key: string; label: string }[] {
@@ -148,7 +184,7 @@ export function getAvailableQuarters(data: IncomeOutgoingsPoint[]): { key: strin
   for (const d of data) {
     const parsed = parseMonthKey(d.month);
     if (!parsed) continue;
-    const q = parsed.monthIdx <= 2 ? "Q1" : parsed.monthIdx <= 5 ? "Q2" : parsed.monthIdx <= 8 ? "Q3" : "Q4";
+    const q = getQuarterForMonth(parsed.monthIdx);
     const id = `${q}-${parsed.year}`;
     if (seen.has(id)) continue;
     seen.add(id);
@@ -162,16 +198,22 @@ export function getAvailableQuarters(data: IncomeOutgoingsPoint[]): { key: strin
 export function assembleReportData(
   options: ReportOptions,
   incomeOutgoingsData: IncomeOutgoingsPoint[],
-  kpiStats: KPIStat[],
+  _kpiStats: KPIStat[],
   profitMarginData: { month: string; grossMargin: number }[],
+  cashflowPositionRaw: number | null,
+  expenseCategories: ExpenseCategoryGroup[],
 ): { data: ReportData | null; errors: string[] } {
   const errors: string[] = [];
 
-  // Extract cashflow position from KPI stats
-  const cashflowStat = kpiStats.find(s => s.label === "Cashflow Position");
-  const cashflowPosition = cashflowStat && cashflowStat.value !== "--"
-    ? parseFloat(cashflowStat.value.replace(/[^0-9.-]/g, "")) || null
-    : null;
+  // Use raw numeric cashflow position — NOT parsed from formatted string
+  const cashflowPosition = cashflowPositionRaw;
+
+  // Build expense summary
+  const expenseSummary: ExpenseSummaryItem[] = expenseCategories.map(cat => ({
+    category: cat.category,
+    monthly: cat.totalMonthly,
+  }));
+  const totalExpenses = expenseCategories.reduce((s, c) => s + c.totalMonthly, 0);
 
   if (options.reportType === "monthly") {
     if (!options.month) {
@@ -195,6 +237,62 @@ export function assembleReportData(
     const gpPoint = profitMarginData.find(p => p.month === options.month);
     const grossProfitMargin = gpPoint?.grossMargin ?? null;
 
+    // Cashflow Bridge
+    const bridge: CashflowBridge = {
+      cashReceived: current.income,
+      cashOutgoings: current.outgoings,
+      netMovement: current.surplus,
+      cashflowPosition,
+    };
+
+    // Trend Snapshot
+    const trend: TrendRow[] = [];
+    if (previous) {
+      trend.push({
+        label: "Cash Received",
+        current: current.income,
+        prior: previous.income,
+        change: current.income - previous.income,
+        changePercent: computeVariancePercent(current.income, previous.income),
+      });
+      trend.push({
+        label: "Cash Spent",
+        current: current.outgoings,
+        prior: previous.outgoings,
+        change: current.outgoings - previous.outgoings,
+        changePercent: computeVariancePercent(current.outgoings, previous.outgoings),
+      });
+      trend.push({
+        label: "Surplus / (Deficit)",
+        current: current.surplus,
+        prior: previous.surplus,
+        change: current.surplus - previous.surplus,
+        changePercent: computeVariancePercent(current.surplus, previous.surplus),
+      });
+    }
+
+    // QTD Summary
+    const parsed = parseMonthKey(options.month);
+    let qtdSummary: ReportPeriodSummary | null = null;
+    let qtdLabel: string | null = null;
+    if (parsed) {
+      const q = getQuarterForMonth(parsed.monthIdx);
+      qtdLabel = `${q} ${parsed.year}`;
+      const qMonthIdxs = QUARTER_MONTHS[q];
+      const yearShort = String(parsed.year).slice(-2);
+      const qtdMonthKeys = qMonthIdxs
+        .filter(idx => idx <= parsed.monthIdx)
+        .map(idx => `${MONTH_ABBR_LIST[idx]}-${yearShort}`);
+      const qtdMonths: ReportMonthData[] = [];
+      for (const mk of qtdMonthKeys) {
+        const point = incomeOutgoingsData.find(d => d.month === mk);
+        if (point) qtdMonths.push({ ...point });
+      }
+      if (qtdMonths.length > 0) {
+        qtdSummary = summarise(qtdMonths);
+      }
+    }
+
     const data: MonthlyReportData = {
       type: "monthly",
       periodLabel: monthKeyToLabel(options.month),
@@ -209,6 +307,12 @@ export function assembleReportData(
       varianceSurplusPercent: previous ? computeVariancePercent(current.surplus, previous.surplus) : null,
       cashflowPosition,
       grossProfitMargin,
+      bridge,
+      trend,
+      qtdSummary,
+      qtdLabel,
+      expenseSummary,
+      totalExpenses,
     };
 
     return { data, errors };
@@ -232,9 +336,7 @@ export function assembleReportData(
   const months: ReportMonthData[] = [];
   for (const mk of quarterMonthKeys) {
     const point = incomeOutgoingsData.find(d => d.month === mk);
-    if (point) {
-      months.push({ ...point });
-    }
+    if (point) months.push({ ...point });
   }
 
   if (months.length === 0) {
@@ -242,11 +344,19 @@ export function assembleReportData(
     return { data: null, errors };
   }
 
-  // Average GP% across quarter months
   const gpPoints = profitMarginData.filter(p => quarterMonthKeys.includes(p.month));
   const grossProfitMargin = gpPoints.length > 0
     ? Math.round((gpPoints.reduce((s, p) => s + p.grossMargin, 0) / gpPoints.length) * 100) / 100
     : null;
+
+  const summary = summarise(months);
+
+  const bridge: CashflowBridge = {
+    cashReceived: summary.totalIncome,
+    cashOutgoings: summary.totalOutgoings,
+    netMovement: summary.totalSurplus,
+    cashflowPosition,
+  };
 
   const data: QuarterlyReportData = {
     type: "quarterly",
@@ -254,9 +364,12 @@ export function assembleReportData(
     quarterKey: options.quarter,
     year: options.year,
     months,
-    summary: summarise(months),
+    summary,
     cashflowPosition,
     grossProfitMargin,
+    bridge,
+    expenseSummary,
+    totalExpenses,
   };
 
   return { data, errors };

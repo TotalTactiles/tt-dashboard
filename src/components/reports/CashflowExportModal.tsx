@@ -28,7 +28,7 @@ interface CashflowExportModalProps {
 }
 
 export function CashflowExportModal({ open, onOpenChange }: CashflowExportModalProps) {
-  const { incomeOutgoingsData, kpiStats, profitMarginData } = useDashboardData();
+  const { incomeOutgoingsData, kpiStats, profitMarginData, cashflowPositionRaw, expenseCategories } = useDashboardData();
 
   // Form state
   const [reportType, setReportType] = useState<"monthly" | "quarterly">("monthly");
@@ -89,6 +89,8 @@ export function CashflowExportModal({ open, onOpenChange }: CashflowExportModalP
         incomeOutgoingsData,
         kpiStats,
         profitMarginData,
+        cashflowPositionRaw,
+        expenseCategories,
       );
 
       if (errors.length > 0 || !reportData) {

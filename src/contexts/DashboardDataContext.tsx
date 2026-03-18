@@ -205,6 +205,7 @@ export interface DashboardData {
   revenueProjects: RevenueProject[];
   expenseCategories: ExpenseCategoryGroup[];
   grandTotalExpense: GrandTotalExpense | null;
+  cashflowPositionRaw: number;
   kpiStats: KPIStat[];
   incomeOutgoingsData: IncomeOutgoingsPoint[];
   profitMarginData: ProfitMarginPoint[];
@@ -886,6 +887,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     return {
       quotedJobs, revenueProjects, expenseCategories, grandTotalExpense,
+      cashflowPositionRaw: cashflowPosition,
       kpiStats, incomeOutgoingsData, profitMarginData, forecastChartData, expenseAllocation,
       kpiVariables, dataStore: storeSnapshot, formulaCache: formulaCacheInstance, changedFormulas,
       formulas, addFormula, updateFormula, deleteFormula,
@@ -907,6 +909,7 @@ export function useDashboardData(): DashboardData {
   if (!ctx) {
     return {
       quotedJobs: [], revenueProjects: [], expenseCategories: [], grandTotalExpense: null,
+      cashflowPositionRaw: 0,
       kpiStats: [], incomeOutgoingsData: [], profitMarginData: [],
       forecastChartData: [], expenseAllocation: [], kpiVariables: {},
       dataStore: { quotes: [], qtsSmmry: [], cashflow: [], revenue: [], expenses: [], labour: [], stock: [], quotesSummary: {}, cashflowSummary: {}, revenueSummary: {}, expensesSummary: {} },
