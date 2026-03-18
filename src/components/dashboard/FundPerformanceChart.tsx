@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
+import { chartColors } from "@/lib/chartTheme";
 import { Pencil, Check, X } from "lucide-react";
 import NoData from "./NoData";
+import { useTheme } from "next-themes";
 
 const GM_TARGET_KEY = "gross_margin_target";
 
@@ -20,10 +22,13 @@ function loadTarget(): number {
 
 const FundPerformanceChart = () => {
   const { profitMarginData, dataHealth } = useDashboardData();
+  const { resolvedTheme } = useTheme();
   const [target, setTarget] = useState(loadTarget);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const tc = useMemo(() => chartColors(), [resolvedTheme]);
 
   useEffect(() => {
     const handler = () => setTarget(loadTarget());
@@ -74,13 +79,13 @@ const FundPerformanceChart = () => {
         <>
           <ResponsiveContainer width="100%" height={220} minHeight={180}>
             <LineChart data={profitMarginData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
-              <XAxis dataKey="month" stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" />
-              <YAxis stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" tickFormatter={(v) => `${v}%`} />
+              <CartesianGrid strokeDasharray="3 3" stroke={tc.grid} />
+              <XAxis dataKey="month" stroke={tc.axis} fontSize={11} fontFamily="JetBrains Mono" />
+              <YAxis stroke={tc.axis} fontSize={11} fontFamily="JetBrains Mono" tickFormatter={(v) => `${v}%`} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "hsl(220, 18%, 10%)",
-                  border: "1px solid hsl(220, 14%, 18%)",
+                  backgroundColor: tc.tooltipBg,
+                  border: `1px solid ${tc.tooltipBorder}`,
                   borderRadius: "8px",
                   fontFamily: "JetBrains Mono",
                   fontSize: "12px",
@@ -92,16 +97,16 @@ const FundPerformanceChart = () => {
               />
               <ReferenceLine
                 y={target}
-                stroke="hsl(38, 92%, 55%)"
+                stroke={tc.amber}
                 strokeDasharray="5 5"
-                label={{ value: `Target ${target}%`, position: "right", fill: "hsl(38, 92%, 55%)", fontSize: 10, fontFamily: "JetBrains Mono" }}
+                label={{ value: `Target ${target}%`, position: "right", fill: tc.amber, fontSize: 10, fontFamily: "JetBrains Mono" }}
               />
               <Line
                 type="monotone"
                 dataKey="grossMargin"
-                stroke="hsl(160, 70%, 45%)"
+                stroke={tc.green}
                 strokeWidth={2}
-                dot={{ r: 3, fill: "hsl(160, 70%, 45%)" }}
+                dot={{ r: 3, fill: tc.green }}
                 animationDuration={2000}
               />
             </LineChart>

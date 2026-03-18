@@ -1,26 +1,38 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
+import { chartColors } from "@/lib/chartTheme";
 import NoData from "./NoData";
+import { useTheme } from "next-themes";
 
 const SERIES = [
-  { key: "totalOutgoings", label: "Total Outgoings", color: "hsl(0, 70%, 55%)", dash: undefined, strokeWidth: 2.5 },
-  { key: "anticipatedSurplus", label: "Anticipated Cash Surplus/(Deficit)", color: "hsl(145, 65%, 55%)", dash: undefined, strokeWidth: 2.5 },
-  { key: "probableJobs", label: "Jobs Probable To Be Won", color: "hsl(45, 90%, 55%)", dash: "8 4", strokeWidth: 2 },
-  { key: "costOfJobsProbable", label: "Cost of Jobs Probable To Be Won", color: "hsl(15, 70%, 65%)", dash: "4 4", strokeWidth: 2 },
-  { key: "surplusIncludingProbable", label: "Anticipated Cash Surplus/(Deficit) Including Probable Jobs", color: "hsl(145, 55%, 35%)", dash: "10 3", strokeWidth: 2.5 },
+  { key: "totalOutgoings", label: "Total Outgoings", color: "red" as const, dash: undefined, strokeWidth: 2.5 },
+  { key: "anticipatedSurplus", label: "Anticipated Cash Surplus/(Deficit)", color: "green" as const, dash: undefined, strokeWidth: 2.5 },
+  { key: "probableJobs", label: "Jobs Probable To Be Won", color: "amber" as const, dash: "8 4", strokeWidth: 2 },
+  { key: "costOfJobsProbable", label: "Cost of Jobs Probable To Be Won", color: "purple" as const, dash: "4 4", strokeWidth: 2 },
+  { key: "surplusIncludingProbable", label: "Anticipated Cash Surplus/(Deficit) Including Probable Jobs", color: "blue" as const, dash: "10 3", strokeWidth: 2.5 },
 ] as const;
 
 const ForecastChart = () => {
   const { forecastChartData, dataHealth } = useDashboardData();
+  const { resolvedTheme } = useTheme();
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(() => new Set(SERIES.map(s => s.key)));
+
+  const tc = useMemo(() => chartColors(), [resolvedTheme]);
+
+  const seriesColors: Record<string, string> = {
+    red: tc.red,
+    green: tc.green,
+    amber: tc.amber,
+    purple: tc.purple,
+    blue: tc.blue,
+  };
 
   const toggleSeries = (key: string) => {
     setVisibleKeys(prev => {
       const next = new Set(prev);
       if (next.has(key)) {
-        // Don't allow hiding all series
         if (next.size > 1) next.delete(key);
       } else {
         next.add(key);
@@ -29,7 +41,6 @@ const ForecastChart = () => {
     });
   };
 
-  // Series that have data
   const activeSeries = SERIES.filter((s) =>
     forecastChartData.some((d) => (d as any)[s.key] !== 0)
   );
@@ -50,6 +61,8 @@ const ForecastChart = () => {
           <div className="flex flex-wrap gap-x-1.5 gap-y-1.5 mb-4">
             {activeSeries.map((s) => {
               const isVisible = visibleKeys.has(s.key);
+              const sColor = seriesColors[s.color] || tc.blue;
+              const mutedColor = tc.axis;
               return (
                 <button
                   key={s.key}
@@ -63,12 +76,12 @@ const ForecastChart = () => {
                   <span
                     className="w-4 h-0.5 rounded shrink-0"
                     style={{
-                      backgroundColor: isVisible ? s.color : "hsl(215, 12%, 30%)",
+                      backgroundColor: isVisible ? sColor : mutedColor,
                       ...(s.dash
                         ? {
                             backgroundImage: isVisible
-                              ? `repeating-linear-gradient(90deg, ${s.color} 0 4px, transparent 4px 7px)`
-                              : `repeating-linear-gradient(90deg, hsl(215,12%,30%) 0 4px, transparent 4px 7px)`,
+                              ? `repeating-linear-gradient(90deg, ${sColor} 0 4px, transparent 4px 7px)`
+                              : `repeating-linear-gradient(90deg, ${mutedColor} 0 4px, transparent 4px 7px)`,
                             backgroundColor: "transparent",
                           }
                         : {}),
@@ -81,17 +94,17 @@ const ForecastChart = () => {
           </div>
           <ResponsiveContainer width="100%" height={300} minHeight={240}>
             <LineChart data={forecastChartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
-              <XAxis dataKey="month" stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" />
-              <YAxis stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" tickFormatter={(v) => {
+              <CartesianGrid strokeDasharray="3 3" stroke={tc.grid} />
+              <XAxis dataKey="month" stroke={tc.axis} fontSize={11} fontFamily="JetBrains Mono" />
+              <YAxis stroke={tc.axis} fontSize={11} fontFamily="JetBrains Mono" tickFormatter={(v) => {
                 const abs = Math.abs(v);
                 const label = abs >= 1000 ? `$${(abs / 1000).toFixed(0)}K` : `$${abs}`;
                 return v < 0 ? `-${label}` : label;
               }} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "hsl(220, 18%, 10%)",
-                  border: "1px solid hsl(220, 14%, 18%)",
+                  backgroundColor: tc.tooltipBg,
+                  border: `1px solid ${tc.tooltipBorder}`,
                   borderRadius: "8px",
                   fontFamily: "JetBrains Mono",
                   fontSize: "11px",
@@ -103,22 +116,23 @@ const ForecastChart = () => {
                   return [`$${value.toLocaleString()}`, series.label];
                 }}
               />
-              {SERIES.map((s) =>
-                visibleKeys.has(s.key) ? (
+              {SERIES.map((s) => {
+                const sColor = seriesColors[s.color] || tc.blue;
+                return visibleKeys.has(s.key) ? (
                   <Line
                     key={s.key}
                     type="monotone"
                     dataKey={s.key}
-                    stroke={s.color}
+                    stroke={sColor}
                     strokeWidth={s.strokeWidth}
                     strokeDasharray={s.dash}
-                    dot={{ r: 3, fill: s.color, strokeWidth: 1, stroke: "hsl(220, 18%, 10%)" }}
-                    activeDot={{ r: 5, fill: s.color, strokeWidth: 2, stroke: "hsl(220, 18%, 10%)" }}
+                    dot={{ r: 3, fill: sColor, strokeWidth: 1, stroke: tc.dotStroke }}
+                    activeDot={{ r: 5, fill: sColor, strokeWidth: 2, stroke: tc.dotStroke }}
                     animationDuration={1500}
                     connectNulls
                   />
-                ) : null
-              )}
+                ) : null;
+              })}
             </LineChart>
           </ResponsiveContainer>
         </>
