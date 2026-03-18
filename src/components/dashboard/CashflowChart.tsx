@@ -1,12 +1,14 @@
-import { useMemo, useState, useCallback, useRef } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea, Brush } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatMetricValue } from "@/lib/formatMetricValue";
+import { chartColors } from "@/lib/chartTheme";
 import { getMonthAdjustments, type GoalAdjustment } from "@/lib/goalMerge";
 import type { IncomeOutgoingsPoint } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
 import { X } from "lucide-react";
+import { useTheme } from "next-themes";
 
 const MONTH_ABBR: Record<string, number> = {
   Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
@@ -27,11 +29,13 @@ interface CashflowChartProps {
 const CashflowChart = ({ adjustedData, adjustments = [] }: CashflowChartProps) => {
   const { incomeOutgoingsData, dataHealth } = useDashboardData();
   const chartData = adjustedData ?? incomeOutgoingsData;
+  const { resolvedTheme } = useTheme();
 
-  // Range selection state
   const [selStart, setSelStart] = useState<string | null>(null);
   const [selEnd, setSelEnd] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+
+  const tc = useMemo(() => chartColors(), [resolvedTheme]);
 
   const hasNegative = useMemo(() => chartData.some((d) => d.surplus < 0), [chartData]);
 
@@ -56,25 +60,8 @@ const CashflowChart = ({ adjustedData, adjustments = [] }: CashflowChartProps) =
   );
 
   const titleColor = currentMonthData
-    ? currentMonthData.surplus >= 0 ? "text-emerald-500" : "text-red-500"
+    ? currentMonthData.surplus >= 0 ? "text-chart-green" : "text-chart-red"
     : "text-muted-foreground";
-
-  const goalMarkers = useMemo(() => {
-    if (adjustments.length === 0) return [];
-    const markers: { month: string; surplus: number; goalName: string; amount: number; goalType: string }[] = [];
-    for (const point of chartData) {
-      const monthAdj = getMonthAdjustments(adjustments, point.month);
-      if (monthAdj.length > 0) {
-        const seen = new Set<string>();
-        for (const adj of monthAdj) {
-          if (seen.has(adj.goalId)) continue;
-          seen.add(adj.goalId);
-          markers.push({ month: point.month, surplus: point.surplus, goalName: adj.goalName, amount: adj.amount, goalType: adj.goalType });
-        }
-      }
-    }
-    return markers;
-  }, [chartData, adjustments]);
 
   const enrichedData = useMemo(() => {
     if (adjustments.length === 0) return chartData;
@@ -87,7 +74,6 @@ const CashflowChart = ({ adjustedData, adjustments = [] }: CashflowChartProps) =
     });
   }, [chartData, adjustments]);
 
-  // Range selection handlers
   const handleMouseDown = useCallback((e: any) => {
     if (e?.activeLabel) {
       setSelStart(e.activeLabel);
@@ -112,7 +98,6 @@ const CashflowChart = ({ adjustedData, adjustments = [] }: CashflowChartProps) =
     setDragging(false);
   }, []);
 
-  // Compute range summary
   const rangeSummary = useMemo(() => {
     if (!selStart || !selEnd) return null;
     const months = enrichedData.map(d => d.month);
@@ -124,16 +109,9 @@ const CashflowChart = ({ adjustedData, adjustments = [] }: CashflowChartProps) =
     if (rangeData.length === 0) return null;
     const total = rangeData.reduce((s, d) => s + d.surplus, 0);
     const avg = total / rangeData.length;
-    return {
-      start: rangeData[0].month,
-      end: rangeData[rangeData.length - 1].month,
-      total,
-      avg,
-      count: rangeData.length,
-    };
+    return { start: rangeData[0].month, end: rangeData[rangeData.length - 1].month, total, avg, count: rangeData.length };
   }, [selStart, selEnd, enrichedData]);
 
-  // Ordered start/end for ReferenceArea
   const orderedSel = useMemo(() => {
     if (!selStart) return null;
     const end = selEnd || selStart;
@@ -184,20 +162,20 @@ const CashflowChart = ({ adjustedData, adjustments = [] }: CashflowChartProps) =
             >
               <defs>
                 <linearGradient id="splitFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(160, 70%, 45%)" stopOpacity={0.3} />
-                  <stop offset={`${gradientOffset * 100}%`} stopColor="hsl(160, 70%, 45%)" stopOpacity={0.05} />
-                  <stop offset={`${gradientOffset * 100}%`} stopColor="hsl(0, 84%, 60%)" stopOpacity={0.05} />
-                  <stop offset="100%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0.4} />
+                  <stop offset="0%" stopColor={tc.green} stopOpacity={0.3} />
+                  <stop offset={`${gradientOffset * 100}%`} stopColor={tc.green} stopOpacity={0.05} />
+                  <stop offset={`${gradientOffset * 100}%`} stopColor={tc.red} stopOpacity={0.05} />
+                  <stop offset="100%" stopColor={tc.red} stopOpacity={0.4} />
                 </linearGradient>
                 <linearGradient id="splitStroke" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset={`${gradientOffset * 100}%`} stopColor="hsl(160, 70%, 45%)" />
-                  <stop offset={`${gradientOffset * 100}%`} stopColor="hsl(0, 84%, 60%)" />
+                  <stop offset={`${gradientOffset * 100}%`} stopColor={tc.green} />
+                  <stop offset={`${gradientOffset * 100}%`} stopColor={tc.red} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
-              <XAxis dataKey="month" stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" />
+              <CartesianGrid strokeDasharray="3 3" stroke={tc.grid} />
+              <XAxis dataKey="month" stroke={tc.axis} fontSize={11} fontFamily="JetBrains Mono" />
               <YAxis
-                stroke="hsl(215, 12%, 50%)"
+                stroke={tc.axis}
                 fontSize={11}
                 fontFamily="JetBrains Mono"
                 tickFormatter={(v) => {
@@ -217,36 +195,36 @@ const CashflowChart = ({ adjustedData, adjustments = [] }: CashflowChartProps) =
                   const goalAdj: GoalAdjustment[] = point._goalAdjustments ?? [];
                   return (
                     <div style={{
-                      backgroundColor: "hsl(220, 18%, 10%)",
-                      border: "1px solid hsl(220, 14%, 18%)",
+                      backgroundColor: tc.tooltipBg,
+                      border: `1px solid ${tc.tooltipBorder}`,
                       borderRadius: "8px",
                       fontFamily: "JetBrains Mono",
                       fontSize: "12px",
                       padding: "8px 12px",
                       maxWidth: 280,
                     }}>
-                      <p style={{ color: "hsl(215, 12%, 70%)", marginBottom: 4 }}>{label}</p>
+                      <p style={{ color: tc.tooltipText, marginBottom: 4 }}>{label}</p>
                       {point.isFuture ? (
                         <>
-                          <p style={{ color: "hsl(200, 80%, 50%)" }}>Income (Probable): {formatMetricValue(point.probableIncome ?? 0, "currency")}</p>
-                          <p style={{ color: "hsl(0, 84%, 60%)" }}>Outgoings (Estimated): {formatMetricValue(point.outgoings, "currency")}</p>
-                          <p style={{ color: isNeg ? "hsl(0, 84%, 60%)" : "hsl(160, 70%, 45%)", marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4 }}>
+                          <p style={{ color: tc.blue }}>Income (Probable): {formatMetricValue(point.probableIncome ?? 0, "currency")}</p>
+                          <p style={{ color: tc.red }}>Outgoings (Estimated): {formatMetricValue(point.outgoings, "currency")}</p>
+                          <p style={{ color: isNeg ? tc.red : tc.green, marginTop: 4, borderTop: `1px solid ${tc.tooltipBorder}`, paddingTop: 4 }}>
                             Projected {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
                           </p>
                         </>
                       ) : (
                         <>
-                          <p style={{ color: "hsl(160, 70%, 45%)" }}>Income: {formatMetricValue(point.income, "currency")}</p>
-                          <p style={{ color: "hsl(0, 84%, 60%)" }}>Outgoings: {formatMetricValue(point.outgoings, "currency")}</p>
-                          <p style={{ color: isNeg ? "hsl(0, 84%, 60%)" : "hsl(160, 70%, 45%)", marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4 }}>
+                          <p style={{ color: tc.green }}>Income: {formatMetricValue(point.income, "currency")}</p>
+                          <p style={{ color: tc.red }}>Outgoings: {formatMetricValue(point.outgoings, "currency")}</p>
+                          <p style={{ color: isNeg ? tc.red : tc.green, marginTop: 4, borderTop: `1px solid ${tc.tooltipBorder}`, paddingTop: 4 }}>
                             {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
                           </p>
                         </>
                       )}
                       {goalAdj.length > 0 && (
-                        <div style={{ marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4 }}>
+                        <div style={{ marginTop: 4, borderTop: `1px solid ${tc.tooltipBorder}`, paddingTop: 4 }}>
                           {goalAdj.map((a, i) => (
-                            <p key={i} style={{ color: a.goalType === "revenue" ? "hsl(160, 70%, 45%)" : "hsl(38, 92%, 55%)", fontSize: 10 }}>
+                            <p key={i} style={{ color: a.goalType === "revenue" ? tc.green : tc.amber, fontSize: 10 }}>
                               Goal: {a.goalName} {a.amount >= 0 ? "+" : ""}{formatMetricValue(a.amount, "currency")}
                             </p>
                           ))}
@@ -256,30 +234,29 @@ const CashflowChart = ({ adjustedData, adjustments = [] }: CashflowChartProps) =
                   );
                 }}
               />
-              <ReferenceLine y={0} stroke="hsl(215, 12%, 30%)" strokeDasharray="3 3" />
+              <ReferenceLine y={0} stroke={tc.zeroLine} strokeDasharray="3 3" />
               {currentMonthData && (
                 <ReferenceLine
                   x={currentMonthLabel}
-                  stroke="hsl(215, 12%, 45%)"
+                  stroke={tc.refLine}
                   strokeDasharray="4 4"
                   strokeWidth={1}
                   label={{
                     value: currentMonthLabel,
                     position: "top",
-                    fill: "hsl(215, 12%, 55%)",
+                    fill: tc.refText,
                     fontSize: 10,
                     fontFamily: "JetBrains Mono",
                   }}
                 />
               )}
-              {/* Selected range highlight */}
               {orderedSel && (
                 <ReferenceArea
                   x1={orderedSel.start}
                   x2={orderedSel.end}
-                  fill="hsl(200, 80%, 50%)"
+                  fill={tc.blue}
                   fillOpacity={0.12}
-                  stroke="hsl(200, 80%, 50%)"
+                  stroke={tc.blue}
                   strokeOpacity={0.4}
                   strokeDasharray="3 3"
                 />
@@ -296,13 +273,13 @@ const CashflowChart = ({ adjustedData, adjustments = [] }: CashflowChartProps) =
                   const { cx, cy, payload } = props;
                   if (!payload?._goalAdjustments?.length) return <g key={props.key} />;
                   const adj = payload._goalAdjustments[0];
-                  const color = adj.goalType === "revenue" ? "hsl(160, 70%, 45%)" : "hsl(38, 92%, 55%)";
+                  const color = adj.goalType === "revenue" ? tc.green : tc.amber;
                   return (
                     <g key={props.key}>
                       <polygon
                         points={`${cx},${cy - 5} ${cx + 4},${cy} ${cx},${cy + 5} ${cx - 4},${cy}`}
                         fill={color}
-                        stroke="hsl(220, 18%, 10%)"
+                        stroke={tc.dotStroke}
                         strokeWidth={1}
                       />
                     </g>
@@ -312,7 +289,6 @@ const CashflowChart = ({ adjustedData, adjustments = [] }: CashflowChartProps) =
             </AreaChart>
           </ResponsiveContainer>
 
-          {/* Range summary panel */}
           {rangeSummary && (
             <motion.div
               initial={{ opacity: 0, y: -8 }}
@@ -330,13 +306,13 @@ const CashflowChart = ({ adjustedData, adjustments = [] }: CashflowChartProps) =
                 </div>
                 <div>
                   <p className="text-muted-foreground">Total {rangeSummary.total >= 0 ? "Surplus" : "Deficit"}</p>
-                  <p className={rangeSummary.total >= 0 ? "text-emerald-500 font-medium" : "text-red-500 font-medium"}>
+                  <p className={rangeSummary.total >= 0 ? "text-chart-green font-medium" : "text-chart-red font-medium"}>
                     {formatMetricValue(rangeSummary.total, "currency")}
                   </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Avg Monthly</p>
-                  <p className={rangeSummary.avg >= 0 ? "text-emerald-500 font-medium" : "text-red-500 font-medium"}>
+                  <p className={rangeSummary.avg >= 0 ? "text-chart-green font-medium" : "text-chart-red font-medium"}>
                     {formatMetricValue(rangeSummary.avg, "currency")}
                   </p>
                 </div>

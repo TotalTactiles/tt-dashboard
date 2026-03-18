@@ -4,10 +4,12 @@ import { Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, C
 import { Download } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatMetricValue } from "@/lib/formatMetricValue";
+import { chartColors } from "@/lib/chartTheme";
 import { getMonthAdjustments, type GoalAdjustment } from "@/lib/goalMerge";
 import type { IncomeOutgoingsPoint } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
 import { CashflowExportModal } from "@/components/reports/CashflowExportModal";
+import { useTheme } from "next-themes";
 
 const MONTH_ABBR_LIST = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -52,6 +54,7 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
   const { incomeOutgoingsData, dataHealth } = useDashboardData();
   const sourceData = adjustedData ?? incomeOutgoingsData;
   const [exportOpen, setExportOpen] = useState(false);
+  const { resolvedTheme } = useTheme();
 
   const [quarter, setQuarter] = useState<QuarterFilter>(() => loadPref("cashflow_quarter_filter", getCurrentQuarter()));
 
@@ -66,10 +69,12 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
   const currentYearShort = String(currentYear).slice(-2);
   const currentMonthLabel = `${currentMonthAbbr}-${currentYearShort}`;
 
+  // Resolve colors from CSS variables (theme-aware)
+  const tc = useMemo(() => chartColors(), [resolvedTheme]);
+
   const filteredData = useMemo(() => {
     let data = sourceData.map(d => ({
       ...d,
-      // Ensure outgoings always display as positive magnitude (safety for mixed-sign source data)
       outgoings: Math.abs(d.outgoings),
     }));
     if (quarter !== "all") {
@@ -79,7 +84,6 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
         return parsed ? qMonths.includes(parsed.month) : false;
       });
     }
-    // Enrich with goal adjustments
     if (adjustments.length > 0) {
       data = data.map(point => {
         const monthAdj = getMonthAdjustments(adjustments, point.month);
@@ -133,17 +137,17 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
     if (cx == null || cy == null) return null;
     const goalAdj = (payload as any)?._goalAdjustments;
     if (goalAdj?.length) {
-      const color = goalAdj[0].goalType === "revenue" ? "hsl(160, 70%, 45%)" : "hsl(38, 92%, 55%)";
+      const color = goalAdj[0].goalType === "revenue" ? tc.green : tc.amber;
       return (
         <polygon
           points={`${cx},${cy - 5} ${cx + 4},${cy} ${cx},${cy + 5} ${cx - 4},${cy}`}
           fill={color}
-          stroke="hsl(220, 18%, 10%)"
+          stroke={tc.dotStroke}
           strokeWidth={1}
         />
       );
     }
-    return <circle cx={cx} cy={cy} r={3} fill="hsl(160, 70%, 45%)" stroke="none" />;
+    return <circle cx={cx} cy={cy} r={3} fill={tc.green} stroke="none" />;
   };
 
   const rangeLabel = useMemo(() => {
@@ -179,7 +183,7 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
                 onClick={() => setQuarterFilter(q.key)}
                 className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-medium transition-all ${
                   quarter === q.key
-                    ? "bg-emerald-600/90 text-white"
+                    ? "bg-primary text-primary-foreground"
                     : "bg-transparent border border-border text-muted-foreground hover:border-muted-foreground/50"
                 }`}
               >
@@ -199,19 +203,19 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono mb-3">
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "hsl(200, 80%, 50%)" }} />
+          <span className="w-3 h-3 rounded-sm bg-chart-blue" />
           <span className="text-muted-foreground">Income</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "hsl(200, 80%, 50%)", opacity: 0.35 }} />
+          <span className="w-3 h-3 rounded-sm bg-chart-blue/35" />
           <span className="text-muted-foreground">Income (Probable)</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "hsl(0, 72%, 55%)" }} />
+          <span className="w-3 h-3 rounded-sm bg-chart-red" />
           <span className="text-muted-foreground">Outgoings</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-0.5 rounded" style={{ backgroundColor: "hsl(160, 70%, 45%)" }} />
+          <span className="w-3 h-0.5 rounded bg-chart-green" />
           <span className="text-muted-foreground">Surplus</span>
         </div>
       </div>
@@ -226,11 +230,11 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
         <div className="relative">
           <ResponsiveContainer width="100%" height={220} minHeight={180}>
             <ComposedChart data={filteredData} barGap={2}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
-              <XAxis dataKey="month" stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" />
+              <CartesianGrid strokeDasharray="3 3" stroke={tc.grid} />
+              <XAxis dataKey="month" stroke={tc.axis} fontSize={11} fontFamily="JetBrains Mono" />
               <YAxis
                 yAxisId="bars"
-                stroke="hsl(215, 12%, 50%)"
+                stroke={tc.axis}
                 fontSize={11}
                 fontFamily="JetBrains Mono"
                 domain={barDomain}
@@ -242,7 +246,7 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
               <YAxis
                 yAxisId="surplus"
                 orientation="right"
-                stroke="hsl(215, 12%, 50%)"
+                stroke={tc.axis}
                 fontSize={10}
                 fontFamily="JetBrains Mono"
                 domain={surplusDomain}
@@ -263,36 +267,36 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
                   const goalAdj: GoalAdjustment[] = (point as any)._goalAdjustments ?? [];
                   return (
                     <div style={{
-                      backgroundColor: "hsl(220, 18%, 10%)",
-                      border: "1px solid hsl(220, 14%, 18%)",
+                      backgroundColor: tc.tooltipBg,
+                      border: `1px solid ${tc.tooltipBorder}`,
                       borderRadius: "8px",
                       fontFamily: "JetBrains Mono",
                       fontSize: "12px",
                       padding: "8px 12px",
                       maxWidth: 280,
                     }}>
-                      <p style={{ color: "hsl(215, 12%, 70%)", marginBottom: 4 }}>{label}</p>
+                      <p style={{ color: tc.tooltipText, marginBottom: 4 }}>{label}</p>
                       {isFuture ? (
                         <>
-                          <p style={{ color: "hsl(200, 80%, 50%)" }}>Income (Probable): {formatMetricValue(point.probableIncome, "currency")}</p>
-                          <p style={{ color: "hsl(0, 72%, 55%)" }}>Outgoings (Estimated): {formatMetricValue(point.outgoings, "currency")}</p>
-                          <p style={{ color: isNeg ? "hsl(0, 84%, 60%)" : "hsl(160, 70%, 45%)", marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4 }}>
+                          <p style={{ color: tc.blue }}>Income (Probable): {formatMetricValue(point.probableIncome, "currency")}</p>
+                          <p style={{ color: tc.red }}>Outgoings (Estimated): {formatMetricValue(point.outgoings, "currency")}</p>
+                          <p style={{ color: isNeg ? tc.red : tc.green, marginTop: 4, borderTop: `1px solid ${tc.tooltipBorder}`, paddingTop: 4 }}>
                             Projected {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
                           </p>
                         </>
                       ) : (
                         <>
-                          <p style={{ color: "hsl(200, 80%, 50%)" }}>Income: {formatMetricValue(point.income, "currency")}</p>
-                          <p style={{ color: "hsl(0, 72%, 55%)" }}>Outgoings: {formatMetricValue(point.outgoings, "currency")}</p>
-                          <p style={{ color: isNeg ? "hsl(0, 84%, 60%)" : "hsl(160, 70%, 45%)", marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4 }}>
+                          <p style={{ color: tc.blue }}>Income: {formatMetricValue(point.income, "currency")}</p>
+                          <p style={{ color: tc.red }}>Outgoings: {formatMetricValue(point.outgoings, "currency")}</p>
+                          <p style={{ color: isNeg ? tc.red : tc.green, marginTop: 4, borderTop: `1px solid ${tc.tooltipBorder}`, paddingTop: 4 }}>
                             {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
                           </p>
                         </>
                       )}
                       {goalAdj.length > 0 && (
-                        <div style={{ marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4 }}>
+                        <div style={{ marginTop: 4, borderTop: `1px solid ${tc.tooltipBorder}`, paddingTop: 4 }}>
                           {goalAdj.map((a, i) => (
-                            <p key={i} style={{ color: a.goalType === "revenue" ? "hsl(160, 70%, 45%)" : "hsl(38, 92%, 55%)", fontSize: 10 }}>
+                            <p key={i} style={{ color: a.goalType === "revenue" ? tc.green : tc.amber, fontSize: 10 }}>
                               Goal: {a.goalName} {a.amount >= 0 ? "+" : ""}{formatMetricValue(a.amount, "currency")}
                             </p>
                           ))}
@@ -306,13 +310,13 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
                 <ReferenceLine
                   yAxisId="bars"
                   x={currentMonthLabel}
-                  stroke="hsl(215, 12%, 45%)"
+                  stroke={tc.refLine}
                   strokeDasharray="4 4"
                   strokeWidth={1}
                   label={{
                     value: currentMonthLabel,
                     position: "top",
-                    fill: "hsl(215, 12%, 55%)",
+                    fill: tc.refText,
                     fontSize: 10,
                     fontFamily: "JetBrains Mono",
                   }}
@@ -320,21 +324,21 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
               )}
               <Bar yAxisId="bars" dataKey="income" radius={[3, 3, 0, 0]} animationDuration={800}>
                 {filteredData.map((entry, index) => (
-                  <Cell key={`income-${index}`} fill="hsl(200, 80%, 50%)" fillOpacity={entry.isFuture ? 0 : 1} />
+                  <Cell key={`income-${index}`} fill={tc.blue} fillOpacity={entry.isFuture ? 0 : 1} />
                 ))}
               </Bar>
               <Bar yAxisId="bars" dataKey="probableIncome" radius={[3, 3, 0, 0]} animationDuration={800}>
                 {filteredData.map((entry, index) => (
-                  <Cell key={`probable-${index}`} fill="hsl(200, 80%, 50%)" fillOpacity={entry.isFuture ? 0.35 : 0} />
+                  <Cell key={`probable-${index}`} fill={tc.blue} fillOpacity={entry.isFuture ? 0.35 : 0} />
                 ))}
               </Bar>
-              <Bar yAxisId="bars" dataKey="outgoings" fill="hsl(0, 72%, 55%)" radius={[3, 3, 0, 0]} animationDuration={800} />
-              <ReferenceLine yAxisId="surplus" y={0} stroke="hsl(215, 12%, 25%)" strokeDasharray="3 3" />
+              <Bar yAxisId="bars" dataKey="outgoings" fill={tc.red} radius={[3, 3, 0, 0]} animationDuration={800} />
+              <ReferenceLine yAxisId="surplus" y={0} stroke={tc.zeroLine} strokeDasharray="3 3" />
               <Line
                 yAxisId="surplus"
                 type="monotone"
                 dataKey="surplus"
-                stroke="hsl(160, 70%, 45%)"
+                stroke={tc.green}
                 strokeWidth={2}
                 dot={renderSurplusDot}
                 animationDuration={800}

@@ -197,10 +197,10 @@ const ExpenseBreakdown = ({ goals = [], activeGoalIds = new Set() }: ExpenseBrea
                       const { name, value, fill } = payload[0].payload;
                       const pct = pieTotal > 0 ? ((value / pieTotal) * 100).toFixed(1) : "0";
                       return (
-                        <div style={{ background: '#fff', borderRadius: 8, padding: '10px 14px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
-                          <div style={{ fontWeight: 700, fontSize: 13, color: '#111', marginBottom: 2 }}>{name}</div>
-                          <div style={{ fontWeight: 600, fontSize: 15, color: fill }}>${value.toLocaleString()}{periodSuffix}</div>
-                          <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>{pct}% of total</div>
+                        <div className="bg-popover border border-border rounded-lg shadow-lg" style={{ padding: '10px 14px' }}>
+                          <div className="font-bold text-[13px] text-foreground mb-0.5">{name}</div>
+                          <div className="font-semibold text-[15px]" style={{ color: fill }}>${value.toLocaleString()}{periodSuffix}</div>
+                          <div className="text-[12px] text-muted-foreground mt-0.5">{pct}% of total</div>
                         </div>
                       );
                     }}
