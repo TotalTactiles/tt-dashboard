@@ -22,7 +22,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <SidebarTrigger className="mr-4" />
             <div className="flex items-center gap-2 ml-auto">
               <span className="pulse-dot bg-chart-green" />
-              <span className="text-xs text-muted-foreground font-mono">Markets Open</span>
+              <span className="text-xs text-muted-foreground font-mono">Live</span>
             </div>
           </header>
           {/* Mobile header */}
@@ -47,8 +47,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       </div>
       {/* Mobile bottom tab bar */}
       <MobileNav />
-    </SidebarProvider>
-  );
+    </SidebarProvider>);
+
 };
 
 export default DashboardLayout;
