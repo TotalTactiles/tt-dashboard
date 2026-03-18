@@ -362,13 +362,13 @@ const DashboardContent = () => {
           <div className="space-y-4 md:space-y-6">
             <DealPipeline
               periodFilter={selectedPeriod}
-              showAll={showAllQuotedJobs}
-              onAllToggle={handleQuotedJobsAllToggle}
+              showAll={showAllTables}
+              onAllToggle={handleTableAllToggle}
             />
             <RevenueProjectsTable
               periodFilter={selectedPeriod}
-              showAll={showAllRevenue}
-              onAllToggle={handleRevenueAllToggle}
+              showAll={showAllTables}
+              onAllToggle={handleTableAllToggle}
             />
             <ExpenseBreakdown goals={goals} activeGoalIds={activeGoalIds} />
           </div>
