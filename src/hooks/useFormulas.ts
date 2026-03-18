@@ -185,7 +185,14 @@ function migrateStoredFormulas(formulas: MetricFormula[]): MetricFormula[] {
   let next = [...formulas];
   let changed = false;
 
-  for (const systemFormulaName of ["Gross Profit Margin", "Gross Margin Target"]) {
+  // Remove "Gross Margin Target" if it exists — it is not a formula
+  const targetIdx = next.findIndex((f) => f.name === "Gross Margin Target");
+  if (targetIdx !== -1) {
+    next.splice(targetIdx, 1);
+    changed = true;
+  }
+
+  for (const systemFormulaName of ["Gross Profit Margin"]) {
     const systemFormula = DEFAULT_FORMULAS.find((formula) => formula.name === systemFormulaName);
     if (!systemFormula) continue;
     const result = upsertSystemFormula(next, systemFormula);
