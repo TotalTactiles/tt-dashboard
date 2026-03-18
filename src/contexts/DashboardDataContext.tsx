@@ -573,9 +573,14 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       const closingRow = findCashflowRow("Closing Balance");
       if (closingRow) {
         const val = parseNum(closingRow[currentMonthKey] ?? 0);
-        if (val !== 0) cashflowPosition = val;
+        if (val !== 0) {
+          cashflowPosition = val;
+          cashflowPositionSource = `Closing Balance[${currentMonthKey}] (final fallback)`;
+        }
       }
     }
+
+    console.log("[Cashflow Position Debug] source:", cashflowPositionSource, "value:", cashflowPosition, "currentMonthKey:", currentMonthKey);
 
     // ===== Extract GRN and YLW from raw qtsSmmry rows (QTS SUMMARY sheet) =====
     const rawQtsSmmry = unwrapItems(liveData.qtsSmmry ?? []);
