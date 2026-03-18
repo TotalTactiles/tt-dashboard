@@ -42,7 +42,7 @@ const GROSS_PROFIT_MARGIN_DESCRIPTION = `What is calculated:
 • Gross Profit Margin % for each month shown in the chart
 • The formula card result mirrors the latest available chart month
 
-How it is calculated:
+How Gross Profit is calculated:
 • Source: REVENUE sheet (deal-level rows)
 • Month grouping: Other Date, fallback Invoice Date, normalised to Mon-YY
 • Revenue used: Value ex GST (valueExclGST)
@@ -51,14 +51,17 @@ How it is calculated:
 • Monthly GP% = Σ(monthly Gross Profit) ÷ Σ(monthly Revenue ex GST) × 100
 • This is a weighted monthly GP%, not a simple average of row GP%s
 
-Why it matters:
-• Shows how efficiently project revenue converts into gross profit before operating expenses
-• Lets the dashboard compare monthly delivery margin against the saved target threshold
+How Net Profit Margin is calculated (same chart):
+• Source: CASHFLOW sheet → "Anticipated Cash Surplus/(Deficit)" row
+• Each month's Net Profit = value from that row's month column
+• Revenue denominator: same REVENUE tab monthly grouping as GP%
+• Net Profit % = Net Profit(month) ÷ Σ(Revenue ex GST for month) × 100
+• Both lines share the same month keys and revenue denominator
 
 Source fields / rows used:
-• REVENUE line-item rows only
-• Other Date / Invoice Date
-• _label_value, _label_totalCost, _label_labourCost, _label_tactileCost, _label_otherCost`;
+• REVENUE line-item rows: Other Date, Invoice Date, _label_value, _label_totalCost
+• CASHFLOW row: "Anticipated Cash Surplus/(Deficit)"
+• Month key format: Mon-YY (e.g. Jan-26)`;
 
 const DEFAULT_FORMULAS: Omit<MetricFormula, "id">[] = [
   { name: "Total Quoted", expression: "TotalQuoted", description: "Sum of all quoted project values", unit: "$", category: "Financial", dashboardCard: "Total Quoted", dataSource: "Google Sheets" },
