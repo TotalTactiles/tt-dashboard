@@ -1,35 +1,34 @@
 /**
- * Project Execution KPI calculations.
+ * Project Execution KPI calculations — V2
  *
- * Each function operates on the arrays already available in the dashboard
- * context (QuotedJob[], RevenueProject[]).  Where a required field is
- * absent the function returns `null` so the UI can render "Data unavailable"
- * instead of fabricating a number.
+ * Uses ONLY data available from Google Sheets:
+ *   QUOTES  → QuotedJob[]
+ *   REVENUE → RevenueProject[]
+ *   CASHFLOW → IncomeOutgoingsPoint[]
  */
 
-import type { QuotedJob, RevenueProject } from "@/contexts/DashboardDataContext";
+import type { QuotedJob, RevenueProject, IncomeOutgoingsPoint } from "@/contexts/DashboardDataContext";
+import { formatMetricValue } from "@/lib/formatMetricValue";
 
 // ── Helpers ────────────────────────────────────────────────────────
 
 const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"] as const;
 
-/** Parse "Mon-YY" → { month, year } or null */
-function parseMonKey(key: string): { month: number; year: number } | null {
-  const m = key.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-(\d{2})$/i);
-  if (!m) return null;
-  return { month: MONTH_ABBR.indexOf(m[1] as any), year: 2000 + parseInt(m[2]) };
-}
-
-/** Date → "Mon-YY" */
 function dateToMonKey(d: Date): string {
   return `${MONTH_ABBR[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
 }
 
-/** Attempt to parse any date-ish string */
 function tryParseDate(s: string): Date | null {
   if (!s) return null;
   const d = new Date(s);
   return isNaN(d.getTime()) ? null : d;
+}
+
+/** Parse "Mon-YY" → Date or null */
+function monKeyToDate(key: string): Date | null {
+  const m = key.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-(\d{2})$/i);
+  if (!m) return null;
+  return new Date(2000 + parseInt(m[2]), MONTH_ABBR.indexOf(m[1] as any), 1);
 }
 
 // ── Period helpers ─────────────────────────────────────────────────
@@ -38,13 +37,9 @@ export type PeriodMode = "month" | "quarter" | "ytd";
 
 export interface PeriodSpec {
   mode: PeriodMode;
-  /** For month: "Mar-26"; for quarter: "Q1-26"; for ytd: "YTD-26" */
   key: string;
-  /** Human label */
   label: string;
-  /** Month keys included in this period */
   months: string[];
-  /** Prior comparison period month keys */
   priorMonths: string[];
 }
 
@@ -56,7 +51,6 @@ export function getQuarterForMonth(monthIdx: number): number {
   return Math.floor(monthIdx / 3) + 1;
 }
 
-/** Build the selectable periods from the current date */
 export function buildPeriodOptions(now: Date = new Date()): PeriodSpec[] {
   const yr = now.getFullYear();
   const yr2 = String(yr).slice(-2);
@@ -77,16 +71,12 @@ export function buildPeriodOptions(now: Date = new Date()): PeriodSpec[] {
   // Current quarter
   const q = getQuarterForMonth(mi);
   const qStart = (q - 1) * 3;
-  const qMonths = Array.from({ length: 3 }, (_, i) =>
-    `${MONTH_ABBR[qStart + i]}-${yr2}`
-  );
+  const qMonths = Array.from({ length: 3 }, (_, i) => `${MONTH_ABBR[qStart + i]}-${yr2}`);
   const prevQStart = qStart - 3;
   const prevYr = prevQStart < 0 ? yr - 1 : yr;
   const prevQStartAdj = prevQStart < 0 ? prevQStart + 12 : prevQStart;
   const prevYr2 = String(prevYr).slice(-2);
-  const prevQMonths = Array.from({ length: 3 }, (_, i) =>
-    `${MONTH_ABBR[prevQStartAdj + i]}-${prevYr2}`
-  );
+  const prevQMonths = Array.from({ length: 3 }, (_, i) => `${MONTH_ABBR[prevQStartAdj + i]}-${prevYr2}`);
   options.push({
     mode: "quarter",
     key: `Q${q}-${yr2}`,
@@ -95,14 +85,9 @@ export function buildPeriodOptions(now: Date = new Date()): PeriodSpec[] {
     priorMonths: prevQMonths,
   });
 
-  // YTD (Jul–now for Australian FY, or Jan–now)
-  // Using calendar year for simplicity
-  const ytdMonths = Array.from({ length: mi + 1 }, (_, i) =>
-    `${MONTH_ABBR[i]}-${yr2}`
-  );
-  const prevYtdMonths = Array.from({ length: mi + 1 }, (_, i) =>
-    `${MONTH_ABBR[i]}-${String(yr - 1).slice(-2)}`
-  );
+  // YTD
+  const ytdMonths = Array.from({ length: mi + 1 }, (_, i) => `${MONTH_ABBR[i]}-${yr2}`);
+  const prevYtdMonths = Array.from({ length: mi + 1 }, (_, i) => `${MONTH_ABBR[i]}-${String(yr - 1).slice(-2)}`);
   options.push({
     mode: "ytd",
     key: `YTD-${yr2}`,
@@ -116,7 +101,7 @@ export function buildPeriodOptions(now: Date = new Date()): PeriodSpec[] {
 
 // ── Filter helpers ─────────────────────────────────────────────────
 
-function jobMonthKey(job: QuotedJob): string | null {
+function jobEstimatedDateKey(job: QuotedJob): string | null {
   const d = tryParseDate(job.dateQuoted);
   return d ? dateToMonKey(d) : null;
 }
@@ -134,7 +119,7 @@ function filterByPeriod<T>(items: T[], keyFn: (item: T) => string | null, months
   });
 }
 
-// ── KPI Result types ───────────────────────────────────────────────
+// ── KPI Result ─────────────────────────────────────────────────────
 
 export interface KPIResult {
   value: number | null;
@@ -145,230 +130,219 @@ export interface KPIResult {
   unavailableReason?: string;
 }
 
-function pct(v: number | null): string {
-  if (v === null) return "--";
-  return `${v >= 0 ? "" : ""}${v.toFixed(1)}%`;
+function unavailable(reason: string): KPIResult {
+  return { value: null, formatted: "--", change: null, changeFormatted: "--", context: "Data unavailable", unavailableReason: reason };
 }
 
-function changePct(current: number | null, prior: number | null): { change: number | null; changeFormatted: string } {
-  if (current === null || prior === null) return { change: null, changeFormatted: "--" };
-  const diff = current - prior;
-  return { change: diff, changeFormatted: `${diff >= 0 ? "+" : ""}${diff.toFixed(1)}pp` };
-}
+// ── 1. ACTIVE JOBS ─────────────────────────────────────────────────
 
-// ── 1. On-Time Delivery % ──────────────────────────────────────────
+function calcActiveJobs(jobs: QuotedJob[], period: PeriodSpec): KPIResult {
+  const activeStatuses = new Set(["pending", "yellow"]);
+  const allActive = jobs.filter((j) => activeStatuses.has(j.status));
+  const periodJobs = filterByPeriod(allActive, jobEstimatedDateKey, period.months);
+  const priorJobs = filterByPeriod(allActive, jobEstimatedDateKey, period.priorMonths);
 
-export function calcOnTimeDelivery(
-  jobs: QuotedJob[],
-  period: PeriodSpec,
-  priorPeriod: PeriodSpec | null
-): KPIResult {
-  // We need completion_date and estimated_job_date — not available in current data model
+  const count = periodJobs.length;
+  const priorCount = priorJobs.length;
+  const diff = count - priorCount;
+
+  const pending = periodJobs.filter((j) => j.status === "pending").length;
+  const yellow = periodJobs.filter((j) => j.status === "yellow").length;
+
   return {
-    value: null,
-    formatted: "--",
-    change: null,
-    changeFormatted: "--",
-    context: "Requires completion dates",
-    unavailableReason: "completion_date and estimated_job_date fields not available in current data source",
+    value: count,
+    formatted: String(count),
+    change: priorCount > 0 ? diff : null,
+    changeFormatted: priorCount > 0 ? `${diff >= 0 ? "+" : ""}${diff}` : "--",
+    context: `${pending} pending · ${yellow} yellow`,
   };
 }
 
-// ── 2. Schedule Slippage ───────────────────────────────────────────
+// ── 2. OVERDUE JOBS ────────────────────────────────────────────────
 
-export function calcScheduleSlippage(
-  jobs: QuotedJob[],
-  period: PeriodSpec
-): KPIResult {
-  // Requires date change history (latest_estimated_date vs previous_estimated_date)
+function calcOverdueJobs(jobs: QuotedJob[]): KPIResult {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const activeStatuses = new Set(["pending", "yellow"]);
+  const activeJobs = jobs.filter((j) => activeStatuses.has(j.status));
+  if (activeJobs.length === 0) {
+    return { value: 0, formatted: "0", change: null, changeFormatted: "--", context: "No active jobs" };
+  }
+
+  const overdue = activeJobs.filter((j) => {
+    const d = tryParseDate(j.dateQuoted);
+    return d !== null && d < today;
+  });
+
+  const pct = activeJobs.length > 0 ? Math.round((overdue.length / activeJobs.length) * 100) : 0;
+
   return {
-    value: null,
-    formatted: "--",
+    value: overdue.length,
+    formatted: String(overdue.length),
     change: null,
     changeFormatted: "--",
-    context: "Requires schedule history",
-    unavailableReason: "Schedule change history not available in current data source",
+    context: `${pct}% of ${activeJobs.length} active jobs`,
   };
 }
 
-// ── 3. Margin Variance % (WEIGHTED) ───────────────────────────────
+// ── 3. JOBS DUE THIS PERIOD ───────────────────────────────────────
 
-export function calcMarginVariance(
-  revenue: RevenueProject[],
-  period: PeriodSpec,
-  priorPeriod: PeriodSpec | null
-): KPIResult {
-  // We have actual revenue and actual COGS but no estimated/quoted cost
-  // We can compute actual margin but not variance against expected
-  const periodItems = filterByPeriod(revenue, revenueMonthKey, period.months);
-  const completed = periodItems.filter((r) => r.status === "paid");
+function calcJobsDuePeriod(jobs: QuotedJob[], period: PeriodSpec): KPIResult {
+  const periodJobs = filterByPeriod(jobs, jobEstimatedDateKey, period.months);
+  const priorJobs = filterByPeriod(jobs, jobEstimatedDateKey, period.priorMonths);
 
-  if (completed.length === 0) {
-    return {
-      value: null,
-      formatted: "--",
-      change: null,
-      changeFormatted: "--",
-      context: "No completed jobs in period",
-      unavailableReason: "No paid revenue projects found for selected period",
-    };
+  const count = periodJobs.length;
+  const priorCount = priorJobs.length;
+  const diff = count - priorCount;
+
+  const totalValue = periodJobs.reduce((s, j) => s + j.value, 0);
+
+  return {
+    value: count,
+    formatted: String(count),
+    change: priorCount > 0 ? diff : null,
+    changeFormatted: priorCount > 0 ? `${diff >= 0 ? "+" : ""}${diff} vs prior` : "--",
+    context: `${formatMetricValue(totalValue, "currency")} pipeline`,
+  };
+}
+
+// ── 4. WEIGHTED GROSS MARGIN ──────────────────────────────────────
+
+function calcWeightedGrossMargin(revenue: RevenueProject[], period: PeriodSpec): KPIResult {
+  const periodItems = filterByPeriod(revenue, revenueMonthKey, period.months)
+    .filter((r) => r.status === "paid" || r.status === "invoiced");
+  const priorItems = filterByPeriod(revenue, revenueMonthKey, period.priorMonths)
+    .filter((r) => r.status === "paid" || r.status === "invoiced");
+
+  if (periodItems.length === 0) {
+    return unavailable("No completed revenue in period");
   }
 
-  // Weighted actual margin: Σ grossProfit / Σ revenueExGST
-  const totalRevenue = completed.reduce((s, r) => s + r.valueExclGST, 0);
-  const totalGP = completed.reduce((s, r) => s + r.grossProfit, 0);
+  const totalRev = periodItems.reduce((s, r) => s + r.valueExclGST, 0);
+  const totalGP = periodItems.reduce((s, r) => s + r.grossProfit, 0);
 
-  if (totalRevenue <= 0) {
-    return {
-      value: null,
-      formatted: "--",
-      change: null,
-      changeFormatted: "--",
-      context: "No revenue in period",
-      unavailableReason: "Total revenue is zero for selected period",
-    };
-  }
+  if (totalRev <= 0) return unavailable("Zero revenue in period");
 
-  const actualMarginPct = (totalGP / totalRevenue) * 100;
+  const margin = (totalGP / totalRev) * 100;
 
-  // Without estimated_cost we cannot compute variance — show actual margin instead
-  // and flag that variance requires estimated cost data
-  const priorItems = priorPeriod
-    ? filterByPeriod(revenue, revenueMonthKey, priorPeriod.months).filter((r) => r.status === "paid")
-    : [];
   const priorRev = priorItems.reduce((s, r) => s + r.valueExclGST, 0);
   const priorGP = priorItems.reduce((s, r) => s + r.grossProfit, 0);
   const priorMargin = priorRev > 0 ? (priorGP / priorRev) * 100 : null;
-
-  const { change, changeFormatted } = changePct(actualMarginPct, priorMargin);
-  const lostAmt = totalRevenue > 0 ? Math.round(totalGP - totalRevenue * (priorMargin ?? actualMarginPct) / 100) : 0;
+  const diff = priorMargin !== null ? margin - priorMargin : null;
 
   return {
-    value: actualMarginPct,
-    formatted: pct(actualMarginPct),
-    change,
-    changeFormatted,
-    context: `${completed.length} jobs · ${lostAmt >= 0 ? "+" : ""}$${Math.abs(lostAmt).toLocaleString()} vs prior`,
+    value: margin,
+    formatted: `${margin.toFixed(1)}%`,
+    change: diff,
+    changeFormatted: diff !== null ? `${diff >= 0 ? "+" : ""}${diff.toFixed(1)}pp` : "--",
+    context: `${formatMetricValue(totalGP, "currency")} GP on ${formatMetricValue(totalRev, "currency")} rev`,
   };
 }
 
-// ── 4. Cost Overrun % ──────────────────────────────────────────────
+// ── 5. REVENUE PER JOB ────────────────────────────────────────────
 
-export function calcCostOverrun(
-  revenue: RevenueProject[],
-  period: PeriodSpec,
-  priorPeriod: PeriodSpec | null
-): KPIResult {
-  // Requires estimated_cost — not available
+function calcRevenuePerJob(revenue: RevenueProject[], period: PeriodSpec): KPIResult {
+  const periodItems = filterByPeriod(revenue, revenueMonthKey, period.months)
+    .filter((r) => r.valueExclGST > 0);
+  const priorItems = filterByPeriod(revenue, revenueMonthKey, period.priorMonths)
+    .filter((r) => r.valueExclGST > 0);
+
+  if (periodItems.length === 0) return unavailable("No revenue jobs in period");
+
+  const totalRev = periodItems.reduce((s, r) => s + r.valueExclGST, 0);
+  const avg = totalRev / periodItems.length;
+
+  const priorRev = priorItems.reduce((s, r) => s + r.valueExclGST, 0);
+  const priorAvg = priorItems.length > 0 ? priorRev / priorItems.length : null;
+  const diff = priorAvg !== null ? avg - priorAvg : null;
+
   return {
-    value: null,
-    formatted: "--",
-    change: null,
-    changeFormatted: "--",
-    context: "Requires estimated cost data",
-    unavailableReason: "estimated_cost field not available in current data source",
+    value: avg,
+    formatted: formatMetricValue(avg, "currency"),
+    change: diff,
+    changeFormatted: diff !== null ? `${diff >= 0 ? "+" : ""}${formatMetricValue(diff, "currency")}` : "--",
+    context: `${periodItems.length} jobs`,
   };
 }
 
-// ── 5. Labour Efficiency % ────────────────────────────────────────
+// ── 6. GROSS PROFIT PER JOB ──────────────────────────────────────
 
-export function calcLabourEfficiency(
-  revenue: RevenueProject[],
-  period: PeriodSpec
-): KPIResult {
-  // Requires actual_hours and estimated_hours
+function calcGrossProfitPerJob(revenue: RevenueProject[], period: PeriodSpec): KPIResult {
+  const periodItems = filterByPeriod(revenue, revenueMonthKey, period.months)
+    .filter((r) => r.valueExclGST > 0);
+  const priorItems = filterByPeriod(revenue, revenueMonthKey, period.priorMonths)
+    .filter((r) => r.valueExclGST > 0);
+
+  if (periodItems.length === 0) return unavailable("No revenue jobs in period");
+
+  const totalGP = periodItems.reduce((s, r) => s + r.grossProfit, 0);
+  const avg = totalGP / periodItems.length;
+
+  const priorGP = priorItems.reduce((s, r) => s + r.grossProfit, 0);
+  const priorAvg = priorItems.length > 0 ? priorGP / priorItems.length : null;
+  const diff = priorAvg !== null ? avg - priorAvg : null;
+
   return {
-    value: null,
-    formatted: "--",
-    change: null,
-    changeFormatted: "--",
-    context: "Requires hours tracking",
-    unavailableReason: "actual_hours and estimated_hours not available in current data source",
+    value: avg,
+    formatted: formatMetricValue(avg, "currency"),
+    change: diff,
+    changeFormatted: diff !== null ? `${diff >= 0 ? "+" : ""}${formatMetricValue(diff, "currency")}` : "--",
+    context: `${periodItems.length} jobs`,
   };
 }
 
-// ── 6. Jobs At Risk ───────────────────────────────────────────────
+// ── 7. CASH EXPECTED THIS PERIOD ──────────────────────────────────
 
-export function calcJobsAtRisk(
-  jobs: QuotedJob[],
-  revenue: RevenueProject[],
-  period: PeriodSpec,
-  marginThreshold = 30
-): KPIResult {
-  // Active jobs: pending or yellow status
-  const activeJobs = filterByPeriod(jobs, jobMonthKey, period.months)
-    .filter((j) => j.status === "pending" || j.status === "yellow");
+function calcCashExpected(cashflowData: IncomeOutgoingsPoint[], period: PeriodSpec): KPIResult {
+  const monthSet = new Set(period.months);
+  const priorSet = new Set(period.priorMonths);
 
-  if (activeJobs.length === 0) {
-    return {
-      value: 0,
-      formatted: "0",
-      change: null,
-      changeFormatted: "--",
-      context: "No active jobs in period",
-    };
-  }
+  const periodPoints = cashflowData.filter((p) => monthSet.has(p.month));
+  const priorPoints = cashflowData.filter((p) => priorSet.has(p.month));
 
-  // Check revenue data for margin status — match by company+project
-  let atRisk = 0;
-  let highRisk = 0;
+  if (periodPoints.length === 0) return unavailable("No cashflow data for period");
 
-  for (const job of activeJobs) {
-    let riskFactors = 0;
+  const totalIncome = periodPoints.reduce((s, p) => s + p.income, 0);
+  const priorIncome = priorPoints.reduce((s, p) => s + p.income, 0);
+  const diff = priorPoints.length > 0 ? totalIncome - priorIncome : null;
 
-    // Yellow status is a delay signal
-    if (job.status === "yellow") riskFactors++;
-
-    // Find matching revenue project for margin check
-    const matchingRev = revenue.find(
-      (r) => r.company === job.company && r.project === job.project
-    );
-    if (matchingRev && matchingRev.valueExclGST > 0) {
-      const margin = (matchingRev.grossProfit / matchingRev.valueExclGST) * 100;
-      if (margin < marginThreshold) riskFactors++;
-    }
-
-    if (riskFactors >= 1) atRisk++;
-    if (riskFactors >= 2) highRisk++;
-  }
+  const totalOutgoings = periodPoints.reduce((s, p) => s + p.outgoings, 0);
 
   return {
-    value: atRisk,
-    formatted: String(atRisk),
-    change: null,
-    changeFormatted: "--",
-    context: highRisk > 0 ? `${highRisk} high-risk (2+ factors)` : `${activeJobs.length} active jobs checked`,
+    value: totalIncome,
+    formatted: formatMetricValue(totalIncome, "currency"),
+    change: diff,
+    changeFormatted: diff !== null ? `${diff >= 0 ? "+" : ""}${formatMetricValue(diff, "currency")}` : "--",
+    context: `${formatMetricValue(totalOutgoings, "currency")} outgoings`,
   };
 }
 
 // ── Aggregate runner ───────────────────────────────────────────────
 
 export interface ExecutionKPIs {
-  onTimeDelivery: KPIResult;
-  scheduleSlippage: KPIResult;
-  marginVariance: KPIResult;
-  costOverrun: KPIResult;
-  labourEfficiency: KPIResult;
-  jobsAtRisk: KPIResult;
+  activeJobs: KPIResult;
+  overdueJobs: KPIResult;
+  jobsDuePeriod: KPIResult;
+  weightedGrossMargin: KPIResult;
+  revenuePerJob: KPIResult;
+  grossProfitPerJob: KPIResult;
+  cashExpected: KPIResult;
 }
 
 export function computeExecutionKPIs(
   jobs: QuotedJob[],
   revenue: RevenueProject[],
+  cashflowData: IncomeOutgoingsPoint[],
   period: PeriodSpec,
 ): ExecutionKPIs {
-  const priorPeriod: PeriodSpec = {
-    ...period,
-    months: period.priorMonths,
-    priorMonths: [],
-  };
-
   return {
-    onTimeDelivery: calcOnTimeDelivery(jobs, period, priorPeriod),
-    scheduleSlippage: calcScheduleSlippage(jobs, period),
-    marginVariance: calcMarginVariance(revenue, period, priorPeriod),
-    costOverrun: calcCostOverrun(revenue, period, priorPeriod),
-    labourEfficiency: calcLabourEfficiency(revenue, period),
-    jobsAtRisk: calcJobsAtRisk(jobs, revenue, period),
+    activeJobs: calcActiveJobs(jobs, period),
+    overdueJobs: calcOverdueJobs(jobs),
+    jobsDuePeriod: calcJobsDuePeriod(jobs, period),
+    weightedGrossMargin: calcWeightedGrossMargin(revenue, period),
+    revenuePerJob: calcRevenuePerJob(revenue, period),
+    grossProfitPerJob: calcGrossProfitPerJob(revenue, period),
+    cashExpected: calcCashExpected(cashflowData, period),
   };
 }
