@@ -152,7 +152,7 @@ function jobEstimatedDateKey(job: QuotedJob): string | null {
 }
 
 function revenueMonthKey(rp: RevenueProject): string | null {
-  const d = tryParseDate(rp.otherDate) || tryParseDate(rp.invoiceDate);
+  const d = tryParseDate(rp.invoiceDate) || tryParseDate(rp.otherDate);
   return d ? dateToMonKey(d) : null;
 }
 
