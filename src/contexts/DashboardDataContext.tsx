@@ -129,6 +129,7 @@ export interface IncomeOutgoingsPoint {
 export interface ProfitMarginPoint {
   month: string;
   grossMargin: number;
+  netProfitMargin: number | null;
 }
 
 export interface ForecastChartPoint {
