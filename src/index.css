@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 @layer base {
   /* ── DARK THEME (default) ── */
@@ -13,7 +13,7 @@
     --card: 220 18% 10%;
     --card-foreground: 210 20% 92%;
 
-    --popover: 220 18% 10%;
+    --popover: 220 18% 12%;
     --popover-foreground: 210 20% 92%;
 
     --primary: 160 70% 45%;
@@ -23,7 +23,7 @@
     --secondary-foreground: 210 20% 80%;
 
     --muted: 220 14% 14%;
-    --muted-foreground: 215 12% 50%;
+    --muted-foreground: 215 14% 55%;
 
     --accent: 200 80% 50%;
     --accent-foreground: 220 20% 6%;
@@ -42,16 +42,17 @@
     --chart-blue: 200 80% 50%;
     --chart-amber: 38 92% 55%;
     --chart-purple: 270 60% 55%;
+    --chart-orange: 25 95% 55%;
 
-    /* Chart infrastructure tokens */
-    --chart-grid: 220 14% 18%;
-    --chart-axis: 215 12% 50%;
-    --chart-tooltip-bg: 220 18% 10%;
-    --chart-tooltip-border: 220 14% 18%;
-    --chart-tooltip-text: 215 12% 70%;
-    --chart-zero-line: 215 12% 30%;
-    --chart-ref-line: 215 12% 45%;
-    --chart-ref-text: 215 12% 55%;
+    /* Chart infrastructure tokens — softer grid */
+    --chart-grid: 220 14% 15%;
+    --chart-axis: 215 12% 48%;
+    --chart-tooltip-bg: 220 20% 11%;
+    --chart-tooltip-border: 220 14% 20%;
+    --chart-tooltip-text: 215 14% 72%;
+    --chart-zero-line: 215 12% 28%;
+    --chart-ref-line: 215 12% 40%;
+    --chart-ref-text: 215 12% 52%;
     --chart-dot-stroke: 220 18% 10%;
 
     --sidebar-background: 220 20% 8%;
@@ -64,7 +65,7 @@
     --sidebar-ring: 160 70% 45%;
 
     --font-display: 'JetBrains Mono', monospace;
-    --font-body: 'Inter', sans-serif;
+    --font-body: 'Plus Jakarta Sans', 'Inter', sans-serif;
   }
 
   /* ── LIGHT THEME ── */
@@ -85,7 +86,7 @@
     --secondary-foreground: 220 16% 30%;
 
     --muted: 220 14% 95%;
-    --muted-foreground: 215 10% 46%;
+    --muted-foreground: 215 12% 42%;
 
     --accent: 200 80% 45%;
     --accent-foreground: 0 0% 100%;
@@ -102,13 +103,14 @@
     --chart-blue: 200 80% 44%;
     --chart-amber: 38 92% 48%;
     --chart-purple: 270 60% 48%;
+    --chart-orange: 25 95% 48%;
 
-    /* Chart infrastructure tokens — light */
-    --chart-grid: 220 14% 90%;
-    --chart-axis: 215 12% 52%;
+    /* Chart infrastructure tokens — light (soft grid) */
+    --chart-grid: 220 14% 92%;
+    --chart-axis: 215 12% 50%;
     --chart-tooltip-bg: 0 0% 100%;
     --chart-tooltip-border: 220 14% 88%;
-    --chart-tooltip-text: 215 12% 36%;
+    --chart-tooltip-text: 215 12% 32%;
     --chart-zero-line: 215 12% 80%;
     --chart-ref-line: 215 12% 65%;
     --chart-ref-text: 215 12% 50%;
@@ -187,34 +189,34 @@
 
   /* ── Card styles ── */
   .stat-card {
-    @apply bg-card border border-border rounded-lg transition-all duration-300;
-    padding: clamp(0.75rem, 1vw + 0.25rem, 1.25rem);
+    @apply bg-card border border-border rounded-lg transition-all duration-200;
+    padding: clamp(0.875rem, 1.2vw + 0.25rem, 1.25rem);
   }
 
   .stat-card:hover {
-    border-color: hsl(var(--primary) / 0.3);
-    box-shadow: 0 0 20px hsl(var(--primary) / 0.08);
+    border-color: hsl(var(--primary) / 0.25);
+    box-shadow: 0 0 16px hsl(var(--primary) / 0.06);
   }
 
   .chart-container {
     @apply bg-card border border-border rounded-lg;
-    padding: clamp(0.75rem, 1vw + 0.25rem, 1.25rem);
+    padding: clamp(0.875rem, 1.2vw + 0.25rem, 1.25rem);
   }
 
   .glow-green {
-    text-shadow: 0 0 12px hsl(var(--chart-green) / 0.5);
+    text-shadow: 0 0 10px hsl(var(--chart-green) / 0.4);
   }
 
   .glow-red {
-    text-shadow: 0 0 12px hsl(var(--chart-red) / 0.5);
+    text-shadow: 0 0 10px hsl(var(--chart-red) / 0.4);
   }
 
   /* Light mode: softer glow effect */
   .light .glow-green {
-    text-shadow: 0 0 8px hsl(var(--chart-green) / 0.3);
+    text-shadow: 0 0 6px hsl(var(--chart-green) / 0.25);
   }
   .light .glow-red {
-    text-shadow: 0 0 8px hsl(var(--chart-red) / 0.3);
+    text-shadow: 0 0 6px hsl(var(--chart-red) / 0.25);
   }
 
   .pulse-dot {
@@ -228,13 +230,13 @@
   }
 
   .data-source-card {
-    @apply bg-card border border-border rounded-lg transition-all duration-300 cursor-pointer;
-    padding: clamp(0.75rem, 1vw + 0.25rem, 1.25rem);
+    @apply bg-card border border-border rounded-lg transition-all duration-200 cursor-pointer;
+    padding: clamp(0.875rem, 1.2vw + 0.25rem, 1.25rem);
   }
 
   .data-source-card:hover {
     @apply border-primary/30;
-    box-shadow: 0 0 24px hsl(var(--primary) / 0.06);
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.05);
   }
 
   /* ── Responsive table → card layout on mobile ── */
@@ -259,13 +261,26 @@
 
   /* Light mode card shadows */
   .light .stat-card {
-    box-shadow: 0 1px 3px hsl(220 14% 10% / 0.06);
+    box-shadow: 0 1px 3px hsl(220 14% 10% / 0.05);
   }
   .light .stat-card:hover {
-    box-shadow: 0 4px 12px hsl(220 14% 10% / 0.08);
+    box-shadow: 0 3px 10px hsl(220 14% 10% / 0.07);
   }
   .light .chart-container {
-    box-shadow: 0 1px 3px hsl(220 14% 10% / 0.06);
+    box-shadow: 0 1px 3px hsl(220 14% 10% / 0.05);
+  }
+
+  /* ── Unified tooltip style ── */
+  .chart-tooltip {
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 11px;
+    line-height: 1.5;
+    max-width: 300px;
+    box-shadow: 0 4px 16px hsl(220 20% 4% / 0.35);
+  }
+  .light .chart-tooltip {
+    box-shadow: 0 4px 16px hsl(220 14% 10% / 0.12);
   }
 }
 

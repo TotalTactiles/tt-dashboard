@@ -341,21 +341,21 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.02 }}
-                    className={`border-b border-border/50 hover:bg-secondary/30 transition-colors ${
-                      i % 2 === 1 ? "bg-secondary/10" : ""
+                   className={`border-b border-border/50 hover:bg-secondary/30 transition-colors ${
+                      i % 2 === 1 ? "bg-secondary/[0.06]" : ""
                     }`}
                   >
-                    <td className="py-3 pr-4 font-medium">{job.company}</td>
-                    <td className="py-3 pr-4 text-muted-foreground">{job.project}</td>
-                    <td className="py-3 pr-4 text-right font-mono">
+                    <td className="py-3.5 pr-4 font-medium">{job.company}</td>
+                    <td className="py-3.5 pr-4 text-muted-foreground">{job.project}</td>
+                    <td className="py-3.5 pr-4 text-right font-mono">
                       {job.value > 0 ? formatMetricValue(job.value, "currency") : "TBC"}
                     </td>
-                    <td className="py-3 pr-4 text-center">
+                    <td className="py-3.5 pr-4 text-center">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-mono ${getBadgeStyle(job.rawStatus)}`}>
                         {job.rawStatus || "Unknown"}
                       </span>
                     </td>
-                    <td className="py-3 font-mono text-xs text-muted-foreground">
+                    <td className="py-3.5 font-mono text-xs text-muted-foreground">
                       {formatDateMonthYear(job.dateQuoted)}
                     </td>
                   </motion.tr>

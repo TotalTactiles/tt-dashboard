@@ -560,10 +560,10 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.02 }}
-                    className={`border-b border-border/50 hover:bg-secondary/30 transition-colors ${i % 2 === 1 ? "bg-secondary/10" : ""}`}
+                    className={`border-b border-border/50 hover:bg-secondary/30 transition-colors ${i % 2 === 1 ? "bg-secondary/[0.06]" : ""}`}
                   >
                     {visibleColDefs.map(col => (
-                      <td key={col.key} className={`py-3 pr-4 ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""}`}>
+                       <td key={col.key} className={`py-3.5 pr-4 ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""}`}>
                         {renderCell(proj, col.key)}
                       </td>
                     ))}

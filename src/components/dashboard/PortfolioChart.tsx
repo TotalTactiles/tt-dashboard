@@ -230,7 +230,7 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
         <div className="relative">
           <ResponsiveContainer width="100%" height={220} minHeight={180}>
             <ComposedChart data={filteredData} barGap={2}>
-              <CartesianGrid strokeDasharray="3 3" stroke={tc.grid} />
+              <CartesianGrid strokeDasharray="3 3" stroke={tc.grid} strokeOpacity={0.6} />
               <XAxis dataKey="month" stroke={tc.axis} fontSize={11} fontFamily="JetBrains Mono" />
               <YAxis
                 yAxisId="bars"
@@ -271,9 +271,10 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
                       border: `1px solid ${tc.tooltipBorder}`,
                       borderRadius: "8px",
                       fontFamily: "JetBrains Mono",
-                      fontSize: "12px",
+                      fontSize: "11px",
                       padding: "8px 12px",
                       maxWidth: 280,
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
                     }}>
                       <p style={{ color: tc.tooltipText, marginBottom: 4 }}>{label}</p>
                       {isFuture ? (

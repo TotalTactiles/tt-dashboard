@@ -79,7 +79,7 @@ const FundPerformanceChart = () => {
         <>
           <ResponsiveContainer width="100%" height={220} minHeight={180}>
             <LineChart data={profitMarginData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={tc.grid} />
+              <CartesianGrid strokeDasharray="3 3" stroke={tc.grid} strokeOpacity={0.6} />
               <XAxis dataKey="month" stroke={tc.axis} fontSize={11} fontFamily="JetBrains Mono" />
               <YAxis stroke={tc.axis} fontSize={11} fontFamily="JetBrains Mono" tickFormatter={(v) => `${v}%`} />
               <Tooltip
@@ -88,7 +88,9 @@ const FundPerformanceChart = () => {
                   border: `1px solid ${tc.tooltipBorder}`,
                   borderRadius: "8px",
                   fontFamily: "JetBrains Mono",
-                  fontSize: "12px",
+                  fontSize: "11px",
+                  padding: "8px 12px",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
                 }}
                 formatter={(value: number | null, name: string) => {
                   if (value === null || value === undefined) return ["—", name];
