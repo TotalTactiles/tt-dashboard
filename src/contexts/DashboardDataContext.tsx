@@ -776,6 +776,17 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       }
     }
 
+    const cashflowPositionFormula = formulas.find((formula) => formula.dashboardCard === "Cashflow Position");
+    const cashflowPositionFormulaResult = cashflowPositionFormula ? formulaCacheInstance.get(cashflowPositionFormula.id) : null;
+    console.log("[CashPosition Override Debug]", {
+      variableValue: kpiVariables.CashPosition,
+      formulaName: cashflowPositionFormula?.name ?? null,
+      formulaExpression: cashflowPositionFormula?.expression ?? null,
+      formulaResult: cashflowPositionFormulaResult?.value ?? null,
+      dashboardCardUsesFormula: cashflowPositionFormulaResult?.value !== null,
+      rawKpiCardValue: cashflowPosition,
+    });
+
     // ===== CALENDAR DATA (from dedicated calendar poll) =====
     const rawCalendarEvents: LiveCalendarEvent[] = Array.isArray(calendarData?.calendarEvents)
       ? calendarData.calendarEvents

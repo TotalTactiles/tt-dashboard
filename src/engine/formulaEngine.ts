@@ -51,27 +51,159 @@ function parseNum(v: any): number {
 }
 
 const MONTH_ORDER = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTH_KEY_REGEX = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-(\d{2})$/i;
+
+function normalizeMonthKey(key: string): string | null {
+  const match = key.trim().match(MONTH_KEY_REGEX);
+  if (!match) return null;
+  const monthIndex = MONTH_ORDER.findIndex((month) => month.toLowerCase() === match[1].slice(0, 3).toLowerCase());
+  if (monthIndex === -1) return null;
+  return `${MONTH_ORDER[monthIndex]}-${match[2]}`;
+}
+
+function buildCurrentMonthKey(now = new Date()): string {
+  return `${MONTH_ORDER[now.getMonth()]}-${String(now.getFullYear()).slice(-2)}`;
+}
 
 function monthKeyToDate(key: string): Date | null {
-  const m = key.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)-(\d{2})$/i);
+  const normalized = normalizeMonthKey(key);
+  const m = normalized?.match(MONTH_KEY_REGEX);
   if (!m) return null;
-  const mi = MONTH_ORDER.indexOf(m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase());
+  const mi = MONTH_ORDER.indexOf(m[1]);
   const year = 2000 + parseInt(m[2]);
   return new Date(year, mi, 1);
 }
 
+function getCanonicalMonthMap(keys: string[]): Map<string, string> {
+  const monthMap = new Map<string, string>();
+  for (const key of keys) {
+    const normalized = normalizeMonthKey(key);
+    if (!normalized) continue;
+    const canonical = normalized.toUpperCase();
+    if (!monthMap.has(canonical)) monthMap.set(canonical, key);
+  }
+  return monthMap;
+}
+
+function selectCurrentOrPastMonthKey(keys: string[], now = new Date()): { generatedKey: string; matchedKey: string | null; fallbackTriggered: boolean } {
+  const generatedKey = buildCurrentMonthKey(now);
+  const currentNorm = normalizeMonthKey(generatedKey)?.toUpperCase() ?? generatedKey.toUpperCase();
+  const monthMap = getCanonicalMonthMap(keys);
+  const exactMatch = monthMap.get(currentNorm) ?? null;
+  if (exactMatch) {
+    return { generatedKey, matchedKey: exactMatch, fallbackTriggered: false };
+  }
+
+  const currentDate = monthKeyToDate(generatedKey);
+  let matchedKey: string | null = null;
+  let matchedDate: Date | null = null;
+
+  for (const originalKey of monthMap.values()) {
+    const parsedDate = monthKeyToDate(originalKey);
+    if (!parsedDate || !currentDate || parsedDate.getTime() > currentDate.getTime()) continue;
+    if (!matchedDate || parsedDate.getTime() > matchedDate.getTime()) {
+      matchedKey = originalKey;
+      matchedDate = parsedDate;
+    }
+  }
+
+  return { generatedKey, matchedKey, fallbackTriggered: matchedKey !== null };
+}
+
+function normalizeRowLabel(label: unknown): string {
+  return String(label ?? "").trim().replace(/\s+/g, " ").toUpperCase();
+}
+
+function findCashflowRow(rows: Record<string, any>[], label: string): Record<string, any> | undefined {
+  const target = normalizeRowLabel(label);
+  return rows.find((row) => normalizeRowLabel(row._label_rowLabel ?? row.col_1 ?? "") === target)
+    ?? rows.find((row) => {
+      const rowLabel = normalizeRowLabel(row._label_rowLabel ?? row.col_1 ?? "");
+      return rowLabel.includes(target) || target.includes(rowLabel);
+    });
+}
+
+function getRowMonthKeys(row: Record<string, any> | undefined): string[] {
+  if (!row) return [];
+  return Object.keys(row).filter((key) => normalizeMonthKey(key) !== null);
+}
+
+function resolveCashflowRowCurrentValue(
+  rows: Record<string, any>[],
+  rowLabel: string,
+  fallbackMonthKeys: string[] = [],
+  now = new Date(),
+): {
+  sourceRow: string;
+  generatedKey: string;
+  matchedKey: string | null;
+  fallbackTriggered: boolean;
+  availableMonthKeys: string[];
+  value: number;
+} {
+  const row = findCashflowRow(rows, rowLabel);
+  const generatedKey = buildCurrentMonthKey(now);
+  const availableMonthKeys = getRowMonthKeys(row).length > 0 ? getRowMonthKeys(row) : fallbackMonthKeys.filter((key) => normalizeMonthKey(key) !== null);
+
+  if (!row || availableMonthKeys.length === 0) {
+    return {
+      sourceRow: rowLabel,
+      generatedKey,
+      matchedKey: null,
+      fallbackTriggered: false,
+      availableMonthKeys,
+      value: 0,
+    };
+  }
+
+  const currentNorm = normalizeMonthKey(generatedKey)?.toUpperCase() ?? generatedKey.toUpperCase();
+  const monthMap = getCanonicalMonthMap(availableMonthKeys);
+  const exactKey = monthMap.get(currentNorm) ?? null;
+  if (exactKey) {
+    return {
+      sourceRow: String(row._label_rowLabel ?? row.col_1 ?? rowLabel),
+      generatedKey,
+      matchedKey: exactKey,
+      fallbackTriggered: false,
+      availableMonthKeys,
+      value: parseNum(row[exactKey] ?? 0),
+    };
+  }
+
+  const currentDate = monthKeyToDate(generatedKey);
+  let matchedKey: string | null = null;
+  let matchedDate: Date | null = null;
+
+  for (const originalKey of monthMap.values()) {
+    const parsedDate = monthKeyToDate(originalKey);
+    if (!parsedDate || !currentDate || parsedDate.getTime() > currentDate.getTime()) continue;
+    const value = parseNum(row[originalKey] ?? 0);
+    if (value === 0) continue;
+    if (!matchedDate || parsedDate.getTime() > matchedDate.getTime()) {
+      matchedKey = originalKey;
+      matchedDate = parsedDate;
+    }
+  }
+
+  return {
+    sourceRow: String(row._label_rowLabel ?? row.col_1 ?? rowLabel),
+    generatedKey,
+    matchedKey,
+    fallbackTriggered: matchedKey !== null,
+    availableMonthKeys,
+    value: matchedKey ? parseNum(row[matchedKey] ?? 0) : 0,
+  };
+}
+
 function resolveCurrentMonth(store: DataStore): string | null {
   const cs = store.cashflowSummary as any;
-  const months: string[] = cs?.months ?? [];
-  for (let i = months.length - 1; i >= 0; i--) {
-    if (parseNum(cs?.totalIncome?.[months[i]] ?? 0) !== 0) return months[i];
-  }
-  return months.length > 0 ? months[months.length - 1] : null;
+  const months: string[] = Array.isArray(cs?.months) ? cs.months : [];
+  return selectCurrentOrPastMonthKey(months).matchedKey;
 }
 
 function resolvePrevMonth(store: DataStore): string | null {
   const cs = store.cashflowSummary as any;
-  const months: string[] = cs?.months ?? [];
+  const months: string[] = Array.isArray(cs?.months) ? cs.months : [];
   const current = resolveCurrentMonth(store);
   if (!current) return null;
   const idx = months.indexOf(current);
@@ -80,12 +212,12 @@ function resolvePrevMonth(store: DataStore): string | null {
 
 function resolveLast3Months(store: DataStore): string[] {
   const cs = store.cashflowSummary as any;
-  const months: string[] = cs?.months ?? [];
-  const result: string[] = [];
-  for (let i = months.length - 1; i >= 0 && result.length < 3; i--) {
-    if (parseNum(cs?.totalIncome?.[months[i]] ?? 0) !== 0) result.push(months[i]);
-  }
-  return result;
+  const months: string[] = Array.isArray(cs?.months) ? cs.months : [];
+  const current = resolveCurrentMonth(store);
+  if (!current) return months.slice(-3);
+  const idx = months.indexOf(current);
+  const end = idx >= 0 ? idx + 1 : months.length;
+  return months.slice(Math.max(0, end - 3), end);
 }
 
 function resolveMonthToken(token: string, store: DataStore): string | string[] | null {
@@ -580,6 +712,27 @@ export function resolveKpiVariables(store: DataStore): Record<string, number> {
     }
   } catch {}
 
+  const cashflowSummary = store.cashflowSummary as any;
+  const summaryMonths: string[] = Array.isArray(cashflowSummary?.months) ? cashflowSummary.months : [];
+  const currentSummaryMonthKey = resolveCurrentMonth(store);
+  const totalValue = resolvePath("revenueSummary.totalValue", store);
+  const totalCOGS = resolvePath("revenueSummary.totalCOGS", store);
+
+  // Developer-facing trace: this is the exact source-of-truth path for the CashPosition formula variable.
+  const cashPositionVariableTrace = resolveCashflowRowCurrentValue(store.cashflow, "OPENING BALANCES", summaryMonths);
+
+  console.log("[CashPosition Variable Debug]", {
+    browserDate: new Date().toISOString(),
+    generatedKey: cashPositionVariableTrace.generatedKey,
+    availableMonthKeys: cashPositionVariableTrace.availableMonthKeys,
+    matchedKey: cashPositionVariableTrace.matchedKey,
+    sourceRow: cashPositionVariableTrace.sourceRow,
+    finalValue: cashPositionVariableTrace.value,
+    fallbackTriggered: cashPositionVariableTrace.fallbackTriggered,
+    previousBrokenPath: "cashflowSummary.anticipatedSurplus.CURRENT_MONTH",
+    currentSummaryMonthKey,
+  });
+
   return {
     TotalQuoted: resolvePath("quotesSummary.totalQuoted.value", store),
     TotalWon: resolvePath("quotesSummary.totalWon.value", store),
@@ -588,20 +741,16 @@ export function resolveKpiVariables(store: DataStore): Record<string, number> {
     TotalYellow: resolvePath("quotesSummary.totalYellow.value", store),
     ConversionRate: resolvePath("quotesSummary.conversionRate", store),
     YLWplusGRN: resolvePath("quotesSummary.ylwPlusGrn.value", store),
-    GrossRevenue: resolvePath("revenueSummary.totalValue", store),
-    TotalCOGS: resolvePath("revenueSummary.totalCOGS", store),
+    GrossRevenue: totalValue,
+    TotalCOGS: totalCOGS,
     TotalLabourCost: resolvePath("revenueSummary.totalLabour", store),
-    NetRevenue: (() => {
-      const totalValue = resolvePath("revenueSummary.totalValue", store);
-      const totalCOGS = resolvePath("revenueSummary.totalCOGS", store);
-      return totalValue - totalCOGS;
-    })(),
+    NetRevenue: totalValue - totalCOGS,
     MonthlyExpenses: resolvePath("expensesSummary.totalMonthly", store),
     YearlyExpenses: resolvePath("expensesSummary.totalYearly", store),
-    CashPosition: resolvePath("cashflowSummary.anticipatedSurplus.CURRENT_MONTH", store),
-    TotalIncome_Current: resolvePath("cashflowSummary.totalIncome.CURRENT_MONTH", store),
-    TotalOutgoings_Current: resolvePath("cashflowSummary.totalOutgoings.CURRENT_MONTH", store),
-    GrossProfit_Current: resolvePath("cashflowSummary.grossProfit.CURRENT_MONTH", store),
+    CashPosition: cashPositionVariableTrace.value,
+    TotalIncome_Current: currentSummaryMonthKey ? parseNum(cashflowSummary?.totalIncome?.[currentSummaryMonthKey] ?? 0) : 0,
+    TotalOutgoings_Current: currentSummaryMonthKey ? parseNum(cashflowSummary?.totalOutgoings?.[currentSummaryMonthKey] ?? 0) : 0,
+    GrossProfit_Current: currentSummaryMonthKey ? parseNum(cashflowSummary?.grossProfit?.[currentSummaryMonthKey] ?? 0) : 0,
     GrossMarginTarget: grossMarginTarget,
   };
 }
