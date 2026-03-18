@@ -18,8 +18,45 @@ function loadTarget(): number {
   return 30;
 }
 
+const FundPerformanceChart = () => {
+  const { profitMarginData, dataHealth } = useDashboardData();
+  const [target, setTarget] = useState(loadTarget);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    const handler = () => setTarget(loadTarget());
+    window.addEventListener("storage", handler);
+    window.addEventListener("gm-target-update", handler);
+    return () => {
+      window.removeEventListener("storage", handler);
+      window.removeEventListener("gm-target-update", handler);
+    };
+  }, []);
 
+  const startEdit = () => {
+    setDraft(String(target));
+    setEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  const confirmEdit = () => {
+    const n = parseFloat(draft);
+    if (!isNaN(n) && n >= 0 && n <= 100) {
+      setTarget(n);
+      localStorage.setItem(GM_TARGET_KEY, String(n));
+      window.dispatchEvent(new Event("gm-target-update"));
+    }
+    setEditing(false);
+  };
+
+  const cancelEdit = () => setEditing(false);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") confirmEdit();
+    if (e.key === "Escape") cancelEdit();
+  };
 
   return (
     <motion.div
@@ -49,9 +86,8 @@ function loadTarget(): number {
                   fontSize: "12px",
                 }}
                 formatter={(value: number | null, name: string) => {
-                  if (value === null || value === undefined) return ["—", name === "netProfitMargin" ? "Net Profit Margin" : name];
-                  const label = name === "grossMargin" ? "Gross Margin" : name === "netProfitMargin" ? "Net Profit Margin" : name;
-                  return [`${value}%`, label];
+                  if (value === null || value === undefined) return ["—", name];
+                  return [`${value}%`, "Gross Margin"];
                 }}
               />
               <ReferenceLine
