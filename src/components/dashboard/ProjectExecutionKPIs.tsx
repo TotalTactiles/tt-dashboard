@@ -139,11 +139,15 @@ function ExecKPICard({ title, group, icon, kpi, index }: ExecKPICardProps) {
 
 // ── Section component ──────────────────────────────────────────────
 
-export default function ProjectExecutionKPIs() {
+interface ProjectExecutionKPIsProps {
+  selectedPeriodIdx: number;
+  onPeriodChange: (idx: number) => void;
+}
+
+export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange }: ProjectExecutionKPIsProps) {
   const { quotedJobs, revenueProjects, incomeOutgoingsData } = useDashboardData();
   const periodOptions = useMemo(() => buildPeriodOptions(quotedJobs), [quotedJobs]);
-  const [selectedIdx, setSelectedIdx] = useState(0);
-  const period = periodOptions[selectedIdx] ?? null;
+  const period = periodOptions[selectedPeriodIdx] ?? null;
 
   const kpis = useMemo(
     () => period ? computeExecutionKPIs(quotedJobs, revenueProjects, incomeOutgoingsData, period) : null,
