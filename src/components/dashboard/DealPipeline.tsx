@@ -82,10 +82,15 @@ function getQuarter(month: number): number {
   return Math.floor(month / 3) + 1;
 }
 
-const DealPipeline = () => {
+interface DealPipelineProps {
+  periodFilter?: PeriodSpec | null;
+}
+
+const DealPipeline = ({ periodFilter }: DealPipelineProps) => {
   const { quotedJobs, dataHealth } = useDashboardData();
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("date-closest");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
