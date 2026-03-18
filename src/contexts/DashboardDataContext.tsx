@@ -909,6 +909,7 @@ export function useDashboardData(): DashboardData {
   if (!ctx) {
     return {
       quotedJobs: [], revenueProjects: [], expenseCategories: [], grandTotalExpense: null,
+      cashflowPositionRaw: 0,
       kpiStats: [], incomeOutgoingsData: [], profitMarginData: [],
       forecastChartData: [], expenseAllocation: [], kpiVariables: {},
       dataStore: { quotes: [], qtsSmmry: [], cashflow: [], revenue: [], expenses: [], labour: [], stock: [], quotesSummary: {}, cashflowSummary: {}, revenueSummary: {}, expensesSummary: {} },
