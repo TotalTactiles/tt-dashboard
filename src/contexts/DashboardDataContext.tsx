@@ -514,20 +514,30 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const rs = liveData?.revenueSummary as any;
     const netRevenue = (parseNum(rs?.totalValue ?? 0)) - (parseNum(rs?.totalCOGS ?? 0));
 
-    // Card 5: Cashflow Position = last non-zero anticipatedSurplus, fallback to Closing Balance
+    // Card 5: Cashflow Position = current month's anticipatedSurplus, fallback to most recent past month
+    const currentMonthKey = `${MONTH_ABBR_LIST[currentMonthIdx]}-${String(currentYear).slice(-2)}`;
     let cashflowPosition = 0;
-    for (let i = months.length - 1; i >= 0; i--) {
-      const val = sv(cs?.anticipatedSurplus, months[i]);
-      if (val !== 0) { cashflowPosition = val; break; }
+    // Try current month first
+    const currentMonthSurplus = sv(cs?.anticipatedSurplus, currentMonthKey);
+    if (currentMonthSurplus !== 0 || (cs?.anticipatedSurplus && currentMonthKey in cs.anticipatedSurplus)) {
+      cashflowPosition = currentMonthSurplus;
+    } else {
+      // Fallback: most recent past month with non-zero value
+      for (let i = months.length - 1; i >= 0; i--) {
+        const parsed = parseMonthLabel(months[i]);
+        if (!parsed) continue;
+        // Skip future months
+        if (parsed.year > currentYear || (parsed.year === currentYear && parsed.month > currentMonthIdx)) continue;
+        const val = sv(cs?.anticipatedSurplus, months[i]);
+        if (val !== 0) { cashflowPosition = val; break; }
+      }
     }
-    // Fallback: try Closing Balance row from raw cashflow
+    // Final fallback: try Closing Balance row
     if (cashflowPosition === 0) {
       const closingRow = findCashflowRow("Closing Balance");
       if (closingRow) {
-        for (let i = months.length - 1; i >= 0; i--) {
-          const val = parseNum(closingRow[months[i]] ?? 0);
-          if (val !== 0) { cashflowPosition = val; break; }
-        }
+        const val = parseNum(closingRow[currentMonthKey] ?? 0);
+        if (val !== 0) cashflowPosition = val;
       }
     }
 
