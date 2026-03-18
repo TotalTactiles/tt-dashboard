@@ -76,12 +76,13 @@ export function buildPeriodOptions(jobs: QuotedJob[]): PeriodSpec[] {
   // ── Individual month options ──
   for (const { key, date } of parsed) {
     const yr = date.getFullYear();
+    const yr2 = String(yr).slice(-2);
     const mi = date.getMonth();
     const prevMonth = new Date(yr, mi - 1, 1);
     options.push({
       mode: "month",
       key,
-      label: `${MONTH_ABBR[mi]} ${yr}`,
+      label: `${MONTH_ABBR[mi]} ${yr2}`,
       months: [key],
       priorMonths: [dateToMonKey(prevMonth)],
     });
