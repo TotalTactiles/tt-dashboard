@@ -106,6 +106,10 @@ Impact:
 - breaks formulas
 - causes silent KPI errors
 
+Frontend mitigation (Phase 1 complete):
+- `getFieldValue` helper in `DashboardDataContext` resolves fields with trim + case-insensitive fallback and accepts multiple alias candidates per field
+- Does NOT fix root cause — n8n should still normalise column names in the ETL layer
+
 ---
 
 ### Hardcoded Year (2026)
