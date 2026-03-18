@@ -79,7 +79,7 @@ const FundPerformanceChart = () => {
         <>
           <ResponsiveContainer width="100%" height={220} minHeight={180}>
             <LineChart data={profitMarginData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={tc.grid} />
+              <CartesianGrid strokeDasharray="3 3" stroke={tc.grid} strokeOpacity={0.6} />
               <XAxis dataKey="month" stroke={tc.axis} fontSize={11} fontFamily="JetBrains Mono" />
               <YAxis stroke={tc.axis} fontSize={11} fontFamily="JetBrains Mono" tickFormatter={(v) => `${v}%`} />
               <Tooltip
