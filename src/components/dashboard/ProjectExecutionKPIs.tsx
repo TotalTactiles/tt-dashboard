@@ -71,7 +71,7 @@ function ExecKPICard({ title, group, icon, kpi, index }: ExecKPICardProps) {
             <TooltipTrigger asChild>
               <p
                 className="font-mono font-bold text-muted-foreground/50 cursor-help"
-                style={{ fontSize: "clamp(16px, 2.8vw, 26px)", lineHeight: 1.15 }}
+                style={{ fontSize: "clamp(20px, 3.2vw, 30px)", lineHeight: 1.15 }}
               >
                 --
               </p>
