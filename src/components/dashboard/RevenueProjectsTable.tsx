@@ -202,12 +202,12 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
 
   const filteredProjects = useMemo(() => {
     let projects = [...revenueProjects];
-    // Period filter from master selector (unless "All" is toggled)
+    // Period filter from master selector using Invoice Date (unless "All" is toggled)
     if (!showAll && periodFilter && periodFilter.months.length > 0) {
       const monthSet = new Set(periodFilter.months);
       const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
       projects = projects.filter((p) => {
-        const d = parseDateForSort(p.otherDate) || parseDateForSort(p.invoiceDate);
+        const d = parseDateForSort(p.invoiceDate);
         if (!d) return false;
         const key = `${MONTH_ABBR[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
         return monthSet.has(key);
@@ -254,7 +254,7 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
       }
     });
     return projects;
-  }, [revenueProjects, statusFilter, stageFilter, monthFilter, companySearch, sortBy]);
+  }, [revenueProjects, statusFilter, stageFilter, monthFilter, companySearch, sortBy, showAll, periodFilter]);
 
   /* ── Totals ── */
   const totalRevenue = filteredProjects.reduce((sum, p) => sum + p.valueExclGST, 0);
