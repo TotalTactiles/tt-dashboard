@@ -624,16 +624,15 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       {
         label: "Conversion Rate",
         value: noData ? "--" : `${parseNum(qs?.conversionRate ?? 0)}%`,
-        change: noData ? "--" : `${parseNum(qs?.totalWon?.count ?? 0)} won of ${parseNum(qs?.totalQuoted?.count ?? 0)}`,
+        change: noData ? "--" : `${baseWonCount} won of ${parseNum(qs?.totalQuoted?.count ?? 0)}`,
         positive: parseNum(qs?.conversionRate ?? 0) >= 20, noData,
         altValue: noData ? "--" : (() => {
-          const ylwCount = parseNum(qs?.totalYellow?.count ?? 0);
           const totalCount = parseNum(qs?.totalQuoted?.count ?? 0);
-          const rate = totalCount > 0 ? (ylwCount / totalCount) * 100 : 0;
+          const rate = totalCount > 0 ? (directYlwCount / totalCount) * 100 : 0;
           return `${rate.toFixed(1)}%`;
         })(),
-        altChange: noData ? "--" : `${parseNum(qs?.totalYellow?.count ?? 0)} verbal of ${parseNum(qs?.totalQuoted?.count ?? 0)}`,
-        altPositive: parseNum(qs?.totalYellow?.count ?? 0) > 0,
+        altChange: noData ? "--" : `${directYlwCount} verbal of ${parseNum(qs?.totalQuoted?.count ?? 0)}`,
+        altPositive: directYlwCount > 0,
       },
     ];
 
