@@ -718,6 +718,59 @@ export function resolveKpiVariables(store: DataStore): Record<string, number> {
   const totalValue = resolvePath("revenueSummary.totalValue", store);
   const totalCOGS = resolvePath("revenueSummary.totalCOGS", store);
 
+  const monthToKey = (dateStr: string): string | null => {
+    if (!dateStr) return null;
+    if (/^[A-Za-z]{3}-\d{2}$/i.test(dateStr)) return dateStr;
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return null;
+    const abbr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return `${abbr[date.getMonth()]}-${String(date.getFullYear()).slice(2)}`;
+  };
+
+  const monthOrder: Record<string, number> = {
+    jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+    jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+  };
+
+  const revenueRows = Array.isArray(store.revenue) ? (store.revenue as any[]) : [];
+  const grossProfitByMonth: Record<string, { revenue: number; grossProfit: number }> = {};
+
+  for (const row of revenueRows) {
+    if (row?._label_isLineItem !== true) continue;
+
+    const valueInclGST = parseNum(row._label_value ?? 0);
+    const valueExclGST = valueInclGST / 1.1;
+    if (valueExclGST <= 0) continue;
+
+    const labourCost = parseNum(row._label_labourCost ?? 0);
+    const tactileCost = parseNum(row._label_tactileCost ?? 0);
+    const otherCost = parseNum(row._label_otherCost ?? 0);
+    const totalCost = parseNum(row._label_totalCost ?? 0) || (labourCost + tactileCost + otherCost);
+    const otherDate = String(row["Other Date"] ?? row._label_otherDate ?? row._label_invoiceDate ?? "").trim();
+    const invoiceDate = String(row._label_invoiceDate ?? "").trim();
+    const monthKey = monthToKey(otherDate) || monthToKey(invoiceDate);
+
+    if (!monthKey) continue;
+    if (!grossProfitByMonth[monthKey]) grossProfitByMonth[monthKey] = { revenue: 0, grossProfit: 0 };
+
+    grossProfitByMonth[monthKey].revenue += valueExclGST;
+    grossProfitByMonth[monthKey].grossProfit += valueExclGST - totalCost;
+  }
+
+  const latestGrossProfitMonth = Object.keys(grossProfitByMonth)
+    .sort((a, b) => {
+      const [am, ay] = [a.slice(0, 3).toLowerCase(), parseInt(a.slice(4), 10)];
+      const [bm, by] = [b.slice(0, 3).toLowerCase(), parseInt(b.slice(4), 10)];
+      return (ay - by) || ((monthOrder[am] ?? 0) - (monthOrder[bm] ?? 0));
+    })
+    .at(-1);
+
+  const latestGrossProfitMargin = latestGrossProfitMonth
+    ? grossProfitByMonth[latestGrossProfitMonth].revenue > 0
+      ? Math.round((grossProfitByMonth[latestGrossProfitMonth].grossProfit / grossProfitByMonth[latestGrossProfitMonth].revenue) * 10000) / 100
+      : 0
+    : 0;
+
   // Developer-facing trace: this is the exact source-of-truth path for the CashPosition formula variable.
   const cashPositionVariableTrace = resolveCashflowRowCurrentValue(store.cashflow, "OPENING BALANCES", summaryMonths);
 
@@ -751,6 +804,7 @@ export function resolveKpiVariables(store: DataStore): Record<string, number> {
     TotalIncome_Current: currentSummaryMonthKey ? parseNum(cashflowSummary?.totalIncome?.[currentSummaryMonthKey] ?? 0) : 0,
     TotalOutgoings_Current: currentSummaryMonthKey ? parseNum(cashflowSummary?.totalOutgoings?.[currentSummaryMonthKey] ?? 0) : 0,
     GrossProfit_Current: currentSummaryMonthKey ? parseNum(cashflowSummary?.grossProfit?.[currentSummaryMonthKey] ?? 0) : 0,
+    GrossProfitMargin: latestGrossProfitMargin,
     GrossMarginTarget: grossMarginTarget,
   };
 }

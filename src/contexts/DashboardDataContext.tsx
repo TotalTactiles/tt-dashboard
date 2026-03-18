@@ -519,17 +519,16 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         };
       });
 
-    // Gross Profit Margin line chart — computed from REVENUE rows, NOT cashflow summary
-    // Groups revenue rows by month (from otherDate), then calculates weighted GP%:
-    //   monthly GP% = sum(grossProfit) / sum(valueExclGST) * 100
+    // Gross Profit Margin chart — strict monthly comparison based on REVENUE line-item months only.
+    // Gross Margin % = Σ(gross profit) / Σ(revenue ex GST) × 100
+    // Net Profit Margin % = (Σ(gross profit) − monthly operating expenses) / Σ(revenue ex GST) × 100
+    // Both series therefore share the same month key basis and denominator.
     const dateToMonKey = (dateStr: string): string | null => {
       if (!dateStr) return null;
-      // Try Mon-YY format first
       if (/^[A-Za-z]{3}-\d{2}$/i.test(dateStr)) return dateStr;
-      // Parse date string
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return null;
-      const abbr = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      const abbr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       return `${abbr[d.getMonth()]}-${String(d.getFullYear()).slice(2)}`;
     };
 
@@ -551,17 +550,25 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       gpByMonth[mk].rowCount++;
     }
 
-    // Sort months chronologically
     const MONTH_ORDER: Record<string, number> = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
-    const sortedGpMonths = Object.keys(gpByMonth)
-      .filter(mk => gpByMonth[mk].rowCount > 0)
+    const comparisonMonths = Object.keys(gpByMonth)
+      .filter((mk) => gpByMonth[mk].rowCount > 0)
       .sort((a, b) => {
-        const [am, ay] = [a.slice(0, 3).toLowerCase(), parseInt(a.slice(4))];
-        const [bm, by] = [b.slice(0, 3).toLowerCase(), parseInt(b.slice(4))];
+        const [am, ay] = [a.slice(0, 3).toLowerCase(), parseInt(a.slice(4), 10)];
+        const [bm, by] = [b.slice(0, 3).toLowerCase(), parseInt(b.slice(4), 10)];
         return (ay - by) || ((MONTH_ORDER[am] ?? 0) - (MONTH_ORDER[bm] ?? 0));
       });
 
-    // Build detailed per-row proof for GP chart verification
+    const operatingExpenseFromGrandTotal = grandTotalExpense?.monthlyCost;
+    const operatingExpenseFromSummaryRaw = (liveData.expensesSummary as any)?.totalMonthly;
+    const hasOperatingExpenseSource = operatingExpenseFromGrandTotal !== undefined || operatingExpenseFromSummaryRaw !== undefined;
+    const monthlyOperatingExpenses = operatingExpenseFromGrandTotal ?? parseNum(operatingExpenseFromSummaryRaw ?? 0);
+    const operatingExpenseSourceLabel = operatingExpenseFromGrandTotal !== undefined
+      ? "Business Expenses GRAND TOTAL monthlyCost"
+      : operatingExpenseFromSummaryRaw !== undefined
+        ? "expensesSummary.totalMonthly"
+        : "missing";
+
     const gpRowDetail: Record<string, Array<{ company: string; project: string; revenueExGST: number; totalCOGS: number; grossProfit: number; otherDate: string; invoiceDate: string; dateUsed: string }>> = {};
     for (const rp of revenueProjects) {
       const mk = dateToMonKey(rp.otherDate) || dateToMonKey(rp.invoiceDate);
@@ -579,34 +586,42 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       });
     }
 
-    const profitMarginData: ProfitMarginPoint[] = sortedGpMonths.map(mk => {
+    const profitMarginData: ProfitMarginPoint[] = comparisonMonths.map((mk) => {
       const bucket = gpByMonth[mk];
-      const gp = bucket.totalRevenue > 0 ? Math.round((bucket.totalGP / bucket.totalRevenue) * 10000) / 100 : 0;
-      // Net Profit Margin % from cashflow: (Total Income - Total Outgoings) / Total Income × 100
-      const income = totalIncomeRow ? parseNum(totalIncomeRow[mk] ?? 0) : sv(cs?.totalIncome, mk);
-      const outgoings = totalOutgoingsRow ? Math.abs(parseNum(totalOutgoingsRow[mk] ?? 0)) : 0;
-      const netProfitMargin = income > 0 ? Math.round(((income - outgoings) / income) * 10000) / 100 : null;
-      return { month: mk, grossMargin: gp, netProfitMargin };
+      const grossMargin = bucket.totalRevenue > 0 ? Math.round((bucket.totalGP / bucket.totalRevenue) * 10000) / 100 : 0;
+      const netProfit = bucket.totalGP - monthlyOperatingExpenses;
+      const netProfitMargin = hasOperatingExpenseSource && bucket.totalRevenue > 0
+        ? Math.round((netProfit / bucket.totalRevenue) * 10000) / 100
+        : null;
+      return { month: mk, grossMargin, netProfitMargin };
     });
 
-    // Log comprehensive GP proof per month
-    console.log("[GP Chart Proof] === GROSS PROFIT MARGIN VERIFICATION ===");
-    for (const mk of sortedGpMonths) {
+    console.log("[GP Chart Proof] === GROSS / NET PROFIT MARGIN VERIFICATION ===");
+    console.log(`[GP Chart Proof] Net Profit operating expense source: ${operatingExpenseSourceLabel} = $${monthlyOperatingExpenses.toFixed(2)}`);
+    console.log(`[GP Chart Proof] Month alignment strategy: strict comparison on REVENUE month keys (${comparisonMonths.join(", ") || "none"})`);
+    for (const mk of comparisonMonths) {
       const bucket = gpByMonth[mk];
       const rows = gpRowDetail[mk] || [];
-      const gp = bucket.totalRevenue > 0 ? Math.round((bucket.totalGP / bucket.totalRevenue) * 10000) / 100 : 0;
+      const grossMargin = bucket.totalRevenue > 0 ? Math.round((bucket.totalGP / bucket.totalRevenue) * 10000) / 100 : 0;
+      const netProfit = bucket.totalGP - monthlyOperatingExpenses;
+      const netProfitMargin = hasOperatingExpenseSource && bucket.totalRevenue > 0
+        ? Math.round((netProfit / bucket.totalRevenue) * 10000) / 100
+        : null;
       console.log(`[GP Chart Proof] Month: ${mk}`);
       console.log(`[GP Chart Proof]   Rows included (${rows.length}):`);
       for (const r of rows) {
         console.log(`[GP Chart Proof]     - ${r.company} | ${r.project} | rev=$${r.revenueExGST.toFixed(2)} | cogs=$${r.totalCOGS.toFixed(2)} | gp=$${r.grossProfit.toFixed(2)} | date=${r.otherDate || r.invoiceDate} (${r.dateUsed})`);
       }
-      console.log(`[GP Chart Proof]   Totals: Revenue=$${bucket.totalRevenue.toFixed(2)}, GP=$${bucket.totalGP.toFixed(2)}, Excluded=${bucket.excluded}`);
-      console.log(`[GP Chart Proof]   Calc: ${bucket.totalGP.toFixed(2)} / ${bucket.totalRevenue.toFixed(2)} × 100 = ${gp}%`);
-      console.log(`[GP Chart Proof]   Chart shows: ${gp}%`);
-      console.log(`[GP Chart Proof]   PASS`);
+      console.log(`[GP Chart Proof]   GP totals: Revenue=$${bucket.totalRevenue.toFixed(2)}, GP=$${bucket.totalGP.toFixed(2)}, Excluded=${bucket.excluded}`);
+      console.log(`[GP Chart Proof]   GP calc: ${bucket.totalGP.toFixed(2)} / ${bucket.totalRevenue.toFixed(2)} × 100 = ${grossMargin}%`);
+      if (hasOperatingExpenseSource) {
+        console.log(`[GP Chart Proof]   Net calc: (${bucket.totalGP.toFixed(2)} - ${monthlyOperatingExpenses.toFixed(2)}) / ${bucket.totalRevenue.toFixed(2)} × 100 = ${netProfitMargin}%`);
+      } else {
+        console.log("[GP Chart Proof]   Net calc: skipped (no operating expense source available)");
+      }
     }
-    // Log excluded rows
-    const excludedRows = revenueProjects.filter(rp => {
+
+    const excludedRows = revenueProjects.filter((rp) => {
       const mk = dateToMonKey(rp.otherDate) || dateToMonKey(rp.invoiceDate);
       return !mk || rp.valueExclGST <= 0;
     });
