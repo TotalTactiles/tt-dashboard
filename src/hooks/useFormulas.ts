@@ -60,20 +60,6 @@ Source fields / rows used:
 • Other Date / Invoice Date
 • _label_value, _label_totalCost, _label_labourCost, _label_tactileCost, _label_otherCost`;
 
-const GROSS_MARGIN_TARGET_DESCRIPTION = `Target threshold only for the Gross Profit Margin chart.
-
-What this controls:
-• The dashed target reference line shown on the chart face
-
-How it works:
-• Editable manual value
-• Saved to localStorage under gross_margin_target
-• Persists until manually edited and saved again
-
-Important:
-• This does not define Gross Profit Margin logic
-• This does not change how GP% is calculated`;
-
 const DEFAULT_FORMULAS: Omit<MetricFormula, "id">[] = [
   { name: "Total Quoted", expression: "TotalQuoted", description: "Sum of all quoted project values", unit: "$", category: "Financial", dashboardCard: "Total Quoted", dataSource: "Google Sheets" },
   { name: "Total Won", expression: "TotalWon", description: "Sum of all won project values", unit: "$", category: "Financial", dashboardCard: "Total Won", dataSource: "Google Sheets" },
@@ -83,7 +69,6 @@ const DEFAULT_FORMULAS: Omit<MetricFormula, "id">[] = [
   { name: "Cashflow Position", expression: "CashPosition", description: "Current available cash position", unit: "$", category: "Financial", dashboardCard: "Cashflow Position", dataSource: "Google Sheets" },
   { name: "Monthly Expenses", expression: "MonthlyExpenses", description: "Total monthly operating expenses", unit: "$", category: "Operational", dashboardCard: "Monthly Expenses", dataSource: "Google Sheets" },
   { name: "Gross Profit Margin", expression: "GrossProfitMargin", description: GROSS_PROFIT_MARGIN_DESCRIPTION, unit: "%", category: "Growth", dashboardCard: "Gross Profit Margin", dataSource: "Google Sheets" },
-  { name: "Gross Margin Target", expression: "GrossMarginTarget", description: GROSS_MARGIN_TARGET_DESCRIPTION, unit: "%", category: "Growth", dataSource: "Manual" },
   { name: "Conversion Rate (Incl. Verbal)", expression: "YLWplusGRN / TotalQuoted * 100", description: "Won + Verbal Confirmation vs total quoted percentage", unit: "%", category: "Growth", dashboardCard: "Conversion Rate", dataSource: "Google Sheets" },
   { name: "Total Won (With YLWs)", expression: "YLWplusGRN", description: "Total won value including Verbal Confirmation (YLW) jobs", unit: "$", category: "Financial", dashboardCard: "Total Won", dataSource: "Google Sheets" },
 ];
@@ -155,7 +140,7 @@ export function evaluateExpression(
 const DEFAULT_VARIABLE_NAMES = [
   "TotalQuoted", "TotalWon", "QuotedRemaining",
   "ConversionRate", "NetRevenue", "CashPosition", "MonthlyExpenses",
-  "GrossProfitMargin", "GrossMarginTarget",
+  "GrossProfitMargin",
 ];
 
 export function getAvailableVariables(kpiVariables?: Record<string, number>): string[] {
@@ -200,7 +185,14 @@ function migrateStoredFormulas(formulas: MetricFormula[]): MetricFormula[] {
   let next = [...formulas];
   let changed = false;
 
-  for (const systemFormulaName of ["Gross Profit Margin", "Gross Margin Target"]) {
+  // Remove "Gross Margin Target" if it exists — it is not a formula
+  const targetIdx = next.findIndex((f) => f.name === "Gross Margin Target");
+  if (targetIdx !== -1) {
+    next.splice(targetIdx, 1);
+    changed = true;
+  }
+
+  for (const systemFormulaName of ["Gross Profit Margin"]) {
     const systemFormula = DEFAULT_FORMULAS.find((formula) => formula.name === systemFormulaName);
     if (!systemFormula) continue;
     const result = upsertSystemFormula(next, systemFormula);
