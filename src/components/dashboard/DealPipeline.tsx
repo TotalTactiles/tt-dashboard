@@ -341,8 +341,8 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.02 }}
-                    className={`border-b border-border/50 hover:bg-secondary/30 transition-colors ${
-                      i % 2 === 1 ? "bg-secondary/10" : ""
+                   className={`border-b border-border/50 hover:bg-secondary/30 transition-colors ${
+                      i % 2 === 1 ? "bg-secondary/[0.06]" : ""
                     }`}
                   >
                     <td className="py-3 pr-4 font-medium">{job.company}</td>
