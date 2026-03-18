@@ -42,7 +42,7 @@ export function AppSidebar() {
         <div className={`p-4 ${collapsed ? "px-2" : ""}`}>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-mono font-bold text-sm">PE</span>
+              <span className="text-primary-foreground font-mono font-bold text-sm">K&M</span>
             </div>
             {!collapsed &&
             <div>
