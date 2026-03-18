@@ -822,7 +822,7 @@ export function resolveKpiVariables(store: DataStore): Record<string, number> {
     NetRevenue: totalValue - totalCOGS,
     MonthlyExpenses: resolvePath("expensesSummary.totalMonthly", store),
     YearlyExpenses: resolvePath("expensesSummary.totalYearly", store),
-    CashPosition: cashPositionVariableTrace.value,
+    CashPosition: cashPositionValue,
     TotalIncome_Current: currentSummaryMonthKey ? parseNum(cashflowSummary?.totalIncome?.[currentSummaryMonthKey] ?? 0) : 0,
     TotalOutgoings_Current: currentSummaryMonthKey ? parseNum(cashflowSummary?.totalOutgoings?.[currentSummaryMonthKey] ?? 0) : 0,
     GrossProfit_Current: currentSummaryMonthKey ? parseNum(cashflowSummary?.grossProfit?.[currentSummaryMonthKey] ?? 0) : 0,
