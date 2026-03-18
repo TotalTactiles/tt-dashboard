@@ -63,10 +63,10 @@
 
 ### Active Bugs
 
-- Net Revenue showing $0 → REVENUE column mapping issue
+- ~~Net Revenue showing $0 → REVENUE column mapping issue~~ **Fixed (frontend)**
+- ~~Monthly Expenses showing $0 → EXPENSES tab not flowing~~ **Fixed (frontend)**
 - Cashflow card incorrect colour logic (red when positive)
 - YLW toggle on Total Won card incorrect
-- Monthly Expenses showing $0 → EXPENSES tab not flowing
 - Zoho Total Costs not writing back correctly
 
 ---
@@ -134,11 +134,18 @@ Zoho CRM
 
 ### Phase 1 – Data Cleanup (HIGHEST PRIORITY)
 
-- Fix REVENUE column mapping
-- Fix EXPENSES data flow
-- Remove duplicate or conflicting data sources
-- Standardise all field names across systems
-- Ensure Zoho is single source of truth
+#### Frontend (Completed)
+
+- [x] Fix REVENUE column mapping — `revenueProjects` filter/map now uses `getFieldValue` with all known column name variants; heuristic fallback when `_label_isLineItem` is absent
+- [x] Fix Net Revenue KPI — fallback to `sum(grossProfit)` from parsed `revenueProjects` when `revenueSummary` is absent or zero
+- [x] Fix EXPENSES data flow — filter/map updated to resolve all known column name variants; `expensesSummary` computed from line items when n8n omits it; grand total computed from line items when no GRAND TOTAL row is present
+- [x] Add `getFieldValue` helper — case-insensitive, trim-tolerant lookup handles trailing spaces, mixed-case, and alternate column names (e.g. `"Stage "`, `"Jobs Stages"`) without requiring n8n changes
+
+#### Backend / n8n (Remaining)
+
+- [ ] Remove duplicate or conflicting data sources
+- [ ] Standardise all field names across systems in n8n output
+- [ ] Ensure Zoho is single source of truth
 
 ---
 

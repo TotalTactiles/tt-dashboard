@@ -34,7 +34,7 @@ Displays:
 - Conversion Rate
 
 Issues:
-- Net Revenue sometimes incorrect
+- ~~Net Revenue showing $0~~ **Fixed (frontend)** — column mapping + fallback to `sum(grossProfit)` added
 - Cashflow colour logic incorrect
 - Total Won toggle incorrect
 
@@ -71,6 +71,7 @@ Features:
   - MAX / MIN
   - FIND
 - Runs client-side (current limitation)
+- `getFieldValue` helper: resolves column names case-insensitively with trailing-space tolerance, tries multiple known aliases per field
 
 ---
 
