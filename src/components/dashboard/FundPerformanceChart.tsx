@@ -123,28 +123,10 @@ const FundPerformanceChart = () => {
                 dot={{ r: 3, fill: "hsl(160, 70%, 45%)" }}
                 animationDuration={2000}
               />
-              {hasNetProfit && (
-                <Line
-                  type="monotone"
-                  dataKey="netProfitMargin"
-                  stroke="hsl(210, 80%, 60%)"
-                  strokeWidth={2}
-                  strokeDasharray="6 3"
-                  dot={{ r: 3, fill: "hsl(210, 80%, 60%)" }}
-                  animationDuration={2000}
-                  connectNulls
-                />
-              )}
             </LineChart>
           </ResponsiveContainer>
           <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 text-xs font-mono items-center">
             <div className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-chart-green rounded" /> Gross Margin</div>
-            {hasNetProfit && (
-              <div className="flex items-center gap-1.5">
-                <span className="w-5 h-0.5 rounded" style={{ backgroundImage: "repeating-linear-gradient(90deg, hsl(210,80%,60%) 0 4px, transparent 4px 7px)", backgroundColor: "transparent" }} />
-                Net Profit Margin
-              </div>
-            )}
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-0.5 bg-chart-amber rounded" style={{ borderTop: "1px dashed" }} />
               {editing ? (
