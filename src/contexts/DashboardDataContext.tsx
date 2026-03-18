@@ -543,6 +543,49 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       }
     }
 
+    // ===== Extract GRN and YLW from raw qtsSmmry rows (QTS SUMMARY sheet) =====
+    const rawQtsSmmry = unwrapItems(liveData.qtsSmmry ?? []);
+    const findSummaryRow = (labelPatterns: string[]) => {
+      const patterns = labelPatterns.map(p => p.toUpperCase());
+      return rawQtsSmmry.find((row: any) => {
+        const label = String(row?._label_rowLabel ?? row?.["Current Status"] ?? row?.col_1 ?? row?.Stage ?? "").toUpperCase().trim();
+        return patterns.some(p => label === p || label.includes(p));
+      });
+    };
+
+    const grnRow = findSummaryRow(["PO RECEIVED (GRN)", "PO RECEIVED", "GRN"]);
+    const ylwRow = findSummaryRow(["VERBAL CONFIRMATION (YLW)", "VERBAL CONFIRMATION", "YLW"]);
+    const ylwGrnRow = findSummaryRow(["YLW + GRN"]);
+
+    const grnValue = parseNum(grnRow?._label_dollarValue ?? grnRow?.["Total Value"] ?? grnRow?.value ?? 0);
+    const grnCount = parseNum(grnRow?._label_countValue ?? grnRow?.["Count"] ?? grnRow?.count ?? 0);
+    const ylwValue = parseNum(ylwRow?._label_dollarValue ?? ylwRow?.["Total Value"] ?? ylwRow?.value ?? 0);
+    const ylwCount = parseNum(ylwRow?._label_countValue ?? ylwRow?.["Count"] ?? ylwRow?.count ?? 0);
+
+    // Priority: 1) exact "YLW + GRN" row, 2) sum of YLW + GRN rows, 3) fallback to quotesSummary
+    let combinedValue: number;
+    let combinedCount: number;
+    if (ylwGrnRow) {
+      combinedValue = parseNum(ylwGrnRow._label_dollarValue ?? ylwGrnRow["Total Value"] ?? ylwGrnRow.value ?? 0);
+      combinedCount = parseNum(ylwGrnRow._label_countValue ?? ylwGrnRow["Count"] ?? ylwGrnRow.count ?? 0);
+    } else if (grnRow && ylwRow) {
+      combinedValue = grnValue + ylwValue;
+      combinedCount = grnCount + ylwCount;
+    } else {
+      // Safe fallback to quotesSummary
+      combinedValue = parseNum(qs?.totalWon?.value ?? 0) + parseNum(qs?.totalYellow?.value ?? 0);
+      combinedCount = parseNum(qs?.totalWon?.count ?? 0) + parseNum(qs?.totalYellow?.count ?? 0);
+    }
+
+    // Use GRN row for base if available, otherwise fallback to quotesSummary.totalWon
+    const baseWonValue = grnRow ? grnValue : parseNum(qs?.totalWon?.value ?? 0);
+    const baseWonCount = grnRow ? grnCount : parseNum(qs?.totalWon?.count ?? 0);
+    const directYlwValue = ylwRow ? ylwValue : parseNum(qs?.totalYellow?.value ?? 0);
+    const directYlwCount = ylwRow ? ylwCount : parseNum(qs?.totalYellow?.count ?? 0);
+
+    console.log("[Total Won Debug] grnRow:", !!grnRow, "ylwRow:", !!ylwRow, "ylwGrnRow:", !!ylwGrnRow,
+      "base:", baseWonValue, baseWonCount, "ylw:", directYlwValue, directYlwCount, "combined:", combinedValue, combinedCount);
+
     const kpiStats: KPIStat[] = [
       {
         label: "Total Quoted",
@@ -552,16 +595,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       },
       {
         label: "Total Won",
-        value: noData ? "--" : fmtAUD(parseNum(qs?.totalWon?.value ?? 0)),
-        change: noData ? "--" : `${parseNum(qs?.totalWon?.count ?? 0)} jobs`,
+        value: noData ? "--" : fmtAUD(baseWonValue),
+        change: noData ? "--" : `${baseWonCount} jobs`,
         positive: true, noData,
-        altValue: noData ? "--" : fmtAUD(parseNum(qs?.totalWon?.value ?? 0) + parseNum(qs?.totalYellow?.value ?? 0)),
-        altChange: noData ? "--" : `${parseNum(qs?.totalYellow?.count ?? 0)} YLW jobs`,
-        altPositive: (parseNum(qs?.totalWon?.value ?? 0) + parseNum(qs?.totalYellow?.value ?? 0)) > 0,
-        altDiff: noData ? undefined : (() => {
-          const ylwVal = parseNum(qs?.totalYellow?.value ?? 0);
-          return ylwVal > 0 ? `+${fmtAUD(ylwVal)}` : undefined;
-        })(),
+        altValue: noData ? "--" : fmtAUD(combinedValue),
+        altChange: noData ? "--" : `${combinedCount} jobs`,
+        altPositive: combinedValue > 0,
+        altDiff: noData ? undefined : (directYlwValue > 0 ? `+${fmtAUD(directYlwValue)} / ${directYlwCount} YLW jobs` : undefined),
       },
       {
         label: "Quoted Remaining",
