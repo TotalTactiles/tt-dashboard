@@ -250,10 +250,10 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
             {periodOptions.map((opt, i) => (
               <DropdownMenuItem
                 key={opt.key}
-                onClick={() => setSelectedIdx(i)}
-                className={`font-mono text-xs ${i === selectedIdx ? "bg-accent" : ""}`}
+                onClick={() => onPeriodChange(i)}
+                className={`font-mono text-xs ${i === selectedPeriodIdx ? "bg-accent" : ""}`}
               >
-                {opt.label} ({opt.mode})
+                {opt.label}
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
