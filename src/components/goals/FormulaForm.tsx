@@ -3,6 +3,7 @@ import { MetricFormula, getAvailableVariables, DASHBOARD_CARDS, DATA_SOURCES } f
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,6 +11,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import FieldPicker from "@/components/goals/FieldPicker";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatMetricValue } from "@/lib/formatMetricValue";
+import { validateFormula, ValidationResult } from "@/lib/formulaValidation";
+import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 
 const CATEGORIES = ["Financial", "Operational", "Growth", "Efficiency", "Custom"];
 const UNITS = ["$", "%", "#", "x"];
@@ -69,8 +72,16 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial, kpi
       .map(t => ({ name: t, value: resolvedKpi[t] }));
   }, [expression, resolvedKpi]);
 
+  // Validation
+  const validation: ValidationResult = useMemo(() => {
+    if (!expression.trim()) return { valid: false, errors: [], warnings: [] };
+    return validateFormula(expression, resolvedKpi);
+  }, [expression, resolvedKpi]);
+
+  const canSave = !!name.trim() && !!expression.trim() && validation.valid;
+
   const handleSubmit = () => {
-    if (!name || !expression) return;
+    if (!canSave) return;
     onSubmit({
       name, expression, description, unit, category,
       dashboardCard: dashboardCard || undefined,
@@ -90,43 +101,86 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial, kpi
           <DialogTitle className="font-mono text-sm">{initial ? "Edit Formula" : "New Formula"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs">Dashboard Card</Label>
-            <Select value={dashboardCard} onValueChange={setDashboardCard}>
-              <SelectTrigger><SelectValue placeholder="Select dashboard card..." /></SelectTrigger>
-              <SelectContent>
-                {DASHBOARD_CARDS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
+          {/* Row 1: Dashboard Card + Data Source */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Dashboard Card</Label>
+              <Select value={dashboardCard} onValueChange={setDashboardCard}>
+                <SelectTrigger><SelectValue placeholder="Select card..." /></SelectTrigger>
+                <SelectContent>
+                  {DASHBOARD_CARDS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Data Source</Label>
+              <Select value={dataSource} onValueChange={setDataSource}>
+                <SelectTrigger><SelectValue placeholder="Select source..." /></SelectTrigger>
+                <SelectContent>
+                  {DATA_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Data Source</Label>
-            <Select value={dataSource} onValueChange={setDataSource}>
-              <SelectTrigger><SelectValue placeholder="Select data source..." /></SelectTrigger>
-              <SelectContent>
-                {DATA_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+
+          {/* Name */}
           <div className="space-y-1.5">
             <Label className="text-xs">Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Burn Rate" />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Net Revenue, Burn Rate, Conversion Rate" />
           </div>
+
+          {/* Expression */}
           <div className="space-y-1.5">
             <Label className="text-xs">Expression</Label>
-            <Input value={expression} onChange={(e) => setExpression(e.target.value)} placeholder="e.g. OpEx / Revenue * 100" className="font-mono text-xs" />
+            <Input
+              value={expression}
+              onChange={(e) => setExpression(e.target.value)}
+              placeholder='e.g. GrossRevenue - TotalCOGS  or  FIND(cashflow, "OPENING BALANCES", CURRENT_MONTH)'
+              className="font-mono text-xs"
+            />
+
+            {/* Quick variable badges */}
             <div className="flex flex-wrap gap-1 mt-1">
-              {availableVars.map((v) => (
+              {availableVars.slice(0, 12).map((v) => (
                 <Badge
                   key={v}
                   variant="outline"
                   className="text-[10px] cursor-pointer hover:bg-accent/20 border-border text-muted-foreground"
-                  onClick={() => setExpression((prev) => (prev ? prev + " " + v : v))}
+                  onClick={() => handleInsertToken(v)}
                 >
                   {v}
                 </Badge>
               ))}
+              {availableVars.length > 12 && (
+                <Badge variant="outline" className="text-[10px] border-border text-muted-foreground/50">
+                  +{availableVars.length - 12} more in picker
+                </Badge>
+              )}
             </div>
+
+            {/* Validation feedback */}
+            {expression.trim() && (
+              <div className="mt-2 space-y-1">
+                {validation.valid && validation.warnings.length === 0 && (
+                  <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-400">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Expression syntax valid
+                  </div>
+                )}
+                {validation.errors.map((err, i) => (
+                  <div key={`e-${i}`} className="flex items-start gap-1.5 text-[10px] font-mono text-destructive">
+                    <XCircle className="h-3 w-3 mt-0.5 shrink-0" />
+                    {err}
+                  </div>
+                ))}
+                {validation.warnings.map((w, i) => (
+                  <div key={`w-${i}`} className="flex items-start gap-1.5 text-[10px] font-mono text-amber-400">
+                    <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+                    {w}
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Live Values */}
             {liveValues.length > 0 && (
@@ -146,7 +200,7 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial, kpi
             {/* Field Picker toggle */}
             <Collapsible open={pickerOpen} onOpenChange={setPickerOpen}>
               <CollapsibleTrigger className="text-[10px] font-mono text-muted-foreground hover:text-foreground cursor-pointer mt-2 inline-block">
-                {pickerOpen ? "▾ Field Picker" : "▸ Field Picker"}
+                {pickerOpen ? "▾ Field Picker & Templates" : "▸ Field Picker & Templates"}
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-2">
                 <FieldPicker
@@ -157,10 +211,23 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial, kpi
               </CollapsibleContent>
             </Collapsible>
           </div>
+
+          {/* Description — upgraded to textarea with guidance */}
           <div className="space-y-1.5">
             <Label className="text-xs">Description</Label>
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What this metric measures" />
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={`Describe what this formula calculates, how it works, and why it matters.\n\nExample: "Calculates the current month opening balance from the CASHFLOW sheet using the OPENING BALANCES row and current month key (Mon-YY). Used to show current available cash position on the dashboard."`}
+              className="text-xs min-h-[80px] resize-y"
+              rows={3}
+            />
+            <p className="text-[9px] text-muted-foreground/60 font-mono">
+              Include: what is calculated · how it is derived · which source rows/fields are used
+            </p>
           </div>
+
+          {/* Unit + Category */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Unit</Label>
@@ -182,9 +249,15 @@ export default function FormulaForm({ open, onOpenChange, onSubmit, initial, kpi
             </div>
           </div>
 
-          <Button onClick={handleSubmit} className="w-full" disabled={!name || !expression}>
+          {/* Save button */}
+          <Button onClick={handleSubmit} className="w-full" disabled={!canSave}>
             {initial ? "Save Changes" : "Create Formula"}
           </Button>
+          {!canSave && name.trim() && expression.trim() && !validation.valid && (
+            <p className="text-[10px] text-destructive font-mono text-center">
+              Fix expression errors before saving
+            </p>
+          )}
         </div>
       </DialogContent>
     </Dialog>
