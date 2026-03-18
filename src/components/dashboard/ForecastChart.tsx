@@ -5,22 +5,18 @@ import NoData from "./NoData";
 
 const SERIES = [
   { key: "totalOutgoings", label: "Total Outgoings", color: "hsl(0, 70%, 55%)", dash: undefined },
-  { key: "anticipatedSurplus", label: "Anticipated Surplus/(Deficit)", color: "hsl(145, 63%, 32%)", dash: undefined },
+  { key: "anticipatedSurplus", label: "Anticipated Cash Surplus/(Deficit)", color: "hsl(145, 55%, 55%)", dash: undefined },
   { key: "probableJobs", label: "Jobs Probable To Be Won", color: "hsl(45, 90%, 55%)", dash: "5 5" },
-  { key: "surplusIncludingProbable", label: "Surplus incl. Probable Jobs", color: "hsl(145, 63%, 55%)", dash: "5 5" },
+  { key: "costOfJobsProbable", label: "Cost of Jobs Probable To Be Won", color: "hsl(0, 55%, 70%)", dash: "5 5" },
+  { key: "surplusIncludingProbable", label: "Anticipated Cash Surplus/(Deficit) Including Probable Jobs", color: "hsl(145, 63%, 32%)", dash: "5 5" },
 ] as const;
 
 const ForecastChart = () => {
   const { forecastChartData, dataHealth } = useDashboardData();
 
-  // Check which optional series have data
-  const hasProbable = forecastChartData.some((d) => d.probableJobs !== 0);
-  const hasSurplusProb = forecastChartData.some((d) => d.surplusIncludingProbable !== 0);
-
+  // Only show series that have at least one non-zero value
   const activeSeries = SERIES.filter((s) => {
-    if (s.key === "probableJobs") return hasProbable;
-    if (s.key === "surplusIncludingProbable") return hasSurplusProb;
-    return true;
+    return forecastChartData.some((d) => (d as any)[s.key] !== 0);
   });
 
   return (
@@ -39,23 +35,34 @@ const ForecastChart = () => {
           <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-4">
             {activeSeries.map((s) => (
               <div key={s.key} className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
-                <span className="w-3 h-0.5 rounded" style={{ backgroundColor: s.color, borderTop: s.dash ? "1px dashed" : undefined }} />
+                <span
+                  className="w-4 h-0.5 rounded"
+                  style={{
+                    backgroundColor: s.color,
+                    ...(s.dash ? { backgroundImage: `repeating-linear-gradient(90deg, ${s.color} 0 3px, transparent 3px 6px)`, backgroundColor: "transparent" } : {}),
+                  }}
+                />
                 {s.label}
               </div>
             ))}
           </div>
-          <ResponsiveContainer width="100%" height={240} minHeight={180}>
+          <ResponsiveContainer width="100%" height={260} minHeight={200}>
             <LineChart data={forecastChartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
               <XAxis dataKey="month" stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" />
-              <YAxis stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`} />
+              <YAxis stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" tickFormatter={(v) => {
+                const abs = Math.abs(v);
+                const label = abs >= 1000 ? `$${(abs / 1000).toFixed(0)}K` : `$${abs}`;
+                return v < 0 ? `-${label}` : label;
+              }} />
               <Tooltip
                 contentStyle={{
                   backgroundColor: "hsl(220, 18%, 10%)",
                   border: "1px solid hsl(220, 14%, 18%)",
                   borderRadius: "8px",
                   fontFamily: "JetBrains Mono",
-                  fontSize: "12px",
+                  fontSize: "11px",
+                  maxWidth: "320px",
                 }}
                 formatter={(value: number, name: string) => {
                   const series = activeSeries.find((s) => s.key === name);
