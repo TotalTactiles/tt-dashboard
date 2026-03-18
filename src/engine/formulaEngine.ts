@@ -712,6 +712,27 @@ export function resolveKpiVariables(store: DataStore): Record<string, number> {
     }
   } catch {}
 
+  const cashflowSummary = store.cashflowSummary as any;
+  const summaryMonths: string[] = Array.isArray(cashflowSummary?.months) ? cashflowSummary.months : [];
+  const currentSummaryMonthKey = resolveCurrentMonth(store);
+  const totalValue = resolvePath("revenueSummary.totalValue", store);
+  const totalCOGS = resolvePath("revenueSummary.totalCOGS", store);
+
+  // Developer-facing trace: this is the exact source-of-truth path for the CashPosition formula variable.
+  const cashPositionVariableTrace = resolveCashflowRowCurrentValue(store.cashflow, "OPENING BALANCES", summaryMonths);
+
+  console.log("[CashPosition Variable Debug]", {
+    browserDate: new Date().toISOString(),
+    generatedKey: cashPositionVariableTrace.generatedKey,
+    availableMonthKeys: cashPositionVariableTrace.availableMonthKeys,
+    matchedKey: cashPositionVariableTrace.matchedKey,
+    sourceRow: cashPositionVariableTrace.sourceRow,
+    finalValue: cashPositionVariableTrace.value,
+    fallbackTriggered: cashPositionVariableTrace.fallbackTriggered,
+    previousBrokenPath: "cashflowSummary.anticipatedSurplus.CURRENT_MONTH",
+    currentSummaryMonthKey,
+  });
+
   return {
     TotalQuoted: resolvePath("quotesSummary.totalQuoted.value", store),
     TotalWon: resolvePath("quotesSummary.totalWon.value", store),
@@ -720,20 +741,16 @@ export function resolveKpiVariables(store: DataStore): Record<string, number> {
     TotalYellow: resolvePath("quotesSummary.totalYellow.value", store),
     ConversionRate: resolvePath("quotesSummary.conversionRate", store),
     YLWplusGRN: resolvePath("quotesSummary.ylwPlusGrn.value", store),
-    GrossRevenue: resolvePath("revenueSummary.totalValue", store),
-    TotalCOGS: resolvePath("revenueSummary.totalCOGS", store),
+    GrossRevenue: totalValue,
+    TotalCOGS: totalCOGS,
     TotalLabourCost: resolvePath("revenueSummary.totalLabour", store),
-    NetRevenue: (() => {
-      const totalValue = resolvePath("revenueSummary.totalValue", store);
-      const totalCOGS = resolvePath("revenueSummary.totalCOGS", store);
-      return totalValue - totalCOGS;
-    })(),
+    NetRevenue: totalValue - totalCOGS,
     MonthlyExpenses: resolvePath("expensesSummary.totalMonthly", store),
     YearlyExpenses: resolvePath("expensesSummary.totalYearly", store),
-    CashPosition: resolvePath("cashflowSummary.anticipatedSurplus.CURRENT_MONTH", store),
-    TotalIncome_Current: resolvePath("cashflowSummary.totalIncome.CURRENT_MONTH", store),
-    TotalOutgoings_Current: resolvePath("cashflowSummary.totalOutgoings.CURRENT_MONTH", store),
-    GrossProfit_Current: resolvePath("cashflowSummary.grossProfit.CURRENT_MONTH", store),
+    CashPosition: cashPositionVariableTrace.value,
+    TotalIncome_Current: currentSummaryMonthKey ? parseNum(cashflowSummary?.totalIncome?.[currentSummaryMonthKey] ?? 0) : 0,
+    TotalOutgoings_Current: currentSummaryMonthKey ? parseNum(cashflowSummary?.totalOutgoings?.[currentSummaryMonthKey] ?? 0) : 0,
+    GrossProfit_Current: currentSummaryMonthKey ? parseNum(cashflowSummary?.grossProfit?.[currentSummaryMonthKey] ?? 0) : 0,
     GrossMarginTarget: grossMarginTarget,
   };
 }
