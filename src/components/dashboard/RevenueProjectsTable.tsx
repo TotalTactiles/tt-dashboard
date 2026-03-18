@@ -386,7 +386,26 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4 gap-2">
-        <h3 className="text-fluid-sm font-medium text-muted-foreground">Revenue &amp; COGS</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-fluid-sm font-medium text-muted-foreground">Revenue &amp; COGS</h3>
+          {periodFilter && (
+            <button
+              onClick={() => { onAllToggle?.(!showAll); setPage(1); }}
+              className={`text-[11px] px-2.5 py-1 rounded-full border font-mono transition-colors ${
+                showAll
+                  ? "bg-chart-green/20 text-chart-green border-chart-green/40"
+                  : "border-border text-muted-foreground hover:bg-secondary/50"
+              }`}
+            >
+              All
+            </button>
+          )}
+          {!showAll && periodFilter && (
+            <span className="text-[10px] font-mono text-muted-foreground/70">
+              {periodFilter.label}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {filteredProjects.length > 0 && (
             <div className="hidden lg:flex items-center gap-4 text-xs font-mono">
