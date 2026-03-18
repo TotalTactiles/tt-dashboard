@@ -150,53 +150,68 @@ export default function ProjectExecutionKPIs() {
     [quotedJobs, revenueProjects, incomeOutgoingsData, period]
   );
 
+  if (!kpis || !period) {
+    return (
+      <div className="mb-4 md:mb-6">
+        <h2 className="font-semibold text-foreground font-mono" style={{ fontSize: "clamp(14px, 1.8vw, 20px)" }}>
+          Project Execution
+        </h2>
+        <p className="text-muted-foreground font-mono mt-1" style={{ fontSize: "clamp(10px, 1vw, 12px)" }}>
+          No quoted jobs data available
+        </p>
+      </div>
+    );
+  }
+
+  const gmIsForecast = (kpis.weightedGrossMargin as any).isForecast === true;
+
   const cards: ExecKPICardProps[] = [
     {
       title: "Active Jobs",
       group: "DELIVERY",
-      icon: <Briefcase className="w-3.5 h-3.5" />,
+      icon: <Briefcase className="w-4 h-4" />,
       kpi: kpis.activeJobs,
       index: 0,
     },
     {
       title: "Overdue Jobs",
       group: "DELIVERY",
-      icon: <AlertTriangle className="w-3.5 h-3.5" />,
+      icon: <AlertTriangle className="w-4 h-4" />,
       kpi: kpis.overdueJobs,
       index: 1,
     },
     {
       title: "Jobs Due",
       group: "DELIVERY",
-      icon: <CalendarClock className="w-3.5 h-3.5" />,
+      icon: <CalendarClock className="w-4 h-4" />,
       kpi: kpis.jobsDuePeriod,
       index: 2,
     },
     {
-      title: "Gross Margin",
+      title: gmIsForecast ? "Forecast Margin" : "Gross Margin",
       group: "PROFIT",
-      icon: <BarChart3 className="w-3.5 h-3.5" />,
+      icon: <BarChart3 className="w-4 h-4" />,
       kpi: kpis.weightedGrossMargin,
       index: 3,
     },
     {
       title: "Rev / Job",
       group: "PROFIT",
-      icon: <DollarSign className="w-3.5 h-3.5" />,
+      icon: <DollarSign className="w-4 h-4" />,
       kpi: kpis.revenuePerJob,
       index: 4,
     },
     {
       title: "GP / Job",
       group: "PROFIT",
-      icon: <DollarSign className="w-3.5 h-3.5" />,
+      icon: <DollarSign className="w-4 h-4" />,
       kpi: kpis.grossProfitPerJob,
       index: 5,
     },
     {
       title: "Cash Expected",
       group: "CASHFLOW",
-      icon: <Wallet className="w-3.5 h-3.5" />,
+      icon: <Wallet className="w-4 h-4" />,
       kpi: kpis.cashExpected,
       index: 6,
     },
@@ -208,13 +223,13 @@ export default function ProjectExecutionKPIs() {
         <div>
           <h2
             className="font-semibold text-foreground font-mono"
-            style={{ fontSize: "clamp(13px, 1.6vw, 18px)" }}
+            style={{ fontSize: "clamp(14px, 1.8vw, 20px)" }}
           >
             Project Execution
           </h2>
           <p
             className="text-muted-foreground font-mono"
-            style={{ fontSize: "clamp(9px, 0.9vw, 11px)" }}
+            style={{ fontSize: "clamp(10px, 1vw, 12px)" }}
           >
             Delivery, profitability &amp; cashflow KPIs
           </p>
@@ -227,7 +242,7 @@ export default function ProjectExecutionKPIs() {
               <ChevronDown className="w-3 h-3" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="max-h-64 overflow-y-auto">
             {periodOptions.map((opt, i) => (
               <DropdownMenuItem
                 key={opt.key}
