@@ -21,16 +21,6 @@ import { buildPeriodOptions, getCurrentMonthKey } from "@/lib/projectExecutionKp
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Unplug, Loader2 } from "lucide-react";
-import ExpenseBreakdown from "@/components/dashboard/ExpenseBreakdown";
-import DashboardLayout from "@/components/DashboardLayout";
-import GoalsDashboardWidgets from "@/components/goals/GoalsDashboardWidgets";
-import GoalScenarioBar from "@/components/dashboard/GoalScenarioBar";
-import { useGoals } from "@/hooks/useGoals";
-import { useDashboardData } from "@/contexts/DashboardDataContext";
-import { applyGoalMerge } from "@/lib/goalMerge";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { CheckCircle, Unplug, Loader2 } from "lucide-react";
 
 const fmtAUD = (n: number) => formatMetricValue(n, "currency");
 
