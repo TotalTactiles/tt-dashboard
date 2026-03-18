@@ -582,35 +582,32 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const profitMarginData: ProfitMarginPoint[] = comparisonMonths.map((mk) => {
       const bucket = gpByMonth[mk];
       const grossMargin = bucket.totalRevenue > 0 ? Math.round((bucket.totalGP / bucket.totalRevenue) * 10000) / 100 : 0;
-      const netProfit = bucket.totalGP - monthlyOperatingExpenses;
-      const netProfitMargin = hasOperatingExpenseSource && bucket.totalRevenue > 0
-        ? Math.round((netProfit / bucket.totalRevenue) * 10000) / 100
+      // Net Profit = "Anticipated Cash Surplus/(Deficit)" value for this exact month
+      const cashflowNetProfit = hasNetProfitSource ? parseNum(anticipatedSurplusRow![mk] ?? null) : null;
+      const netProfitMargin = hasNetProfitSource && cashflowNetProfit !== null && bucket.totalRevenue > 0
+        ? Math.round((cashflowNetProfit / bucket.totalRevenue) * 10000) / 100
         : null;
       return { month: mk, grossMargin, netProfitMargin };
     });
 
     console.log("[GP Chart Proof] === GROSS / NET PROFIT MARGIN VERIFICATION ===");
-    console.log(`[GP Chart Proof] Net Profit operating expense source: ${operatingExpenseSourceLabel} = $${monthlyOperatingExpenses.toFixed(2)}`);
-    console.log(`[GP Chart Proof] Month alignment strategy: strict comparison on REVENUE month keys (${comparisonMonths.join(", ") || "none"})`);
+    console.log(`[GP Chart Proof] Net Profit source: CASHFLOW → "Anticipated Cash Surplus/(Deficit)" row (found: ${hasNetProfitSource})`);
+    console.log(`[GP Chart Proof] Month alignment: strict intersection of REVENUE months & CASHFLOW columns (${comparisonMonths.join(", ") || "none"})`);
     for (const mk of comparisonMonths) {
       const bucket = gpByMonth[mk];
       const rows = gpRowDetail[mk] || [];
       const grossMargin = bucket.totalRevenue > 0 ? Math.round((bucket.totalGP / bucket.totalRevenue) * 10000) / 100 : 0;
-      const netProfit = bucket.totalGP - monthlyOperatingExpenses;
-      const netProfitMargin = hasOperatingExpenseSource && bucket.totalRevenue > 0
-        ? Math.round((netProfit / bucket.totalRevenue) * 10000) / 100
+      const cashflowNetProfit = hasNetProfitSource ? parseNum(anticipatedSurplusRow![mk] ?? null) : null;
+      const netProfitMargin = hasNetProfitSource && cashflowNetProfit !== null && bucket.totalRevenue > 0
+        ? Math.round((cashflowNetProfit / bucket.totalRevenue) * 10000) / 100
         : null;
-      console.log(`[GP Chart Proof] Month: ${mk}`);
-      console.log(`[GP Chart Proof]   Rows included (${rows.length}):`);
+      console.log(`[Net Profit Verification] Month: ${mk}`);
+      console.log(`[Net Profit Verification]   Revenue: $${bucket.totalRevenue.toFixed(2)} (source: REVENUE tab, ${rows.length} line items)`);
+      console.log(`[Net Profit Verification]   Net Profit: ${cashflowNetProfit !== null ? `$${cashflowNetProfit.toFixed(2)}` : "null"} (source row: "Anticipated Cash Surplus/(Deficit)")`);
+      console.log(`[Net Profit Verification]   Formula: ${cashflowNetProfit?.toFixed(2)} / ${bucket.totalRevenue.toFixed(2)} × 100 = ${netProfitMargin !== null ? `${netProfitMargin}%` : "null"}`);
+      console.log(`[Net Profit Verification]   GP%: ${grossMargin}% | Net%: ${netProfitMargin !== null ? `${netProfitMargin}%` : "n/a"} | ${netProfitMargin !== null ? "PASS" : "SKIP (missing cashflow data)"}`);
       for (const r of rows) {
         console.log(`[GP Chart Proof]     - ${r.company} | ${r.project} | rev=$${r.revenueExGST.toFixed(2)} | cogs=$${r.totalCOGS.toFixed(2)} | gp=$${r.grossProfit.toFixed(2)} | date=${r.otherDate || r.invoiceDate} (${r.dateUsed})`);
-      }
-      console.log(`[GP Chart Proof]   GP totals: Revenue=$${bucket.totalRevenue.toFixed(2)}, GP=$${bucket.totalGP.toFixed(2)}, Excluded=${bucket.excluded}`);
-      console.log(`[GP Chart Proof]   GP calc: ${bucket.totalGP.toFixed(2)} / ${bucket.totalRevenue.toFixed(2)} × 100 = ${grossMargin}%`);
-      if (hasOperatingExpenseSource) {
-        console.log(`[GP Chart Proof]   Net calc: (${bucket.totalGP.toFixed(2)} - ${monthlyOperatingExpenses.toFixed(2)}) / ${bucket.totalRevenue.toFixed(2)} × 100 = ${netProfitMargin}%`);
-      } else {
-        console.log("[GP Chart Proof]   Net calc: skipped (no operating expense source available)");
       }
     }
 
