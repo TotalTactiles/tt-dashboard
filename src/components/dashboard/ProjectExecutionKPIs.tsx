@@ -163,7 +163,7 @@ export default function ProjectExecutionKPIs() {
     );
   }
 
-  const gmIsForecast = (kpis.weightedGrossMargin as any).isForecast === true;
+  const gmIsForecast = kpis.weightedGrossMargin.isForecast === true;
 
   const cards: ExecKPICardProps[] = [
     {
