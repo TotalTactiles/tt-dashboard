@@ -52,7 +52,6 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
   const { incomeOutgoingsData, dataHealth } = useDashboardData();
   const sourceData = adjustedData ?? incomeOutgoingsData;
   const [exportOpen, setExportOpen] = useState(false);
-  const sourceData = adjustedData ?? incomeOutgoingsData;
 
   const [quarter, setQuarter] = useState<QuarterFilter>(() => loadPref("cashflow_quarter_filter", getCurrentQuarter()));
 
