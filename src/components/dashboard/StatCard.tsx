@@ -44,7 +44,7 @@ function abbreviateValue(raw: string): { display: string; abbreviated: boolean }
   return { display: raw, abbreviated: false };
 }
 
-const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted }: StatCardProps) => {
+const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted, toggleLabelBase, toggleLabelAlt }: StatCardProps) => {
   const [showAlt, setShowAlt] = useState(false);
   const hasToggle = !!altValue;
 
