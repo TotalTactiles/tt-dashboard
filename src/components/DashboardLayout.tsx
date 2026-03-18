@@ -1,6 +1,7 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { MobileNav } from "@/components/MobileNav";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface DashboardLayoutProps {
@@ -21,6 +22,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <header className="h-12 flex items-center border-b border-border px-4 shrink-0 hidden md:flex">
             <SidebarTrigger className="mr-4" />
             <div className="flex items-center gap-2 ml-auto">
+              <ThemeToggle />
               <span className="pulse-dot bg-chart-green" />
               <span className="text-xs text-muted-foreground font-mono">Live</span>
             </div>
@@ -29,11 +31,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <header className="h-12 flex items-center border-b border-border px-4 shrink-0 md:hidden">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-mono font-bold text-[10px]">PE</span>
+                <span className="text-primary-foreground font-mono font-bold text-[10px]">K&M</span>
               </div>
-              <span className="text-sm font-semibold text-foreground">Meridian Capital</span>
+              <span className="text-sm font-semibold text-foreground">K&M Enterprises</span>
             </div>
             <div className="flex items-center gap-2 ml-auto">
+              <ThemeToggle />
               <span className="pulse-dot bg-chart-green" />
               <span className="text-xs text-muted-foreground font-mono">Live</span>
             </div>
@@ -47,8 +50,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       </div>
       {/* Mobile bottom tab bar */}
       <MobileNav />
-    </SidebarProvider>);
-
+    </SidebarProvider>
+  );
 };
 
 export default DashboardLayout;
