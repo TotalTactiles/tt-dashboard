@@ -674,91 +674,47 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       return keys.find(k => normalizeKey(k) === targetNorm) ?? null;
     };
 
+    // ===== CASHFLOW POSITION: "Anticipated Cash Surplus/(Deficit)" × current month ONLY =====
     let cashflowPosition = 0;
     let cashflowPositionSource = "none";
-    let matchedKey: string | null = null;
+    let cashflowPositionMatchedKey: string | null = null;
+    let cashflowPositionFallback = false;
 
-    if (openingBalancesRow) {
-      // Priority 1: exact current month from row keys
-      matchedKey = findMatchingRowKey(openingBalancesRow, currentKeyNorm);
-      if (matchedKey !== null) {
-        cashflowPosition = parseNum(openingBalancesRow[matchedKey] ?? 0);
-        cashflowPositionSource = `OPENING BALANCES["${matchedKey}"] (exact)`;
+    if (anticipatedSurplusRow) {
+      // Try exact current month key from row keys
+      const rowKey = findMatchingRowKey(anticipatedSurplusRow, currentKeyNorm);
+      if (rowKey !== null) {
+        cashflowPosition = parseNum(anticipatedSurplusRow[rowKey] ?? 0);
+        cashflowPositionMatchedKey = rowKey;
+        cashflowPositionSource = `Anticipated Cash Surplus/(Deficit)["${rowKey}"] (exact current month)`;
       } else {
-        // Priority 2: exact current month from months array
+        // Try from months array
         const monthsKey = findMatchingMonthKey(currentKeyNorm);
-        if (monthsKey !== null && openingBalancesRow[monthsKey] !== undefined) {
-          cashflowPosition = parseNum(openingBalancesRow[monthsKey] ?? 0);
-          matchedKey = monthsKey;
-          cashflowPositionSource = `OPENING BALANCES["${monthsKey}"] (from months array)`;
+        if (monthsKey !== null && anticipatedSurplusRow[monthsKey] !== undefined) {
+          cashflowPosition = parseNum(anticipatedSurplusRow[monthsKey] ?? 0);
+          cashflowPositionMatchedKey = monthsKey;
+          cashflowPositionSource = `Anticipated Cash Surplus/(Deficit)["${monthsKey}"] (from months array)`;
         } else {
-          // Fallback: most recent past month from OPENING BALANCES
-          for (let i = months.length - 1; i >= 0; i--) {
-            const parsed = parseMonthLabel(months[i]);
-            if (!parsed) continue;
-            if (parsed.year > currentYear || (parsed.year === currentYear && parsed.month > currentMonthIdx)) continue;
-            const val = parseNum(openingBalancesRow[months[i]] ?? 0);
-            if (val !== 0) {
-              cashflowPosition = val;
-              matchedKey = months[i];
-              cashflowPositionSource = `OPENING BALANCES["${months[i]}"] (past fallback)`;
-              break;
-            }
-          }
+          // NO FALLBACK — current month is missing
+          cashflowPositionSource = `Anticipated Cash Surplus/(Deficit) — current month "${currentMonthKey}" NOT FOUND`;
+          cashflowPositionFallback = false;
         }
       }
     } else {
-      // No OPENING BALANCES row — use anticipatedSurplus
-      matchedKey = findMatchingMonthKey(currentKeyNorm);
-      const srcRow = anticipatedSurplusRow;
-      if (matchedKey && srcRow) {
-        cashflowPosition = parseNum(srcRow[matchedKey] ?? 0);
-        cashflowPositionSource = `anticipatedSurplus["${matchedKey}"] (no OB row)`;
-      } else {
-        for (let i = months.length - 1; i >= 0; i--) {
-          const parsed = parseMonthLabel(months[i]);
-          if (!parsed) continue;
-          if (parsed.year > currentYear || (parsed.year === currentYear && parsed.month > currentMonthIdx)) continue;
-          const val = srcRow ? parseNum(srcRow[months[i]] ?? 0) : sv(cs?.anticipatedSurplus, months[i]);
-          if (val !== 0) {
-            cashflowPosition = val;
-            matchedKey = months[i];
-            cashflowPositionSource = `anticipatedSurplus["${months[i]}"] (past fallback, no OB row)`;
-            break;
-          }
-        }
-      }
-    }
-    // Final fallback: Closing Balance
-    if (cashflowPosition === 0) {
-      const closingRow = findCashflowRowExact("Closing Balance");
-      const closingKey = closingRow ? findMatchingRowKey(closingRow, currentKeyNorm) : null;
-      if (closingRow && closingKey) {
-        const val = parseNum(closingRow[closingKey] ?? 0);
-        if (val !== 0) {
-          cashflowPosition = val;
-          matchedKey = closingKey;
-          cashflowPositionSource = `Closing Balance["${closingKey}"] (final fallback)`;
-        }
-      }
+      cashflowPositionSource = `Anticipated Cash Surplus/(Deficit) row NOT FOUND in cashflow data`;
     }
 
-    // Scoped debug for Cashflow Position month resolution
-    const obMonthKeys = openingBalancesRow ? Object.keys(openingBalancesRow).filter(k => MONTH_REGEX.test(k)) : [];
-    const obAllValues: Record<string, number> = {};
-    for (const k of obMonthKeys) obAllValues[k] = parseNum(openingBalancesRow?.[k] ?? 0);
-    console.log("[Cashflow Position Debug]", {
+    // Verification log
+    const surplusRowKeys = anticipatedSurplusRow ? Object.keys(anticipatedSurplusRow).filter(k => MONTH_REGEX.test(k)) : [];
+    console.log("[Cashflow Position Verification]", {
       browserDate: now.toISOString(),
-      generatedKey: currentMonthKey,
-      generatedKeyNorm: currentKeyNorm,
-      availableMonthKeys: months,
-      openingBalancesRowKeys: obMonthKeys,
-      openingBalancesAllValues: obAllValues,
-      matchedKey,
-      sourceRow: "OPENING BALANCES",
-      source: cashflowPositionSource,
-      finalValue: cashflowPosition,
-      fallbackTriggered: cashflowPositionSource.includes("fallback"),
+      resolvedMonthKey: currentMonthKey,
+      sourceRow: "Anticipated Cash Surplus/(Deficit)",
+      matchedColumn: cashflowPositionMatchedKey,
+      value: cashflowPosition,
+      fallbackTriggered: cashflowPositionFallback,
+      reason: cashflowPositionMatchedKey ? "PASS" : `Current month "${currentMonthKey}" not found in available columns: [${surplusRowKeys.join(", ")}]`,
+      availableColumns: surplusRowKeys,
     });
 
     // ===== Extract GRN and YLW from raw qtsSmmry rows (QTS SUMMARY sheet) =====
