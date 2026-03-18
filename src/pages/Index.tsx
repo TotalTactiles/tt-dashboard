@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { RefreshCw } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import { formatMetricValue } from "@/lib/formatMetricValue";
@@ -46,24 +46,59 @@ const DashboardContent = () => {
   const { goals, updateGoal } = useGoals();
   const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData, quotedJobs } = useDashboardData();
 
-  // ── Shared period state ──
+  // ── Shared period state — resets to current month on every mount/data change ──
   const periodOptions = useMemo(() => buildPeriodOptions(quotedJobs), [quotedJobs]);
   const defaultPeriodIdx = useMemo(() => {
     const currentKey = getCurrentMonthKey();
-    const idx = periodOptions.findIndex((p) => p.mode === "month" && p.months.includes(currentKey));
-    // fallback to last month option if current month has no data
-    if (idx >= 0) return idx;
+    // 1. Current month if available
+    const exactIdx = periodOptions.findIndex((p) => p.mode === "month" && p.months.includes(currentKey));
+    if (exactIdx >= 0) return exactIdx;
+
+    // 2. Latest available month in current year up to today
+    const now = new Date();
+    const curYr2 = String(now.getFullYear()).slice(-2);
+    const curMonNum = now.getMonth();
+    const ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    let bestIdx = -1;
+    let bestMon = -1;
+    for (let i = 0; i < periodOptions.length; i++) {
+      const p = periodOptions[i];
+      if (p.mode !== "month") continue;
+      const mk = p.months[0]; // e.g. "Mar-26"
+      const match = mk?.match(/^([A-Za-z]{3})-(\d{2})$/);
+      if (!match) continue;
+      const mIdx = ABBR.indexOf(match[1]);
+      const yr = match[2];
+      if (yr === curYr2 && mIdx <= curMonNum && mIdx > bestMon) {
+        bestMon = mIdx;
+        bestIdx = i;
+      }
+    }
+    if (bestIdx >= 0) return bestIdx;
+
+    // 3. Current-year YTD
+    const ytdIdx = periodOptions.findIndex((p) => p.mode === "ytd" && p.key === `YTD-${curYr2}`);
+    if (ytdIdx >= 0) return ytdIdx;
+
+    // 4. Latest valid available option
     const monthOptions = periodOptions.filter((p) => p.mode === "month");
     if (monthOptions.length > 0) {
       return periodOptions.indexOf(monthOptions[monthOptions.length - 1]);
     }
     return 0;
   }, [periodOptions]);
+
   const [selectedPeriodIdx, setSelectedPeriodIdx] = useState(defaultPeriodIdx);
+
+  // Reset to default on every data reload / remount
+  useEffect(() => {
+    setSelectedPeriodIdx(defaultPeriodIdx);
+    setShowAllTables(false);
+  }, [defaultPeriodIdx]);
 
   const selectedPeriod = periodOptions[selectedPeriodIdx] ?? null;
 
-  // ── Shared "All" toggle for both tables ──
+  // ── Shared "All" toggle for both tables — always starts OFF ──
   const [showAllTables, setShowAllTables] = useState(false);
 
   // Find current-year YTD index for auto-switch
