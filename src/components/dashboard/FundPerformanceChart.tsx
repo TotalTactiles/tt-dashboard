@@ -74,7 +74,7 @@ const FundPerformanceChart = () => {
     if (e.key === "Escape") cancelEdit();
   };
 
-  const hasNetProfit = profitMarginData.some((d) => d.netProfitMargin !== null);
+  
 
   return (
     <motion.div
