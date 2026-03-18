@@ -518,18 +518,54 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         };
       });
 
-    // Gross Profit Margin line chart
-    const profitMarginData: ProfitMarginPoint[] = months
-      .filter((m) => sv(cs?.totalIncome, m) !== 0)
-      .map((m) => {
-        // Prefer pre-calculated grossMarginPct
-        if (cs?.grossMarginPct?.[m] !== undefined) {
-          return { month: m, grossMargin: parseNum(cs.grossMarginPct[m]) };
-        }
-        const gp = sv(cs?.grossProfit, m);
-        const inc = sv(cs?.totalIncome, m);
-        return { month: m, grossMargin: inc > 0 ? Math.round((gp / inc) * 100) : 0 };
+    // Gross Profit Margin line chart — computed from REVENUE rows, NOT cashflow summary
+    // Groups revenue rows by month (from otherDate), then calculates weighted GP%:
+    //   monthly GP% = sum(grossProfit) / sum(valueExclGST) * 100
+    const dateToMonKey = (dateStr: string): string | null => {
+      if (!dateStr) return null;
+      // Try Mon-YY format first
+      if (/^[A-Za-z]{3}-\d{2}$/i.test(dateStr)) return dateStr;
+      // Parse date string
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return null;
+      const abbr = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      return `${abbr[d.getMonth()]}-${String(d.getFullYear()).slice(2)}`;
+    };
+
+    const gpByMonth: Record<string, { totalRevenue: number; totalGP: number; rowCount: number; excluded: number }> = {};
+    for (const rp of revenueProjects) {
+      const mk = dateToMonKey(rp.otherDate) || dateToMonKey(rp.invoiceDate);
+      if (!mk) {
+        console.log("[GP Chart Debug] Excluded row (no date):", rp.company, rp.project);
+        continue;
+      }
+      if (rp.valueExclGST <= 0) {
+        if (!gpByMonth[mk]) gpByMonth[mk] = { totalRevenue: 0, totalGP: 0, rowCount: 0, excluded: 0 };
+        gpByMonth[mk].excluded++;
+        continue;
+      }
+      if (!gpByMonth[mk]) gpByMonth[mk] = { totalRevenue: 0, totalGP: 0, rowCount: 0, excluded: 0 };
+      gpByMonth[mk].totalRevenue += rp.valueExclGST;
+      gpByMonth[mk].totalGP += rp.grossProfit;
+      gpByMonth[mk].rowCount++;
+    }
+
+    // Sort months chronologically
+    const MONTH_ORDER: Record<string, number> = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+    const sortedGpMonths = Object.keys(gpByMonth)
+      .filter(mk => gpByMonth[mk].rowCount > 0)
+      .sort((a, b) => {
+        const [am, ay] = [a.slice(0, 3).toLowerCase(), parseInt(a.slice(4))];
+        const [bm, by] = [b.slice(0, 3).toLowerCase(), parseInt(b.slice(4))];
+        return (ay - by) || ((MONTH_ORDER[am] ?? 0) - (MONTH_ORDER[bm] ?? 0));
       });
+
+    const profitMarginData: ProfitMarginPoint[] = sortedGpMonths.map(mk => {
+      const bucket = gpByMonth[mk];
+      const gp = bucket.totalRevenue > 0 ? Math.round((bucket.totalGP / bucket.totalRevenue) * 10000) / 100 : 0;
+      console.log(`[GP Chart Debug] ${mk}: rows=${bucket.rowCount}, excluded=${bucket.excluded}, revenue=$${bucket.totalRevenue.toFixed(2)}, grossProfit=$${bucket.totalGP.toFixed(2)}, GP%=${gp}%`);
+      return { month: mk, grossMargin: gp };
+    });
 
     // Forecast chart — use exact named rows (5 distinct series)
     const forecastChartData: ForecastChartPoint[] = months.map((m) => {
