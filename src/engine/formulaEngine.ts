@@ -771,19 +771,41 @@ export function resolveKpiVariables(store: DataStore): Record<string, number> {
       : 0
     : 0;
 
-  // Developer-facing trace: this is the exact source-of-truth path for the CashPosition formula variable.
-  const cashPositionVariableTrace = resolveCashflowRowCurrentValue(store.cashflow, "OPENING BALANCES", summaryMonths);
+  // CashPosition = "Anticipated Cash Surplus/(Deficit)" row × current month ONLY (no fallback)
+  const anticipatedSurplusRow = findCashflowRow(store.cashflow, "Anticipated Cash Surplus/(Deficit)");
+  // Exclude the "Including Probable Jobs" variant
+  const anticipatedSurplusRowFiltered = (() => {
+    if (!anticipatedSurplusRow) return undefined;
+    const label = normalizeRowLabel(anticipatedSurplusRow._label_rowLabel ?? anticipatedSurplusRow.col_1 ?? "");
+    if (label.includes("INCLUDING PROBABLE")) return undefined;
+    return anticipatedSurplusRow;
+  })();
 
-  console.log("[CashPosition Variable Debug]", {
+  const cashPositionMonthKey = buildCurrentMonthKey();
+  let cashPositionValue = 0;
+  let cashPositionMatchedKey: string | null = null;
+  let cashPositionFallback = false;
+
+  if (anticipatedSurplusRowFiltered) {
+    const rowMonthKeys = getRowMonthKeys(anticipatedSurplusRowFiltered);
+    const monthMap = getCanonicalMonthMap(rowMonthKeys);
+    const currentNorm = normalizeMonthKey(cashPositionMonthKey)?.toUpperCase() ?? cashPositionMonthKey.toUpperCase();
+    const exactKey = monthMap.get(currentNorm) ?? null;
+    if (exactKey) {
+      cashPositionValue = parseNum(anticipatedSurplusRowFiltered[exactKey] ?? 0);
+      cashPositionMatchedKey = exactKey;
+    }
+    // NO fallback to past months
+  }
+
+  console.log("[CashPosition Variable Verification]", {
     browserDate: new Date().toISOString(),
-    generatedKey: cashPositionVariableTrace.generatedKey,
-    availableMonthKeys: cashPositionVariableTrace.availableMonthKeys,
-    matchedKey: cashPositionVariableTrace.matchedKey,
-    sourceRow: cashPositionVariableTrace.sourceRow,
-    finalValue: cashPositionVariableTrace.value,
-    fallbackTriggered: cashPositionVariableTrace.fallbackTriggered,
-    previousBrokenPath: "cashflowSummary.anticipatedSurplus.CURRENT_MONTH",
-    currentSummaryMonthKey,
+    resolvedMonthKey: cashPositionMonthKey,
+    sourceRow: "Anticipated Cash Surplus/(Deficit)",
+    matchedColumn: cashPositionMatchedKey,
+    value: cashPositionValue,
+    fallbackTriggered: cashPositionFallback,
+    reason: cashPositionMatchedKey ? "PASS" : `Current month "${cashPositionMonthKey}" not found`,
   });
 
   return {
