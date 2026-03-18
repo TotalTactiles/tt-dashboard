@@ -29,11 +29,11 @@ const GP_EXPLANATION = `Gross Profit Margin
 • This is a weighted monthly GP%, not a simple average of row GP%s
 
 Net Profit Margin
-• Source basis: same REVENUE month buckets as Gross Profit Margin
-• Operating Expenses source: Business Expenses monthly operating total
-• Net Profit = Σ(Gross Profit) − Monthly Operating Expenses
-• Net Profit % = Net Profit ÷ Σ(Revenue ex GST) × 100
-• Directly comparable to GP% because both lines use the same months and denominator`;
+• Source: CASHFLOW sheet → "Anticipated Cash Surplus/(Deficit)" row
+• Each month's Net Profit = value from that row's month column
+• Revenue denominator: same REVENUE tab monthly grouping as GP%
+• Net Profit % = Net Profit(month) ÷ Σ(Revenue ex GST for month) × 100
+• Comparable to GP% because both use the same month keys and revenue denominator`;
 
 const FundPerformanceChart = () => {
   const { profitMarginData, dataHealth } = useDashboardData();
