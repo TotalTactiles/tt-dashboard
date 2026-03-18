@@ -2,9 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
-import { Pencil, Check, X, Info } from "lucide-react";
+import { Pencil, Check, X } from "lucide-react";
 import NoData from "./NoData";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const GM_TARGET_KEY = "gross_margin_target";
 
