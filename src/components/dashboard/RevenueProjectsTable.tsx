@@ -111,7 +111,13 @@ function parseMonthYear(label: string): { month: number; year: number } | null {
 
 const ITEMS_PER_PAGE = 10;
 
-const RevenueProjectsTable = () => {
+interface RevenueProjectsTableProps {
+  periodFilter?: PeriodSpec | null;
+  showAll?: boolean;
+  onAllToggle?: (allOn: boolean) => void;
+}
+
+const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: RevenueProjectsTableProps) => {
   const { revenueProjects, dataHealth } = useDashboardData();
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
