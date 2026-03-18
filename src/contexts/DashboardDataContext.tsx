@@ -524,63 +524,106 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const netRevenue = (parseNum(rs?.totalValue ?? 0)) - (parseNum(rs?.totalCOGS ?? 0));
 
     // Card 5: Cashflow Position = current month's OPENING BALANCES value
+    // Generate current month key in stable Mon-YY format (locale-independent)
     const currentMonthKey = `${MONTH_ABBR_LIST[currentMonthIdx]}-${String(currentYear).slice(-2)}`;
+
+    // Normalize a month key to uppercase trimmed for comparison
+    const normalizeKey = (k: string) => k.trim().toUpperCase();
+    const currentKeyNorm = normalizeKey(currentMonthKey);
+
+    // Find exact matching key from the actual months array (handles case/whitespace variations)
+    const findMatchingMonthKey = (targetNorm: string): string | null => {
+      return months.find(m => normalizeKey(m) === targetNorm) ?? null;
+    };
+
+    // Also check keys directly on the openingBalancesRow object (may differ from months array)
+    const findMatchingRowKey = (row: any, targetNorm: string): string | null => {
+      if (!row) return null;
+      const keys = Object.keys(row);
+      return keys.find(k => normalizeKey(k) === targetNorm) ?? null;
+    };
+
     let cashflowPosition = 0;
     let cashflowPositionSource = "none";
+    let matchedKey: string | null = null;
 
-    // Priority 1: Use OPENING BALANCES row (exact source of truth)
     if (openingBalancesRow) {
-      const currentVal = parseNum(openingBalancesRow[currentMonthKey] ?? 0);
-      if (currentVal !== 0 || (currentMonthKey in openingBalancesRow)) {
-        cashflowPosition = currentVal;
-        cashflowPositionSource = `OPENING BALANCES[${currentMonthKey}]`;
+      // Priority 1: exact current month from row keys
+      matchedKey = findMatchingRowKey(openingBalancesRow, currentKeyNorm);
+      if (matchedKey !== null) {
+        cashflowPosition = parseNum(openingBalancesRow[matchedKey] ?? 0);
+        cashflowPositionSource = `OPENING BALANCES["${matchedKey}"] (exact)`;
       } else {
-        // Fallback: most recent past month from OPENING BALANCES
-        for (let i = months.length - 1; i >= 0; i--) {
-          const parsed = parseMonthLabel(months[i]);
-          if (!parsed) continue;
-          if (parsed.year > currentYear || (parsed.year === currentYear && parsed.month > currentMonthIdx)) continue;
-          const val = parseNum(openingBalancesRow[months[i]] ?? 0);
-          if (val !== 0) {
-            cashflowPosition = val;
-            cashflowPositionSource = `OPENING BALANCES[${months[i]}] (fallback)`;
-            break;
+        // Priority 2: exact current month from months array
+        const monthsKey = findMatchingMonthKey(currentKeyNorm);
+        if (monthsKey !== null && openingBalancesRow[monthsKey] !== undefined) {
+          cashflowPosition = parseNum(openingBalancesRow[monthsKey] ?? 0);
+          matchedKey = monthsKey;
+          cashflowPositionSource = `OPENING BALANCES["${monthsKey}"] (from months array)`;
+        } else {
+          // Fallback: most recent past month from OPENING BALANCES
+          for (let i = months.length - 1; i >= 0; i--) {
+            const parsed = parseMonthLabel(months[i]);
+            if (!parsed) continue;
+            if (parsed.year > currentYear || (parsed.year === currentYear && parsed.month > currentMonthIdx)) continue;
+            const val = parseNum(openingBalancesRow[months[i]] ?? 0);
+            if (val !== 0) {
+              cashflowPosition = val;
+              matchedKey = months[i];
+              cashflowPositionSource = `OPENING BALANCES["${months[i]}"] (past fallback)`;
+              break;
+            }
           }
         }
       }
     } else {
-      // Fallback if no OPENING BALANCES row found: use anticipatedSurplus
-      const currentMonthSurplus = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[currentMonthKey] ?? 0) : sv(cs?.anticipatedSurplus, currentMonthKey);
-      if (currentMonthSurplus !== 0) {
-        cashflowPosition = currentMonthSurplus;
-        cashflowPositionSource = `anticipatedSurplus[${currentMonthKey}] (no OPENING BALANCES row)`;
+      // No OPENING BALANCES row — use anticipatedSurplus
+      matchedKey = findMatchingMonthKey(currentKeyNorm);
+      const srcRow = anticipatedSurplusRow;
+      if (matchedKey && srcRow) {
+        cashflowPosition = parseNum(srcRow[matchedKey] ?? 0);
+        cashflowPositionSource = `anticipatedSurplus["${matchedKey}"] (no OB row)`;
       } else {
         for (let i = months.length - 1; i >= 0; i--) {
           const parsed = parseMonthLabel(months[i]);
           if (!parsed) continue;
           if (parsed.year > currentYear || (parsed.year === currentYear && parsed.month > currentMonthIdx)) continue;
-          const val = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[months[i]] ?? 0) : sv(cs?.anticipatedSurplus, months[i]);
+          const val = srcRow ? parseNum(srcRow[months[i]] ?? 0) : sv(cs?.anticipatedSurplus, months[i]);
           if (val !== 0) {
             cashflowPosition = val;
-            cashflowPositionSource = `anticipatedSurplus[${months[i]}] (fallback, no OPENING BALANCES)`;
+            matchedKey = months[i];
+            cashflowPositionSource = `anticipatedSurplus["${months[i]}"] (past fallback, no OB row)`;
             break;
           }
         }
       }
     }
-    // Final fallback: try Closing Balance row
+    // Final fallback: Closing Balance
     if (cashflowPosition === 0) {
       const closingRow = findCashflowRow("Closing Balance");
-      if (closingRow) {
-        const val = parseNum(closingRow[currentMonthKey] ?? 0);
+      const closingKey = closingRow ? findMatchingRowKey(closingRow, currentKeyNorm) : null;
+      if (closingRow && closingKey) {
+        const val = parseNum(closingRow[closingKey] ?? 0);
         if (val !== 0) {
           cashflowPosition = val;
-          cashflowPositionSource = `Closing Balance[${currentMonthKey}] (final fallback)`;
+          matchedKey = closingKey;
+          cashflowPositionSource = `Closing Balance["${closingKey}"] (final fallback)`;
         }
       }
     }
 
-    console.log("[Cashflow Position Debug] source:", cashflowPositionSource, "value:", cashflowPosition, "currentMonthKey:", currentMonthKey);
+    // Scoped debug for Cashflow Position month resolution
+    console.log("[Cashflow Position Debug]", {
+      browserDate: now.toISOString(),
+      generatedKey: currentMonthKey,
+      generatedKeyNorm: currentKeyNorm,
+      availableMonthKeys: months,
+      openingBalancesRowKeys: openingBalancesRow ? Object.keys(openingBalancesRow).filter(k => MONTH_REGEX.test(k)) : [],
+      matchedKey,
+      sourceRow: "OPENING BALANCES",
+      source: cashflowPositionSource,
+      finalValue: cashflowPosition,
+    });
 
     // ===== Extract GRN and YLW from raw qtsSmmry rows (QTS SUMMARY sheet) =====
     const rawQtsSmmry = unwrapItems(liveData.qtsSmmry ?? []);
