@@ -254,19 +254,34 @@ function calcJobsDuePeriod(jobs: QuotedJob[], period: PeriodSpec): KPIResult {
 // ── 4. WEIGHTED GROSS MARGIN ──────────────────────────────────────
 
 function calcWeightedGrossMargin(revenue: RevenueProject[], period: PeriodSpec): KPIResult {
-  const periodItems = filterByPeriod(revenue, revenueMonthKey, period.months)
-    .filter((r) => r.status === "paid" || r.status === "invoiced");
-  const priorItems = filterByPeriod(revenue, revenueMonthKey, period.priorMonths)
-    .filter((r) => r.status === "paid" || r.status === "invoiced");
+  const completedStatuses = new Set(["paid", "invoiced"]);
 
+  // Try period-specific completed revenue first
+  let periodItems = filterByPeriod(revenue, revenueMonthKey, period.months)
+    .filter((r) => completedStatuses.has(r.status));
+  let isForecast = false;
+
+  // Fallback: if no completed revenue in period, try ALL completed revenue (full dataset)
   if (periodItems.length === 0) {
-    return unavailable("No completed revenue in period");
+    periodItems = revenue.filter((r) => completedStatuses.has(r.status));
+    isForecast = false; // still actual data, just not period-filtered
+    if (periodItems.length === 0) {
+      // Second fallback: use all revenue rows regardless of status (pipeline/forecast)
+      periodItems = revenue.filter((r) => r.valueExclGST > 0);
+      isForecast = true;
+      if (periodItems.length === 0) {
+        return unavailable("No revenue data available");
+      }
+    }
   }
+
+  const priorItems = filterByPeriod(revenue, revenueMonthKey, period.priorMonths)
+    .filter((r) => completedStatuses.has(r.status));
 
   const totalRev = periodItems.reduce((s, r) => s + r.valueExclGST, 0);
   const totalGP = periodItems.reduce((s, r) => s + r.grossProfit, 0);
 
-  if (totalRev <= 0) return unavailable("Zero revenue in period");
+  if (totalRev <= 0) return unavailable("Zero revenue in dataset");
 
   const margin = (totalGP / totalRev) * 100;
 
@@ -275,13 +290,16 @@ function calcWeightedGrossMargin(revenue: RevenueProject[], period: PeriodSpec):
   const priorMargin = priorRev > 0 ? (priorGP / priorRev) * 100 : null;
   const diff = priorMargin !== null ? margin - priorMargin : null;
 
+  const contextBase = `${formatMetricValue(totalGP, "currency")} GP on ${formatMetricValue(totalRev, "currency")} rev`;
+
   return {
     value: margin,
     formatted: `${margin.toFixed(1)}%`,
     change: diff,
     changeFormatted: diff !== null ? `${diff >= 0 ? "+" : ""}${diff.toFixed(1)}pp` : "--",
-    context: `${formatMetricValue(totalGP, "currency")} GP on ${formatMetricValue(totalRev, "currency")} rev`,
-  };
+    context: isForecast ? `Forecast · ${contextBase}` : contextBase,
+    isForecast,
+  } as KPIResult;
 }
 
 // ── 5. REVENUE PER JOB ────────────────────────────────────────────
