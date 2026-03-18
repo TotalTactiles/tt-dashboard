@@ -116,7 +116,7 @@ export function buildPeriodOptions(jobs: QuotedJob[]): PeriodSpec[] {
     options.push({
       mode: "quarter",
       key: qKey,
-      label: `Q${q} ${yr}`,
+      label: `Q${q} ${String(yr).slice(-2)}`,
       months: qMonths,
       priorMonths: prevQMonths,
     });
