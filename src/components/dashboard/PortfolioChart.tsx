@@ -171,20 +171,29 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
           <h3 className="text-sm font-medium text-muted-foreground">Income vs Outgoings</h3>
           <p className="text-xl font-mono font-bold text-foreground">Monthly Cash Flow</p>
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          {quarterButtons.map((q) => (
-            <button
-              key={q.key}
-              onClick={() => setQuarterFilter(q.key)}
-              className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-medium transition-all ${
-                quarter === q.key
-                  ? "bg-emerald-600/90 text-white"
-                  : "bg-transparent border border-border text-muted-foreground hover:border-muted-foreground/50"
-              }`}
-            >
-              {q.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1">
+            {quarterButtons.map((q) => (
+              <button
+                key={q.key}
+                onClick={() => setQuarterFilter(q.key)}
+                className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-medium transition-all ${
+                  quarter === q.key
+                    ? "bg-emerald-600/90 text-white"
+                    : "bg-transparent border border-border text-muted-foreground hover:border-muted-foreground/50"
+                }`}
+              >
+                {q.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setExportOpen(true)}
+            className="p-1.5 rounded-md border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+            title="Export PDF Report"
+          >
+            <Download className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
 
