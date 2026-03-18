@@ -351,6 +351,7 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
           <span>Showing {rangeLabel}</span>
         )}
       </div>
+      <CashflowExportModal open={exportOpen} onOpenChange={setExportOpen} />
     </motion.div>
   );
 };
