@@ -140,7 +140,7 @@ export function evaluateExpression(
 const DEFAULT_VARIABLE_NAMES = [
   "TotalQuoted", "TotalWon", "QuotedRemaining",
   "ConversionRate", "NetRevenue", "CashPosition", "MonthlyExpenses",
-  "GrossProfitMargin", "GrossMarginTarget",
+  "GrossProfitMargin",
 ];
 
 export function getAvailableVariables(kpiVariables?: Record<string, number>): string[] {
