@@ -129,6 +129,7 @@ export interface IncomeOutgoingsPoint {
 export interface ProfitMarginPoint {
   month: string;
   grossMargin: number;
+  netProfitMargin: number | null;
 }
 
 export interface ForecastChartPoint {
@@ -581,7 +582,11 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const profitMarginData: ProfitMarginPoint[] = sortedGpMonths.map(mk => {
       const bucket = gpByMonth[mk];
       const gp = bucket.totalRevenue > 0 ? Math.round((bucket.totalGP / bucket.totalRevenue) * 10000) / 100 : 0;
-      return { month: mk, grossMargin: gp };
+      // Net Profit Margin % from cashflow: (Total Income - Total Outgoings) / Total Income × 100
+      const income = totalIncomeRow ? parseNum(totalIncomeRow[mk] ?? 0) : sv(cs?.totalIncome, mk);
+      const outgoings = totalOutgoingsRow ? Math.abs(parseNum(totalOutgoingsRow[mk] ?? 0)) : 0;
+      const netProfitMargin = income > 0 ? Math.round(((income - outgoings) / income) * 10000) / 100 : null;
+      return { month: mk, grossMargin: gp, netProfitMargin };
     });
 
     // Log comprehensive GP proof per month

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
@@ -13,15 +14,25 @@ const SERIES = [
 
 const ForecastChart = () => {
   const { forecastChartData, dataHealth } = useDashboardData();
+  const [visibleKeys, setVisibleKeys] = useState<Set<string>>(() => new Set(SERIES.map(s => s.key)));
 
-  // Show all series that have at least one non-zero value
-  const activeSeries = SERIES.filter((s) => {
-    return forecastChartData.some((d) => (d as any)[s.key] !== 0);
-  });
+  const toggleSeries = (key: string) => {
+    setVisibleKeys(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        // Don't allow hiding all series
+        if (next.size > 1) next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
 
-  // Always render ALL 5 series lines (even if filtered from legend when all-zero)
-  // This ensures lines are never accidentally hidden
-  const renderedSeries = SERIES;
+  // Series that have data
+  const activeSeries = SERIES.filter((s) =>
+    forecastChartData.some((d) => (d as any)[s.key] !== 0)
+  );
 
   return (
     <motion.div
@@ -36,19 +47,37 @@ const ForecastChart = () => {
         <NoData message="No forecast data" healthStatus={dataHealth.cashflow.status} />
       ) : (
         <>
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5 mb-4">
-            {activeSeries.map((s) => (
-              <div key={s.key} className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
-                <span
-                  className="w-5 h-0.5 rounded"
-                  style={{
-                    backgroundColor: s.color,
-                    ...(s.dash ? { backgroundImage: `repeating-linear-gradient(90deg, ${s.color} 0 4px, transparent 4px 7px)`, backgroundColor: "transparent" } : {}),
-                  }}
-                />
-                {s.label}
-              </div>
-            ))}
+          <div className="flex flex-wrap gap-x-1.5 gap-y-1.5 mb-4">
+            {activeSeries.map((s) => {
+              const isVisible = visibleKeys.has(s.key);
+              return (
+                <button
+                  key={s.key}
+                  onClick={() => toggleSeries(s.key)}
+                  className={`flex items-center gap-1.5 text-xs font-mono px-2 py-1 rounded-md border transition-all select-none ${
+                    isVisible
+                      ? "border-border bg-secondary/60 text-foreground"
+                      : "border-transparent bg-transparent text-muted-foreground/40 line-through"
+                  }`}
+                >
+                  <span
+                    className="w-4 h-0.5 rounded shrink-0"
+                    style={{
+                      backgroundColor: isVisible ? s.color : "hsl(215, 12%, 30%)",
+                      ...(s.dash
+                        ? {
+                            backgroundImage: isVisible
+                              ? `repeating-linear-gradient(90deg, ${s.color} 0 4px, transparent 4px 7px)`
+                              : `repeating-linear-gradient(90deg, hsl(215,12%,30%) 0 4px, transparent 4px 7px)`,
+                            backgroundColor: "transparent",
+                          }
+                        : {}),
+                    }}
+                  />
+                  {s.label}
+                </button>
+              );
+            })}
           </div>
           <ResponsiveContainer width="100%" height={300} minHeight={240}>
             <LineChart data={forecastChartData}>
@@ -70,23 +99,26 @@ const ForecastChart = () => {
                 }}
                 formatter={(value: number, name: string) => {
                   const series = SERIES.find((s) => s.key === name);
-                  return [`$${value.toLocaleString()}`, series?.label || name];
+                  if (!series || !visibleKeys.has(name)) return null;
+                  return [`$${value.toLocaleString()}`, series.label];
                 }}
               />
-              {renderedSeries.map((s) => (
-                <Line
-                  key={s.key}
-                  type="monotone"
-                  dataKey={s.key}
-                  stroke={s.color}
-                  strokeWidth={s.strokeWidth}
-                  strokeDasharray={s.dash}
-                  dot={{ r: 3, fill: s.color, strokeWidth: 1, stroke: "hsl(220, 18%, 10%)" }}
-                  activeDot={{ r: 5, fill: s.color, strokeWidth: 2, stroke: "hsl(220, 18%, 10%)" }}
-                  animationDuration={1500}
-                  connectNulls
-                />
-              ))}
+              {SERIES.map((s) =>
+                visibleKeys.has(s.key) ? (
+                  <Line
+                    key={s.key}
+                    type="monotone"
+                    dataKey={s.key}
+                    stroke={s.color}
+                    strokeWidth={s.strokeWidth}
+                    strokeDasharray={s.dash}
+                    dot={{ r: 3, fill: s.color, strokeWidth: 1, stroke: "hsl(220, 18%, 10%)" }}
+                    activeDot={{ r: 5, fill: s.color, strokeWidth: 2, stroke: "hsl(220, 18%, 10%)" }}
+                    animationDuration={1500}
+                    connectNulls
+                  />
+                ) : null
+              )}
             </LineChart>
           </ResponsiveContainer>
         </>

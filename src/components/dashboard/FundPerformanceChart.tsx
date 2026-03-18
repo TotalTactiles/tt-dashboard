@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
-import { Pencil, Check, X } from "lucide-react";
+import { Pencil, Check, X, Info } from "lucide-react";
 import NoData from "./NoData";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const GM_TARGET_KEY = "gross_margin_target";
 
@@ -18,6 +19,18 @@ function loadTarget(): number {
   return 30;
 }
 
+const GP_EXPLANATION = `Source: REVENUE sheet (deal-level rows)
+Month grouping: "Other Date" field (fallback: Invoice Date), normalised to Mon-YY
+Revenue used: Value ex. GST
+Cost used: Total COGS
+Gross Profit = Revenue ex. GST − Total COGS
+
+Monthly GP% = Σ(Gross Profit) ÷ Σ(Revenue ex. GST) × 100
+This is a weighted monthly GP%, not a simple average of row-level GP%.
+
+Net Profit Margin% = (Total Income − Total Outgoings) ÷ Total Income × 100
+Sourced from the CASHFLOW sheet monthly totals.`;
+
 const FundPerformanceChart = () => {
   const { profitMarginData, dataHealth } = useDashboardData();
   const [target, setTarget] = useState(loadTarget);
@@ -25,11 +38,9 @@ const FundPerformanceChart = () => {
   const [draft, setDraft] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Listen for cross-component sync via storage event
   useEffect(() => {
     const handler = () => setTarget(loadTarget());
     window.addEventListener("storage", handler);
-    // Also listen for custom event for same-tab sync
     window.addEventListener("gm-target-update", handler);
     return () => {
       window.removeEventListener("storage", handler);
@@ -60,6 +71,8 @@ const FundPerformanceChart = () => {
     if (e.key === "Escape") cancelEdit();
   };
 
+  const hasNetProfit = profitMarginData.some(d => d.netProfitMargin !== null);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -67,16 +80,29 @@ const FundPerformanceChart = () => {
       transition={{ duration: 0.5, delay: 0.6 }}
       className="chart-container"
     >
-      <h3 className="text-sm font-medium text-muted-foreground mb-4">Gross Profit Margin (%)</h3>
+      <div className="flex items-center gap-2 mb-4">
+        <h3 className="text-sm font-medium text-muted-foreground">Gross Profit Margin (%)</h3>
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className="text-muted-foreground hover:text-foreground transition-colors">
+              <Info className="h-3.5 w-3.5" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-96 text-xs font-mono leading-relaxed whitespace-pre-line" side="bottom" align="start">
+            <p className="font-semibold text-foreground mb-2">How this chart is calculated</p>
+            <p className="text-muted-foreground">{GP_EXPLANATION}</p>
+          </PopoverContent>
+        </Popover>
+      </div>
       {profitMarginData.length === 0 ? (
         <NoData message="No profit margin data" healthStatus={dataHealth.cashflow.status} />
       ) : (
         <>
-          <ResponsiveContainer width="100%" height={200} minHeight={160}>
+          <ResponsiveContainer width="100%" height={220} minHeight={180}>
             <LineChart data={profitMarginData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
               <XAxis dataKey="month" stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" />
-              <YAxis stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" tickFormatter={(v) => `${v}%`} domain={[0, 100]} />
+              <YAxis stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" tickFormatter={(v) => `${v}%`} />
               <Tooltip
                 contentStyle={{
                   backgroundColor: "hsl(220, 18%, 10%)",
@@ -85,14 +111,48 @@ const FundPerformanceChart = () => {
                   fontFamily: "JetBrains Mono",
                   fontSize: "12px",
                 }}
-                formatter={(value: number) => [`${value}%`, "Gross Margin"]}
+                formatter={(value: number | null, name: string) => {
+                  if (value === null || value === undefined) return ["—", name === "netProfitMargin" ? "Net Profit Margin" : name];
+                  const label = name === "grossMargin" ? "Gross Margin" : name === "netProfitMargin" ? "Net Profit Margin" : name;
+                  return [`${value}%`, label];
+                }}
               />
-              <ReferenceLine y={target} stroke="hsl(38, 92%, 55%)" strokeDasharray="5 5" label={{ value: `Target ${target}%`, position: "right", fill: "hsl(38, 92%, 55%)", fontSize: 10, fontFamily: "JetBrains Mono" }} />
-              <Line type="monotone" dataKey="grossMargin" stroke="hsl(160, 70%, 45%)" strokeWidth={2} dot={{ r: 3, fill: "hsl(160, 70%, 45%)" }} animationDuration={2000} />
+              <ReferenceLine
+                y={target}
+                stroke="hsl(38, 92%, 55%)"
+                strokeDasharray="5 5"
+                label={{ value: `Target ${target}%`, position: "right", fill: "hsl(38, 92%, 55%)", fontSize: 10, fontFamily: "JetBrains Mono" }}
+              />
+              <Line
+                type="monotone"
+                dataKey="grossMargin"
+                stroke="hsl(160, 70%, 45%)"
+                strokeWidth={2}
+                dot={{ r: 3, fill: "hsl(160, 70%, 45%)" }}
+                animationDuration={2000}
+              />
+              {hasNetProfit && (
+                <Line
+                  type="monotone"
+                  dataKey="netProfitMargin"
+                  stroke="hsl(210, 80%, 60%)"
+                  strokeWidth={2}
+                  strokeDasharray="6 3"
+                  dot={{ r: 3, fill: "hsl(210, 80%, 60%)" }}
+                  animationDuration={2000}
+                  connectNulls
+                />
+              )}
             </LineChart>
           </ResponsiveContainer>
-          <div className="flex gap-4 mt-3 text-xs font-mono items-center">
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 text-xs font-mono items-center">
             <div className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-chart-green rounded" /> Gross Margin</div>
+            {hasNetProfit && (
+              <div className="flex items-center gap-1.5">
+                <span className="w-5 h-0.5 rounded" style={{ backgroundImage: "repeating-linear-gradient(90deg, hsl(210,80%,60%) 0 4px, transparent 4px 7px)", backgroundColor: "transparent" }} />
+                Net Profit Margin
+              </div>
+            )}
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-0.5 bg-chart-amber rounded" style={{ borderTop: "1px dashed" }} />
               {editing ? (
