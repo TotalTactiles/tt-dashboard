@@ -172,6 +172,7 @@ export interface KPIResult {
   changeFormatted: string;
   context: string;
   unavailableReason?: string;
+  isForecast?: boolean;
 }
 
 function unavailable(reason: string): KPIResult {
