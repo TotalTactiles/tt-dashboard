@@ -271,9 +271,10 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
                       border: `1px solid ${tc.tooltipBorder}`,
                       borderRadius: "8px",
                       fontFamily: "JetBrains Mono",
-                      fontSize: "12px",
+                      fontSize: "11px",
                       padding: "8px 12px",
                       maxWidth: 280,
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
                     }}>
                       <p style={{ color: tc.tooltipText, marginBottom: 4 }}>{label}</p>
                       {isFuture ? (

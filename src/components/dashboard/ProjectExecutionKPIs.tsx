@@ -109,8 +109,8 @@ function ExecKPICard({ title, group, icon, kpi, index }: ExecKPICardProps) {
           </div>
         )}
         <p
-          className="font-mono text-muted-foreground truncate"
-          style={{ fontSize: "clamp(9px, 0.9vw, 11px)" }}
+          className="font-mono text-muted-foreground truncate leading-snug"
+          style={{ fontSize: "clamp(9px, 0.95vw, 11px)" }}
           title={kpi.context}
         >
           {kpi.context}
