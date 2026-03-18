@@ -85,7 +85,7 @@ function ExecKPICard({ title, group, icon, kpi, index }: ExecKPICardProps) {
             className={`font-mono font-bold whitespace-nowrap ${
               isPositive ? "text-chart-green" : "text-chart-red"
             }`}
-            style={{ fontSize: "clamp(16px, 2.8vw, 26px)", lineHeight: 1.15 }}
+            style={{ fontSize: "clamp(20px, 3.2vw, 30px)", lineHeight: 1.15 }}
           >
             {kpi.formatted}
           </p>
