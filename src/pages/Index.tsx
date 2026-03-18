@@ -347,10 +347,10 @@ const DashboardContent = () => {
             <ForecastChart />
           </div>
 
-          <ProjectExecutionKPIs />
+          <ProjectExecutionKPIs selectedPeriodIdx={selectedPeriodIdx} onPeriodChange={setSelectedPeriodIdx} />
 
           <div className="space-y-4 md:space-y-6">
-            <DealPipeline />
+            <DealPipeline periodFilter={selectedPeriod} />
             <RevenueProjectsTable />
             <ExpenseBreakdown goals={goals} activeGoalIds={activeGoalIds} />
           </div>
