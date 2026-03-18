@@ -135,6 +135,7 @@ export interface ForecastChartPoint {
   totalOutgoings: number;
   anticipatedSurplus: number;
   probableJobs: number;
+  costOfJobsProbable: number;
   surplusIncludingProbable: number;
 }
 
