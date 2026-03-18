@@ -65,6 +65,8 @@
 
 - ~~Net Revenue showing $0 → REVENUE column mapping issue~~ **Fixed (frontend)**
 - ~~Monthly Expenses showing $0 → EXPENSES tab not flowing~~ **Fixed (frontend)**
+- ~~Cashflow KPI showing wrong values due to datetime header format~~ **Fixed (n8n v8)**
+- ~~Conversion Rate KPI showing wrong value due to curly quote mismatch and decimal format~~ **Fixed (n8n v8)**
 - Cashflow card incorrect colour logic (red when positive)
 - YLW toggle on Total Won card incorrect
 - Zoho Total Costs not writing back correctly
@@ -143,9 +145,17 @@ Zoho CRM
 
 #### Backend / n8n (Remaining)
 
-- [ ] Remove duplicate or conflicting data sources
-- [ ] Standardise all field names across systems in n8n output
-- [ ] Ensure Zoho is single source of truth
+- [x] Remove duplicate or conflicting data sources
+- [x] Standardise all field names across systems in n8n output
+- [x] Ensure Zoho is single source of truth
+
+> Completed in n8n Code Node v8. See N8N_WORKFLOWS.md for full change log.
+
+---
+
+> **Phase 1 – Data Cleanup: COMPLETE**
+> Frontend: DashboardDataContext resilience improvements (PR merged)
+> Backend: n8n Code Node v8 — field normalisation, cashflow row matching, CR percentage conversion, Google Sheets header fixes
 
 ---
 
