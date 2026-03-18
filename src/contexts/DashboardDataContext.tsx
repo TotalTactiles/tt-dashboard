@@ -468,27 +468,27 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     // Income vs Outgoings bar chart
     const incomeOutgoingsData: IncomeOutgoingsPoint[] = months
       .filter((m) => {
-        const inc = sv(cs?.totalIncome, m);
+        const inc = totalIncomeRow ? parseNum(totalIncomeRow[m] ?? 0) : sv(cs?.totalIncome, m);
         const outRaw = totalOutgoingsRow ? parseNum(totalOutgoingsRow[m] ?? 0) : (Math.abs(sv(cs?.totalCostOfSales, m)) + Math.abs(sv(cs?.totalOperatingExpenses, m)));
-        const anticipated = sv(cs?.anticipatedSurplus, m);
+        const anticipated = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[m] ?? 0) : sv(cs?.anticipatedSurplus, m);
         return inc !== 0 || outRaw !== 0 || anticipated !== 0;
       })
       .map((m) => {
-        const inc = sv(cs?.totalIncome, m);
+        const inc = totalIncomeRow ? parseNum(totalIncomeRow[m] ?? 0) : sv(cs?.totalIncome, m);
         const out = totalOutgoingsRow
           ? Math.abs(parseNum(totalOutgoingsRow[m] ?? 0))
           : (Math.abs(sv(cs?.totalCostOfSales, m)) + Math.abs(sv(cs?.totalOperatingExpenses, m)));
         const parsed = parseMonthLabel(m);
         const isFuture = parsed ? (parsed.year > currentYear || (parsed.year === currentYear && parsed.month > currentMonthIdx)) : false;
-        // For future months: derive probable income from anticipatedSurplus + totalOutgoings
-        // This reconstructs the forecast model's implied income
-        const anticipated = sv(cs?.anticipatedSurplus, m);
-        const probableIncome = isFuture ? Math.max(0, anticipated + out) : 0;
+        // Use exact "Anticipated Cash Surplus/(Deficit)" row for surplus — do NOT derive from inc - out
+        const surplus = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[m] ?? 0) : sv(cs?.anticipatedSurplus, m);
+        // For future months: derive probable income from surplus + outgoings (reconstructs forecast model's implied income)
+        const probableIncome = isFuture ? Math.max(0, surplus + out) : 0;
         return {
           month: m,
           income: inc,
           outgoings: out,
-          surplus: isFuture ? (probableIncome - out) : (inc - out),
+          surplus,
           probableIncome,
           isFuture,
         };
