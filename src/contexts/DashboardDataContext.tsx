@@ -537,6 +537,19 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       return { month: m, totalOutgoings: totalOut, anticipatedSurplus: anticipated, probableJobs: probable, costOfJobsProbable: costProbable, surplusIncludingProbable: surplusWithJobs };
     });
 
+    // Debug: log first forecast data point to verify all 5 series have data
+    if (forecastChartData.length > 0) {
+      const sample = forecastChartData[0];
+      const hasData = {
+        totalOutgoings: forecastChartData.some(d => d.totalOutgoings !== 0),
+        anticipatedSurplus: forecastChartData.some(d => d.anticipatedSurplus !== 0),
+        probableJobs: forecastChartData.some(d => d.probableJobs !== 0),
+        costOfJobsProbable: forecastChartData.some(d => d.costOfJobsProbable !== 0),
+        surplusIncludingProbable: forecastChartData.some(d => d.surplusIncludingProbable !== 0),
+      };
+      console.log("[Forecast Series Debug]", { sampleMonth: sample.month, sample, hasNonZeroData: hasData });
+    }
+
     // ===== KPI STAT CARDS =====
     const noData = !hasLiveData;
 
