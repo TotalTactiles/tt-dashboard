@@ -435,26 +435,44 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     // Helper to get value from a summary dict for a month
     const sv = (dict: any, month: string) => parseNum(dict?.[month] ?? 0);
 
-    // Find totalOutgoings from raw cashflow rows
-    const findCashflowRow = (label: string) => {
+    // Find cashflow row by EXACT label match first, then fuzzy fallback
+    const getCashflowRowLabel = (r: any): string => (r._label_rowLabel ?? r.col_1 ?? "").toString().trim();
+    const findCashflowRowExact = (label: string) => {
       const upper = label.toUpperCase().trim();
+      // 1. Exact match
+      const exact = rawCashflow.find((r: any) => getCashflowRowLabel(r).toUpperCase() === upper);
+      if (exact) return exact;
+      // 2. Fuzzy: but require the row label to contain the FULL search term (not the other way around for short labels)
       return rawCashflow.find((r: any) => {
-        const rl = (r._label_rowLabel ?? r.col_1 ?? "").toString().toUpperCase().trim();
-        return rl === upper || rl.includes(upper) || upper.includes(rl);
-      });
+        const rl = getCashflowRowLabel(r).toUpperCase();
+        return rl.includes(upper);
+      }) ?? null;
     };
 
-    const totalOutgoingsRow = findCashflowRow("Total Outgoings");
-    const totalIncomeRow = findCashflowRow("Total Income");
-    const anticipatedSurplusRow = findCashflowRow("Anticipated Cash Surplus/(Deficit)");
-    const jobsProbableRow = findCashflowRow("Jobs Probable To Be Won");
-    const costOfJobsProbableRow = findCashflowRow("Cost of Jobs Probable To Be Won");
-    const surplusWithJobsRow = findCashflowRow("Anticipated Cash Surplus/(Deficit) Including Probable Jobs");
-    const openingBalancesRow = findCashflowRow("OPENING BALANCES");
+    // IMPORTANT: Find longer/more specific labels FIRST to avoid ambiguous fuzzy matches
+    const surplusWithJobsRow = findCashflowRowExact("Anticipated Cash Surplus/(Deficit) Including Probable Jobs");
+    const costOfJobsProbableRow = findCashflowRowExact("Cost of Jobs Probable To Be Won");
+    const jobsProbableRow = findCashflowRowExact("Jobs Probable To Be Won");
+    const openingBalancesRow = findCashflowRowExact("OPENING BALANCES");
+    const totalOutgoingsRow = findCashflowRowExact("Total Outgoings");
+    const totalIncomeRow = findCashflowRowExact("Total Income");
+    // For "Anticipated Cash Surplus/(Deficit)" — must NOT match the "Including Probable Jobs" variant
+    const anticipatedSurplusRow = (() => {
+      const label = "Anticipated Cash Surplus/(Deficit)";
+      const upper = label.toUpperCase().trim();
+      const excludeUpper = "INCLUDING PROBABLE";
+      return rawCashflow.find((r: any) => {
+        const rl = getCashflowRowLabel(r).toUpperCase();
+        return (rl === upper || (rl.includes(upper) && !rl.includes(excludeUpper)));
+      }) ?? null;
+    })();
 
-    console.log("[Cashflow Row Debug] openingBalances:", !!openingBalancesRow, "totalIncome:", !!totalIncomeRow,
-      "totalOutgoings:", !!totalOutgoingsRow, "anticipatedSurplus:", !!anticipatedSurplusRow,
-      "jobsProbable:", !!jobsProbableRow, "costOfJobsProbable:", !!costOfJobsProbableRow, "surplusWithJobs:", !!surplusWithJobsRow);
+    console.log("[Cashflow Row Debug]", {
+      openingBalances: !!openingBalancesRow, totalIncome: !!totalIncomeRow,
+      totalOutgoings: !!totalOutgoingsRow, anticipatedSurplus: !!anticipatedSurplusRow,
+      jobsProbable: !!jobsProbableRow, costOfJobsProbable: !!costOfJobsProbableRow, surplusWithJobs: !!surplusWithJobsRow,
+      rowLabels: rawCashflow.slice(0, 20).map((r: any) => getCashflowRowLabel(r)),
+    });
 
     // Determine current month for future detection
     const now = new Date();
