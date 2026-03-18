@@ -54,7 +54,7 @@ function ExecKPICard({ title, group, icon, kpi, index }: ExecKPICardProps) {
           <span className="text-muted-foreground shrink-0">{icon}</span>
           <p
             className="text-muted-foreground font-mono uppercase tracking-wide truncate"
-            style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}
+            style={{ fontSize: "clamp(9px, 1vw, 11px)" }}
             title={title}
           >
             {title}
