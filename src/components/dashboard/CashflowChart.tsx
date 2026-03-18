@@ -1,11 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Scatter, ScatterChart, ZAxis } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea, Brush } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 import { getMonthAdjustments, type GoalAdjustment } from "@/lib/goalMerge";
 import type { IncomeOutgoingsPoint } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
+import { X } from "lucide-react";
 
 const MONTH_ABBR: Record<string, number> = {
   Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
@@ -26,6 +27,11 @@ interface CashflowChartProps {
 const CashflowChart = ({ adjustedData, adjustments = [] }: CashflowChartProps) => {
   const { incomeOutgoingsData, dataHealth } = useDashboardData();
   const chartData = adjustedData ?? incomeOutgoingsData;
+
+  // Range selection state
+  const [selStart, setSelStart] = useState<string | null>(null);
+  const [selEnd, setSelEnd] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
 
   const hasNegative = useMemo(() => chartData.some((d) => d.surplus < 0), [chartData]);
 
@@ -53,43 +59,90 @@ const CashflowChart = ({ adjustedData, adjustments = [] }: CashflowChartProps) =
     ? currentMonthData.surplus >= 0 ? "text-emerald-500" : "text-red-500"
     : "text-muted-foreground";
 
-  // Build goal marker data for scatter overlay
   const goalMarkers = useMemo(() => {
     if (adjustments.length === 0) return [];
     const markers: { month: string; surplus: number; goalName: string; amount: number; goalType: string }[] = [];
     for (const point of chartData) {
       const monthAdj = getMonthAdjustments(adjustments, point.month);
       if (monthAdj.length > 0) {
-        // Deduplicate by goalId for this month
         const seen = new Set<string>();
         for (const adj of monthAdj) {
           if (seen.has(adj.goalId)) continue;
           seen.add(adj.goalId);
-          markers.push({
-            month: point.month,
-            surplus: point.surplus,
-            goalName: adj.goalName,
-            amount: adj.amount,
-            goalType: adj.goalType,
-          });
+          markers.push({ month: point.month, surplus: point.surplus, goalName: adj.goalName, amount: adj.amount, goalType: adj.goalType });
         }
       }
     }
     return markers;
   }, [chartData, adjustments]);
 
-  // Augment chart data with goal marker info for tooltip
   const enrichedData = useMemo(() => {
     if (adjustments.length === 0) return chartData;
     return chartData.map(point => {
       const monthAdj = getMonthAdjustments(adjustments, point.month);
       if (monthAdj.length === 0) return point;
-      // Deduplicate
       const seen = new Set<string>();
       const unique = monthAdj.filter(a => { if (seen.has(a.goalId)) return false; seen.add(a.goalId); return true; });
       return { ...point, _goalAdjustments: unique };
     });
   }, [chartData, adjustments]);
+
+  // Range selection handlers
+  const handleMouseDown = useCallback((e: any) => {
+    if (e?.activeLabel) {
+      setSelStart(e.activeLabel);
+      setSelEnd(null);
+      setDragging(true);
+    }
+  }, []);
+
+  const handleMouseMove = useCallback((e: any) => {
+    if (dragging && e?.activeLabel) {
+      setSelEnd(e.activeLabel);
+    }
+  }, [dragging]);
+
+  const handleMouseUp = useCallback(() => {
+    setDragging(false);
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelStart(null);
+    setSelEnd(null);
+    setDragging(false);
+  }, []);
+
+  // Compute range summary
+  const rangeSummary = useMemo(() => {
+    if (!selStart || !selEnd) return null;
+    const months = enrichedData.map(d => d.month);
+    let startIdx = months.indexOf(selStart);
+    let endIdx = months.indexOf(selEnd);
+    if (startIdx < 0 || endIdx < 0) return null;
+    if (startIdx > endIdx) [startIdx, endIdx] = [endIdx, startIdx];
+    const rangeData = enrichedData.slice(startIdx, endIdx + 1);
+    if (rangeData.length === 0) return null;
+    const total = rangeData.reduce((s, d) => s + d.surplus, 0);
+    const avg = total / rangeData.length;
+    return {
+      start: rangeData[0].month,
+      end: rangeData[rangeData.length - 1].month,
+      total,
+      avg,
+      count: rangeData.length,
+    };
+  }, [selStart, selEnd, enrichedData]);
+
+  // Ordered start/end for ReferenceArea
+  const orderedSel = useMemo(() => {
+    if (!selStart) return null;
+    const end = selEnd || selStart;
+    const months = enrichedData.map(d => d.month);
+    const si = months.indexOf(selStart);
+    const ei = months.indexOf(end);
+    if (si < 0 || ei < 0) return null;
+    return si <= ei ? { start: selStart, end } : { start: end, end: selStart };
+  }, [selStart, selEnd, enrichedData]);
 
   return (
     <motion.div
@@ -98,132 +151,199 @@ const CashflowChart = ({ adjustedData, adjustments = [] }: CashflowChartProps) =
       transition={{ duration: 0.5, delay: 0.5 }}
       className="chart-container"
     >
-      <h3 className={`text-sm font-medium mb-1 ${titleColor}`}>
-        Cash Surplus / Deficit
-      </h3>
-      <p className="text-xs text-muted-foreground font-mono mb-4">Monthly surplus / deficit trend</p>
+      <div className="flex items-start justify-between mb-1">
+        <div>
+          <h3 className={`text-sm font-medium ${titleColor}`}>
+            Cash Surplus / Deficit
+          </h3>
+          <p className="text-xs text-muted-foreground font-mono mb-4">
+            {rangeSummary ? "Drag to select range" : "Click & drag to analyse a range"}
+          </p>
+        </div>
+        {rangeSummary && (
+          <button
+            onClick={clearSelection}
+            className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground hover:text-foreground bg-secondary/80 rounded-full px-2 py-0.5 transition-colors"
+          >
+            <X className="w-3 h-3" /> Clear
+          </button>
+        )}
+      </div>
+
       {chartData.length === 0 ? (
         <NoData message="No cashflow data" healthStatus={dataHealth.cashflow.status} />
       ) : (
-        <ResponsiveContainer width="100%" height={220} minHeight={160}>
-          <AreaChart data={enrichedData}>
-            <defs>
-              <linearGradient id="splitFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(160, 70%, 45%)" stopOpacity={0.3} />
-                <stop offset={`${gradientOffset * 100}%`} stopColor="hsl(160, 70%, 45%)" stopOpacity={0.05} />
-                <stop offset={`${gradientOffset * 100}%`} stopColor="hsl(0, 84%, 60%)" stopOpacity={0.05} />
-                <stop offset="100%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0.4} />
-              </linearGradient>
-              <linearGradient id="splitStroke" x1="0" y1="0" x2="0" y2="1">
-                <stop offset={`${gradientOffset * 100}%`} stopColor="hsl(160, 70%, 45%)" />
-                <stop offset={`${gradientOffset * 100}%`} stopColor="hsl(0, 84%, 60%)" />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
-            <XAxis dataKey="month" stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" />
-            <YAxis
-              stroke="hsl(215, 12%, 50%)"
-              fontSize={11}
-              fontFamily="JetBrains Mono"
-              tickFormatter={(v) => {
-                const abs = Math.abs(v);
-                const label = abs >= 1000 ? `$${(abs / 1000).toFixed(0)}K` : `$${abs}`;
-                return v < 0 ? `-${label}` : label;
-              }}
-              domain={hasNegative ? ["auto", "auto"] : [0, "auto"]}
-            />
-            <Tooltip
-              content={({ active, payload, label }) => {
-                if (!active || !payload || payload.length === 0) return null;
-                const point = payload[0]?.payload;
-                if (!point) return null;
-                const surplusVal = point.surplus ?? 0;
-                const isNeg = surplusVal < 0;
-                const goalAdj: GoalAdjustment[] = point._goalAdjustments ?? [];
-                return (
-                  <div style={{
-                    backgroundColor: "hsl(220, 18%, 10%)",
-                    border: "1px solid hsl(220, 14%, 18%)",
-                    borderRadius: "8px",
-                    fontFamily: "JetBrains Mono",
-                    fontSize: "12px",
-                    padding: "8px 12px",
-                    maxWidth: 280,
-                  }}>
-                    <p style={{ color: "hsl(215, 12%, 70%)", marginBottom: 4 }}>{label}</p>
-                    {point.isFuture ? (
-                      <>
-                        <p style={{ color: "hsl(200, 80%, 50%)" }}>Income (Probable): {formatMetricValue(point.probableIncome ?? 0, "currency")}</p>
-                        <p style={{ color: "hsl(0, 84%, 60%)" }}>Outgoings (Estimated): {formatMetricValue(point.outgoings, "currency")}</p>
-                        <p style={{ color: isNeg ? "hsl(0, 84%, 60%)" : "hsl(160, 70%, 45%)", marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4 }}>
-                          Projected {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <p style={{ color: "hsl(160, 70%, 45%)" }}>Income: {formatMetricValue(point.income, "currency")}</p>
-                        <p style={{ color: "hsl(0, 84%, 60%)" }}>Outgoings: {formatMetricValue(point.outgoings, "currency")}</p>
-                        <p style={{ color: isNeg ? "hsl(0, 84%, 60%)" : "hsl(160, 70%, 45%)", marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4 }}>
-                          {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
-                        </p>
-                      </>
-                    )}
-                    {goalAdj.length > 0 && (
-                      <div style={{ marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4 }}>
-                        {goalAdj.map((a, i) => (
-                          <p key={i} style={{ color: a.goalType === "revenue" ? "hsl(160, 70%, 45%)" : "hsl(38, 92%, 55%)", fontSize: 10 }}>
-                            Goal: {a.goalName} {a.amount >= 0 ? "+" : ""}{formatMetricValue(a.amount, "currency")}
+        <>
+          <ResponsiveContainer width="100%" height={220} minHeight={160}>
+            <AreaChart
+              data={enrichedData}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              style={{ cursor: dragging ? "col-resize" : "crosshair" }}
+            >
+              <defs>
+                <linearGradient id="splitFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(160, 70%, 45%)" stopOpacity={0.3} />
+                  <stop offset={`${gradientOffset * 100}%`} stopColor="hsl(160, 70%, 45%)" stopOpacity={0.05} />
+                  <stop offset={`${gradientOffset * 100}%`} stopColor="hsl(0, 84%, 60%)" stopOpacity={0.05} />
+                  <stop offset="100%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0.4} />
+                </linearGradient>
+                <linearGradient id="splitStroke" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset={`${gradientOffset * 100}%`} stopColor="hsl(160, 70%, 45%)" />
+                  <stop offset={`${gradientOffset * 100}%`} stopColor="hsl(0, 84%, 60%)" />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
+              <XAxis dataKey="month" stroke="hsl(215, 12%, 50%)" fontSize={11} fontFamily="JetBrains Mono" />
+              <YAxis
+                stroke="hsl(215, 12%, 50%)"
+                fontSize={11}
+                fontFamily="JetBrains Mono"
+                tickFormatter={(v) => {
+                  const abs = Math.abs(v);
+                  const label = abs >= 1000 ? `$${(abs / 1000).toFixed(0)}K` : `$${abs}`;
+                  return v < 0 ? `-${label}` : label;
+                }}
+                domain={hasNegative ? ["auto", "auto"] : [0, "auto"]}
+              />
+              <Tooltip
+                content={({ active, payload, label }) => {
+                  if (!active || !payload || payload.length === 0) return null;
+                  const point = payload[0]?.payload;
+                  if (!point) return null;
+                  const surplusVal = point.surplus ?? 0;
+                  const isNeg = surplusVal < 0;
+                  const goalAdj: GoalAdjustment[] = point._goalAdjustments ?? [];
+                  return (
+                    <div style={{
+                      backgroundColor: "hsl(220, 18%, 10%)",
+                      border: "1px solid hsl(220, 14%, 18%)",
+                      borderRadius: "8px",
+                      fontFamily: "JetBrains Mono",
+                      fontSize: "12px",
+                      padding: "8px 12px",
+                      maxWidth: 280,
+                    }}>
+                      <p style={{ color: "hsl(215, 12%, 70%)", marginBottom: 4 }}>{label}</p>
+                      {point.isFuture ? (
+                        <>
+                          <p style={{ color: "hsl(200, 80%, 50%)" }}>Income (Probable): {formatMetricValue(point.probableIncome ?? 0, "currency")}</p>
+                          <p style={{ color: "hsl(0, 84%, 60%)" }}>Outgoings (Estimated): {formatMetricValue(point.outgoings, "currency")}</p>
+                          <p style={{ color: isNeg ? "hsl(0, 84%, 60%)" : "hsl(160, 70%, 45%)", marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4 }}>
+                            Projected {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
                           </p>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              }}
-            />
-            <ReferenceLine y={0} stroke="hsl(215, 12%, 30%)" strokeDasharray="3 3" />
-            {currentMonthData && (
-              <ReferenceLine
-                x={currentMonthLabel}
-                stroke="hsl(215, 12%, 45%)"
-                strokeDasharray="4 4"
-                strokeWidth={1}
-                label={{
-                  value: currentMonthLabel,
-                  position: "top",
-                  fill: "hsl(215, 12%, 55%)",
-                  fontSize: 10,
-                  fontFamily: "JetBrains Mono",
+                        </>
+                      ) : (
+                        <>
+                          <p style={{ color: "hsl(160, 70%, 45%)" }}>Income: {formatMetricValue(point.income, "currency")}</p>
+                          <p style={{ color: "hsl(0, 84%, 60%)" }}>Outgoings: {formatMetricValue(point.outgoings, "currency")}</p>
+                          <p style={{ color: isNeg ? "hsl(0, 84%, 60%)" : "hsl(160, 70%, 45%)", marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4 }}>
+                            {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
+                          </p>
+                        </>
+                      )}
+                      {goalAdj.length > 0 && (
+                        <div style={{ marginTop: 4, borderTop: "1px solid hsl(220, 14%, 25%)", paddingTop: 4 }}>
+                          {goalAdj.map((a, i) => (
+                            <p key={i} style={{ color: a.goalType === "revenue" ? "hsl(160, 70%, 45%)" : "hsl(38, 92%, 55%)", fontSize: 10 }}>
+                              Goal: {a.goalName} {a.amount >= 0 ? "+" : ""}{formatMetricValue(a.amount, "currency")}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
                 }}
               />
-            )}
-            <Area
-              type="monotone"
-              dataKey="surplus"
-              stroke="url(#splitStroke)"
-              fill="url(#splitFill)"
-              strokeWidth={2}
-              animationDuration={800}
-              baseValue={0}
-              dot={(props: any) => {
-                const { cx, cy, payload } = props;
-                if (!payload?._goalAdjustments?.length) return <g key={props.key} />;
-                const adj = payload._goalAdjustments[0];
-                const color = adj.goalType === "revenue" ? "hsl(160, 70%, 45%)" : "hsl(38, 92%, 55%)";
-                return (
-                  <g key={props.key}>
-                    <polygon
-                      points={`${cx},${cy - 5} ${cx + 4},${cy} ${cx},${cy + 5} ${cx - 4},${cy}`}
-                      fill={color}
-                      stroke="hsl(220, 18%, 10%)"
-                      strokeWidth={1}
-                    />
-                  </g>
-                );
-              }}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+              <ReferenceLine y={0} stroke="hsl(215, 12%, 30%)" strokeDasharray="3 3" />
+              {currentMonthData && (
+                <ReferenceLine
+                  x={currentMonthLabel}
+                  stroke="hsl(215, 12%, 45%)"
+                  strokeDasharray="4 4"
+                  strokeWidth={1}
+                  label={{
+                    value: currentMonthLabel,
+                    position: "top",
+                    fill: "hsl(215, 12%, 55%)",
+                    fontSize: 10,
+                    fontFamily: "JetBrains Mono",
+                  }}
+                />
+              )}
+              {/* Selected range highlight */}
+              {orderedSel && (
+                <ReferenceArea
+                  x1={orderedSel.start}
+                  x2={orderedSel.end}
+                  fill="hsl(200, 80%, 50%)"
+                  fillOpacity={0.12}
+                  stroke="hsl(200, 80%, 50%)"
+                  strokeOpacity={0.4}
+                  strokeDasharray="3 3"
+                />
+              )}
+              <Area
+                type="monotone"
+                dataKey="surplus"
+                stroke="url(#splitStroke)"
+                fill="url(#splitFill)"
+                strokeWidth={2}
+                animationDuration={800}
+                baseValue={0}
+                dot={(props: any) => {
+                  const { cx, cy, payload } = props;
+                  if (!payload?._goalAdjustments?.length) return <g key={props.key} />;
+                  const adj = payload._goalAdjustments[0];
+                  const color = adj.goalType === "revenue" ? "hsl(160, 70%, 45%)" : "hsl(38, 92%, 55%)";
+                  return (
+                    <g key={props.key}>
+                      <polygon
+                        points={`${cx},${cy - 5} ${cx + 4},${cy} ${cx},${cy + 5} ${cx - 4},${cy}`}
+                        fill={color}
+                        stroke="hsl(220, 18%, 10%)"
+                        strokeWidth={1}
+                      />
+                    </g>
+                  );
+                }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+
+          {/* Range summary panel */}
+          {rangeSummary && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-2 p-3 rounded-lg border border-border bg-secondary/50"
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-[11px] font-mono font-semibold text-foreground">Selected Range</p>
+                <span className="text-[10px] font-mono text-muted-foreground">{rangeSummary.count} months</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                <div>
+                  <p className="text-muted-foreground">Period</p>
+                  <p className="text-foreground font-medium">{rangeSummary.start} → {rangeSummary.end}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Total {rangeSummary.total >= 0 ? "Surplus" : "Deficit"}</p>
+                  <p className={rangeSummary.total >= 0 ? "text-emerald-500 font-medium" : "text-red-500 font-medium"}>
+                    {formatMetricValue(rangeSummary.total, "currency")}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Avg Monthly</p>
+                  <p className={rangeSummary.avg >= 0 ? "text-emerald-500 font-medium" : "text-red-500 font-medium"}>
+                    {formatMetricValue(rangeSummary.avg, "currency")}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </>
       )}
     </motion.div>
   );

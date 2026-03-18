@@ -763,12 +763,85 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     console.log("[Total Won Debug] grnRow:", !!grnRow, "ylwRow:", !!ylwRow, "ylwGrnRow:", !!ylwGrnRow,
       "base:", baseWonValue, baseWonCount, "ylw:", directYlwValue, directYlwCount, "combined:", combinedValue, combinedCount);
 
+    // ===== MONTH-ON-MONTH CALCULATIONS =====
+    const MONTH_ABBR_LOCAL = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const curMonIdx = now.getMonth();
+    const curYr = now.getFullYear();
+    const prevMonIdx = curMonIdx === 0 ? 11 : curMonIdx - 1;
+    const prevYr = curMonIdx === 0 ? curYr - 1 : curYr;
+    const curMonKey = `${MONTH_ABBR_LOCAL[curMonIdx]}-${String(curYr).slice(-2)}`;
+    const prevMonKey = `${MONTH_ABBR_LOCAL[prevMonIdx]}-${String(prevYr).slice(-2)}`;
+
+    // Helper: parse date to Mon-YY key
+    const dateToMonKeyLocal = (dateStr: string): string | null => {
+      if (!dateStr) return null;
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return null;
+      return `${MONTH_ABBR_LOCAL[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
+    };
+
+    // Per-month quote aggregations
+    const quotesByMonth = (monthKey: string) => {
+      const matching = quotedJobs.filter(j => dateToMonKeyLocal(j.dateQuoted) === monthKey);
+      const totalVal = matching.reduce((s, j) => s + j.value, 0);
+      const totalCount = matching.length;
+      const won = matching.filter(j => j.status === "won");
+      const wonVal = won.reduce((s, j) => s + j.value, 0);
+      const wonCount = won.length;
+      const ylw = matching.filter(j => j.status === "yellow");
+      const ylwVal = ylw.reduce((s, j) => s + j.value, 0);
+      const ylwCount = ylw.length;
+      const lost = matching.filter(j => j.status === "lost");
+      const remaining = matching.filter(j => j.status === "pending" || j.status === "yellow");
+      const remainingVal = remaining.reduce((s, j) => s + j.value, 0);
+      return { totalVal, totalCount, wonVal, wonCount, ylwVal, ylwCount, lostCount: lost.length, remainingVal, remainingCount: remaining.length };
+    };
+
+    const curMon = quotesByMonth(curMonKey);
+    const prevMon = quotesByMonth(prevMonKey);
+    const hasPrevMon = prevMon.totalCount > 0 || quotedJobs.some(j => dateToMonKeyLocal(j.dateQuoted) === prevMonKey);
+
+    // Per-month revenue
+    const revenueByMonth = (monthKey: string) => {
+      const matching = revenueProjects.filter(rp => {
+        const mk = dateToMonKeyLocal(rp.invoiceDate) || dateToMonKeyLocal(rp.otherDate);
+        return mk === monthKey;
+      });
+      const totalRevExGST = matching.reduce((s, rp) => s + rp.valueExclGST, 0);
+      const totalCOGS = matching.reduce((s, rp) => s + rp.totalCOGS, 0);
+      return { netRevenue: totalRevExGST - totalCOGS, count: matching.length };
+    };
+    const curMonRev = revenueByMonth(curMonKey);
+    const prevMonRev = revenueByMonth(prevMonKey);
+
+    // Per-month cashflow position
+    const prevCashflowPos = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[prevMonKey] ?? 0) : 0;
+    const hasPrevCashflow = anticipatedSurplusRow ? (anticipatedSurplusRow[prevMonKey] !== undefined) : false;
+
+    // Helper for MoM delta formatting
+    const fmtDelta = (cur: number, prev: number, type: "currency" | "pp"): string => {
+      const diff = cur - prev;
+      const sign = diff >= 0 ? "+" : "";
+      if (type === "currency") return `${sign}${fmtAUD(diff)} vs prev month`;
+      return `${sign}${diff.toFixed(1)}pp vs prev month`;
+    };
+    const noMomText = "No prior month comparison";
+
+    const totalQuotedCount = parseNum(qs?.totalQuoted?.count ?? 0);
+    const conversionRateVal = parseNum(qs?.conversionRate ?? 0);
+
+    // Combined (confirmed+YLW) conversion rate
+    const combinedConvCount = baseWonCount + directYlwCount;
+    const combinedConvRate = totalQuotedCount > 0 ? (combinedConvCount / totalQuotedCount) * 100 : 0;
+
     const kpiStats: KPIStat[] = [
       {
         label: "Total Quoted",
         value: noData ? "--" : fmtAUD(parseNum(qs?.totalQuoted?.value ?? 0)),
-        change: noData ? "--" : `${parseNum(qs?.totalQuoted?.count ?? 0)} jobs`,
+        change: noData ? "--" : `${totalQuotedCount} jobs`,
         positive: true, noData,
+        momDelta: noData ? undefined : (hasPrevMon ? fmtDelta(curMon.totalVal, prevMon.totalVal, "currency") : noMomText),
+        momContext: noData ? undefined : (curMon.totalCount > 0 ? `+${curMon.totalCount} jobs this month` : undefined),
       },
       {
         label: "Total Won",
@@ -779,37 +852,45 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         altChange: noData ? "--" : `${combinedCount} jobs`,
         altPositive: combinedValue > 0,
         altDiff: noData ? undefined : (directYlwValue > 0 ? `+${fmtAUD(directYlwValue)} / ${directYlwCount} YLW jobs` : undefined),
+        momDelta: noData ? undefined : (hasPrevMon ? fmtDelta(curMon.wonVal, prevMon.wonVal, "currency") : noMomText),
+        momContext: noData ? undefined : (curMon.wonCount > 0 ? `+${curMon.wonCount} jobs this month` : undefined),
       },
       {
         label: "Quoted Remaining",
         value: noData ? "--" : fmtAUD(parseNum(qs?.remaining?.value ?? 0)),
         change: noData ? "--" : `${parseNum(qs?.remaining?.count ?? 0)} jobs`,
         positive: parseNum(qs?.remaining?.value ?? 0) >= 0, noData,
+        momDelta: noData ? undefined : (hasPrevMon ? fmtDelta(curMon.remainingVal, prevMon.remainingVal, "currency") : noMomText),
       },
       {
         label: "Net Revenue",
         value: noData ? "--" : fmtAUD(netRevenue),
         change: "--",
         positive: netRevenue >= 0, noData,
+        momDelta: noData ? undefined : (prevMonRev.count > 0 ? fmtDelta(curMonRev.netRevenue, prevMonRev.netRevenue, "currency") : noMomText),
+        momContext: noData ? undefined : (curMonRev.count > 0 ? `${curMonRev.count} revenue items this month` : undefined),
       },
       {
         label: "Cashflow Position",
         value: noData ? "--" : fmtAUD(cashflowPosition),
         change: "--",
         positive: cashflowPosition >= 0, noData,
+        momDelta: noData ? undefined : (hasPrevCashflow ? fmtDelta(cashflowPosition, prevCashflowPos, "currency") : noMomText),
       },
       {
         label: "Conversion Rate",
-        value: noData ? "--" : `${parseNum(qs?.conversionRate ?? 0)}%`,
-        change: noData ? "--" : `${baseWonCount} won of ${parseNum(qs?.totalQuoted?.count ?? 0)}`,
-        positive: parseNum(qs?.conversionRate ?? 0) >= 20, noData,
-        altValue: noData ? "--" : (() => {
-          const totalCount = parseNum(qs?.totalQuoted?.count ?? 0);
-          const rate = totalCount > 0 ? (directYlwCount / totalCount) * 100 : 0;
-          return `${rate.toFixed(1)}%`;
+        value: noData ? "--" : `${conversionRateVal}%`,
+        change: noData ? "--" : `${baseWonCount} won of ${totalQuotedCount}`,
+        positive: conversionRateVal >= 20, noData,
+        altValue: noData ? "--" : `${combinedConvRate.toFixed(1)}%`,
+        altChange: noData ? "--" : `${combinedConvCount} won incl YLW of ${totalQuotedCount}`,
+        altPositive: combinedConvRate > 0,
+        momDelta: noData ? undefined : (() => {
+          if (!hasPrevMon) return noMomText;
+          const prevConvRate = prevMon.totalCount > 0 ? (prevMon.wonCount / prevMon.totalCount) * 100 : 0;
+          return fmtDelta(conversionRateVal, prevConvRate, "pp");
         })(),
-        altChange: noData ? "--" : `${directYlwCount} verbal of ${parseNum(qs?.totalQuoted?.count ?? 0)}`,
-        altPositive: directYlwCount > 0,
+        momContext: noData ? undefined : `${baseWonCount} won incl YLW of ${totalQuotedCount}`,
       },
     ];
 
