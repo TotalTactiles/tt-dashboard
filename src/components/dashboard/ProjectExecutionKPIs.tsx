@@ -98,7 +98,7 @@ function ExecKPICard({ title, group, icon, kpi, index }: ExecKPICardProps) {
             className={`flex items-center gap-0.5 font-mono ${
               isPositive ? "text-chart-green" : "text-chart-red"
             }`}
-            style={{ fontSize: "clamp(9px, 0.9vw, 11px)" }}
+            style={{ fontSize: "clamp(10px, 1vw, 12px)" }}
           >
             {isPositive ? (
               <TrendingUp className="w-3 h-3 shrink-0" />
