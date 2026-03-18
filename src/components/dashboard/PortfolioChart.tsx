@@ -1,11 +1,13 @@
 import { useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, ReferenceLine, Cell } from "recharts";
+import { Download } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 import { getMonthAdjustments, type GoalAdjustment } from "@/lib/goalMerge";
 import type { IncomeOutgoingsPoint } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
+import { CashflowExportModal } from "@/components/reports/CashflowExportModal";
 
 const MONTH_ABBR_LIST = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -49,6 +51,7 @@ interface PortfolioChartProps {
 const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps) => {
   const { incomeOutgoingsData, dataHealth } = useDashboardData();
   const sourceData = adjustedData ?? incomeOutgoingsData;
+  const [exportOpen, setExportOpen] = useState(false);
 
   const [quarter, setQuarter] = useState<QuarterFilter>(() => loadPref("cashflow_quarter_filter", getCurrentQuarter()));
 
@@ -168,20 +171,29 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
           <h3 className="text-sm font-medium text-muted-foreground">Income vs Outgoings</h3>
           <p className="text-xl font-mono font-bold text-foreground">Monthly Cash Flow</p>
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          {quarterButtons.map((q) => (
-            <button
-              key={q.key}
-              onClick={() => setQuarterFilter(q.key)}
-              className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-medium transition-all ${
-                quarter === q.key
-                  ? "bg-emerald-600/90 text-white"
-                  : "bg-transparent border border-border text-muted-foreground hover:border-muted-foreground/50"
-              }`}
-            >
-              {q.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1">
+            {quarterButtons.map((q) => (
+              <button
+                key={q.key}
+                onClick={() => setQuarterFilter(q.key)}
+                className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-medium transition-all ${
+                  quarter === q.key
+                    ? "bg-emerald-600/90 text-white"
+                    : "bg-transparent border border-border text-muted-foreground hover:border-muted-foreground/50"
+                }`}
+              >
+                {q.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setExportOpen(true)}
+            className="p-1.5 rounded-md border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
+            title="Export PDF Report"
+          >
+            <Download className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
 
@@ -339,6 +351,7 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
           <span>Showing {rangeLabel}</span>
         )}
       </div>
+      <CashflowExportModal open={exportOpen} onOpenChange={setExportOpen} />
     </motion.div>
   );
 };
