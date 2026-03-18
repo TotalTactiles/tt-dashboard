@@ -444,8 +444,15 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     };
 
     const totalOutgoingsRow = findCashflowRow("Total Outgoings");
+    const totalIncomeRow = findCashflowRow("Total Income");
+    const anticipatedSurplusRow = findCashflowRow("Anticipated Cash Surplus/(Deficit)");
     const jobsProbableRow = findCashflowRow("Jobs Probable To Be Won");
     const surplusWithJobsRow = findCashflowRow("Anticipated Cash Surplus/(Deficit) Including Probable Jobs");
+    const openingBalancesRow = findCashflowRow("OPENING BALANCES");
+
+    console.log("[Cashflow Row Debug] openingBalances:", !!openingBalancesRow, "totalIncome:", !!totalIncomeRow,
+      "totalOutgoings:", !!totalOutgoingsRow, "anticipatedSurplus:", !!anticipatedSurplusRow,
+      "jobsProbable:", !!jobsProbableRow, "surplusWithJobs:", !!surplusWithJobsRow);
 
     // Determine current month for future detection
     const now = new Date();
@@ -461,27 +468,27 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     // Income vs Outgoings bar chart
     const incomeOutgoingsData: IncomeOutgoingsPoint[] = months
       .filter((m) => {
-        const inc = sv(cs?.totalIncome, m);
+        const inc = totalIncomeRow ? parseNum(totalIncomeRow[m] ?? 0) : sv(cs?.totalIncome, m);
         const outRaw = totalOutgoingsRow ? parseNum(totalOutgoingsRow[m] ?? 0) : (Math.abs(sv(cs?.totalCostOfSales, m)) + Math.abs(sv(cs?.totalOperatingExpenses, m)));
-        const anticipated = sv(cs?.anticipatedSurplus, m);
+        const anticipated = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[m] ?? 0) : sv(cs?.anticipatedSurplus, m);
         return inc !== 0 || outRaw !== 0 || anticipated !== 0;
       })
       .map((m) => {
-        const inc = sv(cs?.totalIncome, m);
+        const inc = totalIncomeRow ? parseNum(totalIncomeRow[m] ?? 0) : sv(cs?.totalIncome, m);
         const out = totalOutgoingsRow
           ? Math.abs(parseNum(totalOutgoingsRow[m] ?? 0))
           : (Math.abs(sv(cs?.totalCostOfSales, m)) + Math.abs(sv(cs?.totalOperatingExpenses, m)));
         const parsed = parseMonthLabel(m);
         const isFuture = parsed ? (parsed.year > currentYear || (parsed.year === currentYear && parsed.month > currentMonthIdx)) : false;
-        // For future months: derive probable income from anticipatedSurplus + totalOutgoings
-        // This reconstructs the forecast model's implied income
-        const anticipated = sv(cs?.anticipatedSurplus, m);
-        const probableIncome = isFuture ? Math.max(0, anticipated + out) : 0;
+        // Use exact "Anticipated Cash Surplus/(Deficit)" row for surplus — do NOT derive from inc - out
+        const surplus = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[m] ?? 0) : sv(cs?.anticipatedSurplus, m);
+        // For future months: derive probable income from surplus + outgoings (reconstructs forecast model's implied income)
+        const probableIncome = isFuture ? Math.max(0, surplus + out) : 0;
         return {
           month: m,
           income: inc,
           outgoings: out,
-          surplus: isFuture ? (probableIncome - out) : (inc - out),
+          surplus,
           probableIncome,
           isFuture,
         };
@@ -500,10 +507,10 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         return { month: m, grossMargin: inc > 0 ? Math.round((gp / inc) * 100) : 0 };
       });
 
-    // Forecast chart
+    // Forecast chart — use exact named rows
     const forecastChartData: ForecastChartPoint[] = months.map((m) => {
       const totalOut = totalOutgoingsRow ? Math.abs(parseNum(totalOutgoingsRow[m] ?? 0)) : 0;
-      const anticipated = sv(cs?.anticipatedSurplus, m);
+      const anticipated = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[m] ?? 0) : sv(cs?.anticipatedSurplus, m);
       const probable = jobsProbableRow ? parseNum(jobsProbableRow[m] ?? 0) : 0;
       const surplusWithJobs = surplusWithJobsRow ? parseNum(surplusWithJobsRow[m] ?? 0) : (cs?.anticipatedSurplusWithJobs ? sv(cs.anticipatedSurplusWithJobs, m) : 0);
       return { month: m, totalOutgoings: totalOut, anticipatedSurplus: anticipated, probableJobs: probable, surplusIncludingProbable: surplusWithJobs };
@@ -516,22 +523,49 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const rs = liveData?.revenueSummary as any;
     const netRevenue = (parseNum(rs?.totalValue ?? 0)) - (parseNum(rs?.totalCOGS ?? 0));
 
-    // Card 5: Cashflow Position = current month's anticipatedSurplus, fallback to most recent past month
+    // Card 5: Cashflow Position = current month's OPENING BALANCES value
     const currentMonthKey = `${MONTH_ABBR_LIST[currentMonthIdx]}-${String(currentYear).slice(-2)}`;
     let cashflowPosition = 0;
-    // Try current month first
-    const currentMonthSurplus = sv(cs?.anticipatedSurplus, currentMonthKey);
-    if (currentMonthSurplus !== 0 || (cs?.anticipatedSurplus && currentMonthKey in cs.anticipatedSurplus)) {
-      cashflowPosition = currentMonthSurplus;
+    let cashflowPositionSource = "none";
+
+    // Priority 1: Use OPENING BALANCES row (exact source of truth)
+    if (openingBalancesRow) {
+      const currentVal = parseNum(openingBalancesRow[currentMonthKey] ?? 0);
+      if (currentVal !== 0 || (currentMonthKey in openingBalancesRow)) {
+        cashflowPosition = currentVal;
+        cashflowPositionSource = `OPENING BALANCES[${currentMonthKey}]`;
+      } else {
+        // Fallback: most recent past month from OPENING BALANCES
+        for (let i = months.length - 1; i >= 0; i--) {
+          const parsed = parseMonthLabel(months[i]);
+          if (!parsed) continue;
+          if (parsed.year > currentYear || (parsed.year === currentYear && parsed.month > currentMonthIdx)) continue;
+          const val = parseNum(openingBalancesRow[months[i]] ?? 0);
+          if (val !== 0) {
+            cashflowPosition = val;
+            cashflowPositionSource = `OPENING BALANCES[${months[i]}] (fallback)`;
+            break;
+          }
+        }
+      }
     } else {
-      // Fallback: most recent past month with non-zero value
-      for (let i = months.length - 1; i >= 0; i--) {
-        const parsed = parseMonthLabel(months[i]);
-        if (!parsed) continue;
-        // Skip future months
-        if (parsed.year > currentYear || (parsed.year === currentYear && parsed.month > currentMonthIdx)) continue;
-        const val = sv(cs?.anticipatedSurplus, months[i]);
-        if (val !== 0) { cashflowPosition = val; break; }
+      // Fallback if no OPENING BALANCES row found: use anticipatedSurplus
+      const currentMonthSurplus = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[currentMonthKey] ?? 0) : sv(cs?.anticipatedSurplus, currentMonthKey);
+      if (currentMonthSurplus !== 0) {
+        cashflowPosition = currentMonthSurplus;
+        cashflowPositionSource = `anticipatedSurplus[${currentMonthKey}] (no OPENING BALANCES row)`;
+      } else {
+        for (let i = months.length - 1; i >= 0; i--) {
+          const parsed = parseMonthLabel(months[i]);
+          if (!parsed) continue;
+          if (parsed.year > currentYear || (parsed.year === currentYear && parsed.month > currentMonthIdx)) continue;
+          const val = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[months[i]] ?? 0) : sv(cs?.anticipatedSurplus, months[i]);
+          if (val !== 0) {
+            cashflowPosition = val;
+            cashflowPositionSource = `anticipatedSurplus[${months[i]}] (fallback, no OPENING BALANCES)`;
+            break;
+          }
+        }
       }
     }
     // Final fallback: try Closing Balance row
@@ -539,9 +573,14 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       const closingRow = findCashflowRow("Closing Balance");
       if (closingRow) {
         const val = parseNum(closingRow[currentMonthKey] ?? 0);
-        if (val !== 0) cashflowPosition = val;
+        if (val !== 0) {
+          cashflowPosition = val;
+          cashflowPositionSource = `Closing Balance[${currentMonthKey}] (final fallback)`;
+        }
       }
     }
+
+    console.log("[Cashflow Position Debug] source:", cashflowPositionSource, "value:", cashflowPosition, "currentMonthKey:", currentMonthKey);
 
     // ===== Extract GRN and YLW from raw qtsSmmry rows (QTS SUMMARY sheet) =====
     const rawQtsSmmry = unwrapItems(liveData.qtsSmmry ?? []);
