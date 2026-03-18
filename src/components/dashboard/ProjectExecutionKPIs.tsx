@@ -1,13 +1,14 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
-  Clock,
+  Briefcase,
+  AlertTriangle,
   CalendarClock,
   TrendingUp,
   TrendingDown,
   DollarSign,
-  Users,
-  AlertTriangle,
+  BarChart3,
+  Wallet,
   ChevronDown,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -34,10 +35,9 @@ interface ExecKPICardProps {
   icon: React.ReactNode;
   kpi: KPIResult;
   index: number;
-  suffix?: string;
 }
 
-function ExecKPICard({ title, group, icon, kpi, index, suffix }: ExecKPICardProps) {
+function ExecKPICard({ title, group, icon, kpi, index }: ExecKPICardProps) {
   const isUnavailable = kpi.value === null;
   const isPositive = kpi.change !== null ? kpi.change >= 0 : true;
 
@@ -49,7 +49,6 @@ function ExecKPICard({ title, group, icon, kpi, index, suffix }: ExecKPICardProp
       className="stat-card relative overflow-hidden flex flex-col"
       style={{ padding: "clamp(10px, 1.5vw, 18px)", minHeight: "100px" }}
     >
-      {/* Header */}
       <div className="flex items-start justify-between gap-1 mb-1">
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="text-muted-foreground shrink-0">{icon}</span>
@@ -61,14 +60,11 @@ function ExecKPICard({ title, group, icon, kpi, index, suffix }: ExecKPICardProp
             {title}
           </p>
         </div>
-        <span
-          className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap shrink-0"
-        >
+        <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap shrink-0">
           {group}
         </span>
       </div>
 
-      {/* Value */}
       <div className="my-auto">
         {isUnavailable ? (
           <Tooltip>
@@ -91,12 +87,11 @@ function ExecKPICard({ title, group, icon, kpi, index, suffix }: ExecKPICardProp
             }`}
             style={{ fontSize: "clamp(16px, 2.8vw, 26px)", lineHeight: 1.15 }}
           >
-            {kpi.formatted}{suffix}
+            {kpi.formatted}
           </p>
         )}
       </div>
 
-      {/* Change + context */}
       <div className="mt-auto space-y-0.5">
         {!isUnavailable && kpi.changeFormatted !== "--" && (
           <div
@@ -110,7 +105,7 @@ function ExecKPICard({ title, group, icon, kpi, index, suffix }: ExecKPICardProp
             ) : (
               <TrendingDown className="w-3 h-3 shrink-0" />
             )}
-            <span className="truncate">{kpi.changeFormatted} vs prior</span>
+            <span className="truncate">{kpi.changeFormatted}</span>
           </div>
         )}
         <p
@@ -122,7 +117,6 @@ function ExecKPICard({ title, group, icon, kpi, index, suffix }: ExecKPICardProp
         </p>
       </div>
 
-      {/* Bottom bar */}
       <div className="mt-2 h-[3px] bg-secondary rounded-full overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
@@ -146,64 +140,70 @@ function ExecKPICard({ title, group, icon, kpi, index, suffix }: ExecKPICardProp
 // ── Section component ──────────────────────────────────────────────
 
 export default function ProjectExecutionKPIs() {
-  const { quotedJobs, revenueProjects } = useDashboardData();
+  const { quotedJobs, revenueProjects, incomeOutgoingsData } = useDashboardData();
   const periodOptions = useMemo(() => buildPeriodOptions(), []);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const period = periodOptions[selectedIdx];
 
   const kpis = useMemo(
-    () => computeExecutionKPIs(quotedJobs, revenueProjects, period),
-    [quotedJobs, revenueProjects, period]
+    () => computeExecutionKPIs(quotedJobs, revenueProjects, incomeOutgoingsData, period),
+    [quotedJobs, revenueProjects, incomeOutgoingsData, period]
   );
 
   const cards: ExecKPICardProps[] = [
     {
-      title: "On-Time Delivery",
+      title: "Active Jobs",
       group: "DELIVERY",
-      icon: <Clock className="w-3.5 h-3.5" />,
-      kpi: kpis.onTimeDelivery,
+      icon: <Briefcase className="w-3.5 h-3.5" />,
+      kpi: kpis.activeJobs,
       index: 0,
     },
     {
-      title: "Schedule Slippage",
+      title: "Overdue Jobs",
       group: "DELIVERY",
-      icon: <CalendarClock className="w-3.5 h-3.5" />,
-      kpi: kpis.scheduleSlippage,
+      icon: <AlertTriangle className="w-3.5 h-3.5" />,
+      kpi: kpis.overdueJobs,
       index: 1,
     },
     {
-      title: "Margin Variance",
-      group: "PROFIT",
-      icon: <DollarSign className="w-3.5 h-3.5" />,
-      kpi: kpis.marginVariance,
+      title: "Jobs Due",
+      group: "DELIVERY",
+      icon: <CalendarClock className="w-3.5 h-3.5" />,
+      kpi: kpis.jobsDuePeriod,
       index: 2,
     },
     {
-      title: "Cost Overrun",
+      title: "Gross Margin",
       group: "PROFIT",
-      icon: <DollarSign className="w-3.5 h-3.5" />,
-      kpi: kpis.costOverrun,
+      icon: <BarChart3 className="w-3.5 h-3.5" />,
+      kpi: kpis.weightedGrossMargin,
       index: 3,
     },
     {
-      title: "Labour Efficiency",
-      group: "EFFICIENCY",
-      icon: <Users className="w-3.5 h-3.5" />,
-      kpi: kpis.labourEfficiency,
+      title: "Rev / Job",
+      group: "PROFIT",
+      icon: <DollarSign className="w-3.5 h-3.5" />,
+      kpi: kpis.revenuePerJob,
       index: 4,
     },
     {
-      title: "Jobs At Risk",
-      group: "RISK",
-      icon: <AlertTriangle className="w-3.5 h-3.5" />,
-      kpi: kpis.jobsAtRisk,
+      title: "GP / Job",
+      group: "PROFIT",
+      icon: <DollarSign className="w-3.5 h-3.5" />,
+      kpi: kpis.grossProfitPerJob,
       index: 5,
+    },
+    {
+      title: "Cash Expected",
+      group: "CASHFLOW",
+      icon: <Wallet className="w-3.5 h-3.5" />,
+      kpi: kpis.cashExpected,
+      index: 6,
     },
   ];
 
   return (
     <div className="mb-4 md:mb-6">
-      {/* Section header with period selector */}
       <div className="flex items-center justify-between mb-3">
         <div>
           <h2
@@ -216,7 +216,7 @@ export default function ProjectExecutionKPIs() {
             className="text-muted-foreground font-mono"
             style={{ fontSize: "clamp(9px, 0.9vw, 11px)" }}
           >
-            Delivery, profitability &amp; efficiency KPIs
+            Delivery, profitability &amp; cashflow KPIs
           </p>
         </div>
 
@@ -241,9 +241,8 @@ export default function ProjectExecutionKPIs() {
         </DropdownMenu>
       </div>
 
-      {/* KPI Grid */}
       <div
-        className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 items-stretch"
+        className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 items-stretch"
         style={{ gap: "clamp(8px, 1vw, 16px)" }}
       >
         {cards.map((card) => (
