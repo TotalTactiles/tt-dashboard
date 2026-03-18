@@ -205,6 +205,7 @@ export interface DashboardData {
   revenueProjects: RevenueProject[];
   expenseCategories: ExpenseCategoryGroup[];
   grandTotalExpense: GrandTotalExpense | null;
+  cashflowPositionRaw: number;
   kpiStats: KPIStat[];
   incomeOutgoingsData: IncomeOutgoingsPoint[];
   profitMarginData: ProfitMarginPoint[];
