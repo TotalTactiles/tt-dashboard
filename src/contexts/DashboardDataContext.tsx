@@ -887,6 +887,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     return {
       quotedJobs, revenueProjects, expenseCategories, grandTotalExpense,
+      cashflowPositionRaw: cashflowPosition,
       kpiStats, incomeOutgoingsData, profitMarginData, forecastChartData, expenseAllocation,
       kpiVariables, dataStore: storeSnapshot, formulaCache: formulaCacheInstance, changedFormulas,
       formulas, addFormula, updateFormula, deleteFormula,
