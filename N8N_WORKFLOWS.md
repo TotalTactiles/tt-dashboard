@@ -21,6 +21,30 @@ Issues:
 - No caching
 - Performance risk at scale
 
+### Code Node Version History
+
+**v8 (current) — Phase 1 Backend cleanup**
+- Added `normaliseMonthKey()` helper: converts datetime-format cashflow headers
+  (e.g. `2026-01-26 00:00:00`) to `Mon-YY` format before processing.
+  Fixes cashflow KPI and chart data being silently empty.
+- Added `normaliseQuotes()` helper: strips Unicode smart/curly quotes from
+  column key names before lookup. Fixes CR column not being read from QTS SMMRY.
+- Added `getAnyKey()` helper: tries multiple key variants in sequence.
+- Rebuilt `findCashflowRow()` with exact-match priority to prevent partial match
+  collisions. Fixes `anticipatedSurplusWithJobs` and `jobsProbable` mapping to
+  wrong rows.
+- `conversionRate` now normalised to percentage integer before output
+  (decimal × 100 if raw value ≤ 1). Fixes Conversion Rate KPI displaying as
+  `0.33%` instead of `32.6%`.
+- REVENUE section: removed trailing-space fallback on `Stage` column lookup.
+  Sheet header corrected to `Stage` (no trailing space).
+- QTS SMMRY rows pre-normalised via `normaliseQuotes()` before field mapping.
+
+**v6/v7 — baseline (pre Phase 1)**
+- Original workflow. Cashflow month detection used regex only (no datetime support).
+- CR column lookup used hardcoded straight-quote key (failed against curly quotes).
+- `findCashflowRow()` used bidirectional partial match (caused row collisions).
+
 ---
 
 ## Workflow 2 – Revenue & Cost Engine
