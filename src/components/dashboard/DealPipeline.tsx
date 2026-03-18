@@ -347,7 +347,7 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
                   >
                     <td className="py-3.5 pr-4 font-medium">{job.company}</td>
                     <td className="py-3.5 pr-4 text-muted-foreground">{job.project}</td>
-                    <td className="py-3 pr-4 text-right font-mono">
+                    <td className="py-3.5 pr-4 text-right font-mono">
                       {job.value > 0 ? formatMetricValue(job.value, "currency") : "TBC"}
                     </td>
                     <td className="py-3 pr-4 text-center">
