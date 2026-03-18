@@ -448,12 +448,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const totalIncomeRow = findCashflowRow("Total Income");
     const anticipatedSurplusRow = findCashflowRow("Anticipated Cash Surplus/(Deficit)");
     const jobsProbableRow = findCashflowRow("Jobs Probable To Be Won");
+    const costOfJobsProbableRow = findCashflowRow("Cost of Jobs Probable To Be Won");
     const surplusWithJobsRow = findCashflowRow("Anticipated Cash Surplus/(Deficit) Including Probable Jobs");
     const openingBalancesRow = findCashflowRow("OPENING BALANCES");
 
     console.log("[Cashflow Row Debug] openingBalances:", !!openingBalancesRow, "totalIncome:", !!totalIncomeRow,
       "totalOutgoings:", !!totalOutgoingsRow, "anticipatedSurplus:", !!anticipatedSurplusRow,
-      "jobsProbable:", !!jobsProbableRow, "surplusWithJobs:", !!surplusWithJobsRow);
+      "jobsProbable:", !!jobsProbableRow, "costOfJobsProbable:", !!costOfJobsProbableRow, "surplusWithJobs:", !!surplusWithJobsRow);
 
     // Determine current month for future detection
     const now = new Date();
