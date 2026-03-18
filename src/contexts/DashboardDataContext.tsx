@@ -616,16 +616,21 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     }
 
     // Scoped debug for Cashflow Position month resolution
+    const obMonthKeys = openingBalancesRow ? Object.keys(openingBalancesRow).filter(k => MONTH_REGEX.test(k)) : [];
+    const obAllValues: Record<string, number> = {};
+    for (const k of obMonthKeys) obAllValues[k] = parseNum(openingBalancesRow?.[k] ?? 0);
     console.log("[Cashflow Position Debug]", {
       browserDate: now.toISOString(),
       generatedKey: currentMonthKey,
       generatedKeyNorm: currentKeyNorm,
       availableMonthKeys: months,
-      openingBalancesRowKeys: openingBalancesRow ? Object.keys(openingBalancesRow).filter(k => MONTH_REGEX.test(k)) : [],
+      openingBalancesRowKeys: obMonthKeys,
+      openingBalancesAllValues: obAllValues,
       matchedKey,
       sourceRow: "OPENING BALANCES",
       source: cashflowPositionSource,
       finalValue: cashflowPosition,
+      fallbackTriggered: cashflowPositionSource.includes("fallback"),
     });
 
     // ===== Extract GRN and YLW from raw qtsSmmry rows (QTS SUMMARY sheet) =====
