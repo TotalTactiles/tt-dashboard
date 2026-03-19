@@ -67,12 +67,14 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
   // Yellow glow on card container when YLW toggle is active
   const ylwGlowClass = isYellow ? "ring-1 ring-amber-400/40 shadow-[0_0_12px_-3px_hsl(38,92%,55%,0.3)]" : "";
 
+  const isShortValue = abbreviatedDisplay.length <= 6;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className={`stat-card relative overflow-hidden flex flex-col gap-0.5 ${ylwGlowClass}`}
+      className={`stat-card relative overflow-hidden flex flex-col gap-0.5 [container-type:inline-size] ${ylwGlowClass}`}
       style={{ minHeight: "100px" }}
     >
       {/* ROW 1 — Label + badges */}
