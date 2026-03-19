@@ -420,6 +420,7 @@ export function useDataSources() {
 
       return { success: true, data: finalData, warnings };
     } catch (err: any) {
+      if (err.name === 'AbortError' || signal.aborted) return { success: false, error: "Aborted" };
       const errorMsg = err.message || "Failed to fetch";
 
       setSources((prev) => {
