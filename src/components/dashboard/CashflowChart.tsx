@@ -332,4 +332,7 @@ const CashflowChartInner = ({ adjustedData, adjustments = [] }: CashflowChartPro
   );
 };
 
+const CashflowChart = React.memo(CashflowChartInner);
+CashflowChart.displayName = "CashflowChart";
+
 export default CashflowChart;
