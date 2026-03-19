@@ -834,6 +834,9 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const totalQuotedCount = parseNum(qs?.totalQuoted?.count ?? 0);
     const conversionRateVal = parseNum(qs?.conversionRate ?? 0);
 
+    // Confirmed-only conversion rate: GRN count / total quoted count
+    const confirmedConvRate = totalQuotedCount > 0 ? (baseWonCount / totalQuotedCount) * 100 : 0;
+
     // Combined (confirmed+YLW) conversion rate
     const combinedConvCount = baseWonCount + directYlwCount;
     const combinedConvRate = totalQuotedCount > 0 ? (combinedConvCount / totalQuotedCount) * 100 : 0;
