@@ -127,7 +127,13 @@ const CashflowChart = ({ adjustedData, adjustments = [] }: CashflowChartProps) =
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.5 }}
-      className="chart-container"
+      className="chart-container chart-drag-container"
+      style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+      onMouseDown={(e) => {
+        if (e.target !== e.currentTarget) {
+          e.preventDefault();
+        }
+      }}
     >
       <div className="flex items-start justify-between mb-1">
         <div>
