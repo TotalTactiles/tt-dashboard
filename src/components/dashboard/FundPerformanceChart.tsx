@@ -9,21 +9,23 @@ import { useTheme } from "next-themes";
 
 const GM_TARGET_KEY = "gross_margin_target";
 
-function loadTarget(): number {
-  try {
-    const v = localStorage.getItem(GM_TARGET_KEY);
-    if (v !== null) {
-      const n = parseFloat(v);
-      if (!isNaN(n) && n >= 0 && n <= 100) return n;
-    }
-  } catch {}
-  return 30;
+function loadGPTarget(): number {
+  const fromLocal = localStorage.getItem(GM_TARGET_KEY);
+  const fromSession = sessionStorage.getItem(GM_TARGET_KEY);
+  const raw = fromLocal ?? fromSession ?? '30';
+  const parsed = parseFloat(raw);
+  return (isNaN(parsed) || parsed < 0 || parsed > 100) ? 30 : parsed;
+}
+
+function saveGPTarget(value: number): void {
+  localStorage.setItem(GM_TARGET_KEY, String(value));
+  sessionStorage.setItem(GM_TARGET_KEY, String(value));
 }
 
 const FundPerformanceChart = () => {
   const { profitMarginData, dataHealth } = useDashboardData();
   const { resolvedTheme } = useTheme();
-  const [target, setTarget] = useState(loadTarget);
+  const [target, setTarget] = useState(loadGPTarget);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -31,7 +33,7 @@ const FundPerformanceChart = () => {
   const tc = useMemo(() => chartColors(), [resolvedTheme]);
 
   useEffect(() => {
-    const handler = () => setTarget(loadTarget());
+    const handler = () => setTarget(loadGPTarget());
     window.addEventListener("storage", handler);
     window.addEventListener("gm-target-update", handler);
     return () => {
@@ -50,7 +52,7 @@ const FundPerformanceChart = () => {
     const n = parseFloat(draft);
     if (!isNaN(n) && n >= 0 && n <= 100) {
       setTarget(n);
-      localStorage.setItem(GM_TARGET_KEY, String(n));
+      saveGPTarget(n);
       window.dispatchEvent(new Event("gm-target-update"));
     }
     setEditing(false);
