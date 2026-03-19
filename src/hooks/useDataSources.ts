@@ -282,8 +282,18 @@ export function useDataSources() {
     }
   }, []);
 
+  // Track which sources can be called directly (no CORS issues)
+  const canDirectFetch = useRef<Record<string, boolean>>({});
+
   const fetchSource = useCallback(async (source: DataSourceConfig): Promise<{ success: boolean; data?: any; error?: string; warnings?: string[] }> => {
     if (!source.webhookUrl) return { success: false, error: "No webhook URL" };
+
+    // Cancel any previous fetch for this source
+    if (abortRefs.current[source.id]) {
+      abortRefs.current[source.id].abort();
+    }
+    abortRefs.current[source.id] = new AbortController();
+    const signal = abortRefs.current[source.id].signal;
 
     setSources((prev) =>
       prev.map((s) => (s.id === source.id ? { ...s, loading: true, lastError: "" } : s))
@@ -293,6 +303,7 @@ export function useDataSources() {
       // Special handling for zoho_projects
       if (source.id === "zoho_projects") {
         const result = await fetchProjectKPIs(source.webhookUrl);
+        if (signal.aborted) return { success: false, error: "Superseded" };
         const now = new Date().toLocaleString();
 
         setSources((prev) => {
@@ -313,10 +324,41 @@ export function useDataSources() {
           : { success: false, error: result.error };
       }
 
-      // Route through the n8n-proxy Edge Function to avoid CORS
-      const { data: responseData, error } = await supabase.functions.invoke("n8n-proxy", {
-        body: { webhookUrl: source.webhookUrl, source: source.id },
-      });
+      // Try direct n8n call first (faster — no proxy round-trip)
+      let responseData: any = null;
+      let usedDirect = false;
+
+      if (canDirectFetch.current[source.id] !== false) {
+        try {
+          const directRes = await fetch(source.webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ source: source.id }),
+            signal: AbortSignal.timeout(8000),
+          });
+          if (directRes.ok) {
+            responseData = await directRes.json();
+            usedDirect = true;
+            canDirectFetch.current[source.id] = true;
+          }
+        } catch {
+          // CORS blocked or network error — fall through to proxy
+          canDirectFetch.current[source.id] = false;
+        }
+      }
+
+      if (signal.aborted) return { success: false, error: "Superseded" };
+
+      // Fall back to Supabase proxy if direct call failed
+      if (!usedDirect) {
+        const { data, error } = await supabase.functions.invoke("n8n-proxy", {
+          body: { webhookUrl: source.webhookUrl, source: source.id },
+        });
+        if (error) throw new Error(error.message || "Proxy request failed");
+        responseData = data;
+      }
+
+      if (signal.aborted) return { success: false, error: "Superseded" };
 
       if (error) throw new Error(error.message || "Proxy request failed");
 
