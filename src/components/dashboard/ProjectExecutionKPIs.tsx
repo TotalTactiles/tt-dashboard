@@ -185,10 +185,10 @@ function ExecKPICard({ title, group, icon, kpi, index, colorByValue }: ExecKPICa
       <div className="mt-auto space-y-0.5" style={{ minWidth: 0, overflow: 'hidden' }}>
         {!isUnavailable && kpi.changeFormatted !== "--" && (
           <div
-            className={`flex items-center gap-0.5 font-mono ${isPositive ? "text-chart-green" : "text-chart-red"}`}
+            className={`flex items-center gap-0.5 font-mono ${trendPositive ? "text-chart-green" : "text-chart-red"}`}
             style={trendStyle}
           >
-            {isPositive ? (
+            {trendPositive ? (
               <TrendingUp className="w-3 h-3 shrink-0" />
             ) : (
               <TrendingDown className="w-3 h-3 shrink-0" />
