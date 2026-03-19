@@ -24,6 +24,7 @@ const Settings = () => {
   const {
     sources,
     liveData,
+    projectKPIData,
     connectedCount,
     toggleConnection,
     updateWebhookUrl,
@@ -98,6 +99,16 @@ const Settings = () => {
     }
     toast.info(`Syncing ${source.name}...`);
     syncNow(id);
+  };
+
+  // Format the last synced timestamp for Zoho Projects
+  const formatLastSynced = (generatedAt: string | undefined) => {
+    if (!generatedAt) return null;
+    try {
+      const d = new Date(generatedAt);
+      return d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) +
+        ", " + d.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true });
+    } catch { return generatedAt; }
   };
 
   return (
@@ -196,6 +207,9 @@ const Settings = () => {
       <div className="space-y-3">
         {sources.map((source, i) => {
           const SetupGuide = SETUP_GUIDES[source.id];
+          const isZohoProjects = source.id === "zoho_projects";
+          const zohoProjectsLastSynced = isZohoProjects ? formatLastSynced(projectKPIData?.generatedAt) : null;
+
           return (
             <motion.div
               key={source.id}
@@ -257,6 +271,9 @@ const Settings = () => {
                     {source.id === "google_sheets" && source.webhookUrl === "https://n8n.srv1437130.hstgr.cloud/webhook/bb826393-569e-4270-a033-6f6d8019e0e0" && (
                       <span className="text-[10px] text-muted-foreground font-mono mt-1">(default)</span>
                     )}
+                    {isZohoProjects && source.webhookUrl === "https://n8n.srv1437130.hstgr.cloud/webhook/tt-project-kpis" && (
+                      <span className="text-[10px] text-muted-foreground font-mono mt-1">(default)</span>
+                    )}
                   </div>
 
                   {/* Data mapping */}
@@ -273,6 +290,13 @@ const Settings = () => {
                       ))}
                     </div>
                   </div>
+
+                  {/* Last synced for Zoho Projects */}
+                  {isZohoProjects && zohoProjectsLastSynced && (
+                    <p className="text-xs text-muted-foreground font-mono">
+                      Last synced: {zohoProjectsLastSynced}
+                    </p>
+                  )}
 
                   {/* Status info */}
                   <div className="space-y-1">
@@ -333,25 +357,27 @@ const Settings = () => {
                     </div>
                   )}
 
-                  {/* Reference Screenshot */}
-                  <div className="pt-2 border-t border-border">
-                    <ScreenshotUpload
-                      currentUrl={source.screenshotUrl}
-                      onUpload={(url) => updateScreenshot(source.id, url)}
-                      onRemove={() => removeScreenshot(source.id)}
-                      label="Reference Screenshot — verify data mapping"
-                    />
-                    {source.screenshotUrl && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mt-2 text-xs text-chart-blue"
-                        onClick={() => setViewingScreenshot({ url: source.screenshotUrl!, name: source.name })}
-                      >
-                        View full screenshot
-                      </Button>
-                    )}
-                  </div>
+                  {/* Reference Screenshot — NOT shown for zoho_projects */}
+                  {!isZohoProjects && (
+                    <div className="pt-2 border-t border-border">
+                      <ScreenshotUpload
+                        currentUrl={source.screenshotUrl}
+                        onUpload={(url) => updateScreenshot(source.id, url)}
+                        onRemove={() => removeScreenshot(source.id)}
+                        label="Reference Screenshot — verify data mapping"
+                      />
+                      {source.screenshotUrl && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2 text-xs text-chart-blue"
+                          onClick={() => setViewingScreenshot({ url: source.screenshotUrl!, name: source.name })}
+                        >
+                          View full screenshot
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </motion.div>
               )}
             </motion.div>

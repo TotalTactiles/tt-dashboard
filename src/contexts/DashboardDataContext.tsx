@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo, useRef, useState, useCallback } from "react";
-import { useDataSources } from "@/hooks/useDataSources";
+import { useDataSources, type ProjectKPIData } from "@/hooks/useDataSources";
 import { resolveKpiVariables, createFormulaCache, DataStore, type EvaluationCache } from "@/engine/formulaEngine";
 import { useFormulas } from "@/hooks/useFormulas";
 import { formatMetricValue } from "@/lib/formatMetricValue";
@@ -237,6 +237,7 @@ export interface DashboardData {
   upcomingEvents: LiveCalendarEvent[];
   calendarSummary: CalendarSummary | null;
   setCalendarEvents: React.Dispatch<React.SetStateAction<LiveCalendarEvent[]>>;
+  projectKPIData: ProjectKPIData | null;
 }
 
 const DashboardDataContext = createContext<DashboardData | null>(null);
@@ -268,7 +269,7 @@ function getMonthValues(row: any, months: string[]): Record<string, number> {
 
 export function DashboardDataProvider({ children }: { children: React.ReactNode }) {
   const ds = useDataSources();
-  const { liveData, hasLiveData, connectedCount, sources, calendarData } = ds;
+  const { liveData, hasLiveData, connectedCount, sources, calendarData, projectKPIData } = ds;
   const isLoading = sources.some((s) => s.loading);
   const { formulas, addFormula, updateFormula, deleteFormula } = useFormulas();
   const [calendarEventsOverride, setCalendarEventsState] = useState<LiveCalendarEvent[] | null>(null);
@@ -981,8 +982,9 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       upcomingEvents: rawUpcomingEvents,
       calendarSummary: rawCalendarSummary,
       setCalendarEvents: setCalendarEventsState,
+      projectKPIData,
     };
-  }, [liveData, hasLiveData, connectedCount, isLoading, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride, calendarData]);
+  }, [liveData, hasLiveData, connectedCount, isLoading, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride, calendarData, projectKPIData]);
 
   return <DashboardDataContext.Provider value={data}>{children}</DashboardDataContext.Provider>;
 }
@@ -1022,6 +1024,7 @@ export function useDashboardData(): DashboardData {
       sources: [], toggleConnection: () => {}, updateWebhookUrl: () => {},
       saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {}, syncCalendar: async () => {},
       calendarEvents: [], upcomingEvents: [], calendarSummary: null, setCalendarEvents: () => {},
+      projectKPIData: null,
     } as DashboardData;
   }
   return ctx;

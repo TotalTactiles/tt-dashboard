@@ -4,10 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 const STORAGE_KEY = "dashboard_data_sources";
 const DATA_CACHE_KEY = "dashboard_live_data";
 const CALENDAR_CACHE_KEY = "dashboard_calendar_data";
+const PROJECT_KPI_CACHE_KEY = "dashboard_project_kpi_data";
 const POLL_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const CALENDAR_POLL_INTERVAL = 3 * 60 * 1000; // 3 minutes
 const DEFAULT_WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/bb826393-569e-4270-a033-6f6d8019e0e0";
 const CALENDAR_READ_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-calendar-read";
+const ZOHO_PROJECTS_WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-project-kpis";
 
 export interface DataSourceConfig {
   id: string;
@@ -34,6 +36,85 @@ export interface LiveData {
   tasks?: any[];
   milestones?: any[];
   [key: string]: any;
+}
+
+export interface ProjectKPIData {
+  generatedAt: string;
+  dataHealth: {
+    projects: number;
+    milestones: number;
+    tasks: number;
+    revenueRows: number;
+    validRevenueRows: number;
+    loggedHoursTotal: number;
+    estimatedHoursTotal: number;
+    completedTasksFound: number;
+    completedMilestonesFound: number;
+  };
+  kpis: {
+    onTimeDelivery: {
+      value: number | null;
+      label: string;
+      detail: string;
+      completedMilestones: number;
+      completedTasks: number;
+      onTimeTasks: number;
+      lateTaskCount: number;
+      lateTaskDetail: Array<{
+        name: string;
+        dueDate: string;
+        completedDate: string;
+        daysLate: number;
+      }>;
+    };
+    scheduleSlippage: {
+      value: number;
+      label: string;
+      detail: string;
+      overdueMillestones: number;
+      overdueTaskCount: number;
+      isOverdue: boolean;
+      overdueDetail: Array<{
+        name: string;
+        project: string;
+        dueDate: string;
+        daysOverdue: number;
+      }>;
+    };
+    marginVariance: {
+      value: number | null;
+      label: string;
+      detail: string;
+      actualGP: number | null;
+      targetGP: number;
+      isBelowTarget: boolean;
+      revenueBase: number;
+      cogsTotal: number;
+      negativeGPJobs: Array<{
+        company: string;
+        project: string;
+        value: number;
+        cogs: number;
+        gpPct: number;
+      }>;
+    };
+    labourEfficiency: {
+      value: number | null;
+      label: string;
+      detail: string;
+      loggedHours: number;
+      estimatedHours: number;
+      isEfficient: boolean;
+      dataReady: boolean;
+      note: string | null;
+    };
+    costOverrun: {
+      value: number | null;
+      label: string;
+      detail: string;
+      isStubbed: boolean;
+    };
+  };
 }
 
 const DEFAULT_SOURCES: DataSourceConfig[] = [
@@ -74,18 +155,18 @@ const DEFAULT_SOURCES: DataSourceConfig[] = [
   {
     id: "zoho_projects",
     name: "Zoho Projects",
-    description: "Project timelines, milestones, task tracking & resource allocation",
+    description: "Project KPIs — delivery, margins, efficiency",
     icon: "📋",
-    connected: false,
-    webhookUrl: "",
+    connected: true,
+    webhookUrl: ZOHO_PROJECTS_WEBHOOK_URL,
     lastSync: "",
     lastError: "",
     loading: false,
     dataMapping: [
-      "Project status & milestones",
-      "Task completion & burndown",
-      "Resource utilisation rates",
-      "Deadline tracking & alerts",
+      "On-Time Delivery rate",
+      "Schedule slippage (avg days overdue)",
+      "Margin variance vs target",
+      "Labour efficiency",
     ],
   },
 ];
@@ -99,13 +180,17 @@ function loadSavedSources(): DataSourceConfig[] {
         const existing = parsed.find((s) => s.id === def.id);
         if (existing) {
           // Ensure google_sheets always has a webhook URL (fallback to default)
-          const webhookUrl = (def.id === "google_sheets" && !existing.webhookUrl)
-            ? DEFAULT_WEBHOOK_URL
-            : existing.webhookUrl;
-          const connected = (def.id === "google_sheets" && !existing.webhookUrl)
-            ? true
-            : existing.connected;
-          return { ...def, ...existing, loading: false, webhookUrl, connected };
+          if (def.id === "google_sheets") {
+            const webhookUrl = existing.webhookUrl || DEFAULT_WEBHOOK_URL;
+            const connected = existing.webhookUrl ? existing.connected : true;
+            return { ...def, ...existing, loading: false, webhookUrl, connected };
+          }
+          // Ensure zoho_projects always has webhook URL and defaults ON
+          if (def.id === "zoho_projects") {
+            const webhookUrl = existing.webhookUrl || ZOHO_PROJECTS_WEBHOOK_URL;
+            return { ...def, ...existing, loading: false, webhookUrl, connected: existing.connected ?? true, dataMapping: def.dataMapping };
+          }
+          return { ...def, ...existing, loading: false };
         }
         return def;
       });
@@ -130,6 +215,14 @@ function loadCachedCalendar(): { calendarEvents: any[]; upcomingEvents: any[]; c
   return { calendarEvents: [], upcomingEvents: [], calendarSummary: { totalEvents: 0, upcomingCount: 0, byType: {} } };
 }
 
+function loadCachedProjectKPI(): ProjectKPIData | null {
+  try {
+    const cached = localStorage.getItem(PROJECT_KPI_CACHE_KEY);
+    if (cached) return JSON.parse(cached);
+  } catch {}
+  return null;
+}
+
 function saveSources(sources: DataSourceConfig[]) {
   const toSave = sources.map((s) => ({ ...s, loading: false }));
   localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
@@ -142,6 +235,7 @@ function saveLiveData(data: LiveData) {
 export function useDataSources() {
   const [sources, setSources] = useState<DataSourceConfig[]>(loadSavedSources);
   const [liveData, setLiveData] = useState<LiveData>(loadCachedData);
+  const [projectKPIData, setProjectKPIData] = useState<ProjectKPIData | null>(loadCachedProjectKPI);
   const intervals = useRef<Record<string, ReturnType<typeof setInterval>>>({});
 
   const [calendarData, setCalendarData] = useState(loadCachedCalendar);
@@ -152,6 +246,35 @@ export function useDataSources() {
     saveSources(updated);
   }, []);
 
+  // Fetch project KPI data from Zoho Projects webhook
+  const fetchProjectKPIs = useCallback(async (webhookUrl: string, payload?: any): Promise<{ success: boolean; data?: ProjectKPIData; error?: string }> => {
+    try {
+      const { data: responseData, error } = await supabase.functions.invoke("n8n-proxy", {
+        body: { webhookUrl, source: "zoho_projects", payload },
+      });
+
+      if (error) throw new Error(error.message || "Proxy request failed");
+      if (responseData?._proxyError) throw new Error(responseData.error || "Proxy error");
+
+      let unwrapped = responseData;
+      if (Array.isArray(unwrapped)) unwrapped = unwrapped[0];
+      if (unwrapped?.json && typeof unwrapped.json === "object") unwrapped = unwrapped.json;
+
+      // Validate shape
+      if (!unwrapped?.kpis || !unwrapped?.dataHealth) {
+        throw new Error("Invalid response shape — missing kpis or dataHealth");
+      }
+
+      const kpiData = unwrapped as ProjectKPIData;
+      setProjectKPIData(kpiData);
+      localStorage.setItem(PROJECT_KPI_CACHE_KEY, JSON.stringify(kpiData));
+
+      return { success: true, data: kpiData };
+    } catch (err: any) {
+      return { success: false, error: err.message || "Failed to fetch project KPIs" };
+    }
+  }, []);
+
   const fetchSource = useCallback(async (source: DataSourceConfig): Promise<{ success: boolean; data?: any; error?: string; warnings?: string[] }> => {
     if (!source.webhookUrl) return { success: false, error: "No webhook URL" };
 
@@ -160,6 +283,29 @@ export function useDataSources() {
     );
 
     try {
+      // Special handling for zoho_projects — uses dedicated fetch
+      if (source.id === "zoho_projects") {
+        const result = await fetchProjectKPIs(source.webhookUrl);
+        const now = new Date().toLocaleString();
+
+        setSources((prev) => {
+          const updated = prev.map((s) =>
+            s.id === source.id ? {
+              ...s,
+              loading: false,
+              lastSync: result.success ? now : s.lastSync,
+              lastError: result.success ? "" : (result.error || "Fetch failed"),
+            } : s
+          );
+          saveSources(updated);
+          return updated;
+        });
+
+        return result.success
+          ? { success: true, data: result.data }
+          : { success: false, error: result.error };
+      }
+
       // Route through the n8n-proxy Edge Function to avoid CORS
       const { data: responseData, error } = await supabase.functions.invoke("n8n-proxy", {
         body: { webhookUrl: source.webhookUrl, source: source.id },
@@ -187,7 +333,6 @@ export function useDataSources() {
       const REQUIRED_KEYS: Record<string, string[]> = {
         google_sheets: ["quotes", "cashflow", "revenue", "expenses", "quotesSummary", "cashflowSummary"],
         zoho_crm: ["deals", "contacts"],
-        zoho_projects: ["projects", "tasks", "milestones"],
       };
 
       const requiredKeys = REQUIRED_KEYS[source.id] || [];
@@ -244,7 +389,7 @@ export function useDataSources() {
 
       return { success: false, error: errorMsg };
     }
-  }, []);
+  }, [fetchProjectKPIs]);
 
   const startPolling = useCallback(
     (source: DataSourceConfig) => {
@@ -426,6 +571,7 @@ export function useDataSources() {
     sources,
     liveData,
     calendarData,
+    projectKPIData,
     hasLiveData,
     connectedCount,
     toggleConnection,
