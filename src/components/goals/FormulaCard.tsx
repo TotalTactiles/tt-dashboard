@@ -16,7 +16,7 @@ interface FormulaCardProps {
 const DATA_SOURCE_COLORS: Record<string, string> = {
   "Google Sheets": "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
   "Zoho CRM": "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  "Zoho Projects": "bg-sky-500/15 text-sky-400 border-sky-500/30",
+  "Zoho Projects": "bg-orange-500/15 text-orange-400 border-orange-500/30",
   "Xero": "bg-purple-500/15 text-purple-400 border-purple-500/30",
   "Manual": "bg-muted text-muted-foreground border-border",
 };
