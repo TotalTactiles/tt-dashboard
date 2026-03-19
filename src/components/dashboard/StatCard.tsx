@@ -67,26 +67,27 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
   // Yellow glow on card container when YLW toggle is active
   const ylwGlowClass = isYellow ? "ring-1 ring-amber-400/40 shadow-[0_0_12px_-3px_hsl(38,92%,55%,0.3)]" : "";
 
+  const isShortValue = abbreviatedDisplay.length <= 6;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className={`stat-card relative overflow-hidden flex flex-col gap-0.5 ${ylwGlowClass}`}
+      className={`stat-card relative overflow-hidden flex flex-col gap-0.5 [container-type:inline-size] ${ylwGlowClass}`}
       style={{ minHeight: "100px" }}
     >
       {/* ROW 1 — Label + badges */}
       <div className="flex items-start justify-between gap-1 min-w-0">
         <div className="min-w-0 flex-1">
           <p
-            className="text-muted-foreground font-mono uppercase tracking-wider truncate font-medium"
-            style={{ fontSize: "clamp(9px, 1vw, 11px)" }}
+            className="kpi-title font-mono text-muted-foreground font-medium"
             title={label}
           >
             {label}
           </p>
         </div>
-        <div className="flex items-center gap-0.5 shrink-0 flex-wrap justify-end" style={{ maxWidth: "50%" }}>
+        <div className="flex items-center gap-0.5 flex-shrink-0 flex-wrap justify-end" style={{ maxWidth: "50%" }}>
           {goalAdjusted && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -150,13 +151,12 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       <div className="min-w-0 my-0.5">
         <Tooltip>
           <TooltipTrigger asChild>
-            <p
-              className={`font-mono font-bold whitespace-nowrap min-w-0 ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}
-              style={{ fontSize: "clamp(20px, 3.5vw, 32px)", lineHeight: 1.15 }}
+            <span
+              className={`${isShortValue ? 'kpi-value-short' : 'kpi-value'} font-mono font-bold ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}
               title={displayValue}
             >
               {abbreviatedDisplay}
-            </p>
+            </span>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="text-xs font-mono">
             {displayValue}
@@ -167,8 +167,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       {/* ROW 3 — MoM delta */}
       {!noData && momDelta && (
         <p
-          className="font-mono text-muted-foreground truncate leading-snug"
-          style={{ fontSize: "clamp(9px, 0.9vw, 11px)" }}
+          className="kpi-subline font-mono text-muted-foreground"
           title={momDelta}
         >
           {momDelta}
@@ -178,8 +177,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       {/* ROW 3b — Monthly context */}
       {!noData && momContext && (
         <p
-          className="font-mono text-muted-foreground/80 truncate leading-snug"
-          style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}
+          className="kpi-note font-mono text-muted-foreground/80"
           title={momContext}
         >
           {momContext}
@@ -189,12 +187,12 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       {/* ROW 4 — Secondary metric / change + alt diff */}
       <div className="min-w-0 mt-auto pt-1">
         {showAlt && altDiff && !noData && (
-          <p className="font-mono text-amber-400/80 truncate" style={{ fontSize: "clamp(9px, 1vw, 11px)" }} title={`${altDiff} with YLWs`}>
+          <p className="kpi-subline font-mono text-amber-400/80" title={`${altDiff} with YLWs`}>
             ↑ {altDiff} with YLWs
           </p>
         )}
         {!noData && displayChange !== "--" && (
-          <div className={`flex items-center gap-0.5 font-mono ${accentColor}`} style={{ fontSize: "clamp(9px, 1vw, 12px)" }}>
+          <div className={`kpi-subline flex items-center gap-0.5 font-mono ${accentColor}`}>
             {displayPositive ? <TrendingUp className="w-3 h-3 shrink-0" /> : <TrendingDown className="w-3 h-3 shrink-0" />}
             <span className="truncate" title={displayChange}>{displayChange}</span>
           </div>
