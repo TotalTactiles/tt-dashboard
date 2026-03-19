@@ -238,6 +238,9 @@ export interface DashboardData {
   calendarSummary: CalendarSummary | null;
   setCalendarEvents: React.Dispatch<React.SetStateAction<LiveCalendarEvent[]>>;
   projectKPIData: ProjectKPIData | null;
+  liveData: import("@/hooks/useDataSources").LiveData;
+  updateScreenshot: (id: string, url: string) => void;
+  removeScreenshot: (id: string) => void;
 }
 
 const DashboardDataContext = createContext<DashboardData | null>(null);
