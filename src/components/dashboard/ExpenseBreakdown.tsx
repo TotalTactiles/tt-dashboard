@@ -48,12 +48,12 @@ const ExpenseBreakdownInner = ({ goals = [], activeGoalIds = new Set() }: Expens
   // Goals expense category
   const goalsCategory = useMemo(() => getGoalExpenseCategory(goals, activeGoalIds), [goals, activeGoalIds]);
 
-  const allItems = expenseCategories.flatMap((c) => c.items);
-  const basePieData = allItems.map((item, i) => ({
+  const allItems = useMemo(() => expenseCategories.flatMap((c) => c.items), [expenseCategories]);
+  const basePieData = useMemo(() => allItems.map((item, i) => ({
     name: item.name,
     value: getCostByPeriod(item, period),
     fill: PIE_COLORS[i % PIE_COLORS.length],
-  }));
+  })), [allItems, period]);
 
   // Add goals segment to pie
   const pieData = useMemo(() => {
