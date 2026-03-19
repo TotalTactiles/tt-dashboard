@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   CalendarClock,
@@ -32,6 +32,71 @@ import {
 } from "@/lib/projectExecutionKpis";
 import type { ProjectKPIData } from "@/hooks/useDataSources";
 
+// ── Inline style objects for fluid typography (cqi units) ──────────
+
+const cardContainerStyle: React.CSSProperties = {
+  containerType: 'inline-size',
+  padding: "clamp(12px, 1.8vw, 20px)",
+  minHeight: "120px",
+};
+
+const titleStyle: React.CSSProperties = {
+  fontSize: 'clamp(0.5rem, 1.8cqi, 0.65rem)',
+  letterSpacing: '0.05em',
+  textTransform: 'uppercase',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  minWidth: 0,
+  maxWidth: '100%',
+};
+
+const valueShortStyle: React.CSSProperties = {
+  fontSize: 'clamp(1rem, 4.5cqi, 1.8rem)',
+  lineHeight: '1.2',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  minWidth: 0,
+  display: 'block',
+  maxWidth: '100%',
+};
+
+const valueLongStyle: React.CSSProperties = {
+  fontSize: 'clamp(0.75rem, 3.5cqi, 1.4rem)',
+  lineHeight: '1.2',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  minWidth: 0,
+  display: 'block',
+  maxWidth: '100%',
+};
+
+const sublineStyle: React.CSSProperties = {
+  fontSize: 'clamp(0.55rem, 1.6cqi, 0.72rem)',
+  lineHeight: '1.4',
+  overflow: 'hidden',
+  display: '-webkit-box',
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: 'vertical',
+  minWidth: 0,
+};
+
+const noteStyle: React.CSSProperties = {
+  fontSize: 'clamp(0.55rem, 1.4cqi, 0.65rem)',
+  fontStyle: 'italic',
+  opacity: 0.7,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  minWidth: 0,
+};
+
+const trendStyle: React.CSSProperties = {
+  fontSize: "clamp(10px, 1.4cqi, 12px)",
+};
+
 // ── Helpers ────────────────────────────────────────────────────────
 
 function decodeHtml(html: string): string {
@@ -40,9 +105,18 @@ function decodeHtml(html: string): string {
   return txt.value;
 }
 
-/** Returns true if the display string is short enough for the larger font class */
 function isShortValue(str: string): boolean {
-  return str.length <= 6;
+  return str.length <= 8;
+}
+
+const GM_TARGET_KEY = "gross_margin_target";
+
+function loadGPTarget(): number {
+  const fromLocal = localStorage.getItem(GM_TARGET_KEY);
+  const fromSession = sessionStorage.getItem(GM_TARGET_KEY);
+  const raw = fromLocal ?? fromSession ?? '30';
+  const parsed = parseFloat(raw);
+  return isNaN(parsed) ? 30 : parsed;
 }
 
 // ── Legacy ExecKPICard (for unchanged cards) ──────────────────────
@@ -65,26 +139,26 @@ function ExecKPICard({ title, group, icon, kpi, index }: ExecKPICardProps) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.06 }}
-      className="kpi-card stat-card relative overflow-hidden flex flex-col min-w-0"
-      style={{ padding: "clamp(12px, 1.8vw, 20px)", minHeight: "120px" }}
+      className="stat-card relative overflow-hidden flex flex-col min-w-0"
+      style={cardContainerStyle}
     >
-      <div className="flex items-center justify-between gap-1 mb-1 min-w-0">
-        <div className="flex items-center gap-1.5 min-w-0">
+      <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: 'hidden' }}>
+        <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: 'hidden' }}>
           <span className="text-muted-foreground shrink-0">{icon}</span>
-          <p className="kpi-title text-muted-foreground font-mono font-medium" title={title}>
+          <p className="text-muted-foreground font-mono font-medium" style={titleStyle} title={title}>
             {title}
           </p>
         </div>
-        <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap shrink-0">
+        <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>
           {group}
         </span>
       </div>
 
-      <div className="my-auto min-w-0">
+      <div className="my-auto" style={{ minWidth: 0, overflow: 'hidden' }}>
         {isUnavailable ? (
           <Tooltip>
             <TooltipTrigger asChild>
-              <p className="kpi-value-short font-mono font-bold text-muted-foreground/50 cursor-help">
+              <p className="font-mono font-bold text-muted-foreground/50 cursor-help" style={valueShortStyle}>
                 --
               </p>
             </TooltipTrigger>
@@ -94,9 +168,8 @@ function ExecKPICard({ title, group, icon, kpi, index }: ExecKPICardProps) {
           </Tooltip>
         ) : (
           <p
-            className={`${isShortValue(displayVal) ? "kpi-value-short" : "kpi-value"} font-mono font-bold ${
-              isPositive ? "text-chart-green" : "text-chart-red"
-            }`}
+            className={`font-mono font-bold ${isPositive ? "text-chart-green" : "text-chart-red"}`}
+            style={isShortValue(displayVal) ? valueShortStyle : valueLongStyle}
             title={displayVal}
           >
             {displayVal}
@@ -104,13 +177,11 @@ function ExecKPICard({ title, group, icon, kpi, index }: ExecKPICardProps) {
         )}
       </div>
 
-      <div className="mt-auto space-y-0.5 min-w-0">
+      <div className="mt-auto space-y-0.5" style={{ minWidth: 0, overflow: 'hidden' }}>
         {!isUnavailable && kpi.changeFormatted !== "--" && (
           <div
-            className={`flex items-center gap-0.5 font-mono ${
-              isPositive ? "text-chart-green" : "text-chart-red"
-            }`}
-            style={{ fontSize: "clamp(10px, 1vw, 12px)" }}
+            className={`flex items-center gap-0.5 font-mono ${isPositive ? "text-chart-green" : "text-chart-red"}`}
+            style={trendStyle}
           >
             {isPositive ? (
               <TrendingUp className="w-3 h-3 shrink-0" />
@@ -120,7 +191,7 @@ function ExecKPICard({ title, group, icon, kpi, index }: ExecKPICardProps) {
             <span className="truncate">{kpi.changeFormatted}</span>
           </div>
         )}
-        <p className="kpi-subline font-mono text-muted-foreground" title={kpi.context}>
+        <p className="font-mono text-muted-foreground" style={sublineStyle} title={kpi.context}>
           {kpi.context}
         </p>
       </div>
@@ -153,8 +224,8 @@ function ZohoKPISkeleton({ index }: { index: number }) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.06 }}
-      className="kpi-card stat-card relative overflow-hidden flex flex-col min-w-0"
-      style={{ padding: "clamp(12px, 1.8vw, 20px)", minHeight: "120px" }}
+      className="stat-card relative overflow-hidden flex flex-col min-w-0"
+      style={cardContainerStyle}
     >
       <div className="flex items-start justify-between gap-1 mb-2">
         <Skeleton className="h-3 w-24" />
@@ -178,18 +249,18 @@ function ZohoKPIDisabled({ title, icon, group, index }: { title: string; icon: R
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.06 }}
-      className="kpi-card stat-card relative overflow-hidden flex flex-col opacity-60 min-w-0"
-      style={{ padding: "clamp(12px, 1.8vw, 20px)", minHeight: "120px" }}
+      className="stat-card relative overflow-hidden flex flex-col opacity-60 min-w-0"
+      style={cardContainerStyle}
     >
-      <div className="flex items-center justify-between gap-1 mb-1 min-w-0">
-        <div className="flex items-center gap-1.5 min-w-0">
+      <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: 'hidden' }}>
+        <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: 'hidden' }}>
           <span className="text-muted-foreground shrink-0">{icon}</span>
-          <p className="kpi-title text-muted-foreground font-mono font-medium">{title}</p>
+          <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>{title}</p>
         </div>
-        <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap shrink-0">{group}</span>
+        <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>{group}</span>
       </div>
-      <p className="kpi-value-short font-mono font-bold text-muted-foreground/40 my-auto">--</p>
-      <p className="kpi-subline font-mono text-muted-foreground mt-auto">Enable in Settings → Data Sources</p>
+      <p className="font-mono font-bold text-muted-foreground/40 my-auto" style={valueShortStyle}>--</p>
+      <p className="font-mono text-muted-foreground mt-auto" style={sublineStyle}>Enable in Settings → Data Sources</p>
       <div className="mt-2 h-[3px] bg-secondary rounded-full" />
     </motion.div>
   );
@@ -203,18 +274,18 @@ function ZohoKPIError({ title, icon, group, index }: { title: string; icon: Reac
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.06 }}
-      className="kpi-card stat-card relative overflow-hidden flex flex-col min-w-0"
-      style={{ padding: "clamp(12px, 1.8vw, 20px)", minHeight: "120px" }}
+      className="stat-card relative overflow-hidden flex flex-col min-w-0"
+      style={cardContainerStyle}
     >
-      <div className="flex items-center justify-between gap-1 mb-1 min-w-0">
-        <div className="flex items-center gap-1.5 min-w-0">
+      <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: 'hidden' }}>
+        <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: 'hidden' }}>
           <span className="text-muted-foreground shrink-0">{icon}</span>
-          <p className="kpi-title text-muted-foreground font-mono font-medium">{title}</p>
+          <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>{title}</p>
         </div>
-        <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap shrink-0">{group}</span>
+        <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>{group}</span>
       </div>
-      <p className="kpi-value-short font-mono font-bold text-muted-foreground/40 my-auto">--</p>
-      <p className="kpi-subline font-mono text-chart-amber mt-auto">Sync failed · Check Settings</p>
+      <p className="font-mono font-bold text-muted-foreground/40 my-auto" style={valueShortStyle}>--</p>
+      <p className="font-mono text-chart-amber mt-auto" style={sublineStyle}>Sync failed · Check Settings</p>
       <div className="mt-2 h-[3px] bg-secondary rounded-full" />
     </motion.div>
   );
@@ -241,29 +312,30 @@ function OnTimeDeliveryCard({ data, index }: { data: ProjectKPIData["kpis"]["onT
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.06 }}
-      className="kpi-card stat-card relative overflow-hidden flex flex-col min-w-0"
-      style={{ padding: "clamp(12px, 1.8vw, 20px)", minHeight: "120px" }}
+      className="stat-card relative overflow-hidden flex flex-col min-w-0"
+      style={cardContainerStyle}
     >
-      <div className="flex items-center justify-between gap-1 mb-1 min-w-0">
-        <div className="flex items-center gap-1.5 min-w-0">
+      <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: 'hidden' }}>
+        <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: 'hidden' }}>
           <CheckCircle2 className="w-4 h-4 text-muted-foreground shrink-0" />
-          <p className="kpi-title text-muted-foreground font-mono font-medium">On-Time Delivery</p>
+          <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>On-Time Delivery</p>
         </div>
-        <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap shrink-0">DELIVERY</span>
+        <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>DELIVERY</span>
       </div>
 
       <p
-        className={`${isShortValue(data.label) ? "kpi-value-short" : "kpi-value"} font-mono font-bold my-auto ${barFill >= 80 ? "text-chart-green" : barFill >= 60 ? "text-chart-amber" : "text-chart-red"}`}
+        className={`font-mono font-bold my-auto ${barFill >= 80 ? "text-chart-green" : barFill >= 60 ? "text-chart-amber" : "text-chart-red"}`}
+        style={isShortValue(data.label) ? valueShortStyle : valueLongStyle}
         title={data.label}
       >
         {data.label}
       </p>
 
-      <div className="mt-auto space-y-0.5 min-w-0">
-        <div className={`flex items-center gap-0.5 font-mono ${trendColor}`} style={{ fontSize: "clamp(10px, 1vw, 12px)" }}>
+      <div className="mt-auto space-y-0.5" style={{ minWidth: 0, overflow: 'hidden' }}>
+        <div className={`flex items-center gap-0.5 font-mono ${trendColor}`} style={trendStyle}>
           <span>{trendText}</span>
         </div>
-        <p className="kpi-subline font-mono text-muted-foreground" title={data.detail}>{data.detail}</p>
+        <p className="font-mono text-muted-foreground" style={sublineStyle} title={data.detail}>{data.detail}</p>
       </div>
 
       <div className="mt-2 h-[3px] bg-secondary rounded-full overflow-hidden">
@@ -292,28 +364,29 @@ function ScheduleSlippageCard({ data, index }: { data: ProjectKPIData["kpis"]["s
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: index * 0.06 }}
-          className="kpi-card stat-card relative overflow-hidden flex flex-col cursor-help min-w-0"
-          style={{ padding: "clamp(12px, 1.8vw, 20px)", minHeight: "120px" }}
+          className="stat-card relative overflow-hidden flex flex-col cursor-help min-w-0"
+          style={cardContainerStyle}
           onMouseEnter={() => data.overdueDetail.length > 0 && setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
         >
-          <div className="flex items-center justify-between gap-1 mb-1 min-w-0">
-            <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: 'hidden' }}>
+            <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: 'hidden' }}>
               <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
-              <p className="kpi-title text-muted-foreground font-mono font-medium">Schedule Slippage</p>
+              <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>Schedule Slippage</p>
             </div>
-            <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap shrink-0">DELIVERY</span>
+            <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>DELIVERY</span>
           </div>
 
           <p
-            className={`${isShortValue(data.label) ? "kpi-value-short" : "kpi-value"} font-mono font-bold my-auto ${data.isOverdue ? "text-chart-amber" : "text-chart-green"}`}
+            className={`font-mono font-bold my-auto ${data.isOverdue ? "text-chart-amber" : "text-chart-green"}`}
+            style={isShortValue(data.label) ? valueShortStyle : valueLongStyle}
             title={data.label}
           >
             {data.label}
           </p>
 
-          <div className="mt-auto space-y-0.5 min-w-0">
-            <p className="kpi-subline font-mono text-muted-foreground" title={data.detail}>{data.detail}</p>
+          <div className="mt-auto space-y-0.5" style={{ minWidth: 0, overflow: 'hidden' }}>
+            <p className="font-mono text-muted-foreground" style={sublineStyle} title={data.detail}>{data.detail}</p>
           </div>
 
           <div className="mt-2 h-[3px] bg-secondary rounded-full overflow-hidden">
@@ -348,25 +421,40 @@ function ScheduleSlippageCard({ data, index }: { data: ProjectKPIData["kpis"]["s
 // ── MARGIN VARIANCE CARD ──────────────────────────────────────────
 
 function MarginVarianceCard({ data, index }: { data: ProjectKPIData["kpis"]["marginVariance"]; index: number }) {
-  const isNull = data.value === null;
-  const barFill = isNull ? 0 : Math.min(100, ((data.actualGP ?? 0) / data.targetGP) * 100);
-  const barColor = data.isBelowTarget ? "bg-chart-red" : "bg-chart-green";
-  const displayVal = isNull ? "N/A" : data.label;
+  const [gpTarget, setGpTarget] = useState(loadGPTarget);
+
+  // Listen for GP target changes from the chart
+  useEffect(() => {
+    const handler = () => setGpTarget(loadGPTarget());
+    window.addEventListener("storage", handler);
+    window.addEventListener("gm-target-update", handler);
+    return () => {
+      window.removeEventListener("storage", handler);
+      window.removeEventListener("gm-target-update", handler);
+    };
+  }, []);
+
+  const isNull = data.actualGP === null || data.actualGP === undefined;
+  const actualGP = data.actualGP ?? 0;
+  const isBelowTarget = !isNull && actualGP < gpTarget;
+  const displayVal = isNull ? "N/A" : `${actualGP}%`;
+  const barFill = isNull ? 0 : Math.min(100, (actualGP / gpTarget) * 100);
+  const barColor = isBelowTarget ? "bg-chart-red" : "bg-chart-green";
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.06 }}
-      className="kpi-card stat-card relative overflow-hidden flex flex-col min-w-0"
-      style={{ padding: "clamp(12px, 1.8vw, 20px)", minHeight: "120px" }}
+      className="stat-card relative overflow-hidden flex flex-col min-w-0"
+      style={cardContainerStyle}
     >
-      <div className="flex items-center justify-between gap-1 mb-1 min-w-0">
-        <div className="flex items-center gap-1.5 min-w-0">
+      <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: 'hidden' }}>
+        <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: 'hidden' }}>
           <TrendingUp className="w-4 h-4 text-muted-foreground shrink-0" />
-          <p className="kpi-title text-muted-foreground font-mono font-medium">Margin Variance</p>
+          <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>Margin Variance</p>
         </div>
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
           {data.negativeGPJobs.length > 0 && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -391,14 +479,15 @@ function MarginVarianceCard({ data, index }: { data: ProjectKPIData["kpis"]["mar
       </div>
 
       <p
-        className={`${isShortValue(displayVal) ? "kpi-value-short" : "kpi-value"} font-mono font-bold my-auto ${isNull ? "text-muted-foreground/40" : data.isBelowTarget ? "text-chart-red" : "text-chart-green"}`}
+        className={`font-mono font-bold my-auto ${isNull ? "text-muted-foreground/40" : isBelowTarget ? "text-chart-red" : "text-chart-green"}`}
+        style={isShortValue(displayVal) ? valueShortStyle : valueLongStyle}
         title={displayVal}
       >
         {displayVal}
       </p>
 
-      <div className="mt-auto space-y-0.5 min-w-0">
-        <p className="kpi-subline font-mono text-muted-foreground" title={data.detail}>
+      <div className="mt-auto space-y-0.5" style={{ minWidth: 0, overflow: 'hidden' }}>
+        <p className="font-mono text-muted-foreground" style={sublineStyle} title={isNull ? "Revenue data unavailable" : data.detail}>
           {isNull ? "Revenue data unavailable" : data.detail}
         </p>
       </div>
@@ -427,28 +516,29 @@ function LabourEfficiencyCard({ data, index }: { data: ProjectKPIData["kpis"]["l
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.06 }}
-      className="kpi-card stat-card relative overflow-hidden flex flex-col min-w-0"
-      style={{ padding: "clamp(12px, 1.8vw, 20px)", minHeight: "120px" }}
+      className="stat-card relative overflow-hidden flex flex-col min-w-0"
+      style={cardContainerStyle}
     >
-      <div className="flex items-center justify-between gap-1 mb-1 min-w-0">
-        <div className="flex items-center gap-1.5 min-w-0">
+      <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: 'hidden' }}>
+        <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: 'hidden' }}>
           <Users className="w-4 h-4 text-muted-foreground shrink-0" />
-          <p className="kpi-title text-muted-foreground font-mono font-medium">Labour Efficiency</p>
+          <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>Labour Efficiency</p>
         </div>
-        <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap shrink-0">DELIVERY</span>
+        <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>DELIVERY</span>
       </div>
 
       <p
-        className={`${isShortValue(data.label) ? "kpi-value-short" : "kpi-value"} font-mono font-bold my-auto ${valueColor}`}
+        className={`font-mono font-bold my-auto ${valueColor}`}
+        style={isShortValue(data.label) ? valueShortStyle : valueLongStyle}
         title={data.label}
       >
         {data.label}
       </p>
 
-      <div className="mt-auto space-y-0.5 min-w-0">
-        <p className="kpi-subline font-mono text-muted-foreground" title={data.detail}>{data.detail}</p>
+      <div className="mt-auto space-y-0.5" style={{ minWidth: 0, overflow: 'hidden' }}>
+        <p className="font-mono text-muted-foreground" style={sublineStyle} title={data.detail}>{data.detail}</p>
         {data.note && (
-          <p className="kpi-note font-mono text-muted-foreground">{data.note}</p>
+          <p className="font-mono text-muted-foreground" style={noteStyle}>{data.note}</p>
         )}
       </div>
 

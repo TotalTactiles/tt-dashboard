@@ -46,6 +46,60 @@ function abbreviateValue(raw: string): { display: string; abbreviated: boolean }
   return { display: raw, abbreviated: false };
 }
 
+// Inline styles for fluid typography using container query inline units
+const titleStyle: React.CSSProperties = {
+  fontSize: 'clamp(0.5rem, 1.8cqi, 0.65rem)',
+  letterSpacing: '0.05em',
+  textTransform: 'uppercase',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  minWidth: 0,
+  maxWidth: '100%',
+};
+
+const valueShortStyle: React.CSSProperties = {
+  fontSize: 'clamp(1rem, 4.5cqi, 1.8rem)',
+  lineHeight: '1.2',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  minWidth: 0,
+  display: 'block',
+  maxWidth: '100%',
+};
+
+const valueLongStyle: React.CSSProperties = {
+  fontSize: 'clamp(0.75rem, 3.5cqi, 1.4rem)',
+  lineHeight: '1.2',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  minWidth: 0,
+  display: 'block',
+  maxWidth: '100%',
+};
+
+const sublineStyle: React.CSSProperties = {
+  fontSize: 'clamp(0.55rem, 1.6cqi, 0.72rem)',
+  lineHeight: '1.4',
+  overflow: 'hidden',
+  display: '-webkit-box',
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: 'vertical',
+  minWidth: 0,
+};
+
+const noteStyle: React.CSSProperties = {
+  fontSize: 'clamp(0.55rem, 1.4cqi, 0.65rem)',
+  lineHeight: '1.4',
+  overflow: 'hidden',
+  display: '-webkit-box',
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: 'vertical',
+  minWidth: 0,
+};
+
 const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted, toggleLabelBase, toggleLabelAlt, momDelta, momContext }: StatCardProps) => {
   const [showAlt, setShowAlt] = useState(false);
   const hasToggle = !!altValue;
@@ -64,24 +118,24 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
 
   const { display: abbreviatedDisplay } = abbreviateValue(displayValue);
 
-  // Yellow glow on card container when YLW toggle is active
   const ylwGlowClass = isYellow ? "ring-1 ring-amber-400/40 shadow-[0_0_12px_-3px_hsl(38,92%,55%,0.3)]" : "";
 
-  const isShortValue = abbreviatedDisplay.length <= 6;
+  const isShort = abbreviatedDisplay.length <= 8;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className={`stat-card relative overflow-hidden flex flex-col gap-0.5 [container-type:inline-size] ${ylwGlowClass}`}
-      style={{ minHeight: "100px" }}
+      className={`stat-card relative overflow-hidden flex flex-col gap-0.5 ${ylwGlowClass}`}
+      style={{ minHeight: "100px", containerType: 'inline-size' }}
     >
       {/* ROW 1 — Label + badges */}
-      <div className="flex items-start justify-between gap-1 min-w-0">
-        <div className="min-w-0 flex-1">
+      <div className="flex items-start justify-between gap-1" style={{ minWidth: 0, overflow: 'hidden' }}>
+        <div style={{ minWidth: 0, flex: '1 1 0%' }}>
           <p
-            className="kpi-title font-mono text-muted-foreground font-medium"
+            className="font-mono text-muted-foreground font-medium"
+            style={titleStyle}
             title={label}
           >
             {label}
@@ -91,7 +145,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
           {goalAdjusted && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="text-[9px] font-mono text-amber-400/70 bg-amber-400/10 border border-amber-400/20 rounded px-1 py-0.5 leading-none cursor-help whitespace-nowrap">
+                <span className="text-[9px] font-mono text-amber-400/70 bg-amber-400/10 border border-amber-400/20 rounded px-1 py-0.5 leading-none cursor-help whitespace-nowrap" style={{ flexShrink: 0 }}>
                   adj.
                 </span>
               </TooltipTrigger>
@@ -103,7 +157,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
           {formulaDriven && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="text-[9px] font-mono text-chart-green/70 bg-chart-green/10 border border-chart-green/20 rounded px-1 py-0.5 leading-none whitespace-nowrap">
+                <span className="text-[9px] font-mono text-chart-green/70 bg-chart-green/10 border border-chart-green/20 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>
                   f(x)
                 </span>
               </TooltipTrigger>
@@ -148,11 +202,12 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       )}
 
       {/* ROW 2 — Main value */}
-      <div className="min-w-0 my-0.5">
+      <div style={{ minWidth: 0, overflow: 'hidden' }} className="my-0.5">
         <Tooltip>
           <TooltipTrigger asChild>
             <span
-              className={`${isShortValue ? 'kpi-value-short' : 'kpi-value'} font-mono font-bold ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}
+              className={`font-mono font-bold ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}
+              style={isShort ? valueShortStyle : valueLongStyle}
               title={displayValue}
             >
               {abbreviatedDisplay}
@@ -167,7 +222,8 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       {/* ROW 3 — MoM delta */}
       {!noData && momDelta && (
         <p
-          className="kpi-subline font-mono text-muted-foreground"
+          className="font-mono text-muted-foreground"
+          style={sublineStyle}
           title={momDelta}
         >
           {momDelta}
@@ -177,7 +233,8 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       {/* ROW 3b — Monthly context */}
       {!noData && momContext && (
         <p
-          className="kpi-note font-mono text-muted-foreground/80"
+          className="font-mono text-muted-foreground/80"
+          style={noteStyle}
           title={momContext}
         >
           {momContext}
@@ -185,14 +242,14 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       )}
 
       {/* ROW 4 — Secondary metric / change + alt diff */}
-      <div className="min-w-0 mt-auto pt-1">
+      <div style={{ minWidth: 0, overflow: 'hidden' }} className="mt-auto pt-1">
         {showAlt && altDiff && !noData && (
-          <p className="kpi-subline font-mono text-amber-400/80" title={`${altDiff} with YLWs`}>
+          <p className="font-mono text-amber-400/80" style={sublineStyle} title={`${altDiff} with YLWs`}>
             ↑ {altDiff} with YLWs
           </p>
         )}
         {!noData && displayChange !== "--" && (
-          <div className={`kpi-subline flex items-center gap-0.5 font-mono ${accentColor}`}>
+          <div className={`flex items-center gap-0.5 font-mono ${accentColor}`} style={{ ...sublineStyle, display: 'flex', WebkitLineClamp: undefined, WebkitBoxOrient: undefined }}>
             {displayPositive ? <TrendingUp className="w-3 h-3 shrink-0" /> : <TrendingDown className="w-3 h-3 shrink-0" />}
             <span className="truncate" title={displayChange}>{displayChange}</span>
           </div>
