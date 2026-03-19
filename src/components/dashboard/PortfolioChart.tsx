@@ -50,9 +50,9 @@ interface PortfolioChartProps {
   adjustments?: GoalAdjustment[];
 }
 
-const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps) => {
+const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartProps) => {
   const { incomeOutgoingsData, dataHealth } = useDashboardData();
-  const sourceData = adjustedData ?? incomeOutgoingsData;
+  const sourceData = useMemo(() => adjustedData ?? incomeOutgoingsData, [adjustedData, incomeOutgoingsData]);
   const [exportOpen, setExportOpen] = useState(false);
   const { resolvedTheme } = useTheme();
 
