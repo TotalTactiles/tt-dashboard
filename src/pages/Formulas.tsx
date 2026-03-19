@@ -1,17 +1,75 @@
-import { useState } from "react";
-import { Plus, FunctionSquare } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, FunctionSquare, ChevronDown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { MetricFormula } from "@/hooks/useFormulas";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import FormulaCard from "@/components/goals/FormulaCard";
 import FormulaForm from "@/components/goals/FormulaForm";
+import { Badge } from "@/components/ui/badge";
+
+interface FormulaSection {
+  key: string;
+  title: string;
+  subtitle: string;
+  formulas: MetricFormula[];
+}
+
+const SECTION_ORDER = ["Business Overview", "Project Execution", "Cashflow & Forecasts"];
 
 const Formulas = () => {
   const { formulas, addFormula, updateFormula, deleteFormula, kpiVariables } = useDashboardData();
 
   const [formulaFormOpen, setFormulaFormOpen] = useState(false);
   const [editingFormula, setEditingFormula] = useState<MetricFormula | undefined>();
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+
+  const sections = useMemo<FormulaSection[]>(() => {
+    const grouped: Record<string, MetricFormula[]> = {};
+    for (const f of formulas) {
+      const section = f.section || "Business Overview";
+      if (!grouped[section]) grouped[section] = [];
+      grouped[section].push(f);
+    }
+
+    const result: FormulaSection[] = [];
+
+    // Business Overview
+    result.push({
+      key: "Business Overview",
+      title: "Business Overview",
+      subtitle: "Top-level KPI cards",
+      formulas: grouped["Business Overview"] || [],
+    });
+
+    // Project Execution
+    result.push({
+      key: "Project Execution",
+      title: "Project Execution",
+      subtitle: "Delivery, profitability & cashflow KPIs",
+      formulas: grouped["Project Execution"] || [],
+    });
+
+    // Cashflow & Forecasts placeholder
+    result.push({
+      key: "Cashflow & Forecasts",
+      title: "Cashflow & Forecasts",
+      subtitle: "Coming soon",
+      formulas: grouped["Cashflow & Forecasts"] || [],
+    });
+
+    return result;
+  }, [formulas]);
+
+  const toggleSection = (key: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const handleEditFormula = (formula: MetricFormula) => {
     setEditingFormula(formula);
@@ -47,15 +105,76 @@ const Formulas = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
-        {formulas.map((formula) => (
-          <FormulaCard
-            key={formula.id}
-            formula={formula}
-            onEdit={handleEditFormula}
-            onDelete={deleteFormula}
-          />
-        ))}
+      <div className="space-y-4">
+        {sections.map((section) => {
+          const isCollapsed = collapsedSections.has(section.key);
+
+          return (
+            <div key={section.key} className="stat-card overflow-hidden">
+              {/* Section header */}
+              <button
+                onClick={() => toggleSection(section.key)}
+                className="w-full flex items-center justify-between gap-3 p-3 md:p-4 hover:bg-secondary/30 transition-colors"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="min-w-0">
+                    <h2 className="text-sm font-semibold font-mono text-foreground text-left">
+                      {section.title}
+                    </h2>
+                    <p className="text-[11px] font-mono text-muted-foreground text-left">
+                      {section.subtitle}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Badge variant="secondary" className="text-[10px] font-mono">
+                    {section.formulas.length} formulas
+                  </Badge>
+                  <ChevronDown
+                    className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${
+                      isCollapsed ? "" : "rotate-180"
+                    }`}
+                  />
+                </div>
+              </button>
+
+              {/* Section content */}
+              <AnimatePresence initial={false}>
+                {!isCollapsed && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-3 md:px-4 pb-3 md:pb-4">
+                      {section.formulas.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
+                          {section.formulas.map((formula) => (
+                            <FormulaCard
+                              key={formula.id}
+                              formula={formula}
+                              onEdit={handleEditFormula}
+                              onDelete={deleteFormula}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-8">
+                          <FunctionSquare className="h-6 w-6 text-muted-foreground/40 mb-2" />
+                          <p className="text-xs text-muted-foreground font-mono">
+                            No formulas configured for this section yet.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
       </div>
 
       {formulas.length === 0 && (
