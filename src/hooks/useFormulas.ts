@@ -67,12 +67,12 @@ const DEFAULT_FORMULAS: Omit<MetricFormula, "id">[] = [
   { name: "Total Quoted", expression: "TotalQuoted", description: "Sum of all quoted project values", unit: "$", category: "Financial", dashboardCard: "Total Quoted", dataSource: "Google Sheets" },
   { name: "Total Won", expression: "TotalWon", description: "Sum of all won project values", unit: "$", category: "Financial", dashboardCard: "Total Won", dataSource: "Google Sheets" },
   { name: "Quoted Remaining", expression: "QuotedRemaining", description: "Value of quotes still pending", unit: "$", category: "Financial", dashboardCard: "Quoted Remaining", dataSource: "Google Sheets" },
-  { name: "Conversion Rate", expression: "ConversionRate", description: "Won vs quoted percentage", unit: "%", category: "Growth", dashboardCard: "Conversion Rate", dataSource: "Google Sheets" },
+  { name: "Conversion Rate (Confirmed)", expression: "ConversionRateConfirmed", description: "PO Received (GRN) + Completed jobs only divided by total quoted. Excludes Verbal Confirmation (YLW) stage.", unit: "%", category: "Growth", dashboardCard: "Conversion Rate", dataSource: "Google Sheets" },
+  { name: "Conversion Rate (With YLWs)", expression: "ConversionRate", description: "YLW + GRN confirmed + verbal wins divided by total quoted. Includes Verbal Confirmation (YLW) stage jobs.", unit: "%", category: "Growth", dashboardCard: "Conversion Rate", dataSource: "Google Sheets" },
   { name: "Net Revenue", expression: "NetRevenue", description: "Revenue minus cost of sales", unit: "$", category: "Financial", dashboardCard: "Net Revenue", dataSource: "Google Sheets" },
   { name: "Cashflow Position", expression: "CashPosition", description: "Current available cash position", unit: "$", category: "Financial", dashboardCard: "Cashflow Position", dataSource: "Google Sheets" },
   { name: "Monthly Expenses", expression: "MonthlyExpenses", description: "Total monthly operating expenses", unit: "$", category: "Operational", dashboardCard: "Monthly Expenses", dataSource: "Google Sheets" },
   { name: "Gross Profit Margin", expression: "GrossProfitMargin", description: GROSS_PROFIT_MARGIN_DESCRIPTION, unit: "%", category: "Growth", dashboardCard: "Gross Profit Margin", dataSource: "Google Sheets" },
-  { name: "Conversion Rate (Incl. Verbal)", expression: "YLWplusGRN / TotalQuoted * 100", description: "Won + Verbal Confirmation vs total quoted percentage", unit: "%", category: "Growth", dashboardCard: "Conversion Rate", dataSource: "Google Sheets" },
   { name: "Total Won (With YLWs)", expression: "YLWplusGRN", description: "Total won value including Verbal Confirmation (YLW) jobs", unit: "$", category: "Financial", dashboardCard: "Total Won", dataSource: "Google Sheets" },
 ];
 
