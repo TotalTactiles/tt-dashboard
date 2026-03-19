@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo, useRef, useState, useCallback } from "react";
-import { useDataSources } from "@/hooks/useDataSources";
+import { useDataSources, type ProjectKPIData } from "@/hooks/useDataSources";
 import { resolveKpiVariables, createFormulaCache, DataStore, type EvaluationCache } from "@/engine/formulaEngine";
 import { useFormulas } from "@/hooks/useFormulas";
 import { formatMetricValue } from "@/lib/formatMetricValue";
