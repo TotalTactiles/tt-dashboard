@@ -87,7 +87,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
             {label}
           </p>
         </div>
-        <div className="flex items-center gap-0.5 shrink-0 flex-wrap justify-end" style={{ maxWidth: "50%" }}>
+        <div className="flex items-center gap-0.5 flex-shrink-0 flex-wrap justify-end" style={{ maxWidth: "50%" }}>
           {goalAdjusted && (
             <Tooltip>
               <TooltipTrigger asChild>
