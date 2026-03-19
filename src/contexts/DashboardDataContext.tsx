@@ -224,6 +224,7 @@ export interface DashboardData {
   dataHealth: DataHealth;
   quotesDebug: QuotesDebugInfo;
   isLoading: boolean;
+  isRefreshing: boolean;
   hasLiveData: boolean;
   connectedCount: number;
   lastUpdated: string | null;
