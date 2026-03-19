@@ -886,18 +886,18 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       },
       {
         label: "Conversion Rate",
-        value: noData ? "--" : `${conversionRateVal}%`,
+        value: noData ? "--" : `${confirmedConvRate.toFixed(1)}%`,
         change: noData ? "--" : `${baseWonCount} won of ${totalQuotedCount}`,
-        positive: conversionRateVal >= 20, noData,
+        positive: confirmedConvRate >= 20, noData,
         altValue: noData ? "--" : `${combinedConvRate.toFixed(1)}%`,
         altChange: noData ? "--" : `${combinedConvCount} won incl YLW of ${totalQuotedCount}`,
         altPositive: combinedConvRate > 0,
         momDelta: noData ? undefined : (() => {
           if (!hasPrevMon) return noMomText;
           const prevConvRate = prevMon.totalCount > 0 ? (prevMon.wonCount / prevMon.totalCount) * 100 : 0;
-          return fmtDelta(conversionRateVal, prevConvRate, "pp");
+          return fmtDelta(confirmedConvRate, prevConvRate, "pp");
         })(),
-        momContext: noData ? undefined : `${baseWonCount} won incl YLW of ${totalQuotedCount}`,
+        momContext: noData ? undefined : `${baseWonCount} won of ${totalQuotedCount}`,
       },
     ];
 
