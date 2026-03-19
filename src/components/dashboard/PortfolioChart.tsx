@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, ReferenceLine, Cell } from "recharts";
 import { Download } from "lucide-react";
@@ -50,9 +50,9 @@ interface PortfolioChartProps {
   adjustments?: GoalAdjustment[];
 }
 
-const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps) => {
+const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartProps) => {
   const { incomeOutgoingsData, dataHealth } = useDashboardData();
-  const sourceData = adjustedData ?? incomeOutgoingsData;
+  const sourceData = useMemo(() => adjustedData ?? incomeOutgoingsData, [adjustedData, incomeOutgoingsData]);
   const [exportOpen, setExportOpen] = useState(false);
   const { resolvedTheme } = useTheme();
 
@@ -360,5 +360,8 @@ const PortfolioChart = ({ adjustedData, adjustments = [] }: PortfolioChartProps)
     </motion.div>
   );
 };
+
+const PortfolioChart = React.memo(PortfolioChartInner);
+PortfolioChart.displayName = "PortfolioChart";
 
 export default PortfolioChart;

@@ -935,6 +935,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const lastUpdated = meta?.pulledAt ?? null;
 
     // Compute formula cache with full DataStore — detect changes
+    // (debounced externally via computeTimerRef, but initial compute is synchronous within useMemo)
     const prevResults = { ...formulaCacheInstance.getAll() };
     formulaCacheInstance.invalidate();
     const changedFormulas: string[] = [];

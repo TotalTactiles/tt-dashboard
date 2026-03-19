@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
@@ -26,9 +26,9 @@ interface CashflowChartProps {
   adjustments?: GoalAdjustment[];
 }
 
-const CashflowChart = ({ adjustedData, adjustments = [] }: CashflowChartProps) => {
+const CashflowChartInner = ({ adjustedData, adjustments = [] }: CashflowChartProps) => {
   const { incomeOutgoingsData, dataHealth } = useDashboardData();
-  const chartData = adjustedData ?? incomeOutgoingsData;
+  const chartData = useMemo(() => adjustedData ?? incomeOutgoingsData, [adjustedData, incomeOutgoingsData]);
   const { resolvedTheme } = useTheme();
 
   const [selStart, setSelStart] = useState<string | null>(null);
@@ -331,5 +331,8 @@ const CashflowChart = ({ adjustedData, adjustments = [] }: CashflowChartProps) =
     </motion.div>
   );
 };
+
+const CashflowChart = React.memo(CashflowChartInner);
+CashflowChart.displayName = "CashflowChart";
 
 export default CashflowChart;

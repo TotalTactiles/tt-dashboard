@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
@@ -39,7 +39,7 @@ interface ExpenseBreakdownProps {
   activeGoalIds?: Set<string>;
 }
 
-const ExpenseBreakdown = ({ goals = [], activeGoalIds = new Set() }: ExpenseBreakdownProps) => {
+const ExpenseBreakdownInner = ({ goals = [], activeGoalIds = new Set() }: ExpenseBreakdownProps) => {
   const { expenseCategories, grandTotalExpense, dataHealth } = useDashboardData();
   const [period, setPeriod] = useState<Period>("monthly");
   const [modalOpen, setModalOpen] = useState(false);
@@ -48,12 +48,12 @@ const ExpenseBreakdown = ({ goals = [], activeGoalIds = new Set() }: ExpenseBrea
   // Goals expense category
   const goalsCategory = useMemo(() => getGoalExpenseCategory(goals, activeGoalIds), [goals, activeGoalIds]);
 
-  const allItems = expenseCategories.flatMap((c) => c.items);
-  const basePieData = allItems.map((item, i) => ({
+  const allItems = useMemo(() => expenseCategories.flatMap((c) => c.items), [expenseCategories]);
+  const basePieData = useMemo(() => allItems.map((item, i) => ({
     name: item.name,
     value: getCostByPeriod(item, period),
     fill: PIE_COLORS[i % PIE_COLORS.length],
-  }));
+  })), [allItems, period]);
 
   // Add goals segment to pie
   const pieData = useMemo(() => {
@@ -270,5 +270,8 @@ const ExpenseBreakdown = ({ goals = [], activeGoalIds = new Set() }: ExpenseBrea
     </motion.div>
   );
 };
+
+const ExpenseBreakdown = React.memo(ExpenseBreakdownInner);
+ExpenseBreakdown.displayName = "ExpenseBreakdown";
 
 export default ExpenseBreakdown;

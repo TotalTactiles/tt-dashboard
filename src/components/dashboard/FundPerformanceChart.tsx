@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
@@ -22,7 +22,7 @@ function saveGPTarget(value: number): void {
   sessionStorage.setItem(GM_TARGET_KEY, String(value));
 }
 
-const FundPerformanceChart = () => {
+const FundPerformanceChartInner = () => {
   const { profitMarginData, dataHealth } = useDashboardData();
   const { resolvedTheme } = useTheme();
   const [target, setTarget] = useState(loadGPTarget);
@@ -149,5 +149,8 @@ const FundPerformanceChart = () => {
     </motion.div>
   );
 };
+
+const FundPerformanceChart = React.memo(FundPerformanceChartInner);
+FundPerformanceChart.displayName = "FundPerformanceChart";
 
 export default FundPerformanceChart;
