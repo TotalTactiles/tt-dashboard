@@ -142,7 +142,7 @@ export function evaluateExpression(
 // Default variable names shown when no live data is available
 const DEFAULT_VARIABLE_NAMES = [
   "TotalQuoted", "TotalWon", "QuotedRemaining",
-  "ConversionRate", "NetRevenue", "CashPosition", "MonthlyExpenses",
+  "ConversionRate", "ConversionRateConfirmed", "NetRevenue", "CashPosition", "MonthlyExpenses",
   "GrossProfitMargin",
 ];
 

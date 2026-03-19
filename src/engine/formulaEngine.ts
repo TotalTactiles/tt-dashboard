@@ -808,6 +808,13 @@ export function resolveKpiVariables(store: DataStore): Record<string, number> {
     reason: cashPositionMatchedKey ? "PASS" : `Current month "${cashPositionMonthKey}" not found`,
   });
 
+  // Confirmed-only conversion rate: (PO Received + Completed) / Grand Total
+  const wonCount = resolvePath("quotesSummary.totalWon.count", store);
+  const totalCount = resolvePath("quotesSummary.totalQuoted.count", store);
+  const confirmedCR = totalCount > 0
+    ? Math.round((wonCount / totalCount) * 10000) / 100
+    : 0;
+
   return {
     TotalQuoted: resolvePath("quotesSummary.totalQuoted.value", store),
     TotalWon: resolvePath("quotesSummary.totalWon.value", store),
@@ -815,6 +822,7 @@ export function resolveKpiVariables(store: DataStore): Record<string, number> {
     TotalLost: resolvePath("quotesSummary.totalLost.value", store),
     TotalYellow: resolvePath("quotesSummary.totalYellow.value", store),
     ConversionRate: resolvePath("quotesSummary.conversionRate", store),
+    ConversionRateConfirmed: confirmedCR,
     YLWplusGRN: resolvePath("quotesSummary.ylwPlusGrn.value", store),
     GrossRevenue: totalValue,
     TotalCOGS: totalCOGS,
