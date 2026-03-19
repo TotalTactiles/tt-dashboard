@@ -151,13 +151,12 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       <div className="min-w-0 my-0.5">
         <Tooltip>
           <TooltipTrigger asChild>
-            <p
-              className={`font-mono font-bold whitespace-nowrap min-w-0 ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}
-              style={{ fontSize: "clamp(20px, 3.5vw, 32px)", lineHeight: 1.15 }}
+            <span
+              className={`${isShortValue ? 'kpi-value-short' : 'kpi-value'} font-mono font-bold ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}
               title={displayValue}
             >
               {abbreviatedDisplay}
-            </p>
+            </span>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="text-xs font-mono">
             {displayValue}
