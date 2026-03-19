@@ -192,7 +192,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
           </p>
         )}
         {!noData && displayChange !== "--" && (
-          <div className={`flex items-center gap-0.5 font-mono ${accentColor}`} style={{ fontSize: "clamp(9px, 1vw, 12px)" }}>
+          <div className={`kpi-subline flex items-center gap-0.5 font-mono ${accentColor}`}>
             {displayPositive ? <TrendingUp className="w-3 h-3 shrink-0" /> : <TrendingDown className="w-3 h-3 shrink-0" />}
             <span className="truncate" title={displayChange}>{displayChange}</span>
           </div>
