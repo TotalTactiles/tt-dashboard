@@ -221,6 +221,14 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  /* Prevent text selection on chart elements during drag operations */
+  .chart-drag-container,
+  .chart-drag-container * {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
   .text-fluid-heading {
     font-size: clamp(1rem, 0.85rem + 0.8vw, 1.4rem);
   }
