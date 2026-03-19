@@ -81,8 +81,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       <div className="flex items-start justify-between gap-1 min-w-0">
         <div className="min-w-0 flex-1">
           <p
-            className="text-muted-foreground font-mono uppercase tracking-wider truncate font-medium"
-            style={{ fontSize: "clamp(9px, 1vw, 11px)" }}
+            className="kpi-title font-mono text-muted-foreground font-medium"
             title={label}
           >
             {label}
