@@ -297,9 +297,9 @@ const DashboardContent = () => {
               </span>
             }
           </div>
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading} className="gap-1.5">
-            {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-            Refresh
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading || isRefreshing} className="gap-1.5">
+            {isLoading || isRefreshing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+            {isRefreshing ? "Refreshing…" : "Refresh"}
           </Button>
           <Badge
             variant={hasLiveData ? "default" : "secondary"}
