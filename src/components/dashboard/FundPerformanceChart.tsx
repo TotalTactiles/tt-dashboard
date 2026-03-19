@@ -52,7 +52,7 @@ const FundPerformanceChart = () => {
     const n = parseFloat(draft);
     if (!isNaN(n) && n >= 0 && n <= 100) {
       setTarget(n);
-      localStorage.setItem(GM_TARGET_KEY, String(n));
+      saveGPTarget(n);
       window.dispatchEvent(new Event("gm-target-update"));
     }
     setEditing(false);
