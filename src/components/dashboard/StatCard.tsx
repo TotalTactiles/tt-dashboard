@@ -167,8 +167,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       {/* ROW 3 — MoM delta */}
       {!noData && momDelta && (
         <p
-          className="font-mono text-muted-foreground truncate leading-snug"
-          style={{ fontSize: "clamp(9px, 0.9vw, 11px)" }}
+          className="kpi-subline font-mono text-muted-foreground"
           title={momDelta}
         >
           {momDelta}
