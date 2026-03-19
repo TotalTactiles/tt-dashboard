@@ -14,7 +14,7 @@ const SERIES = [
   { key: "surplusIncludingProbable", label: "Anticipated Cash Surplus/(Deficit) Including Probable Jobs", color: "brightGreen" as const, dash: "10 3", strokeWidth: 2.5 },
 ] as const;
 
-const ForecastChart = () => {
+const ForecastChart = React.memo(() => {
   const { forecastChartData, dataHealth } = useDashboardData();
   const { resolvedTheme } = useTheme();
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(() => new Set(SERIES.map(s => s.key)));
