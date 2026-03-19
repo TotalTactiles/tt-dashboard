@@ -33,7 +33,7 @@ const FundPerformanceChart = () => {
   const tc = useMemo(() => chartColors(), [resolvedTheme]);
 
   useEffect(() => {
-    const handler = () => setTarget(loadTarget());
+    const handler = () => setTarget(loadGPTarget());
     window.addEventListener("storage", handler);
     window.addEventListener("gm-target-update", handler);
     return () => {
