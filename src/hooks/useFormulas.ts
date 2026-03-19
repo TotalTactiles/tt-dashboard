@@ -9,6 +9,7 @@ export interface MetricFormula {
   category: string;
   dashboardCard?: string;
   dataSource?: string;
+  section?: string;
 }
 
 export const DASHBOARD_CARDS = [
@@ -36,7 +37,7 @@ export const DATA_SOURCES = [
 
 const STORAGE_KEY = "meridian_formulas";
 const SEED_KEY = "meridian_formulas_seeded";
-const FORMULA_MIGRATION_KEY = "meridian_formulas_v4_gross_margin_split";
+const FORMULA_MIGRATION_KEY = "meridian_formulas_v5_project_execution";
 
 const GROSS_PROFIT_MARGIN_DESCRIPTION = `What is calculated:
 • Gross Profit Margin % for each month shown in the chart
@@ -64,16 +65,22 @@ Source fields / rows used:
 • Month key format: Mon-YY (e.g. Jan-26)`;
 
 const DEFAULT_FORMULAS: Omit<MetricFormula, "id">[] = [
-  { name: "Total Quoted", expression: "TotalQuoted", description: "Sum of all quoted project values", unit: "$", category: "Financial", dashboardCard: "Total Quoted", dataSource: "Google Sheets" },
-  { name: "Total Won", expression: "TotalWon", description: "Sum of all won project values", unit: "$", category: "Financial", dashboardCard: "Total Won", dataSource: "Google Sheets" },
-  { name: "Quoted Remaining", expression: "QuotedRemaining", description: "Value of quotes still pending", unit: "$", category: "Financial", dashboardCard: "Quoted Remaining", dataSource: "Google Sheets" },
-  { name: "Conversion Rate (Confirmed)", expression: "ConversionRateConfirmed", description: "PO Received (GRN) + Completed jobs only divided by total quoted. Excludes Verbal Confirmation (YLW) stage.", unit: "%", category: "Growth", dashboardCard: "Conversion Rate", dataSource: "Google Sheets" },
-  { name: "Conversion Rate (With YLWs)", expression: "ConversionRate", description: "YLW + GRN confirmed + verbal wins divided by total quoted. Includes Verbal Confirmation (YLW) stage jobs.", unit: "%", category: "Growth", dashboardCard: "Conversion Rate", dataSource: "Google Sheets" },
-  { name: "Net Revenue", expression: "NetRevenue", description: "Revenue minus cost of sales", unit: "$", category: "Financial", dashboardCard: "Net Revenue", dataSource: "Google Sheets" },
-  { name: "Cashflow Position", expression: "CashPosition", description: "Current available cash position", unit: "$", category: "Financial", dashboardCard: "Cashflow Position", dataSource: "Google Sheets" },
-  { name: "Monthly Expenses", expression: "MonthlyExpenses", description: "Total monthly operating expenses", unit: "$", category: "Operational", dashboardCard: "Monthly Expenses", dataSource: "Google Sheets" },
-  { name: "Gross Profit Margin", expression: "GrossProfitMargin", description: GROSS_PROFIT_MARGIN_DESCRIPTION, unit: "%", category: "Growth", dashboardCard: "Gross Profit Margin", dataSource: "Google Sheets" },
-  { name: "Total Won (With YLWs)", expression: "YLWplusGRN", description: "Total won value including Verbal Confirmation (YLW) jobs", unit: "$", category: "Financial", dashboardCard: "Total Won", dataSource: "Google Sheets" },
+  // Business Overview
+  { name: "Total Quoted", expression: "TotalQuoted", description: "Sum of all quoted project values", unit: "$", category: "Financial", dashboardCard: "Total Quoted", dataSource: "Google Sheets", section: "Business Overview" },
+  { name: "Total Won", expression: "TotalWon", description: "Sum of all won project values", unit: "$", category: "Financial", dashboardCard: "Total Won", dataSource: "Google Sheets", section: "Business Overview" },
+  { name: "Quoted Remaining", expression: "QuotedRemaining", description: "Value of quotes still pending", unit: "$", category: "Financial", dashboardCard: "Quoted Remaining", dataSource: "Google Sheets", section: "Business Overview" },
+  { name: "Conversion Rate (Confirmed)", expression: "ConversionRateConfirmed", description: "PO Received (GRN) + Completed jobs only divided by total quoted. Excludes Verbal Confirmation (YLW) stage.", unit: "%", category: "Growth", dashboardCard: "Conversion Rate", dataSource: "Google Sheets", section: "Business Overview" },
+  { name: "Conversion Rate (With YLWs)", expression: "ConversionRate", description: "YLW + GRN confirmed + verbal wins divided by total quoted. Includes Verbal Confirmation (YLW) stage jobs.", unit: "%", category: "Growth", dashboardCard: "Conversion Rate", dataSource: "Google Sheets", section: "Business Overview" },
+  { name: "Net Revenue", expression: "NetRevenue", description: "Revenue minus cost of sales", unit: "$", category: "Financial", dashboardCard: "Net Revenue", dataSource: "Google Sheets", section: "Business Overview" },
+  { name: "Cashflow Position", expression: "CashPosition", description: "Current available cash position", unit: "$", category: "Financial", dashboardCard: "Cashflow Position", dataSource: "Google Sheets", section: "Business Overview" },
+  { name: "Monthly Expenses", expression: "MonthlyExpenses", description: "Total monthly operating expenses", unit: "$", category: "Operational", dashboardCard: "Monthly Expenses", dataSource: "Google Sheets", section: "Business Overview" },
+  { name: "Gross Profit Margin", expression: "GrossProfitMargin", description: GROSS_PROFIT_MARGIN_DESCRIPTION, unit: "%", category: "Growth", dashboardCard: "Gross Profit Margin", dataSource: "Google Sheets", section: "Business Overview" },
+  { name: "Total Won (With YLWs)", expression: "YLWplusGRN", description: "Total won value including Verbal Confirmation (YLW) jobs", unit: "$", category: "Financial", dashboardCard: "Total Won", dataSource: "Google Sheets", section: "Business Overview" },
+  // Project Execution
+  { name: "On-Time Delivery", expression: "onTimeDelivery", description: "% of milestones and tasks completed on or before due date", unit: "%", category: "Delivery", dataSource: "Zoho Projects", section: "Project Execution" },
+  { name: "Schedule Slippage", expression: "scheduleSlippage", description: "Average days overdue across all active overdue milestones", unit: "days", category: "Delivery", dataSource: "Zoho Projects", section: "Project Execution" },
+  { name: "Margin Variance", expression: "marginVariance", description: "Actual GP% minus target GP%. Positive = above target, negative = below.", unit: "%", category: "Profit", dataSource: "Zoho Projects", section: "Project Execution" },
+  { name: "Labour Efficiency", expression: "labourEfficiency", description: "Estimated hours vs actual logged hours. 100% = on budget. Requires task durations set in Zoho Projects.", unit: "%", category: "Delivery", dataSource: "Zoho Projects", section: "Project Execution" },
 ];
 
 // Simple tokenizer and evaluator for arithmetic expressions with named variables
@@ -195,9 +202,8 @@ function migrateStoredFormulas(formulas: MetricFormula[]): MetricFormula[] {
     changed = true;
   }
 
-  for (const systemFormulaName of ["Gross Profit Margin"]) {
-    const systemFormula = DEFAULT_FORMULAS.find((formula) => formula.name === systemFormulaName);
-    if (!systemFormula) continue;
+  // Upsert all system formulas (ensures new ones are added, existing ones updated)
+  for (const systemFormula of DEFAULT_FORMULAS) {
     const result = upsertSystemFormula(next, systemFormula);
     next = result.formulas;
     changed = changed || result.changed;
