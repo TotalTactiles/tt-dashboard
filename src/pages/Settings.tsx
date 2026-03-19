@@ -495,6 +495,87 @@ const Settings = () => {
                   })}
                 </div>
               </div>
+
+              {/* ── ZOHO PROJECTS DEBUG ── */}
+              <div className="pt-4 border-t border-border">
+                <p className="text-xs font-mono font-medium uppercase tracking-wider text-muted-foreground mb-3">Zoho Projects</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="border border-border rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground font-mono mb-1">Last Pull</p>
+                    <p className="text-sm font-mono text-foreground">
+                      {projectKPIData?.generatedAt
+                        ? new Date(projectKPIData.generatedAt).toLocaleString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })
+                        : "—"}
+                    </p>
+                  </div>
+                  <div className="border border-border rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground font-mono mb-1">Projects</p>
+                    <p className="text-sm font-mono text-foreground">{projectKPIData?.dataHealth.projects ?? "--"}</p>
+                  </div>
+                  <div className="border border-border rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground font-mono mb-1">Milestones</p>
+                    <p className="text-sm font-mono text-foreground">{projectKPIData?.dataHealth.milestones ?? "--"}</p>
+                  </div>
+                  <div className="border border-border rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground font-mono mb-1">Tasks</p>
+                    <p className="text-sm font-mono text-foreground">{projectKPIData?.dataHealth.tasks ?? "--"}</p>
+                  </div>
+                  <div className="border border-border rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground font-mono mb-1">Revenue Rows</p>
+                    <p className="text-sm font-mono text-foreground">{projectKPIData?.dataHealth.revenueRows ?? "--"}</p>
+                  </div>
+                  <div className="border border-border rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground font-mono mb-1">Valid Rev Rows</p>
+                    <p className="text-sm font-mono text-foreground">{projectKPIData?.dataHealth.validRevenueRows ?? "--"}</p>
+                  </div>
+                </div>
+
+                {/* KPI summary pill */}
+                <div className="mt-3">
+                  <p className="text-xs font-mono text-muted-foreground mb-2">Debug KPIs</p>
+                  <div className="flex flex-wrap gap-2">
+                    {projectKPIData ? (
+                      <Badge variant="secondary" className="text-xs font-mono">
+                        KPIs — onTime:{projectKPIData.kpis.onTimeDelivery.value ?? "N/A"} slippage:{projectKPIData.kpis.scheduleSlippage.value}d margin:{projectKPIData.kpis.marginVariance.actualGP ?? "N/A"}% labour:{projectKPIData.kpis.labourEfficiency.label} costOverrun:{projectKPIData.kpis.costOverrun.label}
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-xs font-mono text-muted-foreground">
+                        No data — Zoho Projects not yet synced
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Expandable KPI JSON previews */}
+                <div className="mt-3 space-y-3">
+                  <p className="text-xs font-mono text-muted-foreground mb-2">Raw KPI Preview</p>
+                  {([
+                    { key: "onTimeDelivery", label: "ON-TIME DELIVERY", badge: projectKPIData ? `${projectKPIData.kpis.onTimeDelivery.completedTasks} completed` : null },
+                    { key: "scheduleSlippage", label: "SCHEDULE SLIPPAGE", badge: projectKPIData ? `${projectKPIData.kpis.scheduleSlippage.overdueDetail.length} overdue` : null },
+                    { key: "marginVariance", label: "MARGIN VARIANCE", badge: projectKPIData ? `${projectKPIData.kpis.marginVariance.negativeGPJobs.length + (projectKPIData.kpis.marginVariance.revenueBase > 0 ? projectKPIData.dataHealth.validRevenueRows : 0)} jobs` : null },
+                    { key: "labourEfficiency", label: "LABOUR EFFICIENCY", badge: projectKPIData ? (projectKPIData.kpis.labourEfficiency.dataReady ? "ready" : "pending") : null },
+                  ] as const).map(({ key, label, badge }) => {
+                    const kpiObj = projectKPIData?.kpis?.[key as keyof typeof projectKPIData.kpis] ?? null;
+                    return (
+                      <div key={key} className="border border-border rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-mono font-medium uppercase">{label}</span>
+                          <Badge variant={kpiObj ? "default" : "secondary"} className="text-xs font-mono">
+                            {badge ?? "missing"}
+                          </Badge>
+                        </div>
+                        {kpiObj ? (
+                          <pre className="mt-2 text-xs font-mono text-foreground/70 bg-secondary/50 rounded p-2 overflow-x-auto max-h-40 overflow-y-auto">
+                            {JSON.stringify(kpiObj, null, 2)}
+                          </pre>
+                        ) : (
+                          <p className="text-xs text-muted-foreground font-mono mt-1">No data received</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           );
         })()}
