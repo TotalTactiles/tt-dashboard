@@ -159,7 +159,7 @@ function ZohoKPISkeleton({ index }: { index: number }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.06 }}
       className="stat-card relative overflow-hidden flex flex-col"
-      style={{ padding: "clamp(12px, 1.8vw, 20px)", minHeight: "110px" }}
+      style={{ padding: "clamp(12px, 1.8vw, 20px)", minHeight: "120px" }}
     >
       <div className="flex items-start justify-between gap-1 mb-2">
         <Skeleton className="h-3 w-24" />
