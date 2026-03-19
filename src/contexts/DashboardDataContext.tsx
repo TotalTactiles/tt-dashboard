@@ -1031,6 +1031,9 @@ export function useDashboardData(): DashboardData {
       saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {}, syncCalendar: async () => {},
       calendarEvents: [], upcomingEvents: [], calendarSummary: null, setCalendarEvents: () => {},
       projectKPIData: null,
+      liveData: {},
+      updateScreenshot: () => {},
+      removeScreenshot: () => {},
     } as DashboardData;
   }
   return ctx;
