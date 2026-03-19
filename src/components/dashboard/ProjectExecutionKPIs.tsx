@@ -127,6 +127,7 @@ interface ExecKPICardProps {
   icon: React.ReactNode;
   kpi: KPIResult;
   index: number;
+  colorByValue?: boolean;
 }
 
 function ExecKPICard({ title, group, icon, kpi, index, colorByValue }: ExecKPICardProps) {
