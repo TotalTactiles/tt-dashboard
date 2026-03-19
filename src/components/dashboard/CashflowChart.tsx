@@ -26,9 +26,9 @@ interface CashflowChartProps {
   adjustments?: GoalAdjustment[];
 }
 
-const CashflowChart = ({ adjustedData, adjustments = [] }: CashflowChartProps) => {
+const CashflowChartInner = ({ adjustedData, adjustments = [] }: CashflowChartProps) => {
   const { incomeOutgoingsData, dataHealth } = useDashboardData();
-  const chartData = adjustedData ?? incomeOutgoingsData;
+  const chartData = useMemo(() => adjustedData ?? incomeOutgoingsData, [adjustedData, incomeOutgoingsData]);
   const { resolvedTheme } = useTheme();
 
   const [selStart, setSelStart] = useState<string | null>(null);
