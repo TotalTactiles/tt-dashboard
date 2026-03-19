@@ -60,7 +60,7 @@ function ExecKPICard({ title, group, icon, kpi, index }: ExecKPICardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.06 }}
       className="stat-card relative overflow-hidden flex flex-col"
-      style={{ padding: "clamp(12px, 1.8vw, 20px)", minHeight: "110px" }}
+      style={{ padding: "clamp(12px, 1.8vw, 20px)", minHeight: "120px" }}
     >
       <div className="flex items-start justify-between gap-1 mb-1">
         <div className="flex items-center gap-1.5 min-w-0">
