@@ -238,6 +238,9 @@ export interface DashboardData {
   calendarSummary: CalendarSummary | null;
   setCalendarEvents: React.Dispatch<React.SetStateAction<LiveCalendarEvent[]>>;
   projectKPIData: ProjectKPIData | null;
+  liveData: import("@/hooks/useDataSources").LiveData;
+  updateScreenshot: (id: string, url: string) => void;
+  removeScreenshot: (id: string) => void;
 }
 
 const DashboardDataContext = createContext<DashboardData | null>(null);
@@ -983,6 +986,9 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       calendarSummary: rawCalendarSummary,
       setCalendarEvents: setCalendarEventsState,
       projectKPIData,
+      liveData,
+      updateScreenshot: ds.updateScreenshot,
+      removeScreenshot: ds.removeScreenshot,
     };
   }, [liveData, hasLiveData, connectedCount, isLoading, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride, calendarData, projectKPIData]);
 
@@ -1025,6 +1031,9 @@ export function useDashboardData(): DashboardData {
       saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {}, syncCalendar: async () => {},
       calendarEvents: [], upcomingEvents: [], calendarSummary: null, setCalendarEvents: () => {},
       projectKPIData: null,
+      liveData: {},
+      updateScreenshot: () => {},
+      removeScreenshot: () => {},
     } as DashboardData;
   }
   return ctx;
