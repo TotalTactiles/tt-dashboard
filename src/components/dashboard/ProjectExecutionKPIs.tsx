@@ -359,8 +359,36 @@ function OnTimeDeliveryCard({ data, index }: { data: ProjectKPIData["kpis"]["onT
 
 function ScheduleSlippageCard({ data, index }: { data: ProjectKPIData["kpis"]["scheduleSlippage"]; index: number }) {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [mode, setMode] = useState<"milestone" | "project">("milestone");
   const barFill = Math.max(0, Math.min(100, 100 - (data.value * 2)));
   const barColor = data.value <= 0 ? "bg-chart-green" : data.value < 15 ? "bg-chart-amber" : "bg-chart-red";
+
+  // Per-project grouping
+  const projectGroups = useMemo(() => {
+    const groups: Record<string, typeof data.overdueDetail> = {};
+    for (const item of data.overdueDetail) {
+      const proj = decodeHtml(item.project);
+      if (!groups[proj]) groups[proj] = [];
+      groups[proj].push(item);
+    }
+    return Object.entries(groups)
+      .map(([project, items]) => ({
+        project,
+        worstDays: Math.max(...items.map(m => m.daysOverdue)),
+        milestoneCount: items.length,
+      }))
+      .sort((a, b) => b.worstDays - a.worstDays);
+  }, [data.overdueDetail]);
+
+  const uniqueProjectCount = projectGroups.length;
+
+  const primaryLabel = mode === "project"
+    ? `${uniqueProjectCount} projects`
+    : data.label;
+
+  const sublineText = mode === "project"
+    ? `${data.overdueMillestones} overdue milestones`
+    : data.detail;
 
   return (
     <Tooltip open={showTooltip} onOpenChange={setShowTooltip}>
@@ -382,16 +410,44 @@ function ScheduleSlippageCard({ data, index }: { data: ProjectKPIData["kpis"]["s
             <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>DELIVERY</span>
           </div>
 
+          {/* Toggle pills */}
+          <div className="flex mt-0.5 mb-0.5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
+              <button
+                onClick={(e) => { e.stopPropagation(); setMode("milestone"); }}
+                className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+                  mode === "milestone"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span className="hidden sm:inline">Per Milestone</span>
+                <span className="sm:hidden">MS</span>
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setMode("project"); }}
+                className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+                  mode === "project"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span className="hidden sm:inline">Per Project</span>
+                <span className="sm:hidden">Proj</span>
+              </button>
+            </div>
+          </div>
+
           <p
             className={`font-mono font-bold my-auto ${data.isOverdue ? "text-chart-amber" : "text-chart-green"}`}
-            style={isShortValue(data.label) ? valueShortStyle : valueLongStyle}
-            title={data.label}
+            style={isShortValue(primaryLabel) ? valueShortStyle : valueLongStyle}
+            title={primaryLabel}
           >
-            {data.label}
+            {primaryLabel}
           </p>
 
           <div className="mt-auto space-y-0.5" style={{ minWidth: 0, overflow: 'hidden' }}>
-            <p className="font-mono text-muted-foreground" style={sublineStyle} title={data.detail}>{data.detail}</p>
+            <p className="font-mono text-muted-foreground" style={sublineStyle} title={sublineText}>{sublineText}</p>
           </div>
 
           <div className="mt-2 h-[3px] bg-secondary rounded-full overflow-hidden">
@@ -406,14 +462,27 @@ function ScheduleSlippageCard({ data, index }: { data: ProjectKPIData["kpis"]["s
       </TooltipTrigger>
       {data.overdueDetail.length > 0 && (
         <TooltipContent side="bottom" className="max-w-[320px] p-3">
-          <p className="text-xs font-mono font-semibold mb-1.5">Overdue Items</p>
+          <p className="text-xs font-mono font-semibold mb-1.5">
+            {mode === "project" ? "Overdue by Project" : "Overdue Items"}
+          </p>
           <div className="space-y-1">
-            {data.overdueDetail.slice(0, 5).map((item, i) => (
-              <div key={i} className="text-[11px] font-mono text-muted-foreground leading-snug">
-                <span className="text-foreground">{decodeHtml(item.project)}</span> · {decodeHtml(item.name)} · <span className="text-chart-amber">{item.daysOverdue}d overdue</span>
-              </div>
-            ))}
-            {data.overdueDetail.length > 5 && (
+            {mode === "project" ? (
+              projectGroups.slice(0, 8).map((pg, i) => (
+                <div key={i} className="text-[11px] font-mono text-muted-foreground leading-snug">
+                  <span className="text-foreground">{pg.project}</span> · <span className="text-chart-amber">{pg.worstDays}d</span> · {pg.milestoneCount} ms
+                </div>
+              ))
+            ) : (
+              data.overdueDetail.slice(0, 5).map((item, i) => (
+                <div key={i} className="text-[11px] font-mono text-muted-foreground leading-snug">
+                  <span className="text-foreground">{decodeHtml(item.project)}</span> · {decodeHtml(item.name)} · <span className="text-chart-amber">{item.daysOverdue}d overdue</span>
+                </div>
+              ))
+            )}
+            {mode === "project" && projectGroups.length > 8 && (
+              <p className="text-[10px] font-mono text-muted-foreground">+ {projectGroups.length - 8} more</p>
+            )}
+            {mode === "milestone" && data.overdueDetail.length > 5 && (
               <p className="text-[10px] font-mono text-muted-foreground">+ {data.overdueDetail.length - 5} more</p>
             )}
           </div>
