@@ -363,12 +363,12 @@ function MarginVarianceCard({ data, index }: { data: ProjectKPIData["kpis"]["mar
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.06 }}
       className="stat-card relative overflow-hidden flex flex-col"
-      style={{ padding: "clamp(12px, 1.8vw, 20px)", minHeight: "110px" }}
+      style={{ padding: "clamp(12px, 1.8vw, 20px)", minHeight: "120px" }}
     >
       <div className="flex items-start justify-between gap-1 mb-1">
         <div className="flex items-center gap-1.5 min-w-0">
           <TrendingUp className="w-4 h-4 text-muted-foreground shrink-0" />
-          <p className="text-muted-foreground font-mono uppercase tracking-wider truncate font-medium" style={{ fontSize: "clamp(9px, 1vw, 11px)" }}>Margin Variance</p>
+          <p className="text-muted-foreground font-mono uppercase tracking-wider font-medium whitespace-normal leading-tight" style={{ fontSize: "clamp(9px, 1vw, 11px)" }}>Margin Variance</p>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {data.negativeGPJobs.length > 0 && (
