@@ -25,7 +25,7 @@ function saveGPTarget(value: number): void {
 const FundPerformanceChart = () => {
   const { profitMarginData, dataHealth } = useDashboardData();
   const { resolvedTheme } = useTheme();
-  const [target, setTarget] = useState(loadTarget);
+  const [target, setTarget] = useState(loadGPTarget);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
