@@ -402,7 +402,7 @@ function MarginVarianceCard({ data, index }: { data: ProjectKPIData["kpis"]["mar
       </p>
 
       <div className="mt-auto space-y-0.5">
-        <p className="font-mono text-muted-foreground truncate leading-snug" style={{ fontSize: "clamp(9px, 0.95vw, 11px)" }} title={data.detail}>
+        <p className="font-mono text-muted-foreground leading-snug line-clamp-2" style={{ fontSize: "clamp(9px, 0.95vw, 11px)" }} title={data.detail}>
           {isNull ? "Revenue data unavailable" : data.detail}
         </p>
       </div>
