@@ -129,9 +129,13 @@ interface ExecKPICardProps {
   index: number;
 }
 
-function ExecKPICard({ title, group, icon, kpi, index }: ExecKPICardProps) {
+function ExecKPICard({ title, group, icon, kpi, index, colorByValue }: ExecKPICardProps) {
   const isUnavailable = kpi.value === null;
-  const isPositive = kpi.change !== null ? kpi.change >= 0 : true;
+  // colorByValue: use sign of primary value (not trend) for primary color
+  const isPositive = colorByValue
+    ? (kpi.value !== null ? kpi.value >= 0 : true)
+    : (kpi.change !== null ? kpi.change >= 0 : true);
+  const trendPositive = kpi.change !== null ? kpi.change >= 0 : true;
   const displayVal = kpi.formatted ?? "--";
 
   return (
