@@ -179,16 +179,17 @@ function loadSavedSources(): DataSourceConfig[] {
       return DEFAULT_SOURCES.map((def) => {
         const existing = parsed.find((s) => s.id === def.id);
         if (existing) {
-          // Ensure google_sheets always has a webhook URL (fallback to default)
+          // Google Sheets: default ON (only OFF if explicitly set to false)
           if (def.id === "google_sheets") {
             const webhookUrl = existing.webhookUrl || DEFAULT_WEBHOOK_URL;
-            const connected = existing.webhookUrl ? existing.connected : true;
+            const connected = existing.connected !== false; // default TRUE
             return { ...def, ...existing, loading: false, webhookUrl, connected };
           }
-          // Ensure zoho_projects always has webhook URL and defaults ON
+          // Zoho Projects: default ON (only OFF if explicitly set to false)
           if (def.id === "zoho_projects") {
             const webhookUrl = existing.webhookUrl || ZOHO_PROJECTS_WEBHOOK_URL;
-            return { ...def, ...existing, loading: false, webhookUrl, connected: existing.connected ?? true, dataMapping: def.dataMapping };
+            const connected = existing.connected !== false; // default TRUE
+            return { ...def, ...existing, loading: false, webhookUrl, connected, dataMapping: def.dataMapping };
           }
           return { ...def, ...existing, loading: false };
         }

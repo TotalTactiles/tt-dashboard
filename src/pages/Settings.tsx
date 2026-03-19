@@ -39,15 +39,25 @@ const Settings = () => {
   const [viewingScreenshot, setViewingScreenshot] = useState<{ url: string; name: string } | null>(null);
   const [showInspector, setShowInspector] = useState(false);
 
-  // Countdown timer for next sync
+  const SYNC_INTERVAL_MS = 5 * 60 * 1000;
+
+  // Safe countdown timer for next sync
   useEffect(() => {
     const interval = setInterval(() => {
-      setNextSyncCountdown((prev) => {
+      setNextSyncCountdown(() => {
         const updated: Record<string, number> = {};
         sources.forEach((s) => {
-          if (s.connected && s.lastSync) {
+          if (s.connected) {
+            if (!s.lastSync) {
+              updated[s.id] = 300; // 5:00 if no sync yet
+              return;
+            }
             const lastMs = new Date(s.lastSync).getTime();
-            const nextMs = lastMs + 5 * 60 * 1000;
+            if (isNaN(lastMs)) {
+              updated[s.id] = 300; // fallback for invalid date
+              return;
+            }
+            const nextMs = lastMs + SYNC_INTERVAL_MS;
             const remaining = Math.max(0, Math.floor((nextMs - Date.now()) / 1000));
             updated[s.id] = remaining;
           }
@@ -58,7 +68,8 @@ const Settings = () => {
     return () => clearInterval(interval);
   }, [sources]);
 
-  const formatCountdown = (seconds: number) => {
+  const formatCountdown = (seconds: number | undefined) => {
+    if (seconds === undefined || isNaN(seconds)) return "5:00";
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m}:${s.toString().padStart(2, "0")}`;
@@ -357,27 +368,7 @@ const Settings = () => {
                     </div>
                   )}
 
-                  {/* Reference Screenshot — NOT shown for zoho_projects */}
-                  {!isZohoProjects && (
-                    <div className="pt-2 border-t border-border">
-                      <ScreenshotUpload
-                        currentUrl={source.screenshotUrl}
-                        onUpload={(url) => updateScreenshot(source.id, url)}
-                        onRemove={() => removeScreenshot(source.id)}
-                        label="Reference Screenshot — verify data mapping"
-                      />
-                      {source.screenshotUrl && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="mt-2 text-xs text-chart-blue"
-                          onClick={() => setViewingScreenshot({ url: source.screenshotUrl!, name: source.name })}
-                        >
-                          View full screenshot
-                        </Button>
-                      )}
-                    </div>
-                  )}
+                  {/* Reference Screenshot removed for all connectors */}
                 </motion.div>
               )}
             </motion.div>
