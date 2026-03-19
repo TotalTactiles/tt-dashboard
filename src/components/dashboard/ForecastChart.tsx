@@ -155,6 +155,8 @@ const ForecastChart = React.memo(() => {
       )}
     </motion.div>
   );
-};
+});
+
+ForecastChart.displayName = "ForecastChart";
 
 export default ForecastChart;

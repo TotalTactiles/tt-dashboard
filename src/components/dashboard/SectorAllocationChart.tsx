@@ -67,6 +67,8 @@ const SectorAllocationChart = React.memo(() => {
       )}
     </motion.div>
   );
-};
+});
+
+SectorAllocationChart.displayName = "SectorAllocationChart";
 
 export default SectorAllocationChart;
