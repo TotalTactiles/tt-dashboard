@@ -9,6 +9,7 @@ export interface MetricFormula {
   category: string;
   dashboardCard?: string;
   dataSource?: string;
+  section?: string;
 }
 
 export const DASHBOARD_CARDS = [
