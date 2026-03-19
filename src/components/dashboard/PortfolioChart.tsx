@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, ReferenceLine, Cell } from "recharts";
 import { Download } from "lucide-react";
