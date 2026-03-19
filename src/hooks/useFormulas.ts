@@ -202,9 +202,8 @@ function migrateStoredFormulas(formulas: MetricFormula[]): MetricFormula[] {
     changed = true;
   }
 
-  for (const systemFormulaName of ["Gross Profit Margin"]) {
-    const systemFormula = DEFAULT_FORMULAS.find((formula) => formula.name === systemFormulaName);
-    if (!systemFormula) continue;
+  // Upsert all system formulas (ensures new ones are added, existing ones updated)
+  for (const systemFormula of DEFAULT_FORMULAS) {
     const result = upsertSystemFormula(next, systemFormula);
     next = result.formulas;
     changed = changed || result.changed;
