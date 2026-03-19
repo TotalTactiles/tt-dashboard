@@ -432,12 +432,12 @@ function LabourEfficiencyCard({ data, index }: { data: ProjectKPIData["kpis"]["l
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.06 }}
       className="stat-card relative overflow-hidden flex flex-col"
-      style={{ padding: "clamp(12px, 1.8vw, 20px)", minHeight: "110px" }}
+      style={{ padding: "clamp(12px, 1.8vw, 20px)", minHeight: "120px" }}
     >
       <div className="flex items-start justify-between gap-1 mb-1">
         <div className="flex items-center gap-1.5 min-w-0">
           <Users className="w-4 h-4 text-muted-foreground shrink-0" />
-          <p className="text-muted-foreground font-mono uppercase tracking-wider truncate font-medium" style={{ fontSize: "clamp(9px, 1vw, 11px)" }}>Labour Efficiency</p>
+          <p className="text-muted-foreground font-mono uppercase tracking-wider font-medium whitespace-normal leading-tight" style={{ fontSize: "clamp(9px, 1vw, 11px)" }}>Labour Efficiency</p>
         </div>
         <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap shrink-0">DELIVERY</span>
       </div>
