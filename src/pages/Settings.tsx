@@ -368,27 +368,7 @@ const Settings = () => {
                     </div>
                   )}
 
-                  {/* Reference Screenshot — NOT shown for zoho_projects */}
-                  {!isZohoProjects && (
-                    <div className="pt-2 border-t border-border">
-                      <ScreenshotUpload
-                        currentUrl={source.screenshotUrl}
-                        onUpload={(url) => updateScreenshot(source.id, url)}
-                        onRemove={() => removeScreenshot(source.id)}
-                        label="Reference Screenshot — verify data mapping"
-                      />
-                      {source.screenshotUrl && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="mt-2 text-xs text-chart-blue"
-                          onClick={() => setViewingScreenshot({ url: source.screenshotUrl!, name: source.name })}
-                        >
-                          View full screenshot
-                        </Button>
-                      )}
-                    </div>
-                  )}
+                  {/* Reference Screenshot removed for all connectors */}
                 </motion.div>
               )}
             </motion.div>

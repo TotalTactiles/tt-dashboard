@@ -450,7 +450,7 @@ function LabourEfficiencyCard({ data, index }: { data: ProjectKPIData["kpis"]["l
       </p>
 
       <div className="mt-auto space-y-0.5">
-        <p className="font-mono text-muted-foreground truncate leading-snug" style={{ fontSize: "clamp(9px, 0.95vw, 11px)" }} title={data.detail}>{data.detail}</p>
+        <p className="font-mono text-muted-foreground leading-snug line-clamp-2" style={{ fontSize: "clamp(9px, 0.95vw, 11px)" }} title={data.detail}>{data.detail}</p>
         {data.note && (
           <p className="font-mono text-muted-foreground/70 italic truncate leading-snug" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>{data.note}</p>
         )}

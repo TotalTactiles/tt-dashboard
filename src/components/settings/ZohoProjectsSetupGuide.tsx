@@ -34,73 +34,44 @@ const ZohoProjectsSetupGuide = () => {
         </div>
 
         <div>
-          <p className="font-semibold text-foreground mb-1">Step 1: Create a Zoho API Console App</p>
+          <p className="font-semibold text-foreground mb-1">Step 1: The n8n workflow is already configured</p>
           <ul className="list-disc list-inside text-muted-foreground space-y-1">
-            <li>Go to <a href="https://api-console.zoho.com/" target="_blank" rel="noopener noreferrer" className="text-chart-blue underline">https://api-console.zoho.com/</a></li>
-            <li>Click <strong>"Add Client"</strong> → select <strong>"Server-based Applications"</strong></li>
-            <li><strong>Client Name:</strong> <code className="bg-background/60 px-1 rounded">n8n Integration</code></li>
-            <li><strong>Homepage URL:</strong> your n8n URL (e.g. <code className="bg-background/60 px-1 rounded">https://n8n.yourdomain.com</code>)</li>
-            <li className="text-chart-orange"><strong>⚠️ Authorized Redirect URI (critical!):</strong></li>
-            <li><code className="bg-background/60 px-1 rounded text-chart-orange">https://your-n8n-domain.com/rest/oauth2-credential/callback</code></li>
-            <li><strong>Required Scopes:</strong></li>
-            <li><code className="bg-background/60 px-1 rounded">ZohoProjects.portals.READ, ZohoProjects.projects.READ, ZohoProjects.tasks.READ, ZohoProjects.milestones.READ</code></li>
+            <li>The Zoho Projects KPI workflow is live at the URL above</li>
+            <li>It connects to Zoho Projects portal (ID: <code className="bg-background/60 px-1 rounded">7004927552</code> — totaltactilesprojects)</li>
+            <li>Fetches milestones and tasks from all 12 active projects, joins with the Revenue Google Sheet</li>
+            <li>Calculates 5 KPIs: <strong>On-Time Delivery, Schedule Slippage, Margin Variance, Labour Efficiency, and Cost Overrun</strong> (stubbed — pending OAuth scope)</li>
           </ul>
         </div>
 
         <div>
-          <p className="font-semibold text-foreground mb-1">Step 2: Find Your Portal ID</p>
+          <p className="font-semibold text-foreground mb-1">Step 2: If you need to reconfigure</p>
           <ul className="list-disc list-inside text-muted-foreground space-y-1">
-            <li>In n8n, add an <strong>HTTP Request</strong> node</li>
-            <li>Method: <strong>GET</strong></li>
-            <li>URL: <code className="bg-background/60 px-1 rounded">https://projectsapi.zoho.com/restapi/portals/</code></li>
-            <li>Auth: <strong>OAuth2</strong> → use the credentials from Step 1</li>
-            <li>Run once → note your <strong>Portal ID</strong> from the response</li>
+            <li>Open n8n at <code className="bg-background/60 px-1 rounded">https://n8n.srv1437130.hstgr.cloud</code></li>
+            <li>Find the workflow <strong>"TT Project KPIs v2.4"</strong></li>
+            <li>Credential required: <strong>"Zoho Project Calendar"</strong> OAuth2 credential</li>
+            <li>Copy the Production webhook URL and paste it into the field above</li>
           </ul>
         </div>
 
         <div>
-          <p className="font-semibold text-foreground mb-1">Step 3: Create n8n Workflow</p>
+          <p className="font-semibold text-foreground mb-1">Step 3: OAuth scope requirement for Cost Overrun KPI</p>
           <ul className="list-disc list-inside text-muted-foreground space-y-1">
-            <li>Add a <strong>Webhook</strong> node (POST trigger)</li>
-            <li>Add <strong>HTTP Request</strong> nodes (no native Zoho Projects node in n8n):</li>
-          </ul>
-          <div className="bg-background/60 p-3 rounded border border-border mt-1 space-y-1">
-            <p className="text-[11px] text-muted-foreground">
-              <strong>Projects:</strong> GET <code>https://projectsapi.zoho.com/restapi/portal/&#123;portalId&#125;/projects/</code>
-            </p>
-            <p className="text-[11px] text-muted-foreground">
-              <strong>Tasks:</strong> GET <code>https://projectsapi.zoho.com/restapi/portal/&#123;portalId&#125;/projects/&#123;projectId&#125;/tasks/</code>
-            </p>
-            <p className="text-[11px] text-muted-foreground">
-              <strong>Milestones:</strong> GET <code>https://projectsapi.zoho.com/restapi/portal/&#123;portalId&#125;/projects/&#123;projectId&#125;/milestones/</code>
-            </p>
-          </div>
-          <ul className="list-disc list-inside text-muted-foreground space-y-1 mt-2">
-            <li>Auth: OAuth2 → use same Zoho credentials with Projects scopes</li>
+            <li>To unlock the Cost Overrun KPI, add <code className="bg-background/60 px-1 rounded text-chart-orange">ZohoProjects.timesheets.READ</code> to the Zoho Projects OAuth credential in n8n and reconnect</li>
           </ul>
         </div>
 
         <div>
-          <p className="font-semibold text-foreground mb-1">Step 4: Merge & Return</p>
-          <div className="bg-background/60 p-3 rounded border border-border mt-1">
-            <pre className="text-[11px] text-muted-foreground whitespace-pre-wrap">{`// Code node:
-const projects = $('HTTP - Projects').all().map(i => i.json);
-const tasks = $('HTTP - Tasks').all().map(i => i.json);
-const milestones = $('HTTP - Milestones').all().map(i => i.json);
-
-return [{
-  json: { projects, tasks, milestones }
-}];`}</pre>
-          </div>
-          <ul className="list-disc list-inside text-muted-foreground space-y-1 mt-2">
-            <li>Add <strong>Respond to Webhook</strong> → Response Body: <strong>First Item JSON</strong></li>
-            <li>Activate the workflow</li>
+          <p className="font-semibold text-foreground mb-1">Step 4: Verify data is flowing</p>
+          <ul className="list-disc list-inside text-muted-foreground space-y-1">
+            <li>Click <strong>Sync Now</strong> — the Data Debug section will show: Projects: 12, Milestones: 26, Tasks: 176</li>
+            <li>Margin Variance should show: Actual GP ~47.1%, Target 47%</li>
+            <li>Schedule Slippage should show overdue milestone list</li>
           </ul>
         </div>
 
         <div className="p-2 rounded bg-accent/50 border border-border">
           <p className="text-accent-foreground text-[11px]">
-            ✅ Paste the Production webhook URL into the Zoho Projects field above, click Save, and toggle on.
+            ✅ The webhook URL is pre-populated above. Data auto-syncs every 5 minutes.
           </p>
         </div>
       </CollapsibleContent>
