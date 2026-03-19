@@ -237,6 +237,7 @@ export interface DashboardData {
   upcomingEvents: LiveCalendarEvent[];
   calendarSummary: CalendarSummary | null;
   setCalendarEvents: React.Dispatch<React.SetStateAction<LiveCalendarEvent[]>>;
+  projectKPIData: ProjectKPIData | null;
 }
 
 const DashboardDataContext = createContext<DashboardData | null>(null);
