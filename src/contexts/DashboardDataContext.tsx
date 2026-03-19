@@ -1024,6 +1024,7 @@ export function useDashboardData(): DashboardData {
       sources: [], toggleConnection: () => {}, updateWebhookUrl: () => {},
       saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {}, syncCalendar: async () => {},
       calendarEvents: [], upcomingEvents: [], calendarSummary: null, setCalendarEvents: () => {},
+      projectKPIData: null,
     } as DashboardData;
   }
   return ctx;
