@@ -187,7 +187,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       {/* ROW 4 — Secondary metric / change + alt diff */}
       <div className="min-w-0 mt-auto pt-1">
         {showAlt && altDiff && !noData && (
-          <p className="font-mono text-amber-400/80 truncate" style={{ fontSize: "clamp(9px, 1vw, 11px)" }} title={`${altDiff} with YLWs`}>
+          <p className="kpi-subline font-mono text-amber-400/80" title={`${altDiff} with YLWs`}>
             ↑ {altDiff} with YLWs
           </p>
         )}
