@@ -441,10 +441,18 @@ function MarginVarianceCard({ data, index }: { data: ProjectKPIData["kpis"]["mar
 
   const isNull = data.actualGP === null || data.actualGP === undefined;
   const actualGP = data.actualGP ?? 0;
-  const isBelowTarget = !isNull && actualGP < gpTarget;
-  const displayVal = isNull ? "N/A" : `${actualGP}%`;
+  const variance = isNull ? null : Math.round((actualGP - gpTarget) * 10) / 10;
+  const isPositiveVariance = variance !== null && variance >= 0;
+  const isBelowTarget = variance !== null && variance < 0;
+  const displayVal = variance !== null
+    ? `${isPositiveVariance ? '+' : ''}${variance}%`
+    : 'N/A';
   const barFill = isNull ? 0 : Math.min(100, (actualGP / gpTarget) * 100);
   const barColor = isBelowTarget ? "bg-chart-red" : "bg-chart-green";
+
+  const sublineText = isNull
+    ? "Revenue data unavailable"
+    : `${actualGP}% actual · target ${gpTarget}%`;
 
   return (
     <motion.div
@@ -492,8 +500,8 @@ function MarginVarianceCard({ data, index }: { data: ProjectKPIData["kpis"]["mar
       </p>
 
       <div className="mt-auto space-y-0.5" style={{ minWidth: 0, overflow: 'hidden' }}>
-        <p className="font-mono text-muted-foreground" style={sublineStyle} title={isNull ? "Revenue data unavailable" : data.detail}>
-          {isNull ? "Revenue data unavailable" : data.detail}
+        <p className="font-mono text-muted-foreground" style={sublineStyle} title={sublineText}>
+          {sublineText}
         </p>
       </div>
 
