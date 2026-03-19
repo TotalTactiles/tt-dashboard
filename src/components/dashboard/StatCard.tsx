@@ -177,8 +177,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       {/* ROW 3b — Monthly context */}
       {!noData && momContext && (
         <p
-          className="font-mono text-muted-foreground/80 truncate leading-snug"
-          style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}
+          className="kpi-note font-mono text-muted-foreground/80"
           title={momContext}
         >
           {momContext}
