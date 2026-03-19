@@ -986,6 +986,9 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       calendarSummary: rawCalendarSummary,
       setCalendarEvents: setCalendarEventsState,
       projectKPIData,
+      liveData,
+      updateScreenshot: ds.updateScreenshot,
+      removeScreenshot: ds.removeScreenshot,
     };
   }, [liveData, hasLiveData, connectedCount, isLoading, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride, calendarData, projectKPIData]);
 
