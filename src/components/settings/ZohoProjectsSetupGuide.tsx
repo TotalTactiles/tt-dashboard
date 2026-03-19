@@ -1,9 +1,17 @@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+
+const WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-project-kpis";
 
 const ZohoProjectsSetupGuide = () => {
   const [open, setOpen] = useState(false);
+
+  const copyUrl = () => {
+    navigator.clipboard.writeText(WEBHOOK_URL);
+    toast.success("Webhook URL copied to clipboard");
+  };
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -15,6 +23,16 @@ const ZohoProjectsSetupGuide = () => {
         <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </CollapsibleTrigger>
       <CollapsibleContent className="mt-2 p-4 rounded-lg bg-secondary/30 border border-border text-xs space-y-4 font-mono">
+
+        {/* Webhook URL block */}
+        <div className="p-3 rounded-lg bg-accent/30 border border-border">
+          <p className="font-semibold text-foreground mb-1">Webhook URL</p>
+          <div className="flex items-center gap-2">
+            <code className="bg-background/60 px-2 py-1 rounded text-[11px] text-chart-blue break-all flex-1">{WEBHOOK_URL}</code>
+            <button onClick={copyUrl} className="text-[10px] text-chart-blue underline whitespace-nowrap hover:text-chart-blue/80">Copy</button>
+          </div>
+        </div>
+
         <div>
           <p className="font-semibold text-foreground mb-1">Step 1: Create a Zoho API Console App</p>
           <ul className="list-disc list-inside text-muted-foreground space-y-1">
