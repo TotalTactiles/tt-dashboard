@@ -360,8 +360,6 @@ export function useDataSources() {
 
       if (signal.aborted) return { success: false, error: "Superseded" };
 
-      if (error) throw new Error(error.message || "Proxy request failed");
-
       if (responseData?._proxyError) {
         const hint = responseData.hint ? `\n${responseData.hint}` : "";
         throw new Error(`${responseData.error || "Proxy error"}${hint}`);

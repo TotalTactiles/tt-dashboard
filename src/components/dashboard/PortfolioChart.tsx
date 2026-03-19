@@ -361,4 +361,7 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
   );
 };
 
+const PortfolioChart = React.memo(PortfolioChartInner);
+PortfolioChart.displayName = "PortfolioChart";
+
 export default PortfolioChart;

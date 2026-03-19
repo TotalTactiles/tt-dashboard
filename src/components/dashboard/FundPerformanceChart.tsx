@@ -150,4 +150,7 @@ const FundPerformanceChartInner = () => {
   );
 };
 
+const FundPerformanceChart = React.memo(FundPerformanceChartInner);
+FundPerformanceChart.displayName = "FundPerformanceChart";
+
 export default FundPerformanceChart;

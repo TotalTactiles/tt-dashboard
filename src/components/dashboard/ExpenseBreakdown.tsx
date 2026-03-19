@@ -271,4 +271,7 @@ const ExpenseBreakdownInner = ({ goals = [], activeGoalIds = new Set() }: Expens
   );
 };
 
+const ExpenseBreakdown = React.memo(ExpenseBreakdownInner);
+ExpenseBreakdown.displayName = "ExpenseBreakdown";
+
 export default ExpenseBreakdown;
