@@ -224,6 +224,7 @@ export interface DashboardData {
   dataHealth: DataHealth;
   quotesDebug: QuotesDebugInfo;
   isLoading: boolean;
+  isRefreshing: boolean;
   hasLiveData: boolean;
   connectedCount: number;
   lastUpdated: string | null;
@@ -273,7 +274,8 @@ function getMonthValues(row: any, months: string[]): Record<string, number> {
 export function DashboardDataProvider({ children }: { children: React.ReactNode }) {
   const ds = useDataSources();
   const { liveData, hasLiveData, connectedCount, sources, calendarData, projectKPIData } = ds;
-  const isLoading = sources.some((s) => s.loading);
+  const isLoading = ds.isLoading;
+  const isRefreshing = ds.isRefreshing;
   const { formulas, addFormula, updateFormula, deleteFormula } = useFormulas();
   const [calendarEventsOverride, setCalendarEventsState] = useState<LiveCalendarEvent[] | null>(null);
 
@@ -981,7 +983,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       kpiStats, incomeOutgoingsData, profitMarginData, forecastChartData, expenseAllocation,
       kpiVariables, dataStore: storeSnapshot, formulaCache: formulaCacheInstance, changedFormulas,
       formulas, addFormula, updateFormula, deleteFormula,
-      dataHealth, quotesDebug, isLoading, hasLiveData, connectedCount, lastUpdated,
+      dataHealth, quotesDebug, isLoading, isRefreshing, hasLiveData, connectedCount, lastUpdated,
       sources: ds.sources, toggleConnection: ds.toggleConnection,
       updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow, syncCalendar: ds.syncCalendar,
       calendarEvents: calendarEventsOverride ?? rawCalendarEvents,
@@ -993,7 +995,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       updateScreenshot: ds.updateScreenshot,
       removeScreenshot: ds.removeScreenshot,
     };
-  }, [liveData, hasLiveData, connectedCount, isLoading, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride, calendarData, projectKPIData]);
+  }, [liveData, hasLiveData, connectedCount, isLoading, isRefreshing, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride, calendarData, projectKPIData]);
 
   return <DashboardDataContext.Provider value={data}>{children}</DashboardDataContext.Provider>;
 }
@@ -1029,7 +1031,7 @@ export function useDashboardData(): DashboardData {
         rawQuotesSample: [],
         valuePaths: {},
       },
-      isLoading: false, hasLiveData: false, connectedCount: 0, lastUpdated: null,
+      isLoading: false, isRefreshing: false, hasLiveData: false, connectedCount: 0, lastUpdated: null,
       sources: [], toggleConnection: () => {}, updateWebhookUrl: () => {},
       saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {}, syncCalendar: async () => {},
       calendarEvents: [], upcomingEvents: [], calendarSummary: null, setCalendarEvents: () => {},

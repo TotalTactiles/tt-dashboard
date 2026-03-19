@@ -179,16 +179,14 @@ function loadSavedSources(): DataSourceConfig[] {
       return DEFAULT_SOURCES.map((def) => {
         const existing = parsed.find((s) => s.id === def.id);
         if (existing) {
-          // Google Sheets: default ON (only OFF if explicitly set to false)
           if (def.id === "google_sheets") {
             const webhookUrl = existing.webhookUrl || DEFAULT_WEBHOOK_URL;
-            const connected = existing.connected !== false; // default TRUE
+            const connected = existing.connected !== false;
             return { ...def, ...existing, loading: false, webhookUrl, connected };
           }
-          // Zoho Projects: default ON (only OFF if explicitly set to false)
           if (def.id === "zoho_projects") {
             const webhookUrl = existing.webhookUrl || ZOHO_PROJECTS_WEBHOOK_URL;
-            const connected = existing.connected !== false; // default TRUE
+            const connected = existing.connected !== false;
             return { ...def, ...existing, loading: false, webhookUrl, connected, dataMapping: def.dataMapping };
           }
           return { ...def, ...existing, loading: false };
@@ -238,9 +236,18 @@ export function useDataSources() {
   const [liveData, setLiveData] = useState<LiveData>(loadCachedData);
   const [projectKPIData, setProjectKPIData] = useState<ProjectKPIData | null>(loadCachedProjectKPI);
   const intervals = useRef<Record<string, ReturnType<typeof setInterval>>>({});
+  // isLoading = true only for the very first fetch (shows skeleton)
+  // isRefreshing = true during background polls (no skeleton, subtle indicator only)
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const hasFetchedOnce = useRef(false);
 
   const [calendarData, setCalendarData] = useState(loadCachedCalendar);
   const calendarInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // AbortController refs for cancelling in-flight requests
+  const abortRefs = useRef<Record<string, AbortController>>({});
+  const calendarAbortRef = useRef<AbortController | null>(null);
 
   const persistSources = useCallback((updated: DataSourceConfig[]) => {
     setSources(updated);
@@ -261,7 +268,6 @@ export function useDataSources() {
       if (Array.isArray(unwrapped)) unwrapped = unwrapped[0];
       if (unwrapped?.json && typeof unwrapped.json === "object") unwrapped = unwrapped.json;
 
-      // Validate shape
       if (!unwrapped?.kpis || !unwrapped?.dataHealth) {
         throw new Error("Invalid response shape — missing kpis or dataHealth");
       }
@@ -284,7 +290,7 @@ export function useDataSources() {
     );
 
     try {
-      // Special handling for zoho_projects — uses dedicated fetch
+      // Special handling for zoho_projects
       if (source.id === "zoho_projects") {
         const result = await fetchProjectKPIs(source.webhookUrl);
         const now = new Date().toLocaleString();
@@ -314,13 +320,11 @@ export function useDataSources() {
 
       if (error) throw new Error(error.message || "Proxy request failed");
 
-      // Check for proxy-level errors (upstream 404, bad URL, etc.)
       if (responseData?._proxyError) {
         const hint = responseData.hint ? `\n${responseData.hint}` : "";
         throw new Error(`${responseData.error || "Proxy error"}${hint}`);
       }
 
-      // Safety-net unwrap: n8n Code node wraps in array [{ json: {...} }]
       let unwrapped = responseData;
       if (Array.isArray(unwrapped)) {
         unwrapped = unwrapped[0];
@@ -330,7 +334,6 @@ export function useDataSources() {
       }
       const finalData = unwrapped;
 
-      // Validate payload: must have expected keys as arrays
       const REQUIRED_KEYS: Record<string, string[]> = {
         google_sheets: ["quotes", "cashflow", "revenue", "expenses", "quotesSummary", "cashflowSummary"],
         zoho_crm: ["deals", "contacts"],
@@ -355,7 +358,6 @@ export function useDataSources() {
         const updated = { ...prev, [`_lastSync_${source.id}`]: now };
         if (finalData && typeof finalData === "object") {
           for (const [k, v] of Object.entries(finalData)) {
-            // Only skip if new value is empty array AND existing is non-empty array
             if (Array.isArray(v) && v.length === 0 && Array.isArray(updated[k]) && updated[k].length > 0) {
               continue;
             }
@@ -397,12 +399,28 @@ export function useDataSources() {
       if (intervals.current[source.id]) {
         clearInterval(intervals.current[source.id]);
       }
-      fetchSource(source);
+
+      // First fetch: use isInitialLoad if no data yet, otherwise isRefreshing
+      const doFetch = async () => {
+        if (hasFetchedOnce.current) {
+          setIsRefreshing(true);
+        }
+        await fetchSource(source);
+        if (!hasFetchedOnce.current) {
+          hasFetchedOnce.current = true;
+          setIsInitialLoad(false);
+        }
+        setIsRefreshing(false);
+      };
+
+      doFetch();
+
       intervals.current[source.id] = setInterval(() => {
         setSources((prev) => {
           const current = prev.find((s) => s.id === source.id);
           if (current?.connected && current.webhookUrl) {
-            fetchSource(current);
+            setIsRefreshing(true);
+            fetchSource(current).finally(() => setIsRefreshing(false));
           }
           return prev;
         });
@@ -419,6 +437,13 @@ export function useDataSources() {
   }, []);
 
   useEffect(() => {
+    // If cached data exists, we're not in initial load
+    const hasCachedData = Object.keys(liveData).some((k) => !k.startsWith("_"));
+    if (hasCachedData) {
+      setIsInitialLoad(false);
+      hasFetchedOnce.current = true;
+    }
+
     sources.forEach((source) => {
       if (source.connected && source.webhookUrl) {
         startPolling(source);
@@ -427,6 +452,8 @@ export function useDataSources() {
 
     return () => {
       Object.keys(intervals.current).forEach(stopPolling);
+      // Abort any in-flight requests
+      Object.values(abortRefs.current).forEach(c => c.abort());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -498,7 +525,8 @@ export function useDataSources() {
     (id: string) => {
       const source = sources.find((s) => s.id === id);
       if (source?.webhookUrl) {
-        fetchSource(source);
+        setIsRefreshing(true);
+        fetchSource(source).finally(() => setIsRefreshing(false));
       }
     },
     [sources, fetchSource]
@@ -527,9 +555,16 @@ export function useDataSources() {
   const connectedCount = sources.filter((s) => s.connected).length;
   const hasLiveData = Object.keys(liveData).some((k) => !k.startsWith("_"));
 
+  // isLoading: true only during initial load when no cached data exists
+  const isLoading = isInitialLoad && !hasLiveData;
+
   // ===== Calendar-specific polling (3 min) =====
   const fetchCalendar = useCallback(async () => {
     try {
+      // Abort previous calendar request
+      if (calendarAbortRef.current) calendarAbortRef.current.abort();
+      calendarAbortRef.current = new AbortController();
+
       const { data: responseData, error } = await supabase.functions.invoke("n8n-proxy", {
         body: { webhookUrl: CALENDAR_READ_WEBHOOK, source: "calendar" },
       });
@@ -537,7 +572,6 @@ export function useDataSources() {
       if (error) throw new Error(error.message || "Calendar proxy request failed");
       if (responseData?._proxyError) throw new Error(responseData.error || "Calendar proxy error");
 
-      // Unwrap n8n envelope
       let unwrapped = responseData;
       if (Array.isArray(unwrapped)) unwrapped = unwrapped[0];
       if (unwrapped?.json && typeof unwrapped.json === "object") unwrapped = unwrapped.json;
@@ -555,16 +589,17 @@ export function useDataSources() {
       localStorage.setItem(CALENDAR_CACHE_KEY, JSON.stringify(newData));
       console.log(`[Calendar Poll] Fetched ${calEvents.length} events`);
     } catch (err: any) {
+      if (err.name === 'AbortError') return; // intentionally cancelled
       console.error('[Calendar Poll] Error:', err.message);
     }
   }, []);
 
   useEffect(() => {
-    // Initial fetch + 3 min interval
     fetchCalendar();
     calendarInterval.current = setInterval(fetchCalendar, CALENDAR_POLL_INTERVAL);
     return () => {
       if (calendarInterval.current) clearInterval(calendarInterval.current);
+      if (calendarAbortRef.current) calendarAbortRef.current.abort();
     };
   }, [fetchCalendar]);
 
@@ -575,6 +610,8 @@ export function useDataSources() {
     projectKPIData,
     hasLiveData,
     connectedCount,
+    isLoading,
+    isRefreshing,
     toggleConnection,
     updateWebhookUrl,
     saveAndTest,

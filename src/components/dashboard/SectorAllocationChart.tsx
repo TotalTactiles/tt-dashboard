@@ -1,9 +1,10 @@
+import React from "react";
 import { motion } from "framer-motion";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
 
-const SectorAllocationChart = () => {
+const SectorAllocationChart = React.memo(() => {
   const { expenseAllocation, dataHealth } = useDashboardData();
 
   return (
@@ -66,6 +67,8 @@ const SectorAllocationChart = () => {
       )}
     </motion.div>
   );
-};
+});
+
+SectorAllocationChart.displayName = "SectorAllocationChart";
 
 export default SectorAllocationChart;
