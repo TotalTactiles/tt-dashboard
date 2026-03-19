@@ -318,7 +318,7 @@ function ScheduleSlippageCard({ data, index }: { data: ProjectKPIData["kpis"]["s
           </p>
 
           <div className="mt-auto space-y-0.5">
-            <p className="font-mono text-muted-foreground truncate leading-snug" style={{ fontSize: "clamp(9px, 0.95vw, 11px)" }} title={data.detail}>{data.detail}</p>
+            <p className="font-mono text-muted-foreground leading-snug line-clamp-2" style={{ fontSize: "clamp(9px, 0.95vw, 11px)" }} title={data.detail}>{data.detail}</p>
           </div>
 
           <div className="mt-2 h-[3px] bg-secondary rounded-full overflow-hidden">
