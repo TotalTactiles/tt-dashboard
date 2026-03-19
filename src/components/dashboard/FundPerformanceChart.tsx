@@ -22,7 +22,7 @@ function saveGPTarget(value: number): void {
   sessionStorage.setItem(GM_TARGET_KEY, String(value));
 }
 
-const FundPerformanceChart = () => {
+const FundPerformanceChartInner = () => {
   const { profitMarginData, dataHealth } = useDashboardData();
   const { resolvedTheme } = useTheme();
   const [target, setTarget] = useState(loadGPTarget);
