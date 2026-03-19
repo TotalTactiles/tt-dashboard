@@ -66,7 +66,7 @@ function ExecKPICard({ title, group, icon, kpi, index }: ExecKPICardProps) {
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="text-muted-foreground shrink-0">{icon}</span>
           <p
-            className="text-muted-foreground font-mono uppercase tracking-wider truncate font-medium"
+            className="text-muted-foreground font-mono uppercase tracking-wider font-medium whitespace-normal leading-tight"
             style={{ fontSize: "clamp(9px, 1vw, 11px)" }}
             title={title}
           >
