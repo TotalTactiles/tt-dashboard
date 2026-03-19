@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { useDataSources } from "@/hooks/useDataSources";
+import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { toast } from "sonner";
 import GoogleSheetsSetupGuide from "@/components/settings/GoogleSheetsSetupGuide";
 import ZohoCrmSetupGuide from "@/components/settings/ZohoCrmSetupGuide";
@@ -32,7 +32,7 @@ const Settings = () => {
     syncNow,
     updateScreenshot,
     removeScreenshot,
-  } = useDataSources();
+  } = useDashboardData();
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [nextSyncCountdown, setNextSyncCountdown] = useState<Record<string, number>>({});
