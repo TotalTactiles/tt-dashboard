@@ -1051,6 +1051,7 @@ export function useDashboardData(): DashboardData {
       investorMetrics: null,
       updateScreenshot: () => {},
       removeScreenshot: () => {},
+      changeDetectorMeta: { lastChecked: null, lastTriggered: null, noChangeCount: 0 },
     } as DashboardData;
   }
   return ctx;
