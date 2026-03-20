@@ -1044,6 +1044,8 @@ export function useDashboardData(): DashboardData {
       calendarEvents: [], upcomingEvents: [], calendarSummary: null, setCalendarEvents: () => {},
       projectKPIData: null,
       liveData: {},
+      isOffline: false,
+      lastCachedAt: null,
       investorMetrics: null,
       updateScreenshot: () => {},
       removeScreenshot: () => {},
