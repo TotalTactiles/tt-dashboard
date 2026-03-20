@@ -576,7 +576,7 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
       ) : (
         <>
           {/* Desktop table */}
-          <div className="desktop-table overflow-x-auto">
+          <div className="desktop-table overflow-x-auto" ref={tableContainerRef}>
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-muted-foreground font-mono border-b border-border">
