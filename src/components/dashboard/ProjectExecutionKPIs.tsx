@@ -358,7 +358,7 @@ function OnTimeDeliveryCard({ data, index }: { data: ProjectKPIData["kpis"]["onT
 // ── SCHEDULE SLIPPAGE CARD ────────────────────────────────────────
 
 function ScheduleSlippageCard({ data, index }: { data: ProjectKPIData["kpis"]["scheduleSlippage"]; index: number }) {
-  const [showTooltip, setShowTooltip] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
   const [mode, setMode] = useState<"milestone" | "project">("milestone");
   const barFill = Math.max(0, Math.min(100, 100 - (data.value * 2)));
   const barColor = data.value <= 0 ? "bg-chart-green" : data.value < 15 ? "bg-chart-amber" : "bg-chart-red";
@@ -391,7 +391,7 @@ function ScheduleSlippageCard({ data, index }: { data: ProjectKPIData["kpis"]["s
     : data.detail;
 
   return (
-    <Tooltip open={showTooltip} onOpenChange={setShowTooltip}>
+    <Tooltip open={showDetail} onOpenChange={setShowDetail}>
       <TooltipTrigger asChild>
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -399,8 +399,8 @@ function ScheduleSlippageCard({ data, index }: { data: ProjectKPIData["kpis"]["s
           transition={{ duration: 0.35, delay: index * 0.06 }}
           className="stat-card relative overflow-hidden flex flex-col cursor-help min-w-0"
           style={cardContainerStyle}
-          onMouseEnter={() => data.overdueDetail.length > 0 && setShowTooltip(true)}
-          onMouseLeave={() => setShowTooltip(false)}
+          onMouseEnter={() => data.overdueDetail.length > 0 && setShowDetail(true)}
+          onMouseLeave={() => setShowDetail(false)}
         >
           <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: 'hidden' }}>
             <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: 'hidden' }}>
