@@ -413,72 +413,69 @@ function ScheduleSlippageCard({ data, index }: { data: ProjectKPIData["kpis"]["s
   return (
     <>
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.04 }}
-        className="relative bg-card rounded-xl border border-border overflow-hidden cursor-pointer select-none"
-        style={{ containerType: 'inline-size' }}
+        transition={{ duration: 0.35, delay: index * 0.06 }}
+        className="stat-card relative overflow-hidden flex flex-col min-w-0 cursor-pointer select-none"
+        style={cardContainerStyle}
         onClick={() => data.overdueDetail.length > 0 && setShowDetail(true)}
       >
-        <div style={cardContainerStyle} className="flex flex-col gap-1 min-w-0">
-          {/* Row 1 — label + badge */}
-          <div className="flex items-center justify-between gap-1 min-w-0">
-            <span className="text-muted-foreground truncate min-w-0" style={titleStyle}>
-              Schedule Slippage
-            </span>
-            <span className="text-[10px] font-mono text-muted-foreground/60 shrink-0">DELIVERY</span>
-          </div>
+        {/* Row 1 — label + badge */}
+        <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: 'hidden' }}>
+          <span className="text-muted-foreground font-mono font-medium" style={titleStyle}>
+            Schedule Slippage
+          </span>
+          <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>DELIVERY</span>
+        </div>
 
-          {/* Toggle pills */}
-          <div className="flex gap-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={(e) => { e.stopPropagation(); setMode("milestone"); }}
-              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
-                mode === "milestone"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-              style={titleStyle}
-            >
-              Per Milestone
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); setMode("project"); }}
-              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
-                mode === "project"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-              style={titleStyle}
-            >
-              Per Project
-            </button>
-          </div>
+        {/* Toggle pills */}
+        <div className="flex gap-1 flex-wrap mb-1" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={(e) => { e.stopPropagation(); setMode("milestone"); }}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+              mode === "milestone"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            style={titleStyle}
+          >
+            Per Milestone
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setMode("project"); }}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+              mode === "project"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            style={titleStyle}
+          >
+            Per Project
+          </button>
+        </div>
 
-          {/* Period-over-period change — grey, above main value */}
+        {/* Main value */}
+        <p
+          className={`font-mono font-bold my-auto tabular-nums ${isDanger ? "text-chart-red" : isHealthy ? "text-chart-green" : "text-amber-400"}`}
+          style={isShortValue(primaryLabel) ? valueShortStyle : valueLongStyle}
+          title={primaryLabel}
+        >
+          {primaryLabel}
+        </p>
+
+        {/* Bottom content pushed down */}
+        <div className="mt-auto space-y-0.5" style={{ minWidth: 0, overflow: 'hidden' }}>
+          {/* Period delta */}
           {deltaLabel && (
-            <span className="text-muted-foreground/60 truncate" style={noteStyle}>
+            <span className="text-muted-foreground/60 font-mono truncate block" style={noteStyle}>
               {deltaLabel}
             </span>
           )}
-
-          {/* Main value */}
-          <span
-            className={`font-bold tabular-nums ${isDanger ? "text-chart-red" : isHealthy ? "text-chart-green" : "text-amber-400"}`}
-            style={isShortValue(primaryLabel) ? valueShortStyle : valueLongStyle}
-            title={primaryLabel}
-          >
-            {primaryLabel}
-          </span>
-
-          {/* Subline */}
-          <span className="text-muted-foreground" style={sublineStyle}>{sublineText}</span>
-
-          {/* Click hint */}
+          <p className="font-mono text-muted-foreground" style={sublineStyle} title={sublineText}>{sublineText}</p>
           {data.overdueDetail.length > 0 && (
-            <span className="text-muted-foreground/40 truncate" style={noteStyle}>
+            <p className="text-muted-foreground/40 font-mono truncate" style={noteStyle}>
               Click to view overdue {mode === "project" ? "projects" : "items"}
-            </span>
+            </p>
           )}
         </div>
 
