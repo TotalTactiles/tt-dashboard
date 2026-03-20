@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef, useLayoutEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SlidersHorizontal, ChevronLeft, ChevronRight, X, Table2, Search, Columns3, Check, ChevronDown } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
@@ -284,7 +284,30 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
   }, [currentPage, totalPages]);
 
   const fmtDollar = (v: number) => `$${v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+  const fmtCompactDollar = (v: number) => {
+    const abs = Math.abs(v);
+    const sign = v < 0 ? "-" : "";
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}k`;
+    return `${sign}$${abs.toFixed(0)}`;
+  };
   const fmtGpPct = (gp: number, rev: number) => rev > 0 ? `${((gp / rev) * 100).toFixed(2)}%` : "0.00%";
+  const fmtCompactPct = (pct: number) => `${pct.toFixed(1)}%`;
+
+  /* ── Container width tracking for compact mode ── */
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const [isCompact, setIsCompact] = useState(false);
+  useLayoutEffect(() => {
+    const el = tableContainerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setIsCompact(entry.contentRect.width < 1100);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const $d = isCompact ? fmtCompactDollar : fmtDollar;
 
   const toggleCardExpand = (id: string) => {
     setExpandedCards(prev => {
@@ -329,30 +352,40 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
 
   /* ── Render cell by column key ── */
   const renderCell = (proj: typeof filteredProjects[0], key: ColumnKey) => {
+    const gpPctVal = proj.valueExclGST > 0 ? (proj.grossProfit / proj.valueExclGST) * 100 : 0;
     switch (key) {
-      case "company": return <span className="font-medium truncate block max-w-[200px]">{proj.company}</span>;
-      case "project": return <span className="text-muted-foreground truncate block max-w-[200px]">{proj.project}</span>;
+      case "company":
+        // Hidden in compact mode (merged into project column)
+        return <span className="font-medium truncate block max-w-[200px]">{proj.company}</span>;
+      case "project":
+        if (isCompact) {
+          // Merged: company primary, project secondary
+          return (
+            <div className="min-w-0">
+              <span className="font-medium truncate block max-w-[180px]">{proj.company}</span>
+              <span className="text-muted-foreground truncate block max-w-[180px] text-xs">{proj.project}</span>
+            </div>
+          );
+        }
+        return <span className="text-muted-foreground truncate block max-w-[200px]">{proj.project}</span>;
       case "stage": return proj.projectStage ? (
-        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary/50 text-muted-foreground font-mono border border-border/50">
+        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary/50 text-muted-foreground font-mono border border-border/50 whitespace-nowrap">
           {proj.projectStage}
         </span>
       ) : null;
-      case "stageValue": return <span className="font-mono text-muted-foreground">{proj.stageValue > 0 ? fmtDollar(proj.stageValue) : ""}</span>;
-      case "valueInclGST": return <span className="font-mono">{fmtDollar(proj.valueInclGST)}</span>;
-      case "valueExclGST": return <span className="font-mono">{fmtDollar(proj.valueExclGST)}</span>;
-      case "invoice": return <span className="font-mono text-xs text-muted-foreground">{proj.invoiceDate}</span>;
-      case "dueDate": return <span className="font-mono text-xs text-muted-foreground">{proj.dueDate}</span>;
-      case "labour": return <span className="font-mono text-chart-red">{fmtDollar(proj.labourCost)}</span>;
-      case "tactile": return <span className="font-mono text-chart-red">{fmtDollar(proj.tactileCost)}</span>;
-      case "other": return <span className="font-mono text-chart-red">{fmtDollar(proj.otherCost)}</span>;
-      case "cogs": return <span className="font-mono text-chart-red">{fmtDollar(proj.totalCOGS)}</span>;
-      case "grossProfit": return <span className={`font-mono ${proj.grossProfit >= 0 ? "text-chart-green" : "text-chart-red"}`}>{fmtDollar(proj.grossProfit)}</span>;
-      case "gpPct": {
-        const pct = proj.valueExclGST > 0 ? (proj.grossProfit / proj.valueExclGST) * 100 : 0;
-        return <span className={`font-mono ${pct >= 0 ? "text-chart-green" : "text-chart-red"}`}>{pct.toFixed(2)}%</span>;
-      }
+      case "stageValue": return <span className="font-mono text-muted-foreground whitespace-nowrap">{proj.stageValue > 0 ? $d(proj.stageValue) : ""}</span>;
+      case "valueInclGST": return <span className="font-mono whitespace-nowrap">{$d(proj.valueInclGST)}</span>;
+      case "valueExclGST": return <span className="font-mono whitespace-nowrap">{$d(proj.valueExclGST)}</span>;
+      case "invoice": return <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">{proj.invoiceDate}</span>;
+      case "dueDate": return <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">{proj.dueDate}</span>;
+      case "labour": return <span className="font-mono text-chart-red whitespace-nowrap">{$d(proj.labourCost)}</span>;
+      case "tactile": return <span className="font-mono text-chart-red whitespace-nowrap">{$d(proj.tactileCost)}</span>;
+      case "other": return <span className="font-mono text-chart-red whitespace-nowrap">{$d(proj.otherCost)}</span>;
+      case "cogs": return <span className="font-mono text-chart-red whitespace-nowrap">{$d(proj.totalCOGS)}</span>;
+      case "grossProfit": return <span className={`font-mono whitespace-nowrap ${proj.grossProfit >= 0 ? "text-chart-green" : "text-chart-red"}`}>{$d(proj.grossProfit)}</span>;
+      case "gpPct": return <span className={`font-mono whitespace-nowrap ${gpPctVal >= 0 ? "text-chart-green" : "text-chart-red"}`}>{isCompact ? fmtCompactPct(gpPctVal) : `${gpPctVal.toFixed(2)}%`}</span>;
       case "status": return (
-        <span className={`text-xs px-2 py-1 rounded-full font-mono capitalize border ${statusBadgeClass(proj.status)}`}>
+        <span className={`text-xs px-2 py-1 rounded-full font-mono capitalize border whitespace-nowrap ${statusBadgeClass(proj.status)}`}>
           {proj.status}
         </span>
       );
@@ -362,20 +395,21 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
 
   const renderTotalCell = (key: ColumnKey) => {
     switch (key) {
-      case "stageValue": return <span className="text-foreground">{fmtDollar(totalStageValue)}</span>;
-      case "valueInclGST": return <span className="text-foreground">{fmtDollar(totalValueInclGST)}</span>;
-      case "valueExclGST": return <span className="text-foreground">{fmtDollar(totalRevenue)}</span>;
-      case "labour": return <span className="text-chart-red">{fmtDollar(totalLabour)}</span>;
-      case "tactile": return <span className="text-chart-red">{fmtDollar(totalTactile)}</span>;
-      case "other": return <span className="text-chart-red">{fmtDollar(totalOther)}</span>;
-      case "cogs": return <span className="text-chart-red">{fmtDollar(totalCOGS)}</span>;
-      case "grossProfit": return <span className={totalGP >= 0 ? "text-chart-green" : "text-chart-red"}>{fmtDollar(totalGP)}</span>;
-      case "gpPct": return <span className={totalGpPct >= 0 ? "text-chart-green" : "text-chart-red"}>{totalGpPct.toFixed(2)}%</span>;
+      case "stageValue": return <span className="text-foreground whitespace-nowrap">{$d(totalStageValue)}</span>;
+      case "valueInclGST": return <span className="text-foreground whitespace-nowrap">{$d(totalValueInclGST)}</span>;
+      case "valueExclGST": return <span className="text-foreground whitespace-nowrap">{$d(totalRevenue)}</span>;
+      case "labour": return <span className="text-chart-red whitespace-nowrap">{$d(totalLabour)}</span>;
+      case "tactile": return <span className="text-chart-red whitespace-nowrap">{$d(totalTactile)}</span>;
+      case "other": return <span className="text-chart-red whitespace-nowrap">{$d(totalOther)}</span>;
+      case "cogs": return <span className="text-chart-red whitespace-nowrap">{$d(totalCOGS)}</span>;
+      case "grossProfit": return <span className={`whitespace-nowrap ${totalGP >= 0 ? "text-chart-green" : "text-chart-red"}`}>{$d(totalGP)}</span>;
+      case "gpPct": return <span className={`whitespace-nowrap ${totalGpPct >= 0 ? "text-chart-green" : "text-chart-red"}`}>{isCompact ? fmtCompactPct(totalGpPct) : `${totalGpPct.toFixed(2)}%`}</span>;
       default: return null;
     }
   };
 
-  const visibleColDefs = ALL_COLUMNS.filter(c => isColVisible(c.key));
+  // In compact mode, filter out separate "company" column (merged into "project")
+  const visibleColDefs = ALL_COLUMNS.filter(c => isColVisible(c.key) && !(isCompact && c.key === "company"));
 
   return (
     <motion.div
@@ -542,13 +576,13 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
       ) : (
         <>
           {/* Desktop table */}
-          <div className="desktop-table overflow-x-auto">
+          <div className="desktop-table overflow-x-auto" ref={tableContainerRef}>
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-muted-foreground font-mono border-b border-border">
                   {visibleColDefs.map(col => (
                     <th key={col.key} className={`pb-3 pr-4 whitespace-nowrap ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""}`}>
-                      {col.label}
+                      {isCompact && col.key === "project" ? "Company / Project" : col.label}
                     </th>
                   ))}
                 </tr>
