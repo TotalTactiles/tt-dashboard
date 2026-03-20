@@ -447,9 +447,10 @@ export function useDataSources() {
       });
 
       // If we have cached data, mark as offline rather than showing empty
-      if (Object.keys(liveData).length > 0) {
-        setIsOffline(true);
-      }
+      try {
+        const cached = localStorage.getItem(DATA_CACHE_KEY);
+        if (cached && cached !== "{}") setIsOffline(true);
+      } catch {}
       return { success: false, error: errorMsg };
     }
   }, [fetchProjectKPIs]);
