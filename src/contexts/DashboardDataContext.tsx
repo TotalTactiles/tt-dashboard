@@ -930,7 +930,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       labourEfficiency: projectKPIData?.kpis?.labourEfficiency?.value ?? 0,
     };
 
-    const kpiVariables = {
+    const kpiVariables: Record<string, number> = {
       ...baseKpiVariables,
       ...projectExecutionVariables,
     };
