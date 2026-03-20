@@ -181,13 +181,14 @@ function loadSavedSources(): DataSourceConfig[] {
         if (existing) {
           if (def.id === "google_sheets") {
             const webhookUrl = existing.webhookUrl || DEFAULT_WEBHOOK_URL;
-            const connected = existing.connected !== false;
-            return { ...def, ...existing, loading: false, webhookUrl, connected };
+            // Always force connected: true — webhook URL is hardcoded
+            return { ...def, ...existing, loading: false, webhookUrl, connected: true };
           }
           if (def.id === "zoho_projects") {
             const webhookUrl = existing.webhookUrl || ZOHO_PROJECTS_WEBHOOK_URL;
-            const connected = existing.connected !== false;
-            return { ...def, ...existing, loading: false, webhookUrl, connected, dataMapping: def.dataMapping };
+            // Always force connected: true for zoho_projects — the webhook URL
+            // is hardcoded and always available. User cannot disconnect this source.
+            return { ...def, ...existing, loading: false, webhookUrl, connected: true, dataMapping: def.dataMapping };
           }
           return { ...def, ...existing, loading: false };
         }
