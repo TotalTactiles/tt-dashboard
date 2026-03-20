@@ -325,7 +325,7 @@ const DashboardContent = () => {
                 : "Showing last known data"}
             </span>
           </div>
-          <Button variant="outline" size="sm" onClick={() => syncNow()} className="text-amber-700 border-amber-300 hover:bg-amber-100 dark:text-amber-200 dark:border-amber-600 dark:hover:bg-amber-900/40">
+          <Button variant="outline" size="sm" onClick={() => syncNow("google_sheets")} className="text-amber-700 border-amber-300 hover:bg-amber-100 dark:text-amber-200 dark:border-amber-600 dark:hover:bg-amber-900/40">
             Retry
           </Button>
         </div>
