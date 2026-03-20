@@ -996,6 +996,8 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       setCalendarEvents: setCalendarEventsState,
       projectKPIData,
       liveData,
+      isOffline: ds.isOffline ?? false,
+      lastCachedAt: ds.lastCachedAt ?? null,
       investorMetrics: (liveData as any)?.investorMetrics ?? null,
       updateScreenshot: ds.updateScreenshot,
       removeScreenshot: ds.removeScreenshot,
