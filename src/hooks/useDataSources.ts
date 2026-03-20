@@ -247,6 +247,13 @@ export function useDataSources() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const hasFetchedOnce = useRef(false);
+  const [isOffline, setIsOffline] = useState(false);
+  const [lastCachedAt, setLastCachedAt] = useState<string | null>(() => {
+    try {
+      const meta = localStorage.getItem(DATA_CACHE_META_KEY);
+      return meta ? JSON.parse(meta).savedAt : null;
+    } catch { return null; }
+  });
 
   const [calendarData, setCalendarData] = useState(loadCachedCalendar);
   const calendarInterval = useRef<ReturnType<typeof setInterval> | null>(null);
