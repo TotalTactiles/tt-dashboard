@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef, useLayoutEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SlidersHorizontal, ChevronLeft, ChevronRight, X, Table2, Search, Columns3, Check, ChevronDown } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
