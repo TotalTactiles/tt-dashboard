@@ -561,7 +561,7 @@ export default function InvestmentMemorandum() {
 
       y = addSectionHeading("Basis of Projections", y);
       if (form.projections_rationale) {
-        y = addBodyText(form.projections_rationale, y);
+        y = addBodyText(sanitiseText(form.projections_rationale), y);
       } else {
         doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(...MUTED);
         doc.text("No content generated yet.", margin, y); y += 8;
