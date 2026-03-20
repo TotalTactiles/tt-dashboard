@@ -29,6 +29,7 @@ const navItems = [
 { title: "Formulas", url: "/formulas", icon: FunctionSquare },
 { title: "Portfolio", url: "/portfolio", icon: TrendingUp },
 { title: "Deal Flow", url: "/deals", icon: Activity },
+{ title: "Investment Memo", url: "/investment-memorandum", icon: FileText },
 { title: "Settings", url: "/settings", icon: Settings }];
 
 
