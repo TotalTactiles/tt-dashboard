@@ -352,30 +352,40 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
 
   /* ── Render cell by column key ── */
   const renderCell = (proj: typeof filteredProjects[0], key: ColumnKey) => {
+    const gpPctVal = proj.valueExclGST > 0 ? (proj.grossProfit / proj.valueExclGST) * 100 : 0;
     switch (key) {
-      case "company": return <span className="font-medium truncate block max-w-[200px]">{proj.company}</span>;
-      case "project": return <span className="text-muted-foreground truncate block max-w-[200px]">{proj.project}</span>;
+      case "company":
+        // Hidden in compact mode (merged into project column)
+        return <span className="font-medium truncate block max-w-[200px]">{proj.company}</span>;
+      case "project":
+        if (isCompact) {
+          // Merged: company primary, project secondary
+          return (
+            <div className="min-w-0">
+              <span className="font-medium truncate block max-w-[180px]">{proj.company}</span>
+              <span className="text-muted-foreground truncate block max-w-[180px] text-xs">{proj.project}</span>
+            </div>
+          );
+        }
+        return <span className="text-muted-foreground truncate block max-w-[200px]">{proj.project}</span>;
       case "stage": return proj.projectStage ? (
-        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary/50 text-muted-foreground font-mono border border-border/50">
+        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary/50 text-muted-foreground font-mono border border-border/50 whitespace-nowrap">
           {proj.projectStage}
         </span>
       ) : null;
-      case "stageValue": return <span className="font-mono text-muted-foreground">{proj.stageValue > 0 ? fmtDollar(proj.stageValue) : ""}</span>;
-      case "valueInclGST": return <span className="font-mono">{fmtDollar(proj.valueInclGST)}</span>;
-      case "valueExclGST": return <span className="font-mono">{fmtDollar(proj.valueExclGST)}</span>;
-      case "invoice": return <span className="font-mono text-xs text-muted-foreground">{proj.invoiceDate}</span>;
-      case "dueDate": return <span className="font-mono text-xs text-muted-foreground">{proj.dueDate}</span>;
-      case "labour": return <span className="font-mono text-chart-red">{fmtDollar(proj.labourCost)}</span>;
-      case "tactile": return <span className="font-mono text-chart-red">{fmtDollar(proj.tactileCost)}</span>;
-      case "other": return <span className="font-mono text-chart-red">{fmtDollar(proj.otherCost)}</span>;
-      case "cogs": return <span className="font-mono text-chart-red">{fmtDollar(proj.totalCOGS)}</span>;
-      case "grossProfit": return <span className={`font-mono ${proj.grossProfit >= 0 ? "text-chart-green" : "text-chart-red"}`}>{fmtDollar(proj.grossProfit)}</span>;
-      case "gpPct": {
-        const pct = proj.valueExclGST > 0 ? (proj.grossProfit / proj.valueExclGST) * 100 : 0;
-        return <span className={`font-mono ${pct >= 0 ? "text-chart-green" : "text-chart-red"}`}>{pct.toFixed(2)}%</span>;
-      }
+      case "stageValue": return <span className="font-mono text-muted-foreground whitespace-nowrap">{proj.stageValue > 0 ? $d(proj.stageValue) : ""}</span>;
+      case "valueInclGST": return <span className="font-mono whitespace-nowrap">{$d(proj.valueInclGST)}</span>;
+      case "valueExclGST": return <span className="font-mono whitespace-nowrap">{$d(proj.valueExclGST)}</span>;
+      case "invoice": return <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">{proj.invoiceDate}</span>;
+      case "dueDate": return <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">{proj.dueDate}</span>;
+      case "labour": return <span className="font-mono text-chart-red whitespace-nowrap">{$d(proj.labourCost)}</span>;
+      case "tactile": return <span className="font-mono text-chart-red whitespace-nowrap">{$d(proj.tactileCost)}</span>;
+      case "other": return <span className="font-mono text-chart-red whitespace-nowrap">{$d(proj.otherCost)}</span>;
+      case "cogs": return <span className="font-mono text-chart-red whitespace-nowrap">{$d(proj.totalCOGS)}</span>;
+      case "grossProfit": return <span className={`font-mono whitespace-nowrap ${proj.grossProfit >= 0 ? "text-chart-green" : "text-chart-red"}`}>{$d(proj.grossProfit)}</span>;
+      case "gpPct": return <span className={`font-mono whitespace-nowrap ${gpPctVal >= 0 ? "text-chart-green" : "text-chart-red"}`}>{isCompact ? fmtCompactPct(gpPctVal) : `${gpPctVal.toFixed(2)}%`}</span>;
       case "status": return (
-        <span className={`text-xs px-2 py-1 rounded-full font-mono capitalize border ${statusBadgeClass(proj.status)}`}>
+        <span className={`text-xs px-2 py-1 rounded-full font-mono capitalize border whitespace-nowrap ${statusBadgeClass(proj.status)}`}>
           {proj.status}
         </span>
       );
