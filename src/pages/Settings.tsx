@@ -307,17 +307,15 @@ const Settings = () => {
 
                   {/* Status info */}
                   <div className="space-y-1">
-                    {source.lastSync && (
-                      <p className="text-xs text-muted-foreground font-mono">
-                        Last sync: {source.lastSync}
-                      </p>
-                    )}
-                    {source.connected && nextSyncCountdown[source.id] !== undefined && (
-                      <p className="text-xs text-chart-blue font-mono flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        Next sync in {formatCountdown(nextSyncCountdown[source.id])}
-                      </p>
-                    )}
+                    {source.connected && (() => {
+                      const status = syncStatusLabel(source);
+                      return (
+                        <p className={`text-xs font-mono flex items-center gap-1 ${status.colour}`}>
+                          <Clock className="w-3 h-3" />
+                          {status.text}
+                        </p>
+                      );
+                    })()}
                     {source.lastError && (
                       <p className="text-xs text-destructive font-mono flex items-center gap-1">
                         <AlertCircle className="w-3 h-3" />
