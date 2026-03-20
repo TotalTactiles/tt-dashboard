@@ -616,6 +616,27 @@ export function useDataSources() {
   const connectedCount = sources.filter((s) => s.connected).length;
   const hasLiveData = Object.keys(liveData).some((k) => !k.startsWith("_"));
 
+  // Change Detector metadata — written by n8n workflow into localStorage
+  const [changeDetectorMeta, setChangeDetectorMeta] = useState<{
+    lastChecked: string | null;
+    lastTriggered: string | null;
+    noChangeCount: number;
+  }>({ lastChecked: null, lastTriggered: null, noChangeCount: 0 });
+
+  useEffect(() => {
+    const readMeta = () => {
+      try {
+        const lastChecked = localStorage.getItem("cd_last_checked") ?? null;
+        const lastTriggered = localStorage.getItem("cd_last_triggered") ?? null;
+        const noChangeCount = parseInt(localStorage.getItem("cd_no_change_count") ?? "0", 10);
+        setChangeDetectorMeta({ lastChecked, lastTriggered, noChangeCount });
+      } catch {}
+    };
+    readMeta();
+    const interval = setInterval(readMeta, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   // isLoading: true only during initial load when no cached data exists
   const isLoading = isInitialLoad && !hasLiveData;
 
