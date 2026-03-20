@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Sparkles, ChevronDown, ChevronUp, Loader2, X, RotateCcw, FileText } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
