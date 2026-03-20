@@ -37,44 +37,38 @@ const Settings = () => {
   } = useDashboardData();
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [nextSyncCountdown, setNextSyncCountdown] = useState<Record<string, number>>({});
   const [viewingScreenshot, setViewingScreenshot] = useState<{ url: string; name: string } | null>(null);
   const [showInspector, setShowInspector] = useState(false);
 
-  const SYNC_INTERVAL_MS = 5 * 60 * 1000;
+  const formatTs = (iso: string | null | undefined): string => {
+    if (!iso) return "—";
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return "—";
+      return d.toLocaleDateString("en-AU", { day: "numeric", month: "short" }) +
+        ", " + d.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true });
+    } catch { return "—"; }
+  };
 
-  // Safe countdown timer for next sync
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setNextSyncCountdown(() => {
-        const updated: Record<string, number> = {};
-        sources.forEach((s) => {
-          if (s.connected) {
-            if (!s.lastSync) {
-              updated[s.id] = 300; // 5:00 if no sync yet
-              return;
-            }
-            const lastMs = new Date(s.lastSync).getTime();
-            if (isNaN(lastMs)) {
-              updated[s.id] = 300; // fallback for invalid date
-              return;
-            }
-            const nextMs = lastMs + SYNC_INTERVAL_MS;
-            const remaining = Math.max(0, Math.floor((nextMs - Date.now()) / 1000));
-            updated[s.id] = remaining;
-          }
-        });
-        return updated;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [sources]);
-
-  const formatCountdown = (seconds: number | undefined) => {
-    if (seconds === undefined || isNaN(seconds)) return "5:00";
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
+  const syncStatusLabel = (source: typeof sources[0]): { text: string; colour: string } => {
+    // Use change detector metadata if available
+    const { lastChecked, lastTriggered } = changeDetectorMeta;
+    if (lastTriggered) {
+      const triggeredRecently =
+        lastChecked && lastTriggered &&
+        new Date(lastTriggered).getTime() >= new Date(lastChecked).getTime() - 60000;
+      if (triggeredRecently) {
+        return { text: `Data updated · ${formatTs(lastTriggered)}`, colour: "text-emerald-400" };
+      }
+    }
+    if (lastChecked) {
+      return { text: `No change detected · Last checked ${formatTs(lastChecked)}`, colour: "text-muted-foreground" };
+    }
+    // Fall back to last sync from source
+    if (source.lastSync) {
+      return { text: `Last sync: ${source.lastSync}`, colour: "text-muted-foreground" };
+    }
+    return { text: "Not yet synced", colour: "text-muted-foreground" };
   };
 
   const handleToggle = (id: string) => {
@@ -313,17 +307,15 @@ const Settings = () => {
 
                   {/* Status info */}
                   <div className="space-y-1">
-                    {source.lastSync && (
-                      <p className="text-xs text-muted-foreground font-mono">
-                        Last sync: {source.lastSync}
-                      </p>
-                    )}
-                    {source.connected && nextSyncCountdown[source.id] !== undefined && (
-                      <p className="text-xs text-chart-blue font-mono flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        Next sync in {formatCountdown(nextSyncCountdown[source.id])}
-                      </p>
-                    )}
+                    {source.connected && (() => {
+                      const status = syncStatusLabel(source);
+                      return (
+                        <p className={`text-xs font-mono flex items-center gap-1 ${status.colour}`}>
+                          <Clock className="w-3 h-3" />
+                          {status.text}
+                        </p>
+                      );
+                    })()}
                     {source.lastError && (
                       <p className="text-xs text-destructive font-mono flex items-center gap-1">
                         <AlertCircle className="w-3 h-3" />
