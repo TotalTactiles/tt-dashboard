@@ -390,105 +390,133 @@ function ScheduleSlippageCard({ data, index }: { data: ProjectKPIData["kpis"]["s
     ? `${data.overdueMillestones} overdue milestones`
     : data.detail;
 
+  // Colour logic: red if avg slippage > 14d, green if 0, amber in between
+  const isHealthy = data.value <= 0;
+  const isWarning = data.value > 0 && data.value < 15;
+  const isDanger = data.value >= 15;
+
+  // Period-over-period change (if available from data)
+  const hasPrevious = (data as any).previousValue !== undefined && (data as any).previousValue !== null;
+  const periodDelta = hasPrevious ? Math.round((data.value - (data as any).previousValue) * 10) / 10 : null;
+  const deltaLabel = periodDelta !== null
+    ? (periodDelta > 0 ? `+${periodDelta}d vs prior period` : periodDelta < 0 ? `${periodDelta}d vs prior period` : `No change vs prior period`)
+    : null;
+
   return (
-    <Tooltip open={showDetail} onOpenChange={setShowDetail}>
-      <TooltipTrigger asChild>
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: index * 0.06 }}
-          className="stat-card relative overflow-hidden flex flex-col cursor-help min-w-0"
-          style={cardContainerStyle}
-          onMouseEnter={() => data.overdueDetail.length > 0 && setShowDetail(true)}
-          onMouseLeave={() => setShowDetail(false)}
-        >
-          <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: 'hidden' }}>
-            <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: 'hidden' }}>
-              <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
-              <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>Schedule Slippage</p>
-            </div>
-            <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>DELIVERY</span>
-          </div>
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.04 }}
+      className="relative bg-card rounded-xl border border-border overflow-hidden cursor-pointer select-none"
+      style={{ containerType: 'inline-size' }}
+      onClick={() => data.overdueDetail.length > 0 && setShowDetail((v) => !v)}
+    >
+      <div style={cardContainerStyle} className="flex flex-col gap-1 min-w-0">
+        {/* Row 1 — label + badge */}
+        <div className="flex items-center justify-between gap-1 min-w-0">
+          <span className="text-muted-foreground truncate min-w-0" style={titleStyle}>
+            Schedule Slippage
+          </span>
+          <span className="text-[10px] font-mono text-muted-foreground/60 shrink-0">DELIVERY</span>
+        </div>
 
-          {/* Toggle pills */}
-          <div className="flex mt-0.5 mb-0.5" onClick={(e) => e.stopPropagation()}>
-            <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
-              <button
-                onClick={(e) => { e.stopPropagation(); setMode("milestone"); }}
-                className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
-                  mode === "milestone"
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <span className="hidden sm:inline">Per Milestone</span>
-                <span className="sm:hidden">MS</span>
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); setMode("project"); }}
-                className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
-                  mode === "project"
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <span className="hidden sm:inline">Per Project</span>
-                <span className="sm:hidden">Proj</span>
-              </button>
-            </div>
-          </div>
-
-          <p
-            className={`font-mono font-bold my-auto ${data.isOverdue ? "text-chart-amber" : "text-chart-green"}`}
-            style={isShortValue(primaryLabel) ? valueShortStyle : valueLongStyle}
-            title={primaryLabel}
+        {/* Toggle pills */}
+        <div className="flex gap-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={(e) => { e.stopPropagation(); setMode("milestone"); }}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+              mode === "milestone"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            style={titleStyle}
           >
-            {primaryLabel}
-          </p>
+            Per Milestone
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setMode("project"); }}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+              mode === "project"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            style={titleStyle}
+          >
+            Per Project
+          </button>
+        </div>
 
-          <div className="mt-auto space-y-0.5" style={{ minWidth: 0, overflow: 'hidden' }}>
-            <p className="font-mono text-muted-foreground" style={sublineStyle} title={sublineText}>{sublineText}</p>
-          </div>
+        {/* Period-over-period change — grey, above main value */}
+        {deltaLabel && (
+          <span className="text-muted-foreground/60 truncate" style={noteStyle}>
+            {deltaLabel}
+          </span>
+        )}
 
-          <div className="mt-2 h-[3px] bg-secondary rounded-full overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${barFill}%` }}
-              transition={{ duration: 0.8, delay: 0.3 + index * 0.06 }}
-              className={`h-full rounded-full ${barColor}`}
-            />
-          </div>
-        </motion.div>
-      </TooltipTrigger>
-      {data.overdueDetail.length > 0 && (
-        <TooltipContent side="bottom" className="max-w-[320px] p-3">
-          <p className="text-xs font-mono font-semibold mb-1.5">
+        {/* Main value */}
+        <span
+          className={`font-bold tabular-nums ${isDanger ? "text-chart-red" : isHealthy ? "text-chart-green" : "text-amber-400"}`}
+          style={isShortValue(primaryLabel) ? valueShortStyle : valueLongStyle}
+          title={primaryLabel}
+        >
+          {primaryLabel}
+        </span>
+
+        {/* Subline */}
+        <span className="text-muted-foreground" style={sublineStyle}>{sublineText}</span>
+
+        {/* Click hint when collapsed */}
+        {data.overdueDetail.length > 0 && !showDetail && (
+          <span className="text-muted-foreground/40 truncate" style={noteStyle}>
+            Click to view overdue {mode === "project" ? "projects" : "items"}
+          </span>
+        )}
+      </div>
+
+      {/* Detail panel — shows on click */}
+      {data.overdueDetail.length > 0 && showDetail && (
+        <div className="border-t border-border px-3 py-2 flex flex-col gap-0.5 bg-card/80">
+          <span className="text-muted-foreground/70 font-mono mb-1" style={noteStyle}>
             {mode === "project" ? "Overdue by Project" : "Overdue Items"}
-          </p>
-          <div className="space-y-1">
-            {mode === "project" ? (
-              projectGroups.slice(0, 8).map((pg, i) => (
-                <div key={i} className="text-[11px] font-mono text-muted-foreground leading-snug">
-                  <span className="text-foreground">{pg.project}</span> · <span className="text-chart-amber">{pg.worstDays}d</span> · {pg.milestoneCount} ms
-                </div>
-              ))
-            ) : (
-              data.overdueDetail.slice(0, 5).map((item, i) => (
-                <div key={i} className="text-[11px] font-mono text-muted-foreground leading-snug">
-                  <span className="text-foreground">{decodeHtml(item.project)}</span> · {decodeHtml(item.name)} · <span className="text-chart-amber">{item.daysOverdue}d overdue</span>
-                </div>
-              ))
-            )}
-            {mode === "project" && projectGroups.length > 8 && (
-              <p className="text-[10px] font-mono text-muted-foreground">+ {projectGroups.length - 8} more</p>
-            )}
-            {mode === "milestone" && data.overdueDetail.length > 5 && (
-              <p className="text-[10px] font-mono text-muted-foreground">+ {data.overdueDetail.length - 5} more</p>
-            )}
-          </div>
-        </TooltipContent>
+          </span>
+          {mode === "project" ? (
+            projectGroups.slice(0, 8).map((pg, i) => (
+              <span
+                key={i}
+                className={`truncate font-mono ${pg.worstDays >= 15 ? "text-chart-red" : pg.worstDays >= 7 ? "text-amber-400" : "text-chart-green"}`}
+                style={noteStyle}
+              >
+                {pg.project} · {pg.worstDays}d · {pg.milestoneCount} ms
+              </span>
+            ))
+          ) : (
+            data.overdueDetail.slice(0, 8).map((item, i) => (
+              <span
+                key={i}
+                className={`truncate font-mono ${item.daysOverdue >= 15 ? "text-chart-red" : item.daysOverdue >= 7 ? "text-amber-400" : "text-chart-green"}`}
+                style={noteStyle}
+              >
+                {decodeHtml(item.project)} · {decodeHtml(item.name)} · {item.daysOverdue}d
+              </span>
+            ))
+          )}
+          {mode === "project" && projectGroups.length > 8 && (
+            <span className="text-muted-foreground/50" style={noteStyle}>+ {projectGroups.length - 8} more</span>
+          )}
+          {mode === "milestone" && data.overdueDetail.length > 8 && (
+            <span className="text-muted-foreground/50" style={noteStyle}>+ {data.overdueDetail.length - 8} more</span>
+          )}
+        </div>
       )}
-    </Tooltip>
+
+      {/* Bottom bar */}
+      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-border/40">
+        <div
+          className={`h-full transition-all duration-500 ${barColor}`}
+          style={{ width: `${barFill}%` }}
+        />
+      </div>
+    </motion.div>
   );
 }
 
