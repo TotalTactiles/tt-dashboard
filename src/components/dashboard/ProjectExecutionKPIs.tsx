@@ -634,50 +634,109 @@ function MarginVarianceCard({ data, index }: { data: ProjectKPIData["kpis"]["mar
 // ── LABOUR EFFICIENCY CARD ────────────────────────────────────────
 
 function LabourEfficiencyCard({ data, index }: { data: ProjectKPIData["kpis"]["labourEfficiency"]; index: number }) {
+  const [showDetail, setShowDetail] = useState(false);
   const barFill = !data.dataReady ? 0 : Math.min(100, data.value ?? 0);
   const barColor = !data.dataReady ? "bg-muted-foreground/20" : (data.value ?? 0) >= 100 ? "bg-chart-green" : "bg-chart-amber";
   const valueColor = !data.dataReady ? "text-muted-foreground/60" : data.isEfficient ? "text-chart-green" : "text-chart-amber";
 
+  const effPct = data.value ?? 0;
+  const hasDetail = data.dataReady && data.loggedHours > 0;
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay: index * 0.06 }}
-      className="stat-card relative overflow-hidden flex flex-col min-w-0"
-      style={cardContainerStyle}
-    >
-      <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: 'hidden' }}>
-        <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: 'hidden' }}>
-          <Users className="w-4 h-4 text-muted-foreground shrink-0" />
-          <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>Labour Efficiency</p>
-        </div>
-        <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>DELIVERY</span>
-      </div>
-
-      <p
-        className={`font-mono font-bold my-auto ${valueColor}`}
-        style={isShortValue(data.label) ? valueShortStyle : valueLongStyle}
-        title={data.label}
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: index * 0.06 }}
+        className={`stat-card relative overflow-hidden flex flex-col min-w-0 ${hasDetail ? "cursor-pointer select-none" : ""}`}
+        style={cardContainerStyle}
+        onClick={() => hasDetail && setShowDetail(true)}
       >
-        {data.label}
-      </p>
+        <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: 'hidden' }}>
+          <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: 'hidden' }}>
+            <Users className="w-4 h-4 text-muted-foreground shrink-0" />
+            <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>Labour Efficiency</p>
+          </div>
+          <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>DELIVERY</span>
+        </div>
 
-      <div className="mt-auto space-y-0.5" style={{ minWidth: 0, overflow: 'hidden' }}>
-        <p className="font-mono text-muted-foreground" style={sublineStyle} title={data.detail}>{data.detail}</p>
-        {data.note && (
-          <p className="font-mono text-muted-foreground" style={noteStyle}>{data.note}</p>
-        )}
-      </div>
+        <p
+          className={`font-mono font-bold my-auto ${valueColor}`}
+          style={isShortValue(data.label) ? valueShortStyle : valueLongStyle}
+          title={data.label}
+        >
+          {data.label}
+        </p>
 
-      <div className="mt-2 h-[3px] bg-secondary rounded-full overflow-hidden">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: data.dataReady ? `${Math.min(100, Math.max(0, barFill))}%` : "0%" }}
-          transition={{ duration: 0.8, delay: 0.3 + index * 0.06 }}
-          className={`h-full rounded-full ${barColor}`}
-        />
-      </div>
-    </motion.div>
+        <div className="mt-auto space-y-0.5" style={{ minWidth: 0, overflow: 'hidden' }}>
+          <p className="font-mono text-muted-foreground" style={sublineStyle} title={data.detail}>{data.detail}</p>
+          {data.note && (
+            <p className="font-mono text-muted-foreground" style={noteStyle}>{data.note}</p>
+          )}
+          {hasDetail && (
+            <p className="text-muted-foreground/40 font-mono truncate" style={noteStyle}>
+              Click to view breakdown
+            </p>
+          )}
+        </div>
+
+        <div className="mt-2 h-[3px] bg-secondary rounded-full overflow-hidden">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: data.dataReady ? `${Math.min(100, Math.max(0, barFill))}%` : "0%" }}
+            transition={{ duration: 0.8, delay: 0.3 + index * 0.06 }}
+            className={`h-full rounded-full ${barColor}`}
+          />
+        </div>
+      </motion.div>
+
+      {/* Modal — same pattern as Schedule Slippage */}
+      <Dialog open={showDetail} onOpenChange={setShowDetail}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-mono text-base">Labour Efficiency</DialogTitle>
+            <DialogDescription className="font-mono text-xs text-muted-foreground">
+              Estimated vs actual logged hours
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-2 mt-2">
+            {/* Summary rows */}
+            <div className="flex items-center justify-between px-3 py-1.5 rounded-md font-mono text-xs bg-secondary/40">
+              <span className="text-muted-foreground">Estimated Hours</span>
+              <span className="tabular-nums text-foreground">{data.estimatedHours.toFixed(1)}h</span>
+            </div>
+            <div className="flex items-center justify-between px-3 py-1.5 rounded-md font-mono text-xs bg-secondary/40">
+              <span className="text-muted-foreground">Logged Hours</span>
+              <span className="tabular-nums text-foreground">{data.loggedHours.toFixed(1)}h</span>
+            </div>
+            <div className="flex items-center justify-between px-3 py-1.5 rounded-md font-mono text-xs bg-secondary/40">
+              <span className="text-muted-foreground">Variance</span>
+              <span className={`tabular-nums ${data.estimatedHours - data.loggedHours >= 0 ? "text-chart-green" : "text-chart-red"}`}>
+                {data.estimatedHours - data.loggedHours >= 0 ? "+" : ""}{(data.estimatedHours - data.loggedHours).toFixed(1)}h
+              </span>
+            </div>
+            <div
+              className={`flex items-center justify-between px-3 py-2 rounded-md font-mono text-sm font-bold ${
+                effPct >= 100 ? "text-chart-green bg-chart-green/5" : effPct >= 85 ? "text-amber-400 bg-amber-400/5" : "text-chart-red bg-chart-red/5"
+              }`}
+            >
+              <span>Efficiency</span>
+              <span className="tabular-nums">{effPct.toFixed(1)}%</span>
+            </div>
+
+            {/* Contextual note */}
+            <p className="text-muted-foreground font-mono mt-1" style={{ fontSize: '11px', lineHeight: '1.4' }}>
+              {effPct >= 100
+                ? "Work is completing within or under estimated hours — on budget."
+                : effPct >= 85
+                ? "Slightly over estimated hours. Monitor for scope creep."
+                : "Significantly over estimated hours. Review estimates and workload."}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
