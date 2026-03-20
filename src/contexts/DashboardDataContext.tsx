@@ -240,6 +240,8 @@ export interface DashboardData {
   setCalendarEvents: React.Dispatch<React.SetStateAction<LiveCalendarEvent[]>>;
   projectKPIData: ProjectKPIData | null;
   liveData: import("@/hooks/useDataSources").LiveData;
+  isOffline: boolean;
+  lastCachedAt: string | null;
   investorMetrics: Record<string, any> | null;
   updateScreenshot: (id: string, url: string) => void;
   removeScreenshot: (id: string) => void;
