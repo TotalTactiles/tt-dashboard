@@ -407,7 +407,7 @@ export default function InvestmentMemorandum() {
       y = kpiY + 24;
       y = addSectionHeading("Executive Summary", y);
       if (form.executive_summary) {
-        y = addBodyText(form.executive_summary, y);
+        y = addBodyText(sanitiseText(form.executive_summary), y);
       } else {
         doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(...MUTED);
         doc.text("No content generated yet. Use AI Draft to generate this section.", margin, y); y += 8;
