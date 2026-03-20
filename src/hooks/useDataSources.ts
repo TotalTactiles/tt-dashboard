@@ -672,6 +672,8 @@ export function useDataSources() {
     connectedCount,
     isLoading,
     isRefreshing,
+    isOffline,
+    lastCachedAt,
     toggleConnection,
     updateWebhookUrl,
     saveAndTest,
