@@ -110,7 +110,18 @@ export default function InvestmentMemorandum() {
       revenueSummary:  dataStore?.revenueSummary  ?? {},
       expensesSummary: dataStore?.expensesSummary ?? {},
       labourSummary:   dataStore?.labour          ?? [],
-      investorMetrics: {},
+      investorMetrics: {
+        ebitda:                kpiStats.find(s => s.label === "EBITDA")?.value ?? null,
+        ebitdaMargin:          kpiStats.find(s => s.label === "EBITDA Margin")?.value ?? null,
+        grossProfitMargin:     kpiStats.find(s => s.label === "Gross Profit Margin")?.value ?? null,
+        revenueGrowthRate:     kpiStats.find(s => s.label === "Revenue Growth")?.value ?? null,
+        operatingExpenseRatio: kpiStats.find(s => s.label === "Operating Expense Ratio")?.value ?? null,
+        labourCostRatio:       kpiStats.find(s => s.label === "Labour Cost Ratio")?.value ?? null,
+        avgContractValue:      kpiStats.find(s => s.label === "Average Contract Value")?.value ?? null,
+        pipelineCoverageRatio: kpiStats.find(s => s.label === "Pipeline Coverage")?.value ?? null,
+        cacPerClient:          kpiStats.find(s => s.label === "CAC Per Client")?.value ?? null,
+        revenuePerJobWon:      kpiStats.find(s => s.label === "Revenue Per Job Won")?.value ?? null,
+      },
     },
   });
 
@@ -182,6 +193,42 @@ export default function InvestmentMemorandum() {
     setMasterDone(true);
     setMasterStatus("All 6 sections generated — please review before use");
   };
+
+  const sanitiseText = useCallback((text: string): string => {
+    if (!text) return text;
+    const sub: Record<string, string> = {
+      "companyName":        settings.companyName,
+      "industry":           settings.industry,
+      "capitalSought":      settings.capitalSought,
+      "proposedStructure":  settings.proposedStructure,
+      "useOfFunds":         settings.useOfFunds,
+      "totalRevenueYTD":    kpiStats.find(s => s.label === "Net Revenue")?.value ?? "N/A",
+      "ebitdaEstimated":    "N/A",
+      "ebitdaMargin":       "N/A",
+      "grossMargin":        "N/A",
+      "revenueGrowthMoM":   "N/A",
+      "cashflowPosition":   kpiStats.find(s => s.label === "Cashflow Position")?.value ?? "N/A",
+      "cashflowTrend":      "positive",
+      "totalWon":           kpiStats.find(s => s.label === "Total Won")?.value ?? "N/A",
+      "totalWonCount":      "N/A",
+      "pipelineRemaining":  kpiStats.find(s => s.label === "Quoted Remaining")?.value ?? "N/A",
+      "conversionRate":     kpiStats.find(s => s.label === "Conversion Rate")?.value ?? "N/A",
+      "pipelineCoverage":   "N/A",
+      "avgContractValue":   "N/A",
+      "totalQuoted":        kpiStats.find(s => s.label === "Total Quoted")?.value ?? "N/A",
+      "totalQuotedCount":   "N/A",
+      "operatingExpRatio":  "N/A",
+      "labourCostRatio":    "N/A",
+      "totalExpenses":      "N/A",
+      "totalLabourCost":    "N/A",
+      "cacPerClient":       "N/A",
+      "revenuePerJobWon":   "N/A",
+      "reportingDate":      new Date().toLocaleDateString("en-AU", { day: "2-digit", month: "long", year: "numeric" }),
+    };
+    return text.replace(/\{\{\s*\$json\.metrics\.([a-zA-Z]+)\s*\}\}/g, (_, key) => {
+      return sub[key] ?? `[${key}]`;
+    });
+  }, [settings, kpiStats]);
 
   const generatePDF = async () => {
     setPdfGenerating(true);
@@ -360,7 +407,7 @@ export default function InvestmentMemorandum() {
       y = kpiY + 24;
       y = addSectionHeading("Executive Summary", y);
       if (form.executive_summary) {
-        y = addBodyText(form.executive_summary, y);
+        y = addBodyText(sanitiseText(form.executive_summary), y);
       } else {
         doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(...MUTED);
         doc.text("No content generated yet. Use AI Draft to generate this section.", margin, y); y += 8;
@@ -371,7 +418,7 @@ export default function InvestmentMemorandum() {
       y = 26;
       y = addSectionHeading("Investment Thesis", y);
       if (form.investment_thesis) {
-        const thesisBlocks = form.investment_thesis.split(/\n\n+/);
+        const thesisBlocks = sanitiseText(form.investment_thesis).split(/\n\n+/);
         for (const block of thesisBlocks) {
           y = checkOverflow(y, 25, "Investment Thesis");
           const lines = block.trim().split("\n");
@@ -405,7 +452,7 @@ export default function InvestmentMemorandum() {
       y = 26;
       y = addSectionHeading("Market Opportunity", y);
       if (form.market_opportunity) {
-        y = addBodyText(form.market_opportunity, y);
+        y = addBodyText(sanitiseText(form.market_opportunity), y);
       } else {
         doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(...MUTED);
         doc.text("No content generated yet.", margin, y); y += 8;
@@ -442,7 +489,7 @@ export default function InvestmentMemorandum() {
       y = checkOverflow(y, 20, "Financial Performance");
       y = addSectionHeading("Financial Commentary", y);
       if (form.financial_commentary) {
-        y = addBodyText(form.financial_commentary, y);
+        y = addBodyText(sanitiseText(form.financial_commentary), y);
       } else {
         doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(...MUTED);
         doc.text("No content generated yet.", margin, y); y += 8;
@@ -453,7 +500,7 @@ export default function InvestmentMemorandum() {
       y = 26;
       y = addSectionHeading("Risk Factors & Mitigants", y);
       if (form.risk_factors) {
-        const riskBlocks = form.risk_factors.split(/\n\n+/);
+        const riskBlocks = sanitiseText(form.risk_factors).split(/\n\n+/);
         for (const block of riskBlocks) {
           y = checkOverflow(y, 30, "Risk Factors");
           const riskMatch  = block.match(/RISK:\s*(.+)/i);
@@ -514,7 +561,7 @@ export default function InvestmentMemorandum() {
 
       y = addSectionHeading("Basis of Projections", y);
       if (form.projections_rationale) {
-        y = addBodyText(form.projections_rationale, y);
+        y = addBodyText(sanitiseText(form.projections_rationale), y);
       } else {
         doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(...MUTED);
         doc.text("No content generated yet.", margin, y); y += 8;
