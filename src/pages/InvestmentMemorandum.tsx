@@ -110,7 +110,18 @@ export default function InvestmentMemorandum() {
       revenueSummary:  dataStore?.revenueSummary  ?? {},
       expensesSummary: dataStore?.expensesSummary ?? {},
       labourSummary:   dataStore?.labour          ?? [],
-      investorMetrics: {},
+      investorMetrics: {
+        ebitda:                kpiStats.find(s => s.label === "EBITDA")?.value ?? null,
+        ebitdaMargin:          kpiStats.find(s => s.label === "EBITDA Margin")?.value ?? null,
+        grossProfitMargin:     kpiStats.find(s => s.label === "Gross Profit Margin")?.value ?? null,
+        revenueGrowthRate:     kpiStats.find(s => s.label === "Revenue Growth")?.value ?? null,
+        operatingExpenseRatio: kpiStats.find(s => s.label === "Operating Expense Ratio")?.value ?? null,
+        labourCostRatio:       kpiStats.find(s => s.label === "Labour Cost Ratio")?.value ?? null,
+        avgContractValue:      kpiStats.find(s => s.label === "Average Contract Value")?.value ?? null,
+        pipelineCoverageRatio: kpiStats.find(s => s.label === "Pipeline Coverage")?.value ?? null,
+        cacPerClient:          kpiStats.find(s => s.label === "CAC Per Client")?.value ?? null,
+        revenuePerJobWon:      kpiStats.find(s => s.label === "Revenue Per Job Won")?.value ?? null,
+      },
     },
   });
 
