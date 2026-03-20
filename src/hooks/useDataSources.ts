@@ -231,6 +231,10 @@ function saveSources(sources: DataSourceConfig[]) {
 
 function saveLiveData(data: LiveData) {
   localStorage.setItem(DATA_CACHE_KEY, JSON.stringify(data));
+  localStorage.setItem(DATA_CACHE_META_KEY, JSON.stringify({
+    savedAt: new Date().toISOString(),
+    version: "v10"
+  }));
 }
 
 export function useDataSources() {
