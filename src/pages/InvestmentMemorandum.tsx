@@ -72,6 +72,7 @@ export default function InvestmentMemorandum() {
   const [masterProgress, setMasterProgress] = useState(0);
   const [masterStatus, setMasterStatus] = useState("");
   const [masterDone, setMasterDone] = useState(false);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
 
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
