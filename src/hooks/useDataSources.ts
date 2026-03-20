@@ -446,6 +446,10 @@ export function useDataSources() {
         return updated;
       });
 
+      // If we have cached data, mark as offline rather than showing empty
+      if (Object.keys(liveData).length > 0) {
+        setIsOffline(true);
+      }
       return { success: false, error: errorMsg };
     }
   }, [fetchProjectKPIs]);
