@@ -452,7 +452,7 @@ export default function InvestmentMemorandum() {
       y = 26;
       y = addSectionHeading("Market Opportunity", y);
       if (form.market_opportunity) {
-        y = addBodyText(form.market_opportunity, y);
+        y = addBodyText(sanitiseText(form.market_opportunity), y);
       } else {
         doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(...MUTED);
         doc.text("No content generated yet.", margin, y); y += 8;
