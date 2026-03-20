@@ -58,7 +58,7 @@ function loadLS<T extends Record<string, any>>(key: string, fallback: T): T {
 }
 
 export default function InvestmentMemorandum() {
-  const { kpiStats, hasLiveData, dataStore } = useDashboardData();
+  const { kpiStats, hasLiveData, dataStore, investorMetrics } = useDashboardData();
 
   const [settings, setSettings] = useState(() => loadLS(SETTINGS_KEY, DEFAULT_SETTINGS));
   const [form, setForm] = useState<Record<SectionKey, string>>(() => loadLS(FORM_KEY, DEFAULT_FORM));
@@ -110,18 +110,7 @@ export default function InvestmentMemorandum() {
       revenueSummary:  dataStore?.revenueSummary  ?? {},
       expensesSummary: dataStore?.expensesSummary ?? {},
       labourSummary:   dataStore?.labour          ?? [],
-      investorMetrics: {
-        ebitda:                kpiStats.find(s => s.label === "EBITDA")?.value ?? null,
-        ebitdaMargin:          kpiStats.find(s => s.label === "EBITDA Margin")?.value ?? null,
-        grossProfitMargin:     kpiStats.find(s => s.label === "Gross Profit Margin")?.value ?? null,
-        revenueGrowthRate:     kpiStats.find(s => s.label === "Revenue Growth")?.value ?? null,
-        operatingExpenseRatio: kpiStats.find(s => s.label === "Operating Expense Ratio")?.value ?? null,
-        labourCostRatio:       kpiStats.find(s => s.label === "Labour Cost Ratio")?.value ?? null,
-        avgContractValue:      kpiStats.find(s => s.label === "Average Contract Value")?.value ?? null,
-        pipelineCoverageRatio: kpiStats.find(s => s.label === "Pipeline Coverage")?.value ?? null,
-        cacPerClient:          kpiStats.find(s => s.label === "CAC Per Client")?.value ?? null,
-        revenuePerJobWon:      kpiStats.find(s => s.label === "Revenue Per Job Won")?.value ?? null,
-      },
+      investorMetrics: investorMetrics ?? {},
     },
   });
 
@@ -203,26 +192,30 @@ export default function InvestmentMemorandum() {
       "proposedStructure":  settings.proposedStructure,
       "useOfFunds":         settings.useOfFunds,
       "totalRevenueYTD":    kpiStats.find(s => s.label === "Net Revenue")?.value ?? "N/A",
-      "ebitdaEstimated":    "N/A",
-      "ebitdaMargin":       "N/A",
-      "grossMargin":        "N/A",
-      "revenueGrowthMoM":   "N/A",
+      "ebitdaEstimated":    investorMetrics?.ebitdaFormatted            ?? "Calculating...",
+      "ebitdaMargin":       investorMetrics?.ebitdaMarginFormatted       ?? "Calculating...",
+      "grossMargin":        investorMetrics?.grossMarginPctFormatted     ?? "Calculating...",
+      "revenueGrowthMoM":   investorMetrics?.revenueGrowthMoMFormatted  ?? "Calculating...",
       "cashflowPosition":   kpiStats.find(s => s.label === "Cashflow Position")?.value ?? "N/A",
       "cashflowTrend":      "positive",
       "totalWon":           kpiStats.find(s => s.label === "Total Won")?.value ?? "N/A",
-      "totalWonCount":      "N/A",
+      "totalWonCount":      String(investorMetrics?.wonCount             ?? "N/A"),
       "pipelineRemaining":  kpiStats.find(s => s.label === "Quoted Remaining")?.value ?? "N/A",
       "conversionRate":     kpiStats.find(s => s.label === "Conversion Rate")?.value ?? "N/A",
-      "pipelineCoverage":   "N/A",
-      "avgContractValue":   "N/A",
+      "pipelineCoverage":   investorMetrics?.pipelineCoverageFormatted  ?? "N/A",
+      "avgContractValue":   investorMetrics?.avgContractValueFormatted  ?? "N/A",
       "totalQuoted":        kpiStats.find(s => s.label === "Total Quoted")?.value ?? "N/A",
-      "totalQuotedCount":   "N/A",
-      "operatingExpRatio":  "N/A",
-      "labourCostRatio":    "N/A",
-      "totalExpenses":      "N/A",
-      "totalLabourCost":    "N/A",
-      "cacPerClient":       "N/A",
-      "revenuePerJobWon":   "N/A",
+      "totalQuotedCount":   String(investorMetrics?.totalCount           ?? "N/A"),
+      "operatingExpRatio":  investorMetrics?.operatingExpRatioFormatted ?? "N/A",
+      "labourCostRatio":    investorMetrics?.labourCostRatioFormatted   ?? "N/A",
+      "totalExpenses":      investorMetrics?.operatingExpensesYTD
+                              ? "$" + Math.round(investorMetrics.operatingExpensesYTD).toLocaleString("en-AU")
+                              : "N/A",
+      "totalLabourCost":    investorMetrics?.labourCostYearly
+                              ? "$" + Math.round(investorMetrics.labourCostYearly).toLocaleString("en-AU")
+                              : "N/A",
+      "cacPerClient":       investorMetrics?.cacPerClientFormatted      ?? "N/A",
+      "revenuePerJobWon":   investorMetrics?.revenuePerJobWonFormatted  ?? "N/A",
       "reportingDate":      new Date().toLocaleDateString("en-AU", { day: "2-digit", month: "long", year: "numeric" }),
     };
     return text.replace(/\{\{\s*\$json\.metrics\.([a-zA-Z]+)\s*\}\}/g, (_, key) => {

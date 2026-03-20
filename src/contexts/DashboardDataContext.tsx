@@ -240,6 +240,7 @@ export interface DashboardData {
   setCalendarEvents: React.Dispatch<React.SetStateAction<LiveCalendarEvent[]>>;
   projectKPIData: ProjectKPIData | null;
   liveData: import("@/hooks/useDataSources").LiveData;
+  investorMetrics: Record<string, any> | null;
   updateScreenshot: (id: string, url: string) => void;
   removeScreenshot: (id: string) => void;
 }
@@ -993,6 +994,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       setCalendarEvents: setCalendarEventsState,
       projectKPIData,
       liveData,
+      investorMetrics: (liveData as any)?.investorMetrics ?? null,
       updateScreenshot: ds.updateScreenshot,
       removeScreenshot: ds.removeScreenshot,
     };
@@ -1038,6 +1040,7 @@ export function useDashboardData(): DashboardData {
       calendarEvents: [], upcomingEvents: [], calendarSummary: null, setCalendarEvents: () => {},
       projectKPIData: null,
       liveData: {},
+      investorMetrics: null,
       updateScreenshot: () => {},
       removeScreenshot: () => {},
     } as DashboardData;
