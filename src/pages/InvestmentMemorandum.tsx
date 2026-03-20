@@ -194,6 +194,42 @@ export default function InvestmentMemorandum() {
     setMasterStatus("All 6 sections generated — please review before use");
   };
 
+  const sanitiseText = useCallback((text: string): string => {
+    if (!text) return text;
+    const sub: Record<string, string> = {
+      "companyName":        settings.companyName,
+      "industry":           settings.industry,
+      "capitalSought":      settings.capitalSought,
+      "proposedStructure":  settings.proposedStructure,
+      "useOfFunds":         settings.useOfFunds,
+      "totalRevenueYTD":    kpiStats.find(s => s.label === "Net Revenue")?.value ?? "N/A",
+      "ebitdaEstimated":    "N/A",
+      "ebitdaMargin":       "N/A",
+      "grossMargin":        "N/A",
+      "revenueGrowthMoM":   "N/A",
+      "cashflowPosition":   kpiStats.find(s => s.label === "Cashflow Position")?.value ?? "N/A",
+      "cashflowTrend":      "positive",
+      "totalWon":           kpiStats.find(s => s.label === "Total Won")?.value ?? "N/A",
+      "totalWonCount":      "N/A",
+      "pipelineRemaining":  kpiStats.find(s => s.label === "Quoted Remaining")?.value ?? "N/A",
+      "conversionRate":     kpiStats.find(s => s.label === "Conversion Rate")?.value ?? "N/A",
+      "pipelineCoverage":   "N/A",
+      "avgContractValue":   "N/A",
+      "totalQuoted":        kpiStats.find(s => s.label === "Total Quoted")?.value ?? "N/A",
+      "totalQuotedCount":   "N/A",
+      "operatingExpRatio":  "N/A",
+      "labourCostRatio":    "N/A",
+      "totalExpenses":      "N/A",
+      "totalLabourCost":    "N/A",
+      "cacPerClient":       "N/A",
+      "revenuePerJobWon":   "N/A",
+      "reportingDate":      new Date().toLocaleDateString("en-AU", { day: "2-digit", month: "long", year: "numeric" }),
+    };
+    return text.replace(/\{\{\s*\$json\.metrics\.([a-zA-Z]+)\s*\}\}/g, (_, key) => {
+      return sub[key] ?? `[${key}]`;
+    });
+  }, [settings, kpiStats]);
+
   const generatePDF = async () => {
     setPdfGenerating(true);
     try {
