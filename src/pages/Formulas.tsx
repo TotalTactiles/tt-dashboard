@@ -59,6 +59,14 @@ const Formulas = () => {
       formulas: grouped["Cashflow & Forecasts"] || [],
     });
 
+    // Investor Metrics
+    result.push({
+      key: "Investor Metrics",
+      title: "Investor Metrics",
+      subtitle: "Business health, EBITDA, margins & investment KPIs — computed by n8n from live data",
+      formulas: grouped["Investor Metrics"] || [],
+    });
+
     return result;
   }, [formulas]);
 
