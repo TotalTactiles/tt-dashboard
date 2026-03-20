@@ -359,13 +359,13 @@ const DashboardContent = () => {
           </div>
 
           {investorMetrics && (
-            <div className="mt-2 mb-1">
-              <div className="flex items-center gap-2 mb-2 px-1">
+            <div className="mt-4 mb-4">
+              <div className="flex items-center gap-2 mb-3 px-1">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Investor Metrics</span>
                 <div className="flex-1 h-px bg-border" />
                 <span className="text-xs text-muted-foreground font-mono">Business Health</span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2" style={{ containerType: 'inline-size' }}>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" style={{ containerType: 'inline-size' }}>
                 <StatCard label="EBITDA (Est.)" value={(investorMetrics as any).ebitdaFormatted ?? "N/A"} change={(investorMetrics as any).ebitdaMarginFormatted ?? "--"} positive={((investorMetrics as any).ebitda ?? 0) >= 0} index={10} />
                 <StatCard label="Gross Margin %" value={(investorMetrics as any).grossMarginPctFormatted ?? "N/A"} change={`avg ${(investorMetrics as any).avgGpPct ?? 0}%`} positive={((investorMetrics as any).grossMarginPct ?? 0) >= 30} index={11} />
                 <StatCard label="Revenue Growth" value={(investorMetrics as any).revenueGrowthMoMFormatted ?? "N/A"} change="Month on Month" positive={((investorMetrics as any).revenueGrowthMoM ?? 0) >= 0} index={12} />
