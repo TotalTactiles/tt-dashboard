@@ -44,7 +44,7 @@ function loadActiveGoalIds(allGoals: {id: string;merge?: boolean;}[]): Set<strin
 
 const DashboardContent = () => {
   const { goals, updateGoal } = useGoals();
-  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData, quotedJobs, investorMetrics } = useDashboardData();
+  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData, quotedJobs, investorMetrics, isOffline, lastCachedAt } = useDashboardData();
 
   // ── Shared period state — resets to current month on every mount/data change ──
   const periodOptions = useMemo(() => buildPeriodOptions(quotedJobs), [quotedJobs]);
@@ -313,6 +313,23 @@ const DashboardContent = () => {
           </Badge>
         </div>
       </div>
+
+      {isOffline && (lastCachedAt || hasLiveData) && (
+        <div className="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 px-4 py-2.5 mb-4">
+          <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-200">
+            <span>⚡</span>
+            <span className="font-medium">Offline mode</span>
+            <span className="text-amber-600 dark:text-amber-400">
+              {lastCachedAt
+                ? `Showing cached data from ${new Date(lastCachedAt).toLocaleString("en-AU", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}`
+                : "Showing last known data"}
+            </span>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => syncNow("google_sheets")} className="text-amber-700 border-amber-300 hover:bg-amber-100 dark:text-amber-200 dark:border-amber-600 dark:hover:bg-amber-900/40">
+            Retry
+          </Button>
+        </div>
+      )}
 
       {isLoading && !hasLiveData &&
       <div className="flex items-center justify-center py-20">
