@@ -418,7 +418,7 @@ export default function InvestmentMemorandum() {
       y = 26;
       y = addSectionHeading("Investment Thesis", y);
       if (form.investment_thesis) {
-        const thesisBlocks = form.investment_thesis.split(/\n\n+/);
+        const thesisBlocks = sanitiseText(form.investment_thesis).split(/\n\n+/);
         for (const block of thesisBlocks) {
           y = checkOverflow(y, 25, "Investment Thesis");
           const lines = block.trim().split("\n");
