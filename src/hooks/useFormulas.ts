@@ -162,6 +162,7 @@ const DEFAULT_VARIABLE_NAMES = [
   "TotalQuoted", "TotalWon", "QuotedRemaining",
   "ConversionRate", "ConversionRateConfirmed", "NetRevenue", "CashPosition", "MonthlyExpenses",
   "GrossProfitMargin",
+  "onTimeDelivery", "scheduleSlippage", "marginVariance", "labourEfficiency",
 ];
 
 export function getAvailableVariables(kpiVariables?: Record<string, number>): string[] {
