@@ -37,7 +37,7 @@ export const DATA_SOURCES = [
 
 const STORAGE_KEY = "meridian_formulas";
 const SEED_KEY = "meridian_formulas_seeded";
-const FORMULA_MIGRATION_KEY = "meridian_formulas_v6_investor_metrics";
+const FORMULA_MIGRATION_KEY = "meridian_formulas_v7_project_execution_desc";
 
 const GROSS_PROFIT_MARGIN_DESCRIPTION = `What is calculated:
 • Gross Profit Margin % for each month shown in the chart
