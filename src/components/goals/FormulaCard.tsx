@@ -55,16 +55,34 @@ vars: ${resolvedTokens.length > 0 ? resolvedTokens.join(" | ") : "(none)"}${unkn
 }
 
 export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardProps) {
-  const { kpiVariables, formulaCache, changedFormulas } = useDashboardData();
+  const { kpiVariables, formulaCache, changedFormulas, investorMetrics } = useDashboardData();
+
+  // Resolve investor metric values directly from context (dot-notation expressions
+  // like "investorMetrics.ebitda" cannot be evaluated by the formula engine)
+  const isInvestorMetric = formula.expression.startsWith("investorMetrics.");
+  const investorMetricKey = isInvestorMetric
+    ? formula.expression.replace("investorMetrics.", "")
+    : null;
+  const investorMetricRaw = isInvestorMetric && investorMetrics && investorMetricKey
+    ? (investorMetrics as Record<string, any>)[investorMetricKey]
+    : undefined;
 
   const cached = formulaCache.get(formula.id);
-  const result = cached?.value ?? null;
-  const errorMsg = cached?.error ?? null;
+  const rawResult = cached?.value ?? null;
+  const errorMsg = isInvestorMetric ? null : (cached?.error ?? null);
+
+  // For investor metrics, use the live value from context instead of formula engine
+  const result: number | null = isInvestorMetric
+    ? (typeof investorMetricRaw === "number" ? investorMetricRaw : null)
+    : rawResult;
+
   const [showPulse, setShowPulse] = useState(false);
 
   const dataLoaded = Object.values(kpiVariables).some((v) => v !== 0);
-  const isWaiting = cached === null;
-  const hasError = cached !== null && cached.value === null && cached.error !== null;
+  const isWaiting = isInvestorMetric ? false : cached === null;
+  const hasError = isInvestorMetric
+    ? false
+    : (cached !== null && cached.value === null && cached.error !== null);
 
   // Pulse animation when formula result changed
   useEffect(() => {
@@ -76,6 +94,20 @@ export default function FormulaCard({ formula, onEdit, onDelete }: FormulaCardPr
   }, [changedFormulas, formula.name]);
 
   const formatResult = (v: number | null) => {
+    // For investor metrics, use the pre-formatted string if available
+    if (isInvestorMetric && investorMetrics) {
+      const formattedKey = investorMetricKey + "Formatted";
+      const formatted = (investorMetrics as Record<string, any>)[formattedKey];
+      if (formatted && typeof formatted === "string") return formatted;
+      // Fallback for numeric values
+      if (v !== null) {
+        if (formula.unit === "%") return formatMetricValue(v, "percentage");
+        if (formula.unit === "$") return formatMetricValue(v, "currency");
+        if (formula.unit === "x") return v.toFixed(1) + "x";
+        return v.toFixed(2);
+      }
+      return investorMetrics ? "Loading..." : "No data";
+    }
     if (isWaiting) return "Syncing…";
     if (v === null) return errorMsg ?? "Error";
     if (formula.unit === "%") return formatMetricValue(v, "percentage");

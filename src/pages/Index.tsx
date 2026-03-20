@@ -360,7 +360,7 @@ const DashboardContent = () => {
 
           {investorMetrics && (
             <div className="mt-4 mb-4">
-              <div className="flex items-center gap-2 mb-2 px-1">
+              <div className="flex items-center gap-2 mb-3 px-1">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Investor Metrics</span>
                 <div className="flex-1 h-px bg-border" />
                 <span className="text-xs text-muted-foreground font-mono">Business Health</span>
