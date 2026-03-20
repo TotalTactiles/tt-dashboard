@@ -395,20 +395,21 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
 
   const renderTotalCell = (key: ColumnKey) => {
     switch (key) {
-      case "stageValue": return <span className="text-foreground">{fmtDollar(totalStageValue)}</span>;
-      case "valueInclGST": return <span className="text-foreground">{fmtDollar(totalValueInclGST)}</span>;
-      case "valueExclGST": return <span className="text-foreground">{fmtDollar(totalRevenue)}</span>;
-      case "labour": return <span className="text-chart-red">{fmtDollar(totalLabour)}</span>;
-      case "tactile": return <span className="text-chart-red">{fmtDollar(totalTactile)}</span>;
-      case "other": return <span className="text-chart-red">{fmtDollar(totalOther)}</span>;
-      case "cogs": return <span className="text-chart-red">{fmtDollar(totalCOGS)}</span>;
-      case "grossProfit": return <span className={totalGP >= 0 ? "text-chart-green" : "text-chart-red"}>{fmtDollar(totalGP)}</span>;
-      case "gpPct": return <span className={totalGpPct >= 0 ? "text-chart-green" : "text-chart-red"}>{totalGpPct.toFixed(2)}%</span>;
+      case "stageValue": return <span className="text-foreground whitespace-nowrap">{$d(totalStageValue)}</span>;
+      case "valueInclGST": return <span className="text-foreground whitespace-nowrap">{$d(totalValueInclGST)}</span>;
+      case "valueExclGST": return <span className="text-foreground whitespace-nowrap">{$d(totalRevenue)}</span>;
+      case "labour": return <span className="text-chart-red whitespace-nowrap">{$d(totalLabour)}</span>;
+      case "tactile": return <span className="text-chart-red whitespace-nowrap">{$d(totalTactile)}</span>;
+      case "other": return <span className="text-chart-red whitespace-nowrap">{$d(totalOther)}</span>;
+      case "cogs": return <span className="text-chart-red whitespace-nowrap">{$d(totalCOGS)}</span>;
+      case "grossProfit": return <span className={`whitespace-nowrap ${totalGP >= 0 ? "text-chart-green" : "text-chart-red"}`}>{$d(totalGP)}</span>;
+      case "gpPct": return <span className={`whitespace-nowrap ${totalGpPct >= 0 ? "text-chart-green" : "text-chart-red"}`}>{isCompact ? fmtCompactPct(totalGpPct) : `${totalGpPct.toFixed(2)}%`}</span>;
       default: return null;
     }
   };
 
-  const visibleColDefs = ALL_COLUMNS.filter(c => isColVisible(c.key));
+  // In compact mode, filter out separate "company" column (merged into "project")
+  const visibleColDefs = ALL_COLUMNS.filter(c => isColVisible(c.key) && !(isCompact && c.key === "company"));
 
   return (
     <motion.div
