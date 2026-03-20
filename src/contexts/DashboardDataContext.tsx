@@ -1002,6 +1002,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       investorMetrics: (liveData as any)?.investorMetrics ?? null,
       updateScreenshot: ds.updateScreenshot,
       removeScreenshot: ds.removeScreenshot,
+      changeDetectorMeta: ds.changeDetectorMeta ?? { lastChecked: null, lastTriggered: null, noChangeCount: 0 },
     };
   }, [liveData, hasLiveData, connectedCount, isLoading, isRefreshing, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride, calendarData, projectKPIData]);
 
