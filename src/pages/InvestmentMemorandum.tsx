@@ -183,6 +183,401 @@ export default function InvestmentMemorandum() {
     setMasterStatus("All 6 sections generated — please review before use");
   };
 
+  const generatePDF = async () => {
+    setPdfGenerating(true);
+    try {
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 18;
+      const contentW = pageW - margin * 2;
+
+      const NAVY   = [15,  30,  70]  as [number,number,number];
+      const GOLD   = [180, 145, 80]  as [number,number,number];
+      const WHITE  = [255, 255, 255] as [number,number,number];
+      const LIGHT  = [245, 247, 252] as [number,number,number];
+      const DARK   = [30,  35,  50]  as [number,number,number];
+      const MUTED  = [110, 118, 140] as [number,number,number];
+      const GREEN  = [34,  130, 84]  as [number,number,number];
+      const AMBER  = [180, 120, 20]  as [number,number,number];
+
+      let currentPage = 1;
+
+      const addHeader = (title: string) => {
+        doc.setFillColor(...NAVY);
+        doc.rect(0, 0, pageW, 18, "F");
+        doc.setFillColor(...GOLD);
+        doc.rect(0, 16, pageW, 2, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(...WHITE);
+        doc.text(settings.companyName.toUpperCase(), margin, 11);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+        doc.setTextColor(...GOLD);
+        doc.text("CONFIDENTIAL INFORMATION MEMORANDUM", pageW / 2, 11, { align: "center" });
+        doc.setTextColor(...WHITE);
+        doc.text(title.toUpperCase(), pageW - margin, 11, { align: "right" });
+      };
+
+      const addFooter = (pageNum: number) => {
+        doc.setFillColor(...NAVY);
+        doc.rect(0, pageH - 10, pageW, 10, "F");
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+        doc.setTextColor(...MUTED);
+        doc.text("CONFIDENTIAL — For Authorised Recipients Only", margin, pageH - 4);
+        doc.setTextColor(...WHITE);
+        doc.text(`Page ${pageNum}`, pageW - margin, pageH - 4, { align: "right" });
+      };
+
+      const addSectionHeading = (title: string, y: number): number => {
+        doc.setFillColor(...NAVY);
+        doc.rect(margin, y, contentW, 8, "F");
+        doc.setFillColor(...GOLD);
+        doc.rect(margin, y + 7, contentW, 1, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(...WHITE);
+        doc.text(title.toUpperCase(), margin + 4, y + 5.5);
+        return y + 12;
+      };
+
+      const addBodyText = (text: string, y: number, maxWidth: number = contentW): number => {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(...DARK);
+        const paragraphs = text.split(/\n\n+/);
+        for (const para of paragraphs) {
+          const lines = doc.splitTextToSize(para.trim(), maxWidth);
+          doc.text(lines, margin, y);
+          y += lines.length * 4.5 + 3;
+        }
+        return y + 2;
+      };
+
+      const addKPIBox = (label: string, value: string, x: number, y: number, w: number, positive?: boolean) => {
+        doc.setFillColor(...LIGHT);
+        doc.roundedRect(x, y, w, 18, 2, 2, "F");
+        doc.setDrawColor(...NAVY);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(x, y, w, 18, 2, 2, "S");
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+        doc.setTextColor(...MUTED);
+        doc.text(label.toUpperCase(), x + w / 2, y + 5.5, { align: "center" });
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        const color = positive === undefined ? NAVY : positive ? GREEN : AMBER;
+        doc.setTextColor(...color);
+        doc.text(value, x + w / 2, y + 13, { align: "center" });
+      };
+
+      const newPage = (title: string) => {
+        currentPage++;
+        doc.addPage();
+        addHeader(title);
+        addFooter(currentPage);
+      };
+
+      const checkOverflow = (y: number, needed: number, title: string): number => {
+        if (y + needed > pageH - 18) {
+          newPage(title);
+          return 26;
+        }
+        return y;
+      };
+
+      // ═══ PAGE 1 — COVER ═══
+      addHeader("Cover");
+      addFooter(1);
+
+      doc.setFillColor(...NAVY);
+      doc.rect(0, 18, pageW, 80, "F");
+      doc.setFillColor(...GOLD);
+      doc.rect(0, 70, pageW, 3, "F");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(28);
+      doc.setTextColor(...WHITE);
+      doc.text(settings.companyName, pageW / 2, 46, { align: "center" });
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(13);
+      doc.setTextColor(...GOLD);
+      doc.text("CONFIDENTIAL INFORMATION MEMORANDUM", pageW / 2, 60, { align: "center" });
+      doc.setFontSize(9);
+      doc.setTextColor(...WHITE);
+      doc.text("Capital Investment Overview", pageW / 2, 68, { align: "center" });
+
+      let y = 115;
+      const detailLines: [string, string][] = [
+        ["Industry",            settings.industry],
+        ["Capital Sought",      settings.capitalSought],
+        ["Proposed Structure",  settings.proposedStructure],
+        ["Prepared",            new Date().toLocaleDateString("en-AU", { day: "2-digit", month: "long", year: "numeric" })],
+        ["Classification",      "STRICTLY CONFIDENTIAL"],
+      ];
+      for (const [label, value] of detailLines) {
+        doc.setFillColor(...LIGHT);
+        doc.rect(margin, y, contentW, 9, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(...MUTED);
+        doc.text(label.toUpperCase(), margin + 3, y + 6);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(...DARK);
+        doc.text(String(value), margin + 55, y + 6);
+        y += 10;
+      }
+
+      y += 10;
+      doc.setFillColor(...NAVY);
+      doc.roundedRect(margin, y, contentW, 22, 2, 2, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(...GOLD);
+      doc.text("CONFIDENTIALITY NOTICE", margin + 4, y + 7);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(...WHITE);
+      const notice = "This document contains confidential and proprietary information. Distribution is strictly limited to authorised recipients who have executed a Non-Disclosure Agreement. Any reproduction or disclosure without written consent is prohibited.";
+      const noticeLines = doc.splitTextToSize(notice, contentW - 8);
+      doc.text(noticeLines, margin + 4, y + 13);
+
+      // ═══ PAGE 2 — EXECUTIVE SUMMARY ═══
+      newPage("Executive Summary");
+      y = 26;
+      const kpiBoxW = (contentW - 8) / 3;
+      const kpiItems = kpiStats.slice(0, 6);
+      let kpiX = margin;
+      let kpiY = y;
+      kpiItems.forEach((stat, i) => {
+        if (i > 0 && i % 3 === 0) { kpiY += 22; kpiX = margin; }
+        addKPIBox(stat.label, stat.value, kpiX, kpiY, kpiBoxW, stat.positive);
+        kpiX += kpiBoxW + 4;
+      });
+      y = kpiY + 24;
+      y = addSectionHeading("Executive Summary", y);
+      if (form.executive_summary) {
+        y = addBodyText(form.executive_summary, y);
+      } else {
+        doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(...MUTED);
+        doc.text("No content generated yet. Use AI Draft to generate this section.", margin, y); y += 8;
+      }
+
+      // ═══ PAGE 3 — INVESTMENT THESIS ═══
+      newPage("Investment Thesis");
+      y = 26;
+      y = addSectionHeading("Investment Thesis", y);
+      if (form.investment_thesis) {
+        const thesisBlocks = form.investment_thesis.split(/\n\n+/);
+        for (const block of thesisBlocks) {
+          y = checkOverflow(y, 25, "Investment Thesis");
+          const lines = block.trim().split("\n");
+          const heading = lines[0] ?? "";
+          const body = lines.slice(1).join(" ").trim();
+          doc.setFillColor(...LIGHT);
+          doc.roundedRect(margin, y, contentW, 7, 1, 1, "F");
+          doc.setDrawColor(...GOLD);
+          doc.rect(margin, y, 2, 7, "F");
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.5);
+          doc.setTextColor(...NAVY);
+          doc.text(heading, margin + 5, y + 5);
+          y += 9;
+          if (body) {
+            const bodyLines = doc.splitTextToSize(body, contentW);
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(9);
+            doc.setTextColor(...DARK);
+            doc.text(bodyLines, margin, y);
+            y += bodyLines.length * 4.5 + 5;
+          }
+        }
+      } else {
+        doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(...MUTED);
+        doc.text("No content generated yet.", margin, y); y += 8;
+      }
+
+      // ═══ PAGE 4 — MARKET OPPORTUNITY ═══
+      newPage("Market Opportunity");
+      y = 26;
+      y = addSectionHeading("Market Opportunity", y);
+      if (form.market_opportunity) {
+        y = addBodyText(form.market_opportunity, y);
+      } else {
+        doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(...MUTED);
+        doc.text("No content generated yet.", margin, y); y += 8;
+      }
+
+      // ═══ PAGE 5 — FINANCIAL PERFORMANCE ═══
+      newPage("Financial Performance");
+      y = 26;
+      y = addSectionHeading("Key Financial Metrics", y);
+      const kpiTableData = kpiStats.map(s => [s.label, s.value, s.change ?? "", s.positive ? "▲" : "▼"]);
+      autoTable(doc, {
+        startY: y,
+        head: [["Metric", "Value", "Change", "Trend"]],
+        body: kpiTableData,
+        theme: "grid",
+        margin: { left: margin, right: margin },
+        headStyles: { fillColor: NAVY, textColor: WHITE, fontSize: 8, fontStyle: "bold" },
+        bodyStyles: { fontSize: 8.5, textColor: DARK },
+        alternateRowStyles: { fillColor: LIGHT },
+        columnStyles: {
+          0: { fontStyle: "bold", cellWidth: 65 },
+          1: { cellWidth: 40, halign: "right" },
+          2: { cellWidth: 35, halign: "right" },
+          3: { cellWidth: 15, halign: "center" },
+        },
+        didParseCell: (data: any) => {
+          if (data.column.index === 3 && data.section === "body") {
+            const isPos = kpiStats[data.row.index]?.positive;
+            data.cell.styles.textColor = isPos ? GREEN : AMBER;
+          }
+        },
+      });
+      y = (doc as any).lastAutoTable.finalY + 8;
+      y = checkOverflow(y, 20, "Financial Performance");
+      y = addSectionHeading("Financial Commentary", y);
+      if (form.financial_commentary) {
+        y = addBodyText(form.financial_commentary, y);
+      } else {
+        doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(...MUTED);
+        doc.text("No content generated yet.", margin, y); y += 8;
+      }
+
+      // ═══ PAGE 6 — RISK FACTORS ═══
+      newPage("Risk Factors");
+      y = 26;
+      y = addSectionHeading("Risk Factors & Mitigants", y);
+      if (form.risk_factors) {
+        const riskBlocks = form.risk_factors.split(/\n\n+/);
+        for (const block of riskBlocks) {
+          y = checkOverflow(y, 30, "Risk Factors");
+          const riskMatch  = block.match(/RISK:\s*(.+)/i);
+          const ctxMatch   = block.match(/CONTEXT:\s*([\s\S]+?)(?=MITIGANT:|$)/i);
+          const mitigMatch = block.match(/MITIGANT:\s*([\s\S]+)/i);
+          const riskName = riskMatch?.[1]?.trim() ?? block.split("\n")[0];
+          const context  = ctxMatch?.[1]?.trim()   ?? "";
+          const mitigant = mitigMatch?.[1]?.trim()  ?? "";
+
+          doc.setFillColor(...NAVY);
+          doc.roundedRect(margin, y, contentW, 7, 1, 1, "F");
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.5);
+          doc.setTextColor(...WHITE);
+          doc.text(`▸ ${riskName}`, margin + 4, y + 5);
+          y += 9;
+
+          if (context) {
+            doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+            doc.text("CONTEXT", margin, y); y += 4;
+            const ctxLines = doc.splitTextToSize(context, contentW);
+            doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(...DARK);
+            doc.text(ctxLines, margin, y);
+            y += ctxLines.length * 4.2 + 2;
+          }
+          if (mitigant) {
+            doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(...GREEN);
+            doc.text("MITIGANT", margin, y); y += 4;
+            const mitLines = doc.splitTextToSize(mitigant, contentW);
+            doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(...DARK);
+            doc.text(mitLines, margin, y);
+            y += mitLines.length * 4.2 + 6;
+          }
+        }
+      } else {
+        doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(...MUTED);
+        doc.text("No content generated yet.", margin, y); y += 8;
+      }
+
+      // ═══ PAGE 7 — PROJECTIONS ═══
+      newPage("Financial Projections");
+      y = 26;
+      y = addSectionHeading("Investment Opportunity", y);
+
+      doc.setFillColor(...LIGHT);
+      doc.roundedRect(margin, y, contentW, 22, 2, 2, "F");
+      doc.setDrawColor(...GOLD);
+      doc.setLineWidth(0.5);
+      doc.line(margin, y, margin, y + 22);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(...MUTED);
+      doc.text("CAPITAL SOUGHT", margin + 4, y + 6);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(...NAVY);
+      doc.text(settings.capitalSought, margin + 4, y + 16);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(...DARK);
+      const fundsLines = doc.splitTextToSize(`Structure: ${settings.proposedStructure}  |  Use: ${settings.useOfFunds}`, contentW - 55);
+      doc.text(fundsLines, margin + 60, y + 10);
+      y += 26;
+
+      y = addSectionHeading("Basis of Projections", y);
+      if (form.projections_rationale) {
+        y = addBodyText(form.projections_rationale, y);
+      } else {
+        doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(...MUTED);
+        doc.text("No content generated yet.", margin, y); y += 8;
+      }
+
+      y = checkOverflow(y, 40, "Financial Projections");
+      y = addSectionHeading("3-Year Financial Projection Summary", y);
+      autoTable(doc, {
+        startY: y,
+        head: [["Metric", "Current YTD", "Year 1 (Proj.)", "Year 2 (Proj.)", "Year 3 (Proj.)"]],
+        body: [
+          ["Revenue",        settings.capitalSought !== "" ? "Live" : "—", "—", "—", "—"],
+          ["Gross Profit",   "—", "—", "—", "—"],
+          ["EBITDA",         "—", "—", "—", "—"],
+          ["Net Profit",     "—", "—", "—", "—"],
+        ],
+        theme: "grid",
+        margin: { left: margin, right: margin },
+        headStyles: { fillColor: NAVY, textColor: WHITE, fontSize: 8, fontStyle: "bold" },
+        bodyStyles: { fontSize: 8.5, textColor: MUTED, fontStyle: "italic" },
+        alternateRowStyles: { fillColor: LIGHT },
+        foot: [["* Projections to be completed by management prior to presentation"]],
+        footStyles: { fontSize: 7, textColor: MUTED, fontStyle: "italic" },
+      });
+      y = (doc as any).lastAutoTable.finalY + 8;
+
+      // ═══ PAGE 8 — APPENDIX ═══
+      newPage("Appendix");
+      y = 26;
+      y = addSectionHeading("Appendix — Data Sources & Disclaimer", y);
+      const disclaimer = `The financial data presented in this Confidential Information Memorandum has been sourced directly from the Company's live business management system as at ${new Date().toLocaleDateString("en-AU", { day: "2-digit", month: "long", year: "numeric" })}. All figures are unaudited and prepared for indicative purposes only.\n\nForward-looking statements, including financial projections and market estimates, involve known and unknown risks and uncertainties. Actual results may differ materially from those projected. This document does not constitute financial advice and should not be relied upon as the sole basis for any investment decision.\n\nRecipients of this document must have executed a Non-Disclosure Agreement prior to receiving this information. Unauthorised distribution is strictly prohibited.`;
+      y = addBodyText(disclaimer, y);
+
+      y = checkOverflow(y, 20, "Appendix");
+      y = addSectionHeading("Glossary", y);
+      const glossary = [
+        ["EBITDA",    "Earnings Before Interest, Tax, Depreciation & Amortisation"],
+        ["CIM",       "Confidential Information Memorandum"],
+        ["YTD",       "Year to Date"],
+        ["CAC",       "Customer Acquisition Cost"],
+        ["Pipeline",  "Total value of active quoted opportunities"],
+        ["Conversion","Percentage of quoted jobs that convert to won contracts"],
+        ["COGS",      "Cost of Goods Sold — direct project costs"],
+      ];
+      autoTable(doc, {
+        startY: y,
+        head: [["Term", "Definition"]],
+        body: glossary,
+        theme: "grid",
+        margin: { left: margin, right: margin },
+        headStyles: { fillColor: NAVY, textColor: WHITE, fontSize: 8 },
+        bodyStyles: { fontSize: 8.5 },
+        alternateRowStyles: { fillColor: LIGHT },
+        columnStyles: { 0: { fontStyle: "bold", cellWidth: 35 } },
+      });
+
+      const filename = `CIM_${settings.companyName.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0,10)}.pdf`;
+      doc.save(filename);
+    } finally {
+      setPdfGenerating(false);
+    }
+  };
+
   const completedCount = SECTIONS.filter(s => (form[s.key] ?? "").trim().length > 0).length;
 
   return (
