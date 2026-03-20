@@ -284,7 +284,30 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
   }, [currentPage, totalPages]);
 
   const fmtDollar = (v: number) => `$${v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+  const fmtCompactDollar = (v: number) => {
+    const abs = Math.abs(v);
+    const sign = v < 0 ? "-" : "";
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}k`;
+    return `${sign}$${abs.toFixed(0)}`;
+  };
   const fmtGpPct = (gp: number, rev: number) => rev > 0 ? `${((gp / rev) * 100).toFixed(2)}%` : "0.00%";
+  const fmtCompactPct = (pct: number) => `${pct.toFixed(1)}%`;
+
+  /* ── Container width tracking for compact mode ── */
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  const [isCompact, setIsCompact] = useState(false);
+  useLayoutEffect(() => {
+    const el = tableContainerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setIsCompact(entry.contentRect.width < 1100);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const $d = isCompact ? fmtCompactDollar : fmtDollar;
 
   const toggleCardExpand = (id: string) => {
     setExpandedCards(prev => {
