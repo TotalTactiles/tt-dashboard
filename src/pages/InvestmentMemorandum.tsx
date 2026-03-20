@@ -500,7 +500,7 @@ export default function InvestmentMemorandum() {
       y = 26;
       y = addSectionHeading("Risk Factors & Mitigants", y);
       if (form.risk_factors) {
-        const riskBlocks = form.risk_factors.split(/\n\n+/);
+        const riskBlocks = sanitiseText(form.risk_factors).split(/\n\n+/);
         for (const block of riskBlocks) {
           y = checkOverflow(y, 30, "Risk Factors");
           const riskMatch  = block.match(/RISK:\s*(.+)/i);
