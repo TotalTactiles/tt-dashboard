@@ -389,7 +389,7 @@ export function useDataSources() {
 
       const REQUIRED_KEYS: Record<string, string[]> = {
         google_sheets: ["quotes", "cashflow", "revenue", "expenses", "quotesSummary", "cashflowSummary"],
-        zoho_crm: ["deals", "contacts"],
+        zoho_crm: ["crmData", "crmMeta"],
       };
 
       const requiredKeys = REQUIRED_KEYS[source.id] || [];
