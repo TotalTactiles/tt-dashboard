@@ -921,7 +921,27 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       revenueSummary: liveData.revenueSummary ?? {},
       expensesSummary: liveData.expensesSummary ?? {},
     };
-    const kpiVariables = resolveKpiVariables(storeSnapshot);
+    const baseKpiVariables = resolveKpiVariables(storeSnapshot);
+
+    const projectExecutionVariables = {
+      onTimeDelivery: projectKPIData?.kpis?.onTimeDelivery?.value ?? 0,
+      scheduleSlippage: projectKPIData?.kpis?.scheduleSlippage?.value ?? 0,
+      marginVariance: projectKPIData?.kpis?.marginVariance?.value ?? 0,
+      labourEfficiency: projectKPIData?.kpis?.labourEfficiency?.value ?? 0,
+    };
+
+    const kpiVariables = {
+      ...baseKpiVariables,
+      ...projectExecutionVariables,
+    };
+
+    console.log("[Formula Variable Verification] Project Execution variables", {
+      onTimeDelivery: kpiVariables.onTimeDelivery,
+      scheduleSlippage: kpiVariables.scheduleSlippage,
+      marginVariance: kpiVariables.marginVariance,
+      labourEfficiency: kpiVariables.labourEfficiency,
+      hasProjectKPIData: !!projectKPIData,
+    });
 
     // Data health
     const health = (raw: any[], mapped: any[]): SectionHealth => {
