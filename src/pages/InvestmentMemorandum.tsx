@@ -585,16 +585,29 @@ export default function InvestmentMemorandum() {
       <div className="max-w-4xl mx-auto space-y-6 pb-10">
 
         {/* Header */}
-        <div className="flex items-start gap-4">
-          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center shrink-0">
-            <FileText className="w-5 h-5 text-primary-foreground" />
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center shrink-0">
+              <FileText className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-semibold">Investment Memorandum</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Generate a bank-ready Confidential Information Memorandum using live business data
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-semibold">Investment Memorandum</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Generate a bank-ready Confidential Information Memorandum using live business data
-            </p>
-          </div>
+          <Button
+            onClick={generatePDF}
+            disabled={pdfGenerating}
+            variant="outline"
+            className="gap-2 shrink-0 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+          >
+            {pdfGenerating
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Building PDF...</>
+              : <><FileText className="w-4 h-4" /> Download PDF</>
+            }
+          </Button>
         </div>
 
         {!hasLiveData && (
