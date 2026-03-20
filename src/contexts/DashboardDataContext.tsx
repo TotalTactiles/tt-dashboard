@@ -1040,6 +1040,7 @@ export function useDashboardData(): DashboardData {
       calendarEvents: [], upcomingEvents: [], calendarSummary: null, setCalendarEvents: () => {},
       projectKPIData: null,
       liveData: {},
+      investorMetrics: null,
       updateScreenshot: () => {},
       removeScreenshot: () => {},
     } as DashboardData;
