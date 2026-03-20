@@ -56,7 +56,7 @@ function loadLS<T extends Record<string, any>>(key: string, fallback: T): T {
 }
 
 export default function InvestmentMemorandum() {
-  const { kpiStats, hasLiveData } = useDashboardData();
+  const { kpiStats, hasLiveData, dataStore } = useDashboardData();
 
   const [settings, setSettings] = useState(() => loadLS(SETTINGS_KEY, DEFAULT_SETTINGS));
   const [form, setForm] = useState<Record<SectionKey, string>>(() => loadLS(FORM_KEY, DEFAULT_FORM));
@@ -102,12 +102,12 @@ export default function InvestmentMemorandum() {
     proposedStructure: settings.proposedStructure,
     useOfFunds: settings.useOfFunds,
     data: {
-      quotesSummary:   (window as any).__dashboardData?.quotesSummary   ?? {},
-      cashflowSummary: (window as any).__dashboardData?.cashflowSummary ?? {},
-      revenueSummary:  (window as any).__dashboardData?.revenueSummary  ?? {},
-      expensesSummary: (window as any).__dashboardData?.expensesSummary ?? {},
-      labourSummary:   (window as any).__dashboardData?.labourSummary   ?? {},
-      investorMetrics: (window as any).__dashboardData?.investorMetrics ?? {},
+      quotesSummary:   dataStore?.quotesSummary   ?? {},
+      cashflowSummary: dataStore?.cashflowSummary ?? {},
+      revenueSummary:  dataStore?.revenueSummary  ?? {},
+      expensesSummary: dataStore?.expensesSummary ?? {},
+      labourSummary:   dataStore?.labour          ?? [],
+      investorMetrics: {},
     },
   });
 
