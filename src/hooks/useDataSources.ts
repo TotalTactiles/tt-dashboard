@@ -6,6 +6,7 @@ const DATA_CACHE_KEY = "dashboard_live_data";
 const CALENDAR_CACHE_KEY = "dashboard_calendar_data";
 const PROJECT_KPI_CACHE_KEY = "dashboard_project_kpi_data";
 const POLL_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const DATA_CACHE_META_KEY = "dashboard_data_cache_meta";
 const CALENDAR_POLL_INTERVAL = 3 * 60 * 1000; // 3 minutes
 const DEFAULT_WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/bb826393-569e-4270-a033-6f6d8019e0e0";
 const CALENDAR_READ_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-calendar-read";
