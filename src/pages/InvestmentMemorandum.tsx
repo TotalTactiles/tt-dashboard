@@ -489,7 +489,7 @@ export default function InvestmentMemorandum() {
       y = checkOverflow(y, 20, "Financial Performance");
       y = addSectionHeading("Financial Commentary", y);
       if (form.financial_commentary) {
-        y = addBodyText(form.financial_commentary, y);
+        y = addBodyText(sanitiseText(form.financial_commentary), y);
       } else {
         doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.setTextColor(...MUTED);
         doc.text("No content generated yet.", margin, y); y += 8;
