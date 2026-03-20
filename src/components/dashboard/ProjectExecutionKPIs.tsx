@@ -483,10 +483,12 @@ function ScheduleSlippageCard({ data, index }: { data: ProjectKPIData["kpis"]["s
         </div>
 
         {/* Bottom bar */}
-        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-border/40">
-          <div
-            className={`h-full transition-all duration-500 ${barColor}`}
-            style={{ width: `${barFill}%` }}
+        <div className="mt-2 h-[3px] bg-secondary rounded-full overflow-hidden">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${Math.min(100, Math.max(0, barFill))}%` }}
+            transition={{ duration: 0.8, delay: 0.3 + index * 0.06 }}
+            className={`h-full rounded-full ${barColor}`}
           />
         </div>
       </motion.div>
