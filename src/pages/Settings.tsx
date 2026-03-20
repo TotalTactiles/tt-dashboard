@@ -310,17 +310,21 @@ const Settings = () => {
                     {source.connected && (() => {
                       const status = syncStatusLabel(source);
                       return (
-                        <p className={`text-xs font-mono flex items-center gap-1 ${status.colour}`}>
-                          <Clock className="w-3 h-3" />
-                          {status.text}
-                        </p>
+                        <p className={`text-xs ${status.colour}`}>{status.text}</p>
                       );
                     })()}
-                    {source.lastError && (
-                      <p className="text-xs text-destructive font-mono flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        {source.lastError}
+                    {lastCachedAt && (
+                      <p className="text-xs text-muted-foreground">
+                        Cache saved: {formatTs(lastCachedAt)}
                       </p>
+                    )}
+                    {changeDetectorMeta.lastChecked && (
+                      <p className="text-xs text-muted-foreground/60">
+                        ⚡ Change detector active
+                      </p>
+                    )}
+                    {source.lastError && (
+                      <p className="text-xs text-destructive">{source.lastError}</p>
                     )}
                   </div>
 
