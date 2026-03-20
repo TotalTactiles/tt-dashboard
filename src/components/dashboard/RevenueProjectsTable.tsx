@@ -582,7 +582,7 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
                 <tr className="text-left text-xs text-muted-foreground font-mono border-b border-border">
                   {visibleColDefs.map(col => (
                     <th key={col.key} className={`pb-3 pr-4 whitespace-nowrap ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""}`}>
-                      {col.label}
+                      {isCompact && col.key === "project" ? "Company / Project" : col.label}
                     </th>
                   ))}
                 </tr>
