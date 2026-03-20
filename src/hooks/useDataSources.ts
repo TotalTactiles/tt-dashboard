@@ -420,6 +420,8 @@ export function useDataSources() {
         saveLiveData(updated);
         return updated;
       });
+      setIsOffline(false);
+      setLastCachedAt(new Date().toISOString());
 
       const lastError = warnings.length > 0 ? `Partial data: ${warnings.join(", ")}` : "";
 
