@@ -245,6 +245,7 @@ export interface DashboardData {
   investorMetrics: Record<string, any> | null;
   updateScreenshot: (id: string, url: string) => void;
   removeScreenshot: (id: string) => void;
+  changeDetectorMeta: { lastChecked: string | null; lastTriggered: string | null; noChangeCount: number };
 }
 
 const DashboardDataContext = createContext<DashboardData | null>(null);
