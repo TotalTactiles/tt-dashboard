@@ -703,5 +703,6 @@ export function useDataSources() {
     syncCalendar: fetchCalendar,
     updateScreenshot,
     removeScreenshot,
+    changeDetectorMeta,
   };
 }
