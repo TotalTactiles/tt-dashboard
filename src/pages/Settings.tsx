@@ -32,6 +32,8 @@ const Settings = () => {
     syncNow,
     updateScreenshot,
     removeScreenshot,
+    changeDetectorMeta,
+    lastCachedAt,
   } = useDashboardData();
 
   const [expandedId, setExpandedId] = useState<string | null>(null);

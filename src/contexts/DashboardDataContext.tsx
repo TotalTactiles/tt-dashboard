@@ -245,6 +245,7 @@ export interface DashboardData {
   investorMetrics: Record<string, any> | null;
   updateScreenshot: (id: string, url: string) => void;
   removeScreenshot: (id: string) => void;
+  changeDetectorMeta: { lastChecked: string | null; lastTriggered: string | null; noChangeCount: number };
 }
 
 const DashboardDataContext = createContext<DashboardData | null>(null);
@@ -1001,6 +1002,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       investorMetrics: (liveData as any)?.investorMetrics ?? null,
       updateScreenshot: ds.updateScreenshot,
       removeScreenshot: ds.removeScreenshot,
+      changeDetectorMeta: ds.changeDetectorMeta ?? { lastChecked: null, lastTriggered: null, noChangeCount: 0 },
     };
   }, [liveData, hasLiveData, connectedCount, isLoading, isRefreshing, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride, calendarData, projectKPIData]);
 
@@ -1049,6 +1051,7 @@ export function useDashboardData(): DashboardData {
       investorMetrics: null,
       updateScreenshot: () => {},
       removeScreenshot: () => {},
+      changeDetectorMeta: { lastChecked: null, lastTriggered: null, noChangeCount: 0 },
     } as DashboardData;
   }
   return ctx;
