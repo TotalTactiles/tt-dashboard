@@ -6,6 +6,7 @@ const DATA_CACHE_KEY = "dashboard_live_data";
 const CALENDAR_CACHE_KEY = "dashboard_calendar_data";
 const PROJECT_KPI_CACHE_KEY = "dashboard_project_kpi_data";
 const POLL_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const DATA_CACHE_META_KEY = "dashboard_data_cache_meta";
 const CALENDAR_POLL_INTERVAL = 3 * 60 * 1000; // 3 minutes
 const DEFAULT_WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/bb826393-569e-4270-a033-6f6d8019e0e0";
 const CALENDAR_READ_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-calendar-read";
@@ -230,6 +231,10 @@ function saveSources(sources: DataSourceConfig[]) {
 
 function saveLiveData(data: LiveData) {
   localStorage.setItem(DATA_CACHE_KEY, JSON.stringify(data));
+  localStorage.setItem(DATA_CACHE_META_KEY, JSON.stringify({
+    savedAt: new Date().toISOString(),
+    version: "v10"
+  }));
 }
 
 export function useDataSources() {
@@ -242,6 +247,13 @@ export function useDataSources() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const hasFetchedOnce = useRef(false);
+  const [isOffline, setIsOffline] = useState(false);
+  const [lastCachedAt, setLastCachedAt] = useState<string | null>(() => {
+    try {
+      const meta = localStorage.getItem(DATA_CACHE_META_KEY);
+      return meta ? JSON.parse(meta).savedAt : null;
+    } catch { return null; }
+  });
 
   const [calendarData, setCalendarData] = useState(loadCachedCalendar);
   const calendarInterval = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -408,6 +420,8 @@ export function useDataSources() {
         saveLiveData(updated);
         return updated;
       });
+      setIsOffline(false);
+      setLastCachedAt(new Date().toISOString());
 
       const lastError = warnings.length > 0 ? `Partial data: ${warnings.join(", ")}` : "";
 
@@ -432,6 +446,11 @@ export function useDataSources() {
         return updated;
       });
 
+      // If we have cached data, mark as offline rather than showing empty
+      try {
+        const cached = localStorage.getItem(DATA_CACHE_KEY);
+        if (cached && cached !== "{}") setIsOffline(true);
+      } catch {}
       return { success: false, error: errorMsg };
     }
   }, [fetchProjectKPIs]);
@@ -654,6 +673,8 @@ export function useDataSources() {
     connectedCount,
     isLoading,
     isRefreshing,
+    isOffline,
+    lastCachedAt,
     toggleConnection,
     updateWebhookUrl,
     saveAndTest,
