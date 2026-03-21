@@ -541,6 +541,7 @@ function ScheduleSlippageCard({ data, index }: { data: ProjectKPIData["kpis"]["s
 
 function MarginVarianceCard({ data, index }: { data: ProjectKPIData["kpis"]["marginVariance"]; index: number }) {
   const [gpTarget, setGpTarget] = useState(loadGPTarget);
+  const [showDetail, setShowDetail] = useState(false);
 
   // Listen for GP target changes from the chart
   useEffect(() => {
@@ -568,66 +569,108 @@ function MarginVarianceCard({ data, index }: { data: ProjectKPIData["kpis"]["mar
     ? "Revenue data unavailable"
     : `${actualGP}% actual · target ${gpTarget}%`;
 
+  const hasDetail = data.negativeGPJobs.length > 0;
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay: index * 0.06 }}
-      className="stat-card relative overflow-hidden flex flex-col min-w-0"
-      style={cardContainerStyle}
-    >
-      <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: 'hidden' }}>
-        <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: 'hidden' }}>
-          <TrendingUp className="w-4 h-4 text-muted-foreground shrink-0" />
-          <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>Margin Variance</p>
-        </div>
-        <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
-          {data.negativeGPJobs.length > 0 && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge variant="secondary" className="text-[8px] font-mono bg-chart-amber/20 text-chart-amber border-chart-amber/30 cursor-help px-1 py-0">
-                  ⚠ {data.negativeGPJobs.length} at loss
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-[300px] p-3">
-                <p className="text-xs font-mono font-semibold mb-1.5">Jobs at Loss</p>
-                <div className="space-y-1">
-                  {data.negativeGPJobs.slice(0, 5).map((job, i) => (
-                    <div key={i} className="text-[11px] font-mono text-muted-foreground leading-snug">
-                      <span className="text-foreground">{decodeHtml(job.company)}</span> · {decodeHtml(job.project)} · <span className="text-chart-red">{job.gpPct.toFixed(1)}%</span>
-                    </div>
-                  ))}
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          )}
-          <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap">PROFIT</span>
-        </div>
-      </div>
-
-      <p
-        className={`font-mono font-bold my-auto ${isNull ? "text-muted-foreground/40" : isBelowTarget ? "text-chart-red" : "text-chart-green"}`}
-        style={isShortValue(displayVal) ? valueShortStyle : valueLongStyle}
-        title={displayVal}
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: index * 0.06 }}
+        className={`stat-card relative overflow-hidden flex flex-col min-w-0 ${hasDetail ? "cursor-pointer select-none" : ""}`}
+        style={cardContainerStyle}
+        onClick={() => hasDetail && setShowDetail(true)}
       >
-        {displayVal}
-      </p>
+        <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: 'hidden' }}>
+          <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: 'hidden' }}>
+            <TrendingUp className="w-4 h-4 text-muted-foreground shrink-0" />
+            <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>Margin Variance</p>
+          </div>
+          <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
+            {data.negativeGPJobs.length > 0 && (
+              <Badge variant="secondary" className="text-[8px] font-mono bg-chart-amber/20 text-chart-amber border-chart-amber/30 px-1 py-0">
+                ⚠ {data.negativeGPJobs.length} at loss
+              </Badge>
+            )}
+            <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap">PROFIT</span>
+          </div>
+        </div>
 
-      <div className="mt-auto space-y-0.5" style={{ minWidth: 0, overflow: 'hidden' }}>
-        <p className="font-mono text-muted-foreground" style={sublineStyle} title={sublineText}>
-          {sublineText}
+        <p
+          className={`font-mono font-bold my-auto ${isNull ? "text-muted-foreground/40" : isBelowTarget ? "text-chart-red" : "text-chart-green"}`}
+          style={isShortValue(displayVal) ? valueShortStyle : valueLongStyle}
+          title={displayVal}
+        >
+          {displayVal}
         </p>
-      </div>
 
-      <div className="mt-2 h-[3px] bg-secondary rounded-full overflow-hidden">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${Math.min(100, Math.max(0, barFill))}%` }}
-          transition={{ duration: 0.8, delay: 0.3 + index * 0.06 }}
-          className={`h-full rounded-full ${isNull ? "bg-muted-foreground/20" : barColor}`}
-        />
-      </div>
-    </motion.div>
+        <div className="mt-auto space-y-0.5" style={{ minWidth: 0, overflow: 'hidden' }}>
+          <p className="font-mono text-muted-foreground" style={sublineStyle} title={sublineText}>
+            {sublineText}
+          </p>
+          {hasDetail && (
+            <p className="text-muted-foreground/40 font-mono truncate" style={noteStyle}>
+              Click to view jobs at loss
+            </p>
+          )}
+        </div>
+
+        <div className="mt-2 h-[3px] bg-secondary rounded-full overflow-hidden">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${Math.min(100, Math.max(0, barFill))}%` }}
+            transition={{ duration: 0.8, delay: 0.3 + index * 0.06 }}
+            className={`h-full rounded-full ${isNull ? "bg-muted-foreground/20" : barColor}`}
+          />
+        </div>
+      </motion.div>
+
+      {/* Modal — same pattern as Schedule Slippage */}
+      <Dialog open={showDetail} onOpenChange={setShowDetail}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-mono text-base">Margin Variance</DialogTitle>
+            <DialogDescription className="font-mono text-xs text-muted-foreground">
+              {data.negativeGPJobs.length} job{data.negativeGPJobs.length !== 1 ? "s" : ""} below target · Target {gpTarget}%
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-1 mt-2">
+            {data.negativeGPJobs.map((job, i) => {
+              const jobVariance = Math.round((job.gpPct - gpTarget) * 10) / 10;
+              const severelyNegative = job.gpPct < 0;
+              const belowTarget = job.gpPct < gpTarget;
+              const rowColor = severelyNegative
+                ? "text-chart-red bg-chart-red/5"
+                : belowTarget
+                ? "text-amber-400 bg-amber-400/5"
+                : "text-chart-green bg-chart-green/5";
+              const reason = severelyNegative
+                ? "Negative gross profit"
+                : job.gpPct < gpTarget * 0.5
+                ? "Costs exceed revenue margin"
+                : "GP below target";
+
+              return (
+                <div key={i} className={`px-3 py-2 rounded-md font-mono text-xs ${rowColor}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="font-medium truncate block max-w-[220px]">{decodeHtml(job.company)}</span>
+                      <span className="text-muted-foreground truncate block max-w-[220px]" style={{ fontSize: '10px' }}>{decodeHtml(job.project)}</span>
+                    </div>
+                    <span className="shrink-0 tabular-nums font-bold">{job.gpPct.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-1 text-muted-foreground" style={{ fontSize: '10px' }}>
+                    <span>{reason}</span>
+                    <span className="tabular-nums">{jobVariance > 0 ? "+" : ""}{jobVariance}% vs target</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
