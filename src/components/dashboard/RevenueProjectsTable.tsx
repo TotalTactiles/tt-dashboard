@@ -416,7 +416,7 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.7 }}
-      className="chart-container col-span-full"
+      className="chart-container col-span-full" style={{ overflow: "visible" }}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4 gap-2">
@@ -576,7 +576,7 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
       ) : (
         <>
           {/* Desktop table */}
-          <div className="desktop-table overflow-x-auto" ref={tableContainerRef}>
+          <div className="desktop-table overflow-x-auto overflow-y-visible" ref={tableContainerRef}>
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-muted-foreground font-mono border-b border-border">
