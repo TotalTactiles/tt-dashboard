@@ -207,35 +207,26 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
 
     // Invoice filter from Cash Expected card overrides normal period filtering
     if (!showAll && periodFilter && periodFilter.months.length > 0) {
+      const monthSet = new Set(periodFilter.months);
+      const priorSet = new Set(periodFilter.priorMonths ?? []);
+
       if (invoiceFilter === "to_be_invoiced") {
-        // Show rows where due date falls within the selected month(s)
-        const monthSet = new Set(periodFilter.months);
+        // Show rows where invoiceDate falls within the selected month(s)
         projects = projects.filter((p) => {
-          const d = parseDateForSort(p.dueDate);
+          const d = parseDateForSort(p.invoiceDate);
           if (!d) return false;
           const key = `${MONTH_ABBR[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
           return monthSet.has(key);
         });
       } else if (invoiceFilter === "invoiced") {
-        // Show rows where invoice date falls within the PRIOR month(s)
-        const priorSet = new Set(periodFilter.priorMonths ?? []);
-        if (priorSet.size > 0) {
-          projects = projects.filter((p) => {
-            const d = parseDateForSort(p.invoiceDate);
-            if (!d) return false;
-            const key = `${MONTH_ABBR[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
-            return priorSet.has(key);
-          });
-        } else {
-          // Fallback to normal period filtering if no priorMonths
-          const monthSet = new Set(periodFilter.months);
-          projects = projects.filter((p) => {
-            const d = parseDateForSort(p.invoiceDate);
-            if (!d) return false;
-            const key = `${MONTH_ABBR[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
-            return monthSet.has(key);
-          });
-        }
+        // Show rows where invoiceDate in prior month(s) OR dueDate in selected month(s)
+        projects = projects.filter((p) => {
+          const invD = parseDateForSort(p.invoiceDate);
+          const dueD = parseDateForSort(p.dueDate);
+          const invMatch = invD ? priorSet.has(`${MONTH_ABBR[invD.getMonth()]}-${String(invD.getFullYear()).slice(-2)}`) : false;
+          const dueMatch = dueD ? monthSet.has(`${MONTH_ABBR[dueD.getMonth()]}-${String(dueD.getFullYear()).slice(-2)}`) : false;
+          return invMatch || dueMatch;
+        });
       }
     }
     if (statusFilter !== "all") projects = projects.filter(p => p.status === statusFilter);
