@@ -115,9 +115,10 @@ interface RevenueProjectsTableProps {
   periodFilter?: PeriodSpec | null;
   showAll?: boolean;
   onAllToggle?: (allOn: boolean) => void;
+  invoiceFilter?: "invoiced" | "to_be_invoiced";
 }
 
-const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: RevenueProjectsTableProps) => {
+const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invoiceFilter = "invoiced" }: RevenueProjectsTableProps) => {
   const { revenueProjects, dataHealth } = useDashboardData();
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
@@ -432,18 +433,6 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
               }`}
             >
               All
-            </button>
-          )}
-          {periodFilter && (
-            <button
-              onClick={() => { onAllToggle?.(false); setPage(1); }}
-              className={`text-[11px] px-2.5 py-1 rounded-full border font-mono transition-colors ${
-                !showAll
-                  ? "bg-chart-green/20 text-chart-green border-chart-green/40"
-                  : "border-border text-muted-foreground hover:bg-secondary/50"
-              }`}
-            >
-              To Be Invoiced
             </button>
           )}
           {!showAll && periodFilter && (
