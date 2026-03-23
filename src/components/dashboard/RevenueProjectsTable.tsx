@@ -115,9 +115,10 @@ interface RevenueProjectsTableProps {
   periodFilter?: PeriodSpec | null;
   showAll?: boolean;
   onAllToggle?: (allOn: boolean) => void;
+  invoiceFilter?: "invoiced" | "to_be_invoiced";
 }
 
-const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: RevenueProjectsTableProps) => {
+const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invoiceFilter = "invoiced" }: RevenueProjectsTableProps) => {
   const { revenueProjects, dataHealth } = useDashboardData();
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
@@ -213,6 +214,10 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
         return monthSet.has(key);
       });
     }
+    // Invoice filter from Cash Expected card
+    if (invoiceFilter === "to_be_invoiced") {
+      projects = projects.filter(p => p.status === "pending");
+    }
     if (statusFilter !== "all") projects = projects.filter(p => p.status === statusFilter);
     if (stageFilter !== "all") projects = projects.filter(p => p.projectStage === stageFilter);
     if (monthFilter !== "all") {
@@ -254,7 +259,7 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
       }
     });
     return projects;
-  }, [revenueProjects, statusFilter, stageFilter, monthFilter, companySearch, sortBy, showAll, periodFilter]);
+  }, [revenueProjects, statusFilter, stageFilter, monthFilter, companySearch, sortBy, showAll, periodFilter, invoiceFilter]);
 
   /* ── Totals ── */
   const totalRevenue = filteredProjects.reduce((sum, p) => sum + p.valueExclGST, 0);
@@ -432,18 +437,6 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
               }`}
             >
               All
-            </button>
-          )}
-          {periodFilter && (
-            <button
-              onClick={() => { onAllToggle?.(false); setPage(1); }}
-              className={`text-[11px] px-2.5 py-1 rounded-full border font-mono transition-colors ${
-                !showAll
-                  ? "bg-chart-green/20 text-chart-green border-chart-green/40"
-                  : "border-border text-muted-foreground hover:bg-secondary/50"
-              }`}
-            >
-              To Be Invoiced
             </button>
           )}
           {!showAll && periodFilter && (

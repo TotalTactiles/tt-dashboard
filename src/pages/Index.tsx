@@ -100,6 +100,7 @@ const DashboardContent = () => {
 
   // ── Shared "All" toggle for both tables — always starts OFF ──
   const [showAllTables, setShowAllTables] = useState(false);
+  const [invoiceFilter, setInvoiceFilter] = useState<"invoiced" | "to_be_invoiced">("invoiced");
 
   // Find current-year YTD index for auto-switch
   const currentYearYtdIdx = useMemo(() => {
@@ -431,7 +432,7 @@ const DashboardContent = () => {
             <ForecastChart />
           </div>
 
-          <ProjectExecutionKPIs selectedPeriodIdx={selectedPeriodIdx} onPeriodChange={handlePeriodChange} />
+          <ProjectExecutionKPIs selectedPeriodIdx={selectedPeriodIdx} onPeriodChange={handlePeriodChange} invoiceFilter={invoiceFilter} onInvoiceFilterChange={setInvoiceFilter} />
 
           <div className="space-y-4 md:space-y-6">
             <DealPipeline
@@ -443,6 +444,7 @@ const DashboardContent = () => {
               periodFilter={selectedPeriod}
               showAll={showAllTables}
               onAllToggle={handleTableAllToggle}
+              invoiceFilter={invoiceFilter}
             />
             <ExpenseBreakdown goals={goals} activeGoalIds={activeGoalIds} />
           </div>
