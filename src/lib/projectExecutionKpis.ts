@@ -366,23 +366,24 @@ function calcGrossProfitPerJob(revenue: RevenueProject[], period: PeriodSpec): K
 }
 
 // ── 7. CASH EXPECTED THIS PERIOD (INVOICED mode) ──────────────────
-// Jobs with invoice date in PRIOR month — cash expected to land this month
+// ── 7a. CASH EXPECTED — INVOICED mode ─────────────────────────────
+// Invoiced = invoiceDate in prior month OR dueDate in selected month (no double-count)
 
 function calcCashExpected(cashflowData: IncomeOutgoingsPoint[], revenue: RevenueProject[], period: PeriodSpec): KPIResult {
   const monthSet = new Set(period.months);
   const priorSet = new Set(period.priorMonths);
 
-  // Cash expected = revenue from jobs whose invoice date falls in the prior month
   const matchingJobs = revenue.filter((r) => {
     const inv = tryParseDate(r.invoiceDate);
-    if (!inv) return false;
-    const invKey = dateToMonKey(inv);
-    return priorSet.has(invKey);
+    const due = tryParseDate(r.dueDate);
+    const invMatch = inv ? priorSet.has(dateToMonKey(inv)) : false;
+    const dueMatch = due ? monthSet.has(dateToMonKey(due)) : false;
+    return invMatch || dueMatch;
   });
 
   const totalExpected = matchingJobs.reduce((s, r) => s + r.valueInclGST, 0);
 
-  // Prior period comparison
+  // Prior period comparison: invoiceDate in prior-prior month OR dueDate in prior month
   const priorPriorSet = new Set<string>();
   for (const mk of priorSet) {
     const d = monKeyToDate(mk);
@@ -393,9 +394,10 @@ function calcCashExpected(cashflowData: IncomeOutgoingsPoint[], revenue: Revenue
   }
   const priorMatchingJobs = revenue.filter((r) => {
     const inv = tryParseDate(r.invoiceDate);
-    if (!inv) return false;
-    const invKey = dateToMonKey(inv);
-    return priorPriorSet.has(invKey);
+    const due = tryParseDate(r.dueDate);
+    const invMatch = inv ? priorPriorSet.has(dateToMonKey(inv)) : false;
+    const dueMatch = due ? priorSet.has(dateToMonKey(due)) : false;
+    return invMatch || dueMatch;
   });
   const priorExpected = priorMatchingJobs.reduce((s, r) => s + r.valueInclGST, 0);
   const diff = priorSet.size > 0 ? totalExpected - priorExpected : null;
@@ -416,25 +418,25 @@ function calcCashExpected(cashflowData: IncomeOutgoingsPoint[], revenue: Revenue
 }
 
 // ── 7b. CASH EXPECTED — TO BE INVOICED mode ───────────────────────
-// Jobs with invoice due date in the SELECTED month
+// To Be Invoiced = invoiceDate in the SELECTED month
 
 function calcCashExpectedToBeInvoiced(cashflowData: IncomeOutgoingsPoint[], revenue: RevenueProject[], period: PeriodSpec): KPIResult {
   const monthSet = new Set(period.months);
 
   const matchingJobs = revenue.filter((r) => {
-    const due = tryParseDate(r.dueDate);
-    if (!due) return false;
-    return monthSet.has(dateToMonKey(due));
+    const inv = tryParseDate(r.invoiceDate);
+    if (!inv) return false;
+    return monthSet.has(dateToMonKey(inv));
   });
 
   const totalExpected = matchingJobs.reduce((s, r) => s + r.valueInclGST, 0);
 
-  // Prior comparison: jobs with due date in prior months
+  // Prior comparison: jobs with invoiceDate in prior months
   const priorSet = new Set(period.priorMonths);
   const priorMatchingJobs = revenue.filter((r) => {
-    const due = tryParseDate(r.dueDate);
-    if (!due) return false;
-    return priorSet.has(dateToMonKey(due));
+    const inv = tryParseDate(r.invoiceDate);
+    if (!inv) return false;
+    return priorSet.has(dateToMonKey(inv));
   });
   const priorExpected = priorMatchingJobs.reduce((s, r) => s + r.valueInclGST, 0);
   const diff = priorSet.size > 0 ? totalExpected - priorExpected : null;
