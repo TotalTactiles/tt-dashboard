@@ -836,7 +836,6 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
     { title: "Jobs Due", group: "DELIVERY", icon: <CalendarClock className="w-4 h-4" />, kpi: kpis.jobsDuePeriod, index: 4 },
     { title: gmIsForecast ? "Forecast Margin" : "Gross Margin", group: "PROFIT", icon: <BarChart3 className="w-4 h-4" />, kpi: kpis.weightedGrossMargin, index: 5 },
     { title: "GP / Job", group: "PROFIT", icon: <DollarSign className="w-4 h-4" />, kpi: kpis.grossProfitPerJob, index: 6, colorByValue: true },
-    { title: "Cash Expected", group: "CASHFLOW", icon: <Wallet className="w-4 h-4" />, kpi: kpis.cashExpected, index: 7, colorByValue: true },
   ];
 
   return (
