@@ -920,7 +920,7 @@ interface ProjectExecutionKPIsProps {
 
 export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange, invoiceFilter, onInvoiceFilterChange }: ProjectExecutionKPIsProps) {
   const { quotedJobs, revenueProjects, incomeOutgoingsData, projectKPIData, sources } = useDashboardData();
-  const periodOptions = useMemo(() => buildPeriodOptions(quotedJobs), [quotedJobs]);
+  const periodOptions = useMemo(() => buildPeriodOptions(quotedJobs, revenueProjects), [quotedJobs, revenueProjects]);
   const period = periodOptions[selectedPeriodIdx] ?? null;
 
   const kpis = useMemo(
