@@ -56,7 +56,7 @@ const ALL_COLUMNS: ColumnDef[] = [
 ];
 
 const DEFAULT_VISIBLE = ALL_COLUMNS.filter(c => c.defaultVisible).map(c => c.key);
-const LS_KEY = "revenue-cogs-visible-columns-v2";
+const LS_KEY = "revenue-cogs-visible-columns-v3";
 
 function loadVisibleColumns(): ColumnKey[] {
   try {
