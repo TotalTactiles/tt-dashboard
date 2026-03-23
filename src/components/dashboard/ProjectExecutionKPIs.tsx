@@ -788,9 +788,11 @@ function LabourEfficiencyCard({ data, index }: { data: ProjectKPIData["kpis"]["l
 interface ProjectExecutionKPIsProps {
   selectedPeriodIdx: number;
   onPeriodChange: (idx: number) => void;
+  invoiceFilter: "invoiced" | "to_be_invoiced";
+  onInvoiceFilterChange: (filter: "invoiced" | "to_be_invoiced") => void;
 }
 
-export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange }: ProjectExecutionKPIsProps) {
+export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange, invoiceFilter, onInvoiceFilterChange }: ProjectExecutionKPIsProps) {
   const { quotedJobs, revenueProjects, incomeOutgoingsData, projectKPIData, sources } = useDashboardData();
   const periodOptions = useMemo(() => buildPeriodOptions(quotedJobs), [quotedJobs]);
   const period = periodOptions[selectedPeriodIdx] ?? null;
