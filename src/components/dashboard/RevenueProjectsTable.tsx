@@ -214,6 +214,10 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
         return monthSet.has(key);
       });
     }
+    // Invoice filter from Cash Expected card
+    if (invoiceFilter === "to_be_invoiced") {
+      projects = projects.filter(p => p.status === "pending");
+    }
     if (statusFilter !== "all") projects = projects.filter(p => p.status === statusFilter);
     if (stageFilter !== "all") projects = projects.filter(p => p.projectStage === stageFilter);
     if (monthFilter !== "all") {
