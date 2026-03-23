@@ -435,6 +435,6 @@ export function computeExecutionKPIs(
     weightedGrossMargin: calcWeightedGrossMargin(revenue, period),
     revenuePerJob: calcRevenuePerJob(revenue, period),
     grossProfitPerJob: calcGrossProfitPerJob(revenue, period),
-    cashExpected: calcCashExpected(cashflowData, period),
+    cashExpected: calcCashExpected(cashflowData, revenue, period),
   };
 }
