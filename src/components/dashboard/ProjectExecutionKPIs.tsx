@@ -783,6 +783,132 @@ function LabourEfficiencyCard({ data, index }: { data: ProjectKPIData["kpis"]["l
   );
 }
 
+// ── CASH EXPECTED CARD ─────────────────────────────────────────────
+
+function CashExpectedCard({
+  kpi,
+  index,
+  invoiceFilter,
+  onInvoiceFilterChange,
+}: {
+  kpi: KPIResult;
+  index: number;
+  invoiceFilter: "invoiced" | "to_be_invoiced";
+  onInvoiceFilterChange: (f: "invoiced" | "to_be_invoiced") => void;
+}) {
+  const isUnavailable = kpi.value === null;
+  const isPositive = kpi.value !== null ? kpi.value >= 0 : true;
+  const trendPositive = kpi.change !== null ? kpi.change >= 0 : true;
+  const displayVal = kpi.formatted ?? "--";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: index * 0.06 }}
+      className="stat-card relative overflow-hidden flex flex-col min-w-0"
+      style={cardContainerStyle}
+    >
+      <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: 'hidden' }}>
+        <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: 'hidden' }}>
+          <Wallet className="w-4 h-4 text-muted-foreground shrink-0" />
+          <p className="text-muted-foreground font-mono font-medium" style={titleStyle} title="Cash Expected">
+            Cash Expected
+          </p>
+        </div>
+        <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>
+          CASHFLOW
+        </span>
+      </div>
+
+      {/* Toggle pills */}
+      <div className="flex gap-1 flex-wrap mb-1">
+        <button
+          onClick={() => onInvoiceFilterChange("invoiced")}
+          className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+            invoiceFilter === "invoiced"
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+          style={titleStyle}
+        >
+          Invoiced
+        </button>
+        <button
+          onClick={() => onInvoiceFilterChange("to_be_invoiced")}
+          className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+            invoiceFilter === "to_be_invoiced"
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+          style={titleStyle}
+        >
+          To Be Invoiced
+        </button>
+      </div>
+
+      <div className="my-auto" style={{ minWidth: 0, overflow: 'hidden' }}>
+        {isUnavailable ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <p className="font-mono font-bold text-muted-foreground/50 cursor-help" style={valueShortStyle}>
+                --
+              </p>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs font-mono max-w-[250px]">
+              {kpi.unavailableReason ?? "Data unavailable"}
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <p
+            className={`font-mono font-bold ${isPositive ? "text-chart-green" : "text-chart-red"}`}
+            style={isShortValue(displayVal) ? valueShortStyle : valueLongStyle}
+            title={displayVal}
+          >
+            {displayVal}
+          </p>
+        )}
+      </div>
+
+      <div className="mt-auto space-y-0.5" style={{ minWidth: 0, overflow: 'hidden' }}>
+        {!isUnavailable && kpi.changeFormatted !== "--" && (
+          <div
+            className={`flex items-center gap-0.5 font-mono ${trendPositive ? "text-chart-green" : "text-chart-red"}`}
+            style={trendStyle}
+          >
+            {trendPositive ? (
+              <TrendingUp className="w-3 h-3 shrink-0" />
+            ) : (
+              <TrendingDown className="w-3 h-3 shrink-0" />
+            )}
+            <span className="truncate">{kpi.changeFormatted}</span>
+          </div>
+        )}
+        <p className="font-mono text-muted-foreground" style={sublineStyle} title={kpi.context}>
+          {kpi.context}
+        </p>
+      </div>
+
+      <div className="mt-2 h-[3px] bg-secondary rounded-full overflow-hidden">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{
+            width: isUnavailable ? "0%" : `${Math.min(100, Math.max(10, kpi.value ?? 0))}%`,
+          }}
+          transition={{ duration: 0.8, delay: 0.3 + index * 0.06 }}
+          className={`h-full rounded-full ${
+            isUnavailable
+              ? "bg-muted-foreground/20"
+              : isPositive
+              ? "bg-chart-green"
+              : "bg-chart-red"
+          }`}
+        />
+      </div>
+    </motion.div>
+  );
+}
+
 // ── Section component ──────────────────────────────────────────────
 
 interface ProjectExecutionKPIsProps {

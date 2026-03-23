@@ -431,7 +431,7 @@ const DashboardContent = () => {
             <ForecastChart />
           </div>
 
-          <ProjectExecutionKPIs selectedPeriodIdx={selectedPeriodIdx} onPeriodChange={handlePeriodChange} />
+          <ProjectExecutionKPIs selectedPeriodIdx={selectedPeriodIdx} onPeriodChange={handlePeriodChange} invoiceFilter={invoiceFilter} onInvoiceFilterChange={setInvoiceFilter} />
 
           <div className="space-y-4 md:space-y-6">
             <DealPipeline
