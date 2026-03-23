@@ -229,7 +229,6 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
         });
       }
     }
-    }
     if (statusFilter !== "all") projects = projects.filter(p => p.status === statusFilter);
     if (stageFilter !== "all") projects = projects.filter(p => p.projectStage === stageFilter);
     if (monthFilter !== "all") {
