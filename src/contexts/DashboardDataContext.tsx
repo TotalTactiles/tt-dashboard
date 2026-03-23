@@ -840,12 +840,17 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const totalQuotedCount = parseNum(qs?.totalQuoted?.count ?? 0);
     const conversionRateVal = parseNum(qs?.conversionRate ?? 0);
 
-    // Confirmed-only conversion rate: GRN count / total quoted count
-    const confirmedConvRate = totalQuotedCount > 0 ? (baseWonCount / totalQuotedCount) * 100 : 0;
+    // Conversion rates computed from quotedJobs (reliable normalized statuses)
+    const qjTotal = quotedJobs.length;
+    const qjWonCount = quotedJobs.filter(j => j.status === "won").length;
+    const qjYlwCount = quotedJobs.filter(j => j.status === "yellow").length;
 
-    // Combined (confirmed+YLW) conversion rate
-    const combinedConvCount = baseWonCount + directYlwCount;
-    const combinedConvRate = totalQuotedCount > 0 ? (combinedConvCount / totalQuotedCount) * 100 : 0;
+    // Confirmed-only: Won jobs ÷ total quoted
+    const confirmedConvRate = qjTotal > 0 ? (qjWonCount / qjTotal) * 100 : 0;
+
+    // With YLWs: (Won + YLW) ÷ total quoted
+    const combinedConvCount = qjWonCount + qjYlwCount;
+    const combinedConvRate = qjTotal > 0 ? (combinedConvCount / qjTotal) * 100 : 0;
 
     const kpiStats: KPIStat[] = [
       {
