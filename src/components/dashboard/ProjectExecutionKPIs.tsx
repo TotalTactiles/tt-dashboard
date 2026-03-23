@@ -1039,7 +1039,7 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
 
         {/* Cash Expected card with invoice filter pills */}
         <CashExpectedCard
-          kpi={kpis.cashExpected}
+          kpi={invoiceFilter === "to_be_invoiced" ? kpis.cashExpectedToBeInvoiced : kpis.cashExpected}
           index={7}
           invoiceFilter={invoiceFilter}
           onInvoiceFilterChange={onInvoiceFilterChange}
