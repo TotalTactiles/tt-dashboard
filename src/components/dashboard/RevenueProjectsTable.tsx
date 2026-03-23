@@ -56,7 +56,7 @@ const ALL_COLUMNS: ColumnDef[] = [
 ];
 
 const DEFAULT_VISIBLE = ALL_COLUMNS.filter(c => c.defaultVisible).map(c => c.key);
-const LS_KEY = "revenue-cogs-visible-columns-v2";
+const LS_KEY = "revenue-cogs-visible-columns-v3";
 
 function loadVisibleColumns(): ColumnKey[] {
   try {
@@ -281,7 +281,7 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
   const totalTactile = filteredProjects.reduce((sum, p) => sum + p.tactileCost, 0);
   const totalOther = filteredProjects.reduce((sum, p) => sum + p.otherCost, 0);
   const totalStageValue = filteredProjects.reduce((sum, p) => sum + p.stageValue, 0);
-  const totalGpPct = totalRevenue > 0 ? (totalGP / totalRevenue) * 100 : 0;
+  const totalGpPct = totalValueInclGST > 0 ? (totalGP / totalValueInclGST) * 100 : 0;
 
   /* ── Pagination ── */
   const totalPages = Math.max(1, Math.ceil(filteredProjects.length / ITEMS_PER_PAGE));
