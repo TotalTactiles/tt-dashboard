@@ -100,6 +100,7 @@ const DashboardContent = () => {
 
   // ── Shared "All" toggle for both tables — always starts OFF ──
   const [showAllTables, setShowAllTables] = useState(false);
+  const [invoiceFilter, setInvoiceFilter] = useState<"invoiced" | "to_be_invoiced">("invoiced");
 
   // Find current-year YTD index for auto-switch
   const currentYearYtdIdx = useMemo(() => {
