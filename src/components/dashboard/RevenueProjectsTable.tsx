@@ -40,19 +40,19 @@ interface ColumnDef {
 const ALL_COLUMNS: ColumnDef[] = [
   { key: "company", label: "Company", align: "left", defaultVisible: true },
   { key: "project", label: "Project", align: "left", defaultVisible: true },
-  { key: "stage", label: "Stage", align: "left", defaultVisible: true },
-  { key: "stageValue", label: "Stage Value", align: "right", defaultVisible: true },
+  { key: "stage", label: "Stage", align: "left", defaultVisible: false },
+  { key: "stageValue", label: "Stage Value", align: "right", defaultVisible: false },
   { key: "valueInclGST", label: "Value (incl GST)", align: "right", defaultVisible: true },
-  { key: "valueExclGST", label: "Value (excl GST)", align: "right", defaultVisible: true },
+  { key: "valueExclGST", label: "Value (excl GST)", align: "right", defaultVisible: false },
   { key: "invoice", label: "Invoice", align: "left", defaultVisible: true },
-  { key: "dueDate", label: "Due Date", align: "left", defaultVisible: false },
+  { key: "dueDate", label: "Due Date", align: "left", defaultVisible: true },
   { key: "labour", label: "Labour", align: "right", defaultVisible: true },
   { key: "tactile", label: "Tactile", align: "right", defaultVisible: true },
   { key: "other", label: "Other", align: "right", defaultVisible: true },
   { key: "cogs", label: "COGS", align: "right", defaultVisible: true },
   { key: "grossProfit", label: "Gross Profit", align: "right", defaultVisible: true },
-  { key: "gpPct", label: "GP%", align: "right", defaultVisible: false },
-  { key: "status", label: "Status", align: "center", defaultVisible: true },
+  { key: "gpPct", label: "GP%", align: "right", defaultVisible: true },
+  { key: "status", label: "Status", align: "center", defaultVisible: false },
 ];
 
 const DEFAULT_VISIBLE = ALL_COLUMNS.filter(c => c.defaultVisible).map(c => c.key);
@@ -60,7 +60,7 @@ const LS_KEY = "revenue-cogs-visible-columns";
 
 function loadVisibleColumns(): ColumnKey[] {
   try {
-    const stored = localStorage.getItem(LS_KEY);
+    const stored = sessionStorage.getItem(LS_KEY);
     if (stored) {
       const parsed = JSON.parse(stored) as string[];
       const valid = parsed.filter(k => ALL_COLUMNS.some(c => c.key === k)) as ColumnKey[];
@@ -134,7 +134,7 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
   const columnPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    localStorage.setItem(LS_KEY, JSON.stringify(visibleColumns));
+    sessionStorage.setItem(LS_KEY, JSON.stringify(visibleColumns));
   }, [visibleColumns]);
 
   useEffect(() => {
