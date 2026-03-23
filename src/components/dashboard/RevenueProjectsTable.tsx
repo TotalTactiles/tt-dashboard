@@ -203,20 +203,40 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
 
   const filteredProjects = useMemo(() => {
     let projects = [...revenueProjects];
-    // Period filter from master selector using Invoice Date (unless "All" is toggled)
+    const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+    // Invoice filter from Cash Expected card overrides normal period filtering
     if (!showAll && periodFilter && periodFilter.months.length > 0) {
-      const monthSet = new Set(periodFilter.months);
-      const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-      projects = projects.filter((p) => {
-        const d = parseDateForSort(p.invoiceDate);
-        if (!d) return false;
-        const key = `${MONTH_ABBR[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
-        return monthSet.has(key);
-      });
-    }
-    // Invoice filter from Cash Expected card
-    if (invoiceFilter === "to_be_invoiced") {
-      projects = projects.filter(p => p.status === "pending");
+      if (invoiceFilter === "to_be_invoiced") {
+        // Show rows where due date falls within the selected month(s)
+        const monthSet = new Set(periodFilter.months);
+        projects = projects.filter((p) => {
+          const d = parseDateForSort(p.dueDate);
+          if (!d) return false;
+          const key = `${MONTH_ABBR[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
+          return monthSet.has(key);
+        });
+      } else if (invoiceFilter === "invoiced") {
+        // Show rows where invoice date falls within the PRIOR month(s)
+        const priorSet = new Set(periodFilter.priorMonths ?? []);
+        if (priorSet.size > 0) {
+          projects = projects.filter((p) => {
+            const d = parseDateForSort(p.invoiceDate);
+            if (!d) return false;
+            const key = `${MONTH_ABBR[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
+            return priorSet.has(key);
+          });
+        } else {
+          // Fallback to normal period filtering if no priorMonths
+          const monthSet = new Set(periodFilter.months);
+          projects = projects.filter((p) => {
+            const d = parseDateForSort(p.invoiceDate);
+            if (!d) return false;
+            const key = `${MONTH_ABBR[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
+            return monthSet.has(key);
+          });
+        }
+      }
     }
     if (statusFilter !== "all") projects = projects.filter(p => p.status === statusFilter);
     if (stageFilter !== "all") projects = projects.filter(p => p.projectStage === stageFilter);
