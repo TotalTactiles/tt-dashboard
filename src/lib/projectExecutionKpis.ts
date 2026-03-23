@@ -52,12 +52,21 @@ export function getQuarterForMonth(monthIdx: number): number {
 }
 
 /**
- * Build period options driven by actual quoted jobs data.
- * Only months/quarters with real jobs appear; empty ones are excluded.
+ * Build period options from the revenue date universe (invoiceDate + dueDate)
+ * supplemented by quoted-job dates for completeness.
  */
-export function buildPeriodOptions(jobs: QuotedJob[]): PeriodSpec[] {
-  // Collect all valid month keys from job dates
+export function buildPeriodOptions(jobs: QuotedJob[], revenue?: RevenueProject[]): PeriodSpec[] {
+  // Collect month keys from revenue invoiceDate and dueDate (primary source)
   const monthKeySet = new Set<string>();
+  if (revenue) {
+    for (const rp of revenue) {
+      const inv = tryParseDate(rp.invoiceDate);
+      if (inv) monthKeySet.add(dateToMonKey(inv));
+      const due = tryParseDate(rp.dueDate);
+      if (due) monthKeySet.add(dateToMonKey(due));
+    }
+  }
+  // Also include quoted-job dates for backwards compatibility
   for (const job of jobs) {
     const d = tryParseDate(job.dateQuoted);
     if (d) monthKeySet.add(dateToMonKey(d));

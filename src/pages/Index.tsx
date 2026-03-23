@@ -44,10 +44,10 @@ function loadActiveGoalIds(allGoals: {id: string;merge?: boolean;}[]): Set<strin
 
 const DashboardContent = () => {
   const { goals, updateGoal } = useGoals();
-  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData, quotedJobs, investorMetrics, isOffline, lastCachedAt } = useDashboardData();
+  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData, quotedJobs, investorMetrics, isOffline, lastCachedAt, revenueProjects } = useDashboardData();
 
   // ── Shared period state — resets to current month on every mount/data change ──
-  const periodOptions = useMemo(() => buildPeriodOptions(quotedJobs), [quotedJobs]);
+  const periodOptions = useMemo(() => buildPeriodOptions(quotedJobs, revenueProjects), [quotedJobs, revenueProjects]);
   const defaultPeriodIdx = useMemo(() => {
     const currentKey = getCurrentMonthKey();
     // 1. Current month if available
