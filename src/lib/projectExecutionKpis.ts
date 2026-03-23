@@ -358,24 +358,52 @@ function calcGrossProfitPerJob(revenue: RevenueProject[], period: PeriodSpec): K
 
 // ── 7. CASH EXPECTED THIS PERIOD ──────────────────────────────────
 
-function calcCashExpected(cashflowData: IncomeOutgoingsPoint[], period: PeriodSpec): KPIResult {
+function calcCashExpected(cashflowData: IncomeOutgoingsPoint[], revenue: RevenueProject[], period: PeriodSpec): KPIResult {
   const monthSet = new Set(period.months);
   const priorSet = new Set(period.priorMonths);
 
+  // Cash expected = revenue from jobs invoiced in the prior month with due dates in the selected month
+  const matchingJobs = revenue.filter((r) => {
+    const inv = tryParseDate(r.invoiceDate);
+    const due = tryParseDate(r.dueDate);
+    if (!inv || !due) return false;
+    const invKey = dateToMonKey(inv);
+    const dueKey = dateToMonKey(due);
+    return priorSet.has(invKey) && monthSet.has(dueKey);
+  });
+
+  const totalExpected = matchingJobs.reduce((s, r) => s + r.valueInclGST, 0);
+
+  // Prior period comparison: jobs invoiced 2 months ago with due dates in prior month
+  // Build a "prior-prior" month set by shifting priorMonths back one month
+  const priorPriorSet = new Set<string>();
+  for (const mk of priorSet) {
+    const d = monKeyToDate(mk);
+    if (d) {
+      d.setMonth(d.getMonth() - 1);
+      priorPriorSet.add(dateToMonKey(d));
+    }
+  }
+  const priorMatchingJobs = revenue.filter((r) => {
+    const inv = tryParseDate(r.invoiceDate);
+    const due = tryParseDate(r.dueDate);
+    if (!inv || !due) return false;
+    const invKey = dateToMonKey(inv);
+    const dueKey = dateToMonKey(due);
+    return priorPriorSet.has(invKey) && priorSet.has(dueKey);
+  });
+  const priorExpected = priorMatchingJobs.reduce((s, r) => s + r.valueInclGST, 0);
+  const diff = priorSet.size > 0 ? totalExpected - priorExpected : null;
+
+  // Outgoings from cashflow data for the selected period
   const periodPoints = cashflowData.filter((p) => monthSet.has(p.month));
-  const priorPoints = cashflowData.filter((p) => priorSet.has(p.month));
-
-  if (periodPoints.length === 0) return unavailable("No cashflow data for period");
-
-  const totalIncome = periodPoints.reduce((s, p) => s + p.income, 0);
-  const priorIncome = priorPoints.reduce((s, p) => s + p.income, 0);
-  const diff = priorPoints.length > 0 ? totalIncome - priorIncome : null;
-
   const totalOutgoings = periodPoints.reduce((s, p) => s + p.outgoings, 0);
 
+  if (matchingJobs.length === 0 && periodPoints.length === 0) return unavailable("No data for period");
+
   return {
-    value: totalIncome,
-    formatted: formatMetricValue(totalIncome, "currency"),
+    value: totalExpected,
+    formatted: formatMetricValue(totalExpected, "currency"),
     change: diff,
     changeFormatted: diff !== null ? `${diff >= 0 ? "+" : ""}${formatMetricValue(diff, "currency")}` : "--",
     context: `${formatMetricValue(totalOutgoings, "currency")} outgoings`,
