@@ -1032,10 +1032,18 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
           }
         })}
 
-        {/* 4 existing cards — untouched */}
+        {/* 3 existing cards — untouched */}
         {existingCards.map((card) => (
           <ExecKPICard key={card.title} {...card} />
         ))}
+
+        {/* Cash Expected card with invoice filter pills */}
+        <CashExpectedCard
+          kpi={kpis.cashExpected}
+          index={7}
+          invoiceFilter={invoiceFilter}
+          onInvoiceFilterChange={onInvoiceFilterChange}
+        />
       </div>
     </div>
   );
