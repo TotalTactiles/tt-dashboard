@@ -444,6 +444,7 @@ const DashboardContent = () => {
               periodFilter={selectedPeriod}
               showAll={showAllTables}
               onAllToggle={handleTableAllToggle}
+              invoiceFilter={invoiceFilter}
             />
             <ExpenseBreakdown goals={goals} activeGoalIds={activeGoalIds} />
           </div>
