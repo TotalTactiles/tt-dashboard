@@ -60,7 +60,7 @@ const LS_KEY = "revenue-cogs-visible-columns";
 
 function loadVisibleColumns(): ColumnKey[] {
   try {
-    const stored = localStorage.getItem(LS_KEY);
+    const stored = sessionStorage.getItem(LS_KEY);
     if (stored) {
       const parsed = JSON.parse(stored) as string[];
       const valid = parsed.filter(k => ALL_COLUMNS.some(c => c.key === k)) as ColumnKey[];
@@ -134,7 +134,7 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle }: Re
   const columnPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    localStorage.setItem(LS_KEY, JSON.stringify(visibleColumns));
+    sessionStorage.setItem(LS_KEY, JSON.stringify(visibleColumns));
   }, [visibleColumns]);
 
   useEffect(() => {
