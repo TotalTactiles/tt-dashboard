@@ -475,6 +475,8 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const openingBalancesRow = findCashflowRowExact("OPENING BALANCES");
     const totalOutgoingsRow = findCashflowRowExact("Total Outgoings");
     const totalIncomeRow = findCashflowRowExact("Total Income");
+    const totalCostOfSalesRow = findCashflowRowExact("Total Cost of Sales");
+    const totalOpExInclSalariesRow = findCashflowRowExact("Total Operating Expenses (incl. Salaries)");
     // For "Anticipated Cash Surplus/(Deficit)" — must NOT match the "Including Probable Jobs" variant
     const anticipatedSurplusRow = (() => {
       const label = "Anticipated Cash Surplus/(Deficit)";
@@ -666,6 +668,12 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     // Generate current month key in stable Mon-YY format (locale-independent)
     const currentMonthKey = `${MONTH_ABBR_LIST[currentMonthIdx]}-${String(currentYear).slice(-2)}`;
 
+    console.log('[CF DEBUG] currentMonthKey:', currentMonthKey);
+    console.log('[CF DEBUG] openingBal:', openingBalancesRow?.[currentMonthKey]);
+    console.log('[CF DEBUG] totalIncome:', totalIncomeRow?.[currentMonthKey]);
+    console.log('[CF DEBUG] totalCostOfSales:', totalCostOfSalesRow?.[currentMonthKey]);
+    console.log('[CF DEBUG] fixedOpEx:', totalOpExInclSalariesRow?.[currentMonthKey]);
+
     // Normalize a month key to uppercase trimmed for comparison
     const normalizeKey = (k: string) => k.trim().toUpperCase();
     const currentKeyNorm = normalizeKey(currentMonthKey);
@@ -819,17 +827,42 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const curMonRev = revenueByMonth(curMonKey);
     const prevMonRev = revenueByMonth(prevMonKey);
 
-    // Per-month cashflow position
-    const prevCashflowPos = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[prevMonKey] ?? 0) : 0;
-    const hasPrevCashflow = anticipatedSurplusRow ? (anticipatedSurplusRow[prevMonKey] !== undefined) : false;
+    // Per-month cashflow position — helper to read a row value for a given month key
+    const cfRowVal = (row: any, mk: string): number => {
+      if (!row) return 0;
+      const rk = findMatchingRowKey(row, normalizeKey(mk));
+      return parseNum(row[rk ?? ""] ?? 0);
+    };
 
-    // Cashflow Position pill modes: "To Date" (default) and "Opening Balance"
-    const cfOpeningBal = openingBalancesRow ? parseNum(openingBalancesRow[findMatchingRowKey(openingBalancesRow, currentKeyNorm) ?? ""] ?? 0) : 0;
-    const cfTotalIncome = totalIncomeRow ? parseNum(totalIncomeRow[findMatchingRowKey(totalIncomeRow, currentKeyNorm) ?? ""] ?? 0) : 0;
-    const cfTotalOutgoings = totalOutgoingsRow ? parseNum(totalOutgoingsRow[findMatchingRowKey(totalOutgoingsRow, currentKeyNorm) ?? ""] ?? 0) : 0;
-    // totalOutgoings is typically negative — add it (which subtracts outgoings)
-    const cfToDateValue = cfOpeningBal + cfTotalIncome + cfTotalOutgoings;
+    // Current month values
+    const cfOpeningBal = cfRowVal(openingBalancesRow, currentMonthKey);
+    const cfTotalIncome = cfRowVal(totalIncomeRow, currentMonthKey);
+    const cfVariableCosts = cfRowVal(totalCostOfSalesRow, currentMonthKey);
+    // Fixed opex arrives as negative after toNum fix — Math.abs() makes it sign-safe
+    const cfFixedMonthly = Math.abs(cfRowVal(totalOpExInclSalariesRow, currentMonthKey));
+
+    const today = now; // already defined above
+    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const dayOfMonth = today.getDate();
+    const cfProratedFixed = cfFixedMonthly * (dayOfMonth / daysInMonth);
+
+    const cfToDateValue = cfOpeningBal + cfTotalIncome - cfProratedFixed - cfVariableCosts;
     const cfMonthLabel = `${MONTH_ABBR_LIST[currentMonthIdx]} ${String(currentYear).slice(-2)}`;
+
+    console.log('[CF Position Calc]', {
+      currentMonthKey, dayOfMonth, daysInMonth,
+      cfOpeningBal, cfTotalIncome, cfVariableCosts, cfFixedMonthly, cfProratedFixed, cfToDateValue,
+    });
+
+    // Prev month values for comparison
+    const prevNormKey = normalizeKey(prevMonKey);
+    const prevOpeningBal = cfRowVal(openingBalancesRow, prevMonKey);
+    const prevTotalIncome = cfRowVal(totalIncomeRow, prevMonKey);
+    const prevVariableCosts = cfRowVal(totalCostOfSalesRow, prevMonKey);
+    const prevFixedMonthly = Math.abs(cfRowVal(totalOpExInclSalariesRow, prevMonKey));
+    // Prev month is complete so use full fixed costs (no proration)
+    const prevToDateValue = prevOpeningBal + prevTotalIncome - prevFixedMonthly - prevVariableCosts;
+    const hasPrevCashflow = !!(openingBalancesRow && findMatchingRowKey(openingBalancesRow, prevNormKey));
 
     // Helper for MoM delta formatting
     const fmtDelta = (cur: number, prev: number, type: "currency" | "pp"): string => {
@@ -895,13 +928,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         label: "Cashflow Position",
         value: noData ? "--" : fmtAUD(cfOpeningBal),
         change: "--",
-        positive: cfOpeningBal >= 0, noData,
+        positive: cfOpeningBal >= 10000, noData,
         altValue: noData ? "--" : fmtAUD(cfToDateValue),
         altChange: "--",
-        altPositive: cfToDateValue >= 0,
+        altPositive: cfToDateValue >= 10000,
         toggleLabelBase: "Open",
         toggleLabelAlt: "To Date",
-        momDelta: noData ? undefined : (hasPrevCashflow ? fmtDelta(cfToDateValue, prevCashflowPos, "currency") : noMomText),
+        momDelta: noData ? undefined : (hasPrevCashflow ? fmtDelta(cfOpeningBal, prevOpeningBal, "currency") : noMomText),
         momContext: noData ? undefined : `Opening balance · ${cfMonthLabel}`,
         altMomContext: noData ? undefined : `Net cash balance · ${cfMonthLabel}`,
       },
