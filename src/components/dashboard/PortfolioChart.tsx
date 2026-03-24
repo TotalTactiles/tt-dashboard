@@ -130,17 +130,19 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
   }, [sourceData, quarter, selectedYear, adjustments]);
 
   const quarterYear = useMemo(() => {
-    if (quarter === "all") return "";
-    const first = sourceData.find((d) => {
-      const p = parseMonth(d.month);
-      return p && QUARTER_MONTHS[quarter].includes(p.month);
-    });
-    if (first) {
-      const p = parseMonth(first.month);
-      return p ? String(p.year) : String(currentYear);
-    }
-    return String(currentYear);
-  }, [quarter, sourceData, currentYear]);
+    if (quarter === "all") return selectedYear !== null ? String(selectedYear) : "";
+    return selectedYear !== null ? String(selectedYear) : (() => {
+      const first = sourceData.find((d) => {
+        const p = parseMonth(d.month);
+        return p && QUARTER_MONTHS[quarter].includes(p.month);
+      });
+      if (first) {
+        const p = parseMonth(first.month);
+        return p ? String(p.year) : String(currentYear);
+      }
+      return String(currentYear);
+    })();
+  }, [quarter, sourceData, currentYear, selectedYear]);
 
   const hasCurrentMonth = useMemo(
     () => filteredData.some((d) => d.month === currentMonthLabel),
