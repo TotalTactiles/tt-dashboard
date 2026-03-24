@@ -232,13 +232,13 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       )}
 
       {/* ROW 3b — Monthly context */}
-      {!noData && momContext && (
+      {!noData && (showAlt && altMomContext ? altMomContext : momContext) && (
         <p
           className="font-mono text-muted-foreground/80"
           style={noteStyle}
-          title={momContext}
+          title={showAlt && altMomContext ? altMomContext : momContext}
         >
-          {momContext}
+          {showAlt && altMomContext ? altMomContext : momContext}
         </p>
       )}
 
