@@ -506,12 +506,6 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     // Income vs Outgoings bar chart
     const incomeOutgoingsData: IncomeOutgoingsPoint[] = months
-      .filter((m) => {
-        const inc = totalIncomeRow ? parseNum(totalIncomeRow[m] ?? 0) : sv(cs?.totalIncome, m);
-        const outRaw = totalOutgoingsRow ? parseNum(totalOutgoingsRow[m] ?? 0) : (Math.abs(sv(cs?.totalCostOfSales, m)) + Math.abs(sv(cs?.totalOperatingExpenses, m)));
-        const anticipated = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[m] ?? 0) : sv(cs?.anticipatedSurplus, m);
-        return inc !== 0 || outRaw !== 0 || anticipated !== 0;
-      })
       .map((m) => {
         const inc = totalIncomeRow ? parseNum(totalIncomeRow[m] ?? 0) : sv(cs?.totalIncome, m);
         const out = totalOutgoingsRow
