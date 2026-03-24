@@ -103,9 +103,14 @@ const DashboardContent = () => {
   const [invoiceFilter, setInvoiceFilter] = useState<"invoiced" | "to_be_invoiced">("invoiced");
   const [investorScope, setInvestorScope] = useState<"ytd" | "month" | "full_year">("ytd");
 
-  // Expose month-scoped investor metrics from n8n
+  // Expose month-scoped and lifetime investor metrics from n8n
   const investorMetricsMonth = (liveData as any)?.investorMetricsMonth ?? null;
-  const activeInvestorMetrics = investorScope === 'month' && investorMetricsMonth ? investorMetricsMonth : investorMetrics;
+  const investorMetricsLifetime = (liveData as any)?.investorMetricsLifetime ?? null;
+  const activeInvestorMetrics = investorScope === 'month' && investorMetricsMonth
+    ? investorMetricsMonth
+    : investorScope === 'full_year' && investorMetricsLifetime
+      ? investorMetricsLifetime
+      : investorMetrics;
 
   // Computed toggle data for investor metric cards
   const investorToggleData = useMemo(() => {
@@ -426,14 +431,14 @@ const DashboardContent = () => {
                       key={scope}
                       onClick={() => setInvestorScope(scope)}
                       className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${investorScope === scope ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                    >{scope === "ytd" ? "YTD" : scope === "month" ? "Month" : "Full Year"}</button>
+                    >{scope === "ytd" ? "This Year" : scope === "month" ? "Month" : "Lifetime"}</button>
                   ))}
                 </div>
                 <span className="text-xs text-muted-foreground font-mono">Business Health</span>
               </div>
               {investorScope === "full_year" && (
                 <div className="text-xs font-mono text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded px-3 py-1.5 mb-3">
-                  Full year view coming soon — currently showing YTD figures
+                  Showing company lifetime data — 2025 + 2026 combined
                 </div>
               )}
               {investorScope === "month" && (
