@@ -828,6 +828,14 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const prevCashflowPos = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[prevMonKey] ?? 0) : 0;
     const hasPrevCashflow = anticipatedSurplusRow ? (anticipatedSurplusRow[prevMonKey] !== undefined) : false;
 
+    // Cashflow Position pill modes: "To Date" (default) and "Opening Balance"
+    const cfOpeningBal = openingBalancesRow ? parseNum(openingBalancesRow[findMatchingRowKey(openingBalancesRow, currentKeyNorm) ?? ""] ?? 0) : 0;
+    const cfTotalIncome = totalIncomeRow ? parseNum(totalIncomeRow[findMatchingRowKey(totalIncomeRow, currentKeyNorm) ?? ""] ?? 0) : 0;
+    const cfTotalOutgoings = totalOutgoingsRow ? parseNum(totalOutgoingsRow[findMatchingRowKey(totalOutgoingsRow, currentKeyNorm) ?? ""] ?? 0) : 0;
+    // totalOutgoings is typically negative — add it (which subtracts outgoings)
+    const cfToDateValue = cfOpeningBal + cfTotalIncome + cfTotalOutgoings;
+    const cfMonthLabel = `${MONTH_ABBR_LIST[currentMonthIdx]} ${String(currentYear).slice(-2)}`;
+
     // Helper for MoM delta formatting
     const fmtDelta = (cur: number, prev: number, type: "currency" | "pp"): string => {
       const diff = cur - prev;
