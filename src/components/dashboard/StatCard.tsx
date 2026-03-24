@@ -25,8 +25,10 @@ interface StatCardProps {
   toggleLabelBase?: string;
   toggleLabelAlt?: string;
   momDelta?: string;
+  altMomDelta?: string;
   momContext?: string;
   altMomContext?: string;
+  greenAltPill?: boolean;
 }
 
 function timeAgo(ts: number | null): string {
@@ -101,7 +103,7 @@ const noteStyle: React.CSSProperties = {
   minWidth: 0,
 };
 
-const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted, toggleLabelBase, toggleLabelAlt, momDelta, momContext, altMomContext }: StatCardProps) => {
+const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted, toggleLabelBase, toggleLabelAlt, momDelta, altMomDelta, momContext, altMomContext, greenAltPill }: StatCardProps) => {
   const [showAlt, setShowAlt] = useState(false);
   const hasToggle = !!altValue;
 
@@ -109,7 +111,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
   const displayChange = showAlt && altChange ? altChange : change;
   const displayPositive = showAlt && altPositive !== undefined ? altPositive : positive;
 
-  const isYellow = hasToggle && showAlt;
+  const isYellow = hasToggle && showAlt && !greenAltPill;
   const accentColor = isYellow ? "text-amber-400" : displayPositive ? "text-chart-green" : "text-chart-red";
   const accentGlow = isYellow ? "" : displayPositive ? "glow-green" : "glow-red";
   const barColor = isYellow ? "bg-amber-400" : displayPositive ? "bg-chart-green" : "bg-chart-red";
@@ -221,13 +223,13 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       </div>
 
       {/* ROW 3 — MoM delta */}
-      {!noData && momDelta && (
+      {!noData && (showAlt && altMomDelta ? altMomDelta : momDelta) && (
         <p
           className="font-mono text-muted-foreground"
           style={sublineStyle}
-          title={momDelta}
+          title={showAlt && altMomDelta ? altMomDelta : momDelta}
         >
-          {momDelta}
+          {showAlt && altMomDelta ? altMomDelta : momDelta}
         </p>
       )}
 
