@@ -101,6 +101,35 @@ const DashboardContent = () => {
   // ── Shared "All" toggle for both tables — always starts OFF ──
   const [showAllTables, setShowAllTables] = useState(false);
   const [invoiceFilter, setInvoiceFilter] = useState<"invoiced" | "to_be_invoiced">("invoiced");
+  const [investorScope, setInvestorScope] = useState<"ytd" | "full_year">("ytd");
+
+  // Computed toggle data for investor metric cards
+  const investorToggleData = useMemo(() => {
+    const im = investorMetrics as any;
+    if (!im) return null;
+
+    const wonJobs = quotedJobs.filter(j => j.status === "won");
+    const allActive = quotedJobs.filter(j => j.status !== "lost");
+    const wonCount = im.wonCount ?? wonJobs.length;
+    const totalCount = im.totalCount ?? allActive.length;
+    const wonTotalValue = wonJobs.reduce((s, j) => s + j.value, 0);
+    const allTotalValue = allActive.reduce((s, j) => s + j.value, 0);
+
+    // Avg Contract Value
+    const avgWon = wonCount > 0 ? wonTotalValue / wonCount : 0;
+    const avgQuoted = totalCount > 0 ? allTotalValue / totalCount : 0;
+
+    // Revenue Per Job
+    const revPerJobWon = im.revenuePerJobWon ?? 0;
+    const revPerJobQuoted = totalCount > 0 ? (revPerJobWon * wonCount) / totalCount : 0;
+
+    return {
+      avgWon, avgQuoted, wonCount, totalCount,
+      revPerJobWon, revPerJobQuoted,
+      ytdTotalExpenses: im.ytdTotalExpenses ?? null,
+      ytdLabour: im.ytdLabour ?? null,
+    };
+  }, [investorMetrics, quotedJobs]);
 
   // Find current-year YTD index for auto-switch
   const currentYearYtdIdx = useMemo(() => {
@@ -376,27 +405,94 @@ const DashboardContent = () => {
           )}
           </div>
 
-          {investorMetrics && (
+          {investorMetrics && investorToggleData && (() => {
+            const im = investorMetrics as any;
+            const td = investorToggleData;
+            return (
             <div className="mt-4 mb-4">
               <div className="flex items-center gap-2 mb-3 px-1">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Investor Metrics</span>
                 <div className="flex-1 h-px bg-border" />
+                <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
+                  <button
+                    onClick={() => setInvestorScope("ytd")}
+                    className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${investorScope === "ytd" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  >YTD</button>
+                  <button
+                    onClick={() => setInvestorScope("full_year")}
+                    className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${investorScope === "full_year" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  >Full Year</button>
+                </div>
                 <span className="text-xs text-muted-foreground font-mono">Business Health</span>
               </div>
+              {investorScope === "full_year" && (
+                <div className="text-xs font-mono text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded px-3 py-1.5 mb-3">
+                  Full year view coming soon — currently showing YTD figures
+                </div>
+              )}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" style={{ containerType: 'inline-size' }}>
-                <StatCard label="EBITDA (Est.)" value={(investorMetrics as any).ebitdaFormatted ?? "N/A"} change={(investorMetrics as any).ebitdaMarginFormatted ?? "--"} positive={((investorMetrics as any).ebitda ?? 0) >= 0} index={10} />
-                <StatCard label="Gross Margin %" value={(investorMetrics as any).grossMarginPctFormatted ?? "N/A"} change={`avg ${(investorMetrics as any).avgGpPct ?? 0}%`} positive={((investorMetrics as any).grossMarginPct ?? 0) >= 30} index={11} />
-                <StatCard label="Revenue Growth" value={(investorMetrics as any).revenueGrowthMoMFormatted ?? "N/A"} change="Month on Month" positive={((investorMetrics as any).revenueGrowthMoM ?? 0) >= 0} index={12} />
-                <StatCard label="Pipeline Coverage" value={(investorMetrics as any).pipelineCoverageFormatted ?? "N/A"} change={(investorMetrics as any).pipelineValue ? `$${Math.round((investorMetrics as any).pipelineValue / 1000)}K pipeline` : ""} positive={((investorMetrics as any).pipelineCoverage ?? 0) >= 2} index={13} />
-                <StatCard label="Avg Contract Value" value={(investorMetrics as any).avgContractValueFormatted ?? "N/A"} change={`${(investorMetrics as any).totalCount ?? 0} jobs quoted`} positive={true} index={14} />
-                <StatCard label="Op. Expense Ratio" value={(investorMetrics as any).operatingExpRatioFormatted ?? "N/A"} change="Expenses / Revenue" positive={((investorMetrics as any).operatingExpRatio ?? 100) < 60} index={15} />
-                <StatCard label="Labour Cost Ratio" value={(investorMetrics as any).labourCostRatioFormatted ?? "N/A"} change="Labour / Revenue" positive={((investorMetrics as any).labourCostRatio ?? 100) < 35} index={16} />
-                <StatCard label="Revenue Per Job" value={(investorMetrics as any).revenuePerJobWonFormatted ?? "N/A"} change={`${(investorMetrics as any).wonCount ?? 0} jobs won`} positive={true} index={17} />
-                <StatCard label="CAC Per Client" value={(investorMetrics as any).cacPerClientFormatted ?? "N/A"} change={`$${(investorMetrics as any).googleAdsMonthly ?? 0}/mo ads`} positive={((investorMetrics as any).cacPerClient ?? 0) < 5000} index={18} />
-                <StatCard label="Win Rate" value={(investorMetrics as any).conversionRateFormatted ?? "N/A"} change={`${(investorMetrics as any).wonCount ?? 0} of ${(investorMetrics as any).totalCount ?? 0} won`} positive={((investorMetrics as any).conversionRate ?? 0) >= 25} index={19} />
+                <StatCard label="EBITDA (Est.)" value={im.ebitdaFormatted ?? "N/A"} change={im.ebitdaMarginFormatted ?? "--"} positive={(im.ebitda ?? 0) >= 0} index={10} />
+                <StatCard label="Gross Margin %" value={im.grossMarginPctFormatted ?? "N/A"} change={`avg ${im.avgGpPct ?? 0}%`} positive={(im.grossMarginPct ?? 0) >= 30} index={11} />
+                <StatCard label="Revenue Growth" value={im.revenueGrowthMoMFormatted ?? "N/A"} change="Month on Month" positive={(im.revenueGrowthMoM ?? 0) >= 0} index={12} />
+                <StatCard label="Pipeline Coverage" value={im.pipelineCoverageFormatted ?? "N/A"} change={im.pipelineValueFormatted ? `${im.pipelineValueFormatted} pipeline` : ""} positive={(im.pipelineCoverage ?? 0) >= 2} index={13} />
+                <StatCard
+                  label="Avg Contract Value"
+                  value={fmtAUD(td.avgWon)}
+                  change={`${td.wonCount} jobs won`}
+                  positive={true}
+                  index={14}
+                  altValue={fmtAUD(td.avgQuoted)}
+                  altChange={`${td.totalCount} jobs quoted`}
+                  altPositive={true}
+                  toggleLabelBase="Won"
+                  toggleLabelAlt="Quoted"
+                  greenAltPill={true}
+                />
+                <StatCard
+                  label="Op. Expense Ratio"
+                  value={im.operatingExpRatioFormatted ?? "N/A"}
+                  change="Expenses / Revenue"
+                  positive={(im.operatingExpRatio ?? 100) < 60}
+                  index={15}
+                  altValue={td.ytdTotalExpenses != null ? fmtAUD(td.ytdTotalExpenses) : undefined}
+                  altChange={td.ytdTotalExpenses != null ? "YTD operating expenses" : undefined}
+                  altPositive={td.ytdTotalExpenses != null ? (im.operatingExpRatio ?? 100) < 60 : undefined}
+                  toggleLabelBase="Ratio"
+                  toggleLabelAlt="$"
+                  greenAltPill={true}
+                />
+                <StatCard
+                  label="Labour Cost Ratio"
+                  value={im.labourCostRatioFormatted ?? "N/A"}
+                  change="Labour / Revenue"
+                  positive={(im.labourCostRatio ?? 100) < 35}
+                  index={16}
+                  altValue={td.ytdLabour != null ? fmtAUD(td.ytdLabour) : undefined}
+                  altChange={td.ytdLabour != null ? "YTD labour costs" : undefined}
+                  altPositive={td.ytdLabour != null ? (im.labourCostRatio ?? 100) < 35 : undefined}
+                  toggleLabelBase="Ratio"
+                  toggleLabelAlt="$"
+                  greenAltPill={true}
+                />
+                <StatCard
+                  label="Revenue Per Job"
+                  value={im.revenuePerJobWonFormatted ?? "N/A"}
+                  change={`${td.wonCount} jobs won`}
+                  positive={true}
+                  index={17}
+                  altValue={fmtAUD(td.revPerJobQuoted)}
+                  altChange={`${td.totalCount} jobs quoted`}
+                  altPositive={true}
+                  toggleLabelBase="Won"
+                  toggleLabelAlt="Quoted"
+                  greenAltPill={true}
+                />
+                <StatCard label="CAC Per Client" value={im.cacPerClientFormatted ?? "N/A"} change={`$${im.googleAdsMonthly ?? 0}/mo ads`} positive={(im.cacPerClient ?? 0) < 5000} index={18} />
+                <StatCard label="Win Rate" value={im.conversionRateFormatted ?? "N/A"} change={`${im.wonCount ?? 0} of ${im.totalCount ?? 0} won`} positive={(im.conversionRate ?? 0) >= 25} index={19} />
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* Active Goals */}
           <GoalsDashboardWidgets
