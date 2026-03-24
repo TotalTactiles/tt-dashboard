@@ -848,7 +848,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const dayOfMonth = today.getDate();
     const cfProratedFixed = cfFixedMonthly * (dayOfMonth / daysInMonth);
 
-    const cfToDateValue = cfOpeningBal + cfTotalIncome - cfProratedFixed - cfVariableCosts;
+    const cfToDateValue = cfOpeningBal - cfProratedFixed - cfVariableCosts;
     const cfMonthLabel = `${MONTH_ABBR_LIST[currentMonthIdx]} ${String(currentYear).slice(-2)}`;
 
     console.log('[CF Position Calc]', {
@@ -863,7 +863,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const prevVariableCosts = cfRowVal(totalCostOfSalesRow, prevMonKey);
     const prevFixedMonthly = Math.abs(cfRowVal(totalOpExInclSalariesRow, prevMonKey));
     // Prev month is complete so use full fixed costs (no proration)
-    const prevToDateValue = prevOpeningBal + prevTotalIncome - prevFixedMonthly - prevVariableCosts;
+    const prevToDateValue = prevOpeningBal - prevFixedMonthly - prevVariableCosts;
     const hasPrevCashflow = !!(openingBalancesRow && findMatchingRowKey(openingBalancesRow, prevNormKey));
 
     // Helper for MoM delta formatting
