@@ -56,7 +56,7 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
   const [exportOpen, setExportOpen] = useState(false);
   const { resolvedTheme } = useTheme();
 
-  const [quarter, setQuarter] = useState<QuarterFilter>(() => loadPref("cashflow_quarter_filter", getCurrentQuarter()));
+  const [quarter, setQuarter] = useState<QuarterFilter>(getCurrentQuarter());
 
   const setQuarterFilter = useCallback((q: QuarterFilter) => {
     setQuarter(q);
@@ -75,14 +75,19 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
 
   const hasMultipleYears = availableYears.length > 1;
 
-  const [selectedYear, setSelectedYear] = useState<number | null>(() =>
-    availableYears.length > 1 ? availableYears[0] : null
-  );
+  const [selectedYear, setSelectedYear] = useState<number | null>(() => {
+    if (availableYears.length <= 1) return null;
+    const now = new Date();
+    const thisYear = now.getFullYear();
+    if (availableYears.includes(thisYear)) return thisYear;
+    return availableYears[availableYears.length - 1]; // latest year fallback
+  });
 
   // Keep selectedYear in sync when data changes
   useMemo(() => {
     if (hasMultipleYears && (selectedYear === null || !availableYears.includes(selectedYear))) {
-      setSelectedYear(availableYears[0]);
+      const thisYear = new Date().getFullYear();
+      setSelectedYear(availableYears.includes(thisYear) ? thisYear : availableYears[availableYears.length - 1]);
     } else if (!hasMultipleYears) {
       setSelectedYear(null);
     }
