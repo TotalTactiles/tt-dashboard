@@ -118,7 +118,7 @@ const Formulas = () => {
 
       <div className="space-y-4">
         {sections.map((section) => {
-          const isCollapsed = collapsedSections.has(section.key);
+          const isExpanded = expandedSections.has(section.key);
 
           return (
             <div key={section.key} className="stat-card overflow-hidden">
@@ -143,7 +143,7 @@ const Formulas = () => {
                   </Badge>
                   <ChevronDown
                     className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${
-                      isCollapsed ? "" : "rotate-180"
+                      isExpanded ? "rotate-180" : ""
                     }`}
                   />
                 </div>
@@ -151,7 +151,7 @@ const Formulas = () => {
 
               {/* Section content */}
               <AnimatePresence initial={false}>
-                {!isCollapsed && (
+                {isExpanded && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
