@@ -223,13 +223,13 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       </div>
 
       {/* ROW 3 — MoM delta */}
-      {!noData && momDelta && (
+      {!noData && (showAlt && altMomDelta ? altMomDelta : momDelta) && (
         <p
           className="font-mono text-muted-foreground"
           style={sublineStyle}
-          title={momDelta}
+          title={showAlt && altMomDelta ? altMomDelta : momDelta}
         >
-          {momDelta}
+          {showAlt && altMomDelta ? altMomDelta : momDelta}
         </p>
       )}
 
