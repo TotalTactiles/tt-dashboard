@@ -101,7 +101,7 @@ const DashboardContent = () => {
   // ── Shared "All" toggle for both tables — always starts OFF ──
   const [showAllTables, setShowAllTables] = useState(false);
   const [invoiceFilter, setInvoiceFilter] = useState<"invoiced" | "to_be_invoiced">("invoiced");
-  const [investorScope, setInvestorScope] = useState<"ytd" | "full_year">("ytd");
+  const [investorScope, setInvestorScope] = useState<"ytd" | "month" | "full_year">("ytd");
 
   // Computed toggle data for investor metric cards
   const investorToggleData = useMemo(() => {
@@ -115,16 +115,18 @@ const DashboardContent = () => {
     const wonTotalValue = wonJobs.reduce((s, j) => s + j.value, 0);
     const allTotalValue = allActive.reduce((s, j) => s + j.value, 0);
 
-    // Avg Contract Value
-    const avgWon = wonCount > 0 ? wonTotalValue / wonCount : 0;
+    // Avg Contract Value — use n8n pre-computed values for Won mode
+    const avgWon = im.avgContractValueWon ?? (wonCount > 0 ? wonTotalValue / wonCount : 0);
+    const wonPlusCompletedCount = im.wonPlusCompletedCount ?? wonCount;
     const avgQuoted = totalCount > 0 ? allTotalValue / totalCount : 0;
 
-    // Revenue Per Job
-    const revPerJobWon = im.revenuePerJobWon ?? 0;
-    const revPerJobQuoted = totalCount > 0 ? (revPerJobWon * wonCount) / totalCount : 0;
+    // Revenue Per Job — use revenueExGST / wonPlusCompletedCount for Won mode
+    const revenueExGST = im.revenueExGST ?? 0;
+    const revPerJobWon = wonPlusCompletedCount > 0 ? revenueExGST / wonPlusCompletedCount : (im.revenuePerJobWon ?? 0);
+    const revPerJobQuoted = totalCount > 0 ? (revPerJobWon * wonPlusCompletedCount) / totalCount : 0;
 
     return {
-      avgWon, avgQuoted, wonCount, totalCount,
+      avgWon, avgQuoted, wonCount: wonPlusCompletedCount, totalCount,
       revPerJobWon, revPerJobQuoted,
       ytdTotalExpenses: im.ytdTotalExpenses ?? null,
       ytdLabour: im.ytdLabour ?? null,
@@ -414,14 +416,13 @@ const DashboardContent = () => {
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Investor Metrics</span>
                 <div className="flex-1 h-px bg-border" />
                 <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
-                  <button
-                    onClick={() => setInvestorScope("ytd")}
-                    className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${investorScope === "ytd" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                  >YTD</button>
-                  <button
-                    onClick={() => setInvestorScope("full_year")}
-                    className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${investorScope === "full_year" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                  >Full Year</button>
+                  {(["ytd", "month", "full_year"] as const).map((scope) => (
+                    <button
+                      key={scope}
+                      onClick={() => setInvestorScope(scope)}
+                      className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${investorScope === scope ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                    >{scope === "ytd" ? "YTD" : scope === "month" ? "Month" : "Full Year"}</button>
+                  ))}
                 </div>
                 <span className="text-xs text-muted-foreground font-mono">Business Health</span>
               </div>
@@ -430,8 +431,13 @@ const DashboardContent = () => {
                   Full year view coming soon — currently showing YTD figures
                 </div>
               )}
+              {investorScope === "month" && (
+                <div className="text-xs font-mono text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded px-3 py-1.5 mb-3">
+                  Showing {new Date().toLocaleString("en-AU", { month: "long", year: "numeric" })} data — month-scoped metrics coming soon
+                </div>
+              )}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" style={{ containerType: 'inline-size' }}>
-                <StatCard label="EBITDA (Est.)" value={im.ebitdaFormatted ?? "N/A"} change={im.ebitdaMarginFormatted ?? "--"} positive={(im.ebitda ?? 0) >= 0} index={10} />
+                <StatCard label="EBITDA (Est.)" value={im.ebitdaFormatted ?? "N/A"} change={investorScope === "month" ? "This month" : (im.ebitdaMarginFormatted ?? "--")} positive={(im.ebitda ?? 0) >= 0} index={10} />
                 <StatCard label="Gross Margin %" value={im.grossMarginPctFormatted ?? "N/A"} change={(im.grossMarginSubLabel as string) ?? `avg ${Number(im.grossMarginPct ?? 0).toFixed(2)}%`} positive={(im.grossMarginPct ?? 0) >= 30} index={11} />
                 <StatCard label="Revenue Growth" value={im.revenueGrowthMoMFormatted ?? "N/A"} change="Month on Month" positive={(im.revenueGrowthMoM ?? 0) >= 0} index={12} />
                 <StatCard label="Pipeline Coverage" value={im.pipelineCoverageFormatted ?? "N/A"} change={im.pipelineValueFormatted ? `${im.pipelineValueFormatted} pipeline` : ""} positive={(im.pipelineCoverage ?? 0) >= 2} index={13} />
