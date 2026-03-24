@@ -26,6 +26,7 @@ interface StatCardProps {
   toggleLabelAlt?: string;
   momDelta?: string;
   momContext?: string;
+  altMomContext?: string;
 }
 
 function timeAgo(ts: number | null): string {
@@ -100,7 +101,7 @@ const noteStyle: React.CSSProperties = {
   minWidth: 0,
 };
 
-const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted, toggleLabelBase, toggleLabelAlt, momDelta, momContext }: StatCardProps) => {
+const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted, toggleLabelBase, toggleLabelAlt, momDelta, momContext, altMomContext }: StatCardProps) => {
   const [showAlt, setShowAlt] = useState(false);
   const hasToggle = !!altValue;
 
@@ -231,13 +232,13 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       )}
 
       {/* ROW 3b — Monthly context */}
-      {!noData && momContext && (
+      {!noData && (showAlt && altMomContext ? altMomContext : momContext) && (
         <p
           className="font-mono text-muted-foreground/80"
           style={noteStyle}
-          title={momContext}
+          title={showAlt && altMomContext ? altMomContext : momContext}
         >
-          {momContext}
+          {showAlt && altMomContext ? altMomContext : momContext}
         </p>
       )}
 
