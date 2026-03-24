@@ -74,7 +74,7 @@ const Formulas = () => {
   }, [formulas]);
 
   const toggleSection = (key: string) => {
-    setCollapsedSections((prev) => {
+    setExpandedSections((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
