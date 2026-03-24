@@ -404,6 +404,8 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
       <div className="mt-2 text-[10px] font-mono text-muted-foreground/60">
         {quarter !== "all" ? (
           <span>Viewing {quarter} {quarterYear} · {QUARTER_LABELS[quarter]}</span>
+        ) : quarterYear ? (
+          <span>Showing {quarterYear} · {rangeLabel}</span>
         ) : (
           <span>Showing {rangeLabel}</span>
         )}
