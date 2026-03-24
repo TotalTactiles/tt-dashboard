@@ -209,6 +209,23 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
           <p className="text-xl font-mono font-bold text-foreground">Monthly Cash Flow</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          {hasMultipleYears && (
+            <div className="flex items-center gap-1">
+              {availableYears.map((yr) => (
+                <button
+                  key={yr}
+                  onClick={() => setSelectedYear(yr)}
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-medium transition-all ${
+                    selectedYear === yr
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-transparent border border-border text-muted-foreground hover:border-muted-foreground/50"
+                  }`}
+                >
+                  {yr}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex items-center gap-1">
             {quarterButtons.map((q) => (
               <button
