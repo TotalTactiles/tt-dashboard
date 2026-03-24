@@ -103,9 +103,13 @@ const DashboardContent = () => {
   const [invoiceFilter, setInvoiceFilter] = useState<"invoiced" | "to_be_invoiced">("invoiced");
   const [investorScope, setInvestorScope] = useState<"ytd" | "month" | "full_year">("ytd");
 
+  // Expose month-scoped investor metrics from n8n
+  const investorMetricsMonth = (dataStore as any)?.investorMetricsMonth ?? null;
+  const activeInvestorMetrics = investorScope === 'month' && investorMetricsMonth ? investorMetricsMonth : investorMetrics;
+
   // Computed toggle data for investor metric cards
   const investorToggleData = useMemo(() => {
-    const im = investorMetrics as any;
+    const im = activeInvestorMetrics as any;
     if (!im) return null;
 
     const wonJobs = quotedJobs.filter(j => j.status === "won");
@@ -131,7 +135,7 @@ const DashboardContent = () => {
       ytdTotalExpenses: im.ytdTotalExpenses ?? null,
       ytdLabour: im.ytdLabour ?? null,
     };
-  }, [investorMetrics, quotedJobs]);
+  }, [activeInvestorMetrics, quotedJobs]);
 
   // Find current-year YTD index for auto-switch
   const currentYearYtdIdx = useMemo(() => {
@@ -408,7 +412,8 @@ const DashboardContent = () => {
           </div>
 
           {investorMetrics && investorToggleData && (() => {
-            const im = investorMetrics as any;
+            const im = investorMetrics as any; // always YTD for EBITDA, Pipeline, Avg Contract, CAC
+            const aim = activeInvestorMetrics as any; // scope-aware for the 6 affected cards
             const td = investorToggleData;
             return (
             <div className="mt-4 mb-4">
@@ -432,14 +437,14 @@ const DashboardContent = () => {
                 </div>
               )}
               {investorScope === "month" && (
-                <div className="text-xs font-mono text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded px-3 py-1.5 mb-3">
-                  Showing {new Date().toLocaleString("en-AU", { month: "long", year: "numeric" })} data — month-scoped metrics coming soon
+                <div className="text-xs font-mono text-blue-500 bg-blue-500/10 border border-blue-500/20 rounded px-3 py-1.5 mb-3">
+                  Showing {new Date().toLocaleString("en-AU", { month: "long", year: "numeric" })}
                 </div>
               )}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" style={{ containerType: 'inline-size' }}>
                 <StatCard label="EBITDA (Est.)" value={im.ebitdaFormatted ?? "N/A"} change={investorScope === "month" ? "This month" : (im.ebitdaMarginFormatted ?? "--")} positive={(im.ebitda ?? 0) >= 0} index={10} />
-                <StatCard label="Gross Margin %" value={im.grossMarginPctFormatted ?? "N/A"} change={(im.grossMarginSubLabel as string) ?? `avg ${Number(im.grossMarginPct ?? 0).toFixed(2)}%`} positive={(im.grossMarginPct ?? 0) >= 30} index={11} />
-                <StatCard label="Revenue Growth" value={im.revenueGrowthMoMFormatted ?? "N/A"} change="Month on Month" positive={(im.revenueGrowthMoM ?? 0) >= 0} index={12} />
+                <StatCard label="Gross Margin %" value={aim.grossMarginPctFormatted ?? "N/A"} change={(aim.grossMarginSubLabel as string) ?? `avg ${Number(aim.grossMarginPct ?? 0).toFixed(2)}%`} positive={(aim.grossMarginPct ?? 0) >= 30} index={11} />
+                <StatCard label="Revenue Growth" value={aim.revenueGrowthMoMFormatted ?? "N/A"} change="Month on Month" positive={(aim.revenueGrowthMoM ?? 0) >= 0} index={12} />
                 <StatCard label="Pipeline Coverage" value={im.pipelineCoverageFormatted ?? "N/A"} change={im.pipelineValueFormatted ? `${im.pipelineValueFormatted} pipeline` : ""} positive={(im.pipelineCoverage ?? 0) >= 2} index={13} />
                 <StatCard
                   label="Avg Contract Value"
@@ -456,33 +461,33 @@ const DashboardContent = () => {
                 />
                 <StatCard
                   label="Op. Expense Ratio"
-                  value={im.operatingExpRatioFormatted ?? "N/A"}
+                  value={aim.operatingExpRatioFormatted ?? "N/A"}
                   change="Expenses / Revenue"
-                  positive={(im.operatingExpRatio ?? 100) < 60}
+                  positive={(aim.operatingExpRatio ?? 100) < 60}
                   index={15}
                   altValue={td.ytdTotalExpenses ? fmtAUD(td.ytdTotalExpenses) : "–"}
-                  altChange="YTD operating expenses"
-                  altPositive={(im.operatingExpRatio ?? 100) < 60}
+                  altChange={investorScope === "month" ? "Monthly operating expenses" : "YTD operating expenses"}
+                  altPositive={(aim.operatingExpRatio ?? 100) < 60}
                   toggleLabelBase="Ratio"
                   toggleLabelAlt="$"
                   greenAltPill={true}
                 />
                 <StatCard
                   label="Labour Cost Ratio"
-                  value={im.labourCostRatioFormatted ?? "N/A"}
+                  value={aim.labourCostRatioFormatted ?? "N/A"}
                   change="Labour / Revenue"
-                  positive={(im.labourCostRatio ?? 100) < 35}
+                  positive={(aim.labourCostRatio ?? 100) < 35}
                   index={16}
                   altValue={td.ytdLabour ? fmtAUD(td.ytdLabour) : "–"}
-                  altChange="YTD labour costs"
-                  altPositive={(im.labourCostRatio ?? 100) < 35}
+                  altChange={investorScope === "month" ? "Monthly labour costs" : "YTD labour costs"}
+                  altPositive={(aim.labourCostRatio ?? 100) < 35}
                   toggleLabelBase="Ratio"
                   toggleLabelAlt="$"
                   greenAltPill={true}
                 />
                 <StatCard
                   label="Revenue Per Job"
-                  value={im.revenuePerJobWonFormatted ?? "N/A"}
+                  value={aim.revenuePerJobWonFormatted ?? fmtAUD(td.revPerJobWon)}
                   change={`${td.wonCount} jobs won`}
                   positive={true}
                   index={17}
@@ -495,8 +500,12 @@ const DashboardContent = () => {
                 />
                 <StatCard label="CAC Per Client" value={im.cacPerClientFormatted ?? "N/A"} change={`$${im.googleAdsMonthly ?? 0}/mo ads`} positive={(im.cacPerClient ?? 0) < 5000} index={18} />
                 {(() => {
+                  // Win Rate uses scope-aware metrics if month has pre-computed winRate
+                  if (aim.winRateFormatted) {
+                    return <StatCard label="Win Rate" value={aim.winRateFormatted} change={aim.winRateSubLabel ?? ""} positive={(aim.winRate ?? 0) >= 25} index={19} />;
+                  }
                   const qs = dataStore?.quotesSummary as any;
-                  const wonCount = im.wonCount ?? 0;
+                  const wonCount = aim.wonCount ?? im.wonCount ?? 0;
                   const activeCount = (Number(qs?.remaining?.count ?? 0)) + (Number(qs?.totalWon?.count ?? 0)) + (Number(qs?.totalYellow?.count ?? 0));
                   const winRate = activeCount > 0 ? `${(wonCount / activeCount * 100).toFixed(1)}%` : "N/A";
                   return <StatCard label="Win Rate" value={winRate} change={`${wonCount} of ${activeCount} active jobs`} positive={activeCount > 0 && (wonCount / activeCount) >= 0.25} index={19} />;
