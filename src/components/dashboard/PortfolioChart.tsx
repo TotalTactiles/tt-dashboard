@@ -63,6 +63,31 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
     localStorage.setItem("cashflow_quarter_filter", JSON.stringify(q));
   }, []);
 
+  // Derive available years from data
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    for (const d of sourceData) {
+      const p = parseMonth(d.month);
+      if (p) years.add(p.year);
+    }
+    return Array.from(years).sort();
+  }, [sourceData]);
+
+  const hasMultipleYears = availableYears.length > 1;
+
+  const [selectedYear, setSelectedYear] = useState<number | null>(() =>
+    availableYears.length > 1 ? availableYears[0] : null
+  );
+
+  // Keep selectedYear in sync when data changes
+  useMemo(() => {
+    if (hasMultipleYears && (selectedYear === null || !availableYears.includes(selectedYear))) {
+      setSelectedYear(availableYears[0]);
+    } else if (!hasMultipleYears) {
+      setSelectedYear(null);
+    }
+  }, [availableYears, hasMultipleYears]);
+
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonthAbbr = now.toLocaleString("en-US", { month: "short" });
@@ -77,6 +102,14 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
       ...d,
       outgoings: Math.abs(d.outgoings),
     }));
+    // Year filter
+    if (selectedYear !== null) {
+      data = data.filter((d) => {
+        const parsed = parseMonth(d.month);
+        return parsed ? parsed.year === selectedYear : false;
+      });
+    }
+    // Quarter filter
     if (quarter !== "all") {
       const qMonths = QUARTER_MONTHS[quarter];
       data = data.filter((d) => {
@@ -94,20 +127,22 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
       });
     }
     return data;
-  }, [sourceData, quarter, adjustments]);
+  }, [sourceData, quarter, selectedYear, adjustments]);
 
   const quarterYear = useMemo(() => {
-    if (quarter === "all") return "";
-    const first = sourceData.find((d) => {
-      const p = parseMonth(d.month);
-      return p && QUARTER_MONTHS[quarter].includes(p.month);
-    });
-    if (first) {
-      const p = parseMonth(first.month);
-      return p ? String(p.year) : String(currentYear);
-    }
-    return String(currentYear);
-  }, [quarter, sourceData, currentYear]);
+    if (quarter === "all") return selectedYear !== null ? String(selectedYear) : "";
+    return selectedYear !== null ? String(selectedYear) : (() => {
+      const first = sourceData.find((d) => {
+        const p = parseMonth(d.month);
+        return p && QUARTER_MONTHS[quarter].includes(p.month);
+      });
+      if (first) {
+        const p = parseMonth(first.month);
+        return p ? String(p.year) : String(currentYear);
+      }
+      return String(currentYear);
+    })();
+  }, [quarter, sourceData, currentYear, selectedYear]);
 
   const hasCurrentMonth = useMemo(
     () => filteredData.some((d) => d.month === currentMonthLabel),
@@ -176,6 +211,23 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
           <p className="text-xl font-mono font-bold text-foreground">Monthly Cash Flow</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          {hasMultipleYears && (
+            <div className="flex items-center gap-1">
+              {availableYears.map((yr) => (
+                <button
+                  key={yr}
+                  onClick={() => setSelectedYear(yr)}
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-medium transition-all ${
+                    selectedYear === yr
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-transparent border border-border text-muted-foreground hover:border-muted-foreground/50"
+                  }`}
+                >
+                  {yr}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex items-center gap-1">
             {quarterButtons.map((q) => (
               <button
@@ -352,6 +404,8 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
       <div className="mt-2 text-[10px] font-mono text-muted-foreground/60">
         {quarter !== "all" ? (
           <span>Viewing {quarter} {quarterYear} · {QUARTER_LABELS[quarter]}</span>
+        ) : quarterYear ? (
+          <span>Showing {quarterYear} · {rangeLabel}</span>
         ) : (
           <span>Showing {rangeLabel}</span>
         )}
