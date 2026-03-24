@@ -449,6 +449,29 @@ const DashboardContent = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" style={{ containerType: 'inline-size' }}>
                 <StatCard label="EBITDA (Est.)" value={im.ebitdaFormatted ?? "N/A"} change={investorScope === "month" ? "This month" : (im.ebitdaMarginFormatted ?? "--")} positive={(im.ebitda ?? 0) >= 0} index={10} />
                 <StatCard label="Gross Margin %" value={aim.grossMarginPctFormatted ?? "N/A"} change={(aim.grossMarginSubLabel as string) ?? `avg ${Number(aim.grossMarginPct ?? 0).toFixed(2)}%`} positive={(aim.grossMarginPct ?? 0) >= 30} index={11} />
+                {process.env.NODE_ENV !== 'production' && (
+                  <div style={{
+                    fontSize: '10px',
+                    fontFamily: 'monospace',
+                    background: '#1a1a2e',
+                    border: '1px solid #ff6b6b',
+                    borderRadius: '4px',
+                    padding: '6px 8px',
+                    marginBottom: '4px',
+                    color: '#ccc',
+                    gridColumn: 'span 1'
+                  }}>
+                    <div style={{color:'#ff6b6b', fontWeight:'bold'}}>REVENUE GROWTH DEBUG</div>
+                    <div>scope: <span style={{color:'#7fff7f'}}>{investorScope}</span></div>
+                    <div>hasMonth: <span style={{color:'#7fff7f'}}>{String(!!investorMetricsMonth)}</span></div>
+                    <div>hasLifetime: <span style={{color:'#7fff7f'}}>{String(!!investorMetricsLifetime)}</span></div>
+                    <div>aim._scope: <span style={{color:'#7fff7f'}}>{(aim as any)?._scope ?? 'null'}</span></div>
+                    <div>aim.growth: <span style={{color:'#ffff7f'}}>{(aim as any)?.revenueGrowthMoMFormatted ?? 'null'}</span></div>
+                    <div>aim.label: <span style={{color:'#ffff7f'}}>{(aim as any)?.revenueGrowthLabel ?? 'null'}</span></div>
+                    <div>im.growth: <span style={{color:'#7fbfff'}}>{(im as any)?.revenueGrowthMoMFormatted ?? 'null'}</span></div>
+                    <div>liveData keys: <span style={{color:'#aaa'}}>{Object.keys((liveData as any) ?? {}).join(', ')}</span></div>
+                  </div>
+                )}
                 <StatCard label="Revenue Growth" value={aim.revenueGrowthMoMFormatted ?? "N/A"} change="Month on Month" positive={(aim.revenueGrowthMoM ?? 0) >= 0} index={12} />
                 <StatCard label="Pipeline Coverage" value={im.pipelineCoverageFormatted ?? "N/A"} change={im.pipelineValueFormatted ? `${im.pipelineValueFormatted} pipeline` : ""} positive={(im.pipelineCoverage ?? 0) >= 2} index={13} />
                 <StatCard
