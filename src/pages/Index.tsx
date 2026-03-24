@@ -432,7 +432,7 @@ const DashboardContent = () => {
               )}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" style={{ containerType: 'inline-size' }}>
                 <StatCard label="EBITDA (Est.)" value={im.ebitdaFormatted ?? "N/A"} change={im.ebitdaMarginFormatted ?? "--"} positive={(im.ebitda ?? 0) >= 0} index={10} />
-                <StatCard label="Gross Margin %" value={im.grossMarginPctFormatted ?? "N/A"} change={`avg ${im.avgGpPct ?? 0}%`} positive={(im.grossMarginPct ?? 0) >= 30} index={11} />
+                <StatCard label="Gross Margin %" value={im.grossMarginPctFormatted ?? "N/A"} change={(im.grossMarginSubLabel as string) ?? `avg ${Number(im.grossMarginPct ?? 0).toFixed(2)}%`} positive={(im.grossMarginPct ?? 0) >= 30} index={11} />
                 <StatCard label="Revenue Growth" value={im.revenueGrowthMoMFormatted ?? "N/A"} change="Month on Month" positive={(im.revenueGrowthMoM ?? 0) >= 0} index={12} />
                 <StatCard label="Pipeline Coverage" value={im.pipelineCoverageFormatted ?? "N/A"} change={im.pipelineValueFormatted ? `${im.pipelineValueFormatted} pipeline` : ""} positive={(im.pipelineCoverage ?? 0) >= 2} index={13} />
                 <StatCard
@@ -454,9 +454,9 @@ const DashboardContent = () => {
                   change="Expenses / Revenue"
                   positive={(im.operatingExpRatio ?? 100) < 60}
                   index={15}
-                  altValue={td.ytdTotalExpenses != null ? fmtAUD(td.ytdTotalExpenses) : undefined}
-                  altChange={td.ytdTotalExpenses != null ? "YTD operating expenses" : undefined}
-                  altPositive={td.ytdTotalExpenses != null ? (im.operatingExpRatio ?? 100) < 60 : undefined}
+                  altValue={td.ytdTotalExpenses ? fmtAUD(td.ytdTotalExpenses) : "–"}
+                  altChange="YTD operating expenses"
+                  altPositive={(im.operatingExpRatio ?? 100) < 60}
                   toggleLabelBase="Ratio"
                   toggleLabelAlt="$"
                   greenAltPill={true}
@@ -467,9 +467,9 @@ const DashboardContent = () => {
                   change="Labour / Revenue"
                   positive={(im.labourCostRatio ?? 100) < 35}
                   index={16}
-                  altValue={td.ytdLabour != null ? fmtAUD(td.ytdLabour) : undefined}
-                  altChange={td.ytdLabour != null ? "YTD labour costs" : undefined}
-                  altPositive={td.ytdLabour != null ? (im.labourCostRatio ?? 100) < 35 : undefined}
+                  altValue={td.ytdLabour ? fmtAUD(td.ytdLabour) : "–"}
+                  altChange="YTD labour costs"
+                  altPositive={(im.labourCostRatio ?? 100) < 35}
                   toggleLabelBase="Ratio"
                   toggleLabelAlt="$"
                   greenAltPill={true}
@@ -488,7 +488,13 @@ const DashboardContent = () => {
                   greenAltPill={true}
                 />
                 <StatCard label="CAC Per Client" value={im.cacPerClientFormatted ?? "N/A"} change={`$${im.googleAdsMonthly ?? 0}/mo ads`} positive={(im.cacPerClient ?? 0) < 5000} index={18} />
-                <StatCard label="Win Rate" value={im.conversionRateFormatted ?? "N/A"} change={`${im.wonCount ?? 0} of ${im.totalCount ?? 0} won`} positive={(im.conversionRate ?? 0) >= 25} index={19} />
+                {(() => {
+                  const qs = dataStore?.quotesSummary as any;
+                  const wonCount = im.wonCount ?? 0;
+                  const activeCount = (Number(qs?.remaining?.count ?? 0)) + (Number(qs?.totalWon?.count ?? 0)) + (Number(qs?.totalYellow?.count ?? 0));
+                  const winRate = activeCount > 0 ? `${(wonCount / activeCount * 100).toFixed(1)}%` : "N/A";
+                  return <StatCard label="Win Rate" value={winRate} change={`${wonCount} of ${activeCount} active jobs`} positive={activeCount > 0 && (wonCount / activeCount) >= 0.25} index={19} />;
+                })()}
               </div>
             </div>
             );
