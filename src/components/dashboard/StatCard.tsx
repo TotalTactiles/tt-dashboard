@@ -25,8 +25,10 @@ interface StatCardProps {
   toggleLabelBase?: string;
   toggleLabelAlt?: string;
   momDelta?: string;
+  altMomDelta?: string;
   momContext?: string;
   altMomContext?: string;
+  greenAltPill?: boolean;
 }
 
 function timeAgo(ts: number | null): string {
