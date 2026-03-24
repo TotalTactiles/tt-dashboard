@@ -197,8 +197,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <span className="hidden xl:inline">{toggleLabelAlt ?? "With YLWs"}</span>
-              <span className="xl:hidden">{toggleLabelAlt ? toggleLabelAlt.slice(0, 4) : "YLW"}</span>
+              {toggleLabelAlt ?? "With YLWs"}
             </button>
           </div>
         </div>
