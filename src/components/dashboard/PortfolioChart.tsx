@@ -63,6 +63,31 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
     localStorage.setItem("cashflow_quarter_filter", JSON.stringify(q));
   }, []);
 
+  // Derive available years from data
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    for (const d of sourceData) {
+      const p = parseMonth(d.month);
+      if (p) years.add(p.year);
+    }
+    return Array.from(years).sort();
+  }, [sourceData]);
+
+  const hasMultipleYears = availableYears.length > 1;
+
+  const [selectedYear, setSelectedYear] = useState<number | null>(() =>
+    availableYears.length > 1 ? availableYears[0] : null
+  );
+
+  // Keep selectedYear in sync when data changes
+  useMemo(() => {
+    if (hasMultipleYears && (selectedYear === null || !availableYears.includes(selectedYear))) {
+      setSelectedYear(availableYears[0]);
+    } else if (!hasMultipleYears) {
+      setSelectedYear(null);
+    }
+  }, [availableYears, hasMultipleYears]);
+
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonthAbbr = now.toLocaleString("en-US", { month: "short" });
@@ -77,6 +102,14 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
       ...d,
       outgoings: Math.abs(d.outgoings),
     }));
+    // Year filter
+    if (selectedYear !== null) {
+      data = data.filter((d) => {
+        const parsed = parseMonth(d.month);
+        return parsed ? parsed.year === selectedYear : false;
+      });
+    }
+    // Quarter filter
     if (quarter !== "all") {
       const qMonths = QUARTER_MONTHS[quarter];
       data = data.filter((d) => {
@@ -94,7 +127,7 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
       });
     }
     return data;
-  }, [sourceData, quarter, adjustments]);
+  }, [sourceData, quarter, selectedYear, adjustments]);
 
   const quarterYear = useMemo(() => {
     if (quarter === "all") return "";
