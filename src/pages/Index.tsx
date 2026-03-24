@@ -44,7 +44,7 @@ function loadActiveGoalIds(allGoals: {id: string;merge?: boolean;}[]): Set<strin
 
 const DashboardContent = () => {
   const { goals, updateGoal } = useGoals();
-  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData, quotedJobs, investorMetrics, isOffline, lastCachedAt, revenueProjects, dataStore } = useDashboardData();
+  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData, quotedJobs, investorMetrics, isOffline, lastCachedAt, revenueProjects, dataStore, liveData } = useDashboardData();
 
   // ── Shared period state — resets to current month on every mount/data change ──
   const periodOptions = useMemo(() => buildPeriodOptions(quotedJobs, revenueProjects), [quotedJobs, revenueProjects]);
@@ -104,7 +104,7 @@ const DashboardContent = () => {
   const [investorScope, setInvestorScope] = useState<"ytd" | "month" | "full_year">("ytd");
 
   // Expose month-scoped investor metrics from n8n
-  const investorMetricsMonth = (dataStore as any)?.investorMetricsMonth ?? null;
+  const investorMetricsMonth = (liveData as any)?.investorMetricsMonth ?? null;
   const activeInvestorMetrics = investorScope === 'month' && investorMetricsMonth ? investorMetricsMonth : investorMetrics;
 
   // Computed toggle data for investor metric cards
