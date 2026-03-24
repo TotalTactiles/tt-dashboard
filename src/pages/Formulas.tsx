@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Plus, FunctionSquare, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -16,6 +16,7 @@ interface FormulaSection {
   formulas: MetricFormula[];
 }
 
+const ALL_SECTION_KEYS = ["Business Overview", "Project Execution", "Cashflow & Forecasts", "Investor Metrics"];
 const SECTION_ORDER = ["Business Overview", "Project Execution", "Cashflow & Forecasts"];
 
 const Formulas = () => {
@@ -23,7 +24,9 @@ const Formulas = () => {
 
   const [formulaFormOpen, setFormulaFormOpen] = useState(false);
   const [editingFormula, setEditingFormula] = useState<MetricFormula | undefined>();
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+
+  // Start all sections collapsed; use lazy initialiser so it never resets on re-render
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(() => new Set());
 
   const sections = useMemo<FormulaSection[]>(() => {
     const grouped: Record<string, MetricFormula[]> = {};
