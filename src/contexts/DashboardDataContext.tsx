@@ -899,14 +899,15 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       {
         label: "Cashflow Position",
         value: noData ? "--" : fmtAUD(cfToDateValue),
-        change: noData ? "--" : `Net cash balance · ${cfMonthLabel}`,
+        change: "--",
         positive: cfToDateValue >= 0, noData,
         altValue: noData ? "--" : fmtAUD(cfOpeningBal),
-        altChange: noData ? "--" : `Opening balance · ${cfMonthLabel}`,
+        altChange: "--",
         altPositive: cfOpeningBal >= 0,
         toggleLabelBase: "To Date",
         toggleLabelAlt: "Opening Bal",
         momDelta: noData ? undefined : (hasPrevCashflow ? fmtDelta(cfToDateValue, prevCashflowPos, "currency") : noMomText),
+        momContext: noData ? undefined : `Net cash balance · ${cfMonthLabel}`,
       },
       {
         label: "Conversion Rate",
