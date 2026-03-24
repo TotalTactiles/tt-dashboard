@@ -468,6 +468,10 @@ const DashboardContent = () => {
                     <div>aim._scope: <span style={{color:'#7fff7f'}}>{(aim as any)?._scope ?? 'null'}</span></div>
                     <div>aim.growth: <span style={{color:'#ffff7f'}}>{(aim as any)?.revenueGrowthMoMFormatted ?? 'null'}</span></div>
                     <div>aim.label: <span style={{color:'#ffff7f'}}>{(aim as any)?.revenueGrowthLabel ?? 'null'}</span></div>
+                    <div>aim.revenueGrowthMoM (raw): <span style={{color:'#ff9f43'}}>{String((aim as any)?.revenueGrowthMoM ?? 'null')}</span></div>
+                    <div>im.revenueGrowthMoM (raw): <span style={{color:'#ff9f43'}}>{String((im as any)?.revenueGrowthMoM ?? 'null')}</span></div>
+                    <div>monthGrowth raw: <span style={{color:'#ff9f43'}}>{String((investorMetricsMonth as any)?.revenueGrowthMoM ?? 'null')}</span></div>
+                    <div>lifetimeGrowth raw: <span style={{color:'#ff9f43'}}>{String((investorMetricsLifetime as any)?.revenueGrowthMoM ?? 'null')}</span></div>
                     <div>im.growth: <span style={{color:'#7fbfff'}}>{(im as any)?.revenueGrowthMoMFormatted ?? 'null'}</span></div>
                     <div>liveData keys: <span style={{color:'#aaa'}}>{Object.keys((liveData as any) ?? {}).join(', ')}</span></div>
                   </div>
