@@ -115,16 +115,18 @@ const DashboardContent = () => {
     const wonTotalValue = wonJobs.reduce((s, j) => s + j.value, 0);
     const allTotalValue = allActive.reduce((s, j) => s + j.value, 0);
 
-    // Avg Contract Value
-    const avgWon = wonCount > 0 ? wonTotalValue / wonCount : 0;
+    // Avg Contract Value — use n8n pre-computed values for Won mode
+    const avgWon = im.avgContractValueWon ?? (wonCount > 0 ? wonTotalValue / wonCount : 0);
+    const wonPlusCompletedCount = im.wonPlusCompletedCount ?? wonCount;
     const avgQuoted = totalCount > 0 ? allTotalValue / totalCount : 0;
 
-    // Revenue Per Job
-    const revPerJobWon = im.revenuePerJobWon ?? 0;
-    const revPerJobQuoted = totalCount > 0 ? (revPerJobWon * wonCount) / totalCount : 0;
+    // Revenue Per Job — use revenueExGST / wonPlusCompletedCount for Won mode
+    const revenueExGST = im.revenueExGST ?? 0;
+    const revPerJobWon = wonPlusCompletedCount > 0 ? revenueExGST / wonPlusCompletedCount : (im.revenuePerJobWon ?? 0);
+    const revPerJobQuoted = totalCount > 0 ? (revPerJobWon * wonPlusCompletedCount) / totalCount : 0;
 
     return {
-      avgWon, avgQuoted, wonCount, totalCount,
+      avgWon, avgQuoted, wonCount: wonPlusCompletedCount, totalCount,
       revPerJobWon, revPerJobQuoted,
       ytdTotalExpenses: im.ytdTotalExpenses ?? null,
       ytdLabour: im.ytdLabour ?? null,
