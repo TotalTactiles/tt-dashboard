@@ -909,6 +909,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         toggleLabelAlt: "Opening Bal",
         momDelta: noData ? undefined : (hasPrevCashflow ? fmtDelta(cfToDateValue, prevCashflowPos, "currency") : noMomText),
         momContext: noData ? undefined : `Net cash balance · ${cfMonthLabel}`,
+        altMomContext: noData ? undefined : `Opening balance · ${cfMonthLabel}`,
       },
       {
         label: "Conversion Rate",
