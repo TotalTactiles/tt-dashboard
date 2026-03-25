@@ -25,6 +25,8 @@ const TYPE_COLORS: Record<string, string> = {
   Care: "#639922",
   Valuation: "#BA7517",
   Distribution: "#1D9E75",
+  Task: "#5DCAA5",
+  Event: "#D4537E",
 };
 
 const getTypeColor = (type: string) => TYPE_COLORS[type] || "#378ADD";

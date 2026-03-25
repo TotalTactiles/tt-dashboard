@@ -261,9 +261,14 @@ const CalendarView = () => {
         <CollapsibleCardWrapper
           title="Zoho Project Milestones"
           defaultOpen={true}
-          badge={filtered.filter(e => e.source?.toLowerCase().includes("zoho") || e.type === "Milestone" || e.type === "Task").length}
+          badge={allCalendarEvents.filter(e =>
+            e.source === "Zoho Projects" ||
+            e.source?.toLowerCase().includes("zoho") ||
+            e.type === "Milestone" ||
+            e.type === "Task"
+          ).length}
         >
-          <ZohoMilestonesPanel events={filtered} onEventClick={handleOpenEdit} />
+          <ZohoMilestonesPanel events={allCalendarEvents} onEventClick={handleOpenEdit} />
         </CollapsibleCardWrapper>
         <CollapsibleCardWrapper
           title="Upcoming Events"
