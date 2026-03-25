@@ -187,6 +187,11 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onAddE
                         <p className="text-xs font-semibold text-foreground">{ev.title}</p>
                         {ev.htmlLink && <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />}
                       </div>
+                      {ev.source === "Zoho Projects" && ev.description && (
+                        <span className="block text-[9px] text-muted-foreground/60 truncate">
+                          {ev.description.replace(/^Milestone\s*·\s*/, '')}
+                        </span>
+                      )}
                       {!ev.allDay && ev.start && (
                         <p className="text-[10px] font-mono text-muted-foreground">{formatTime12(ev.start)}</p>
                       )}

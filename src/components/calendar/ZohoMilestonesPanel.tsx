@@ -55,6 +55,11 @@ export default function ZohoMilestonesPanel({ events, onEventClick }: ZohoMilest
                 : <Circle className="w-4 h-4 text-muted-foreground shrink-0" />}
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-foreground truncate">{m.title}</p>
+                {(m as any).projectName && (
+                  <p className="text-[10px] text-muted-foreground/70 truncate mt-0.5 italic">
+                    {(m as any).projectName}
+                  </p>
+                )}
                 <p className="text-[10px] font-mono text-muted-foreground mt-0.5">
                   {fmt(m.start)} · {overdue ? `${Math.abs(m.daysRemaining)}d overdue` : m.daysRemaining === 0 ? "Today" : `${m.daysRemaining}d left`}
                 </p>
