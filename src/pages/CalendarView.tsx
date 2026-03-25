@@ -5,8 +5,7 @@ import CalendarFilters from "@/components/calendar/CalendarFilters";
 import DaySchedulePanel from "@/components/calendar/DaySchedulePanel";
 import DeadlineTracker from "@/components/calendar/DeadlineTracker";
 import EventTimeline from "@/components/calendar/EventTimeline";
-import EventDensityChart from "@/components/calendar/EventDensityChart";
-import QuarterlyTimeline from "@/components/calendar/QuarterlyTimeline";
+import StrategicQuartersBoard from "@/components/calendar/StrategicQuartersBoard";
 import EventModal from "@/components/calendar/EventModal";
 import { useDashboardData, type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
 import { useToast } from "@/hooks/use-toast";
@@ -16,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 const CALENDAR_WRITE_WEBHOOK = 'https://n8n.srv1437130.hstgr.cloud/webhook/calendar-write';
 
 const EVENT_TYPES = ["Meeting", "Deadline", "Milestone", "Care", "Valuation", "Distribution"] as const;
-const EVENT_SOURCES = ["Google Calendar", "Zoho Calendar", "Zoho Projects"] as const;
+const EVENT_SOURCES = ["Google Calendar", "Zoho Calendar", "Zoho Projects", "Strategic Board"] as const;
 
 type EventType = typeof EVENT_TYPES[number];
 type EventSource = typeof EVENT_SOURCES[number];
@@ -236,9 +235,8 @@ const CalendarView = () => {
         <EventTimeline events={filteredUpcoming} onEventClick={handleOpenEdit} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
-        <EventDensityChart summary={calendarSummary} />
-        <QuarterlyTimeline />
+      <div className="mt-4 md:mt-6">
+        <StrategicQuartersBoard onInjectEvents={handleSQBInjectEvents} />
       </div>
 
       <EventModal

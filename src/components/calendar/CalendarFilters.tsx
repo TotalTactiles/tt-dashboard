@@ -63,6 +63,18 @@ const CalendarFilters = ({ activeTypes, onToggleType, activeSources, onToggleSou
         <span className="w-2 h-2 rounded-full" style={{ background: "hsl(130, 55%, 40%)" }} />
         Zoho Projects
       </button>
+      <button
+        onClick={() => onToggleSource("Strategic Board")}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all duration-150"
+        style={
+          activeSources.includes("Strategic Board")
+            ? { background: "hsl(38, 70%, 42%)", color: "hsl(220, 20%, 6%)" }
+            : { background: "transparent", border: "1px solid hsl(38, 70%, 42%)", color: "hsl(38, 70%, 42%)" }
+        }
+      >
+        <span className="w-2 h-2 rounded-full" style={{ background: "hsl(38, 70%, 42%)" }} />
+        Strategic Board
+      </button>
 
       <div className="w-px h-5 bg-border mx-1" />
 
