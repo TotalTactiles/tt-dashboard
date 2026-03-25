@@ -935,7 +935,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         altChange: "--",
         altPositive: cfToDateValue >= 10000,
         toggleLabelBase: "Open",
-        toggleLabelAlt: "To Date",
+        toggleLabelAlt: "Today",
         greenAltPill: true,
         momDelta: noData ? undefined : (hasPrevCashflow ? fmtDelta(cfOpeningBal, prevOpeningBal, "currency") : noMomText),
         altMomDelta: noData ? undefined : (hasPrevCashflow ? fmtDelta(cfToDateValue, prevToDateValue, "currency") : noMomText),
