@@ -732,7 +732,11 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
       </div>
 
       {/* Section cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className={`grid gap-4 ${
+            data.sections.length === 1 ? 'grid-cols-1' :
+            data.sections.length === 2 ? 'grid-cols-1 sm:grid-cols-2' :
+            'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3'
+          }`}>
         {data.sections.map((sec) => {
           const phaseColor = PHASE_COLORS[sec.phase];
           const doneCount = sec.tasks.filter((t) => t.done).length;

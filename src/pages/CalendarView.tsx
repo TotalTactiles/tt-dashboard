@@ -250,15 +250,27 @@ const CalendarView = () => {
         <DaySchedulePanel events={filtered} selectedDate={selectedDate} onPrevDay={prevDay} onNextDay={nextDay} onEventClick={handleOpenEdit} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
-        <CollapsibleCardWrapper title="Fund Deadlines" badge={filtered.filter((e) => e.type === "Deadline" || e.type === "Distribution" || e.type === "Valuation" || e.type === "Milestone").length}>
+      <div className="flex flex-col md:flex-row gap-3 md:gap-4 mb-4 md:mb-6 items-stretch">
+        <CollapsibleCardWrapper
+          title="Fund Deadlines & Obligations"
+          defaultOpen={true}
+          badge={filtered.filter(e => e.type === "Deadline" || e.type === "Milestone" || e.type === "Distribution" || e.type === "Valuation").length}
+        >
           <DeadlineTracker events={filtered} />
         </CollapsibleCardWrapper>
-        <CollapsibleCardWrapper title="Upcoming Events" badge={filteredUpcoming.length}>
-          <EventTimeline events={filteredUpcoming} onEventClick={handleOpenEdit} />
-        </CollapsibleCardWrapper>
-        <CollapsibleCardWrapper title="Zoho Milestones" badge={filtered.filter((e) => e.source === "Zoho Projects" || e.type === "Milestone" || e.type === "Task").length}>
+        <CollapsibleCardWrapper
+          title="Zoho Project Milestones"
+          defaultOpen={true}
+          badge={filtered.filter(e => e.source?.toLowerCase().includes("zoho") || e.type === "Milestone" || e.type === "Task").length}
+        >
           <ZohoMilestonesPanel events={filtered} onEventClick={handleOpenEdit} />
+        </CollapsibleCardWrapper>
+        <CollapsibleCardWrapper
+          title="Upcoming Events"
+          defaultOpen={true}
+          badge={filteredUpcoming.length}
+        >
+          <EventTimeline events={filteredUpcoming} onEventClick={handleOpenEdit} />
         </CollapsibleCardWrapper>
       </div>
 
