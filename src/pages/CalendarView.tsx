@@ -39,6 +39,19 @@ const CalendarView = () => {
   const [calendarDebug, setCalendarDebug] = useState<WriteDebug>({
     lastAction: null, lastError: null, lastSuccess: null, timestamp: null,
   });
+  const [sqbInjectedIds, setSqbInjectedIds] = useState<Set<string>>(new Set());
+
+  const handleSQBInjectEvents = useCallback(
+    (sqbEvents: LiveCalendarEvent[]) => {
+      const sqbIds = new Set(sqbEvents.map((e) => e.id));
+      setSqbInjectedIds(sqbIds);
+      setCalendarEvents((prev) => {
+        const withoutOld = prev.filter((e) => !e.id.startsWith("sqb-"));
+        return [...withoutOld, ...sqbEvents];
+      });
+    },
+    [setCalendarEvents]
+  );
 
   const toggleType = (type: EventType) => {
     setActiveTypes((prev) =>
