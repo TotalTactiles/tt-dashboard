@@ -45,9 +45,12 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onAddE
   const eventsByDay = useMemo(() => {
     const map: Record<number, LiveCalendarEvent[]> = {};
     events.forEach((e) => {
-      const d = new Date(e.start);
-      if (d.getMonth() === month && d.getFullYear() === year) {
-        const day = d.getDate();
+      // Parse date in local timezone, handling both date-only and datetime strings
+      const raw = e.start;
+      const d = raw.includes('T') ? new Date(raw) : new Date(raw + 'T00:00:00');
+      const localDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      if (localDate.getMonth() === month && localDate.getFullYear() === year) {
+        const day = localDate.getDate();
         if (!map[day]) map[day] = [];
         map[day].push(e);
       }
