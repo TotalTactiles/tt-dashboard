@@ -21,7 +21,7 @@ const DeadlineTracker = ({ events }: DeadlineTrackerProps) => {
   const deadlines = useMemo(() => {
     const now = new Date();
     return events
-      .filter((e) => e.type === "Deadline" || e.type === "Distribution" || e.type === "Valuation" || e.type === "Milestone")
+      .filter((e) => e.source === "Strategic Board" || e.id?.startsWith("sqb-"))
       .map((e) => {
         const eventDate = new Date(e.start);
         const diffMs = eventDate.getTime() - now.getTime();
@@ -48,7 +48,7 @@ const DeadlineTracker = ({ events }: DeadlineTrackerProps) => {
       
       <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
         {deadlines.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-6 text-center">No upcoming deadlines</p>
+          <p className="text-xs text-muted-foreground py-6 text-center">No upcoming deadlines — set due dates on tasks in the Strategic Quarters board below</p>
         ) : (
           deadlines.map((d) => {
             const cfg = statusConfig[d.deadlineStatus];
@@ -62,18 +62,29 @@ const DeadlineTracker = ({ events }: DeadlineTrackerProps) => {
               >
                 <Icon className={`h-4 w-4 shrink-0 ${cfg.class}`} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-foreground truncate">{d.title}</p>
+                  <p className="text-xs font-medium text-foreground truncate">
+                    {d.title.replace(/^\[[^\]]+\]\s*/, '')}
+                  </p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] font-mono text-muted-foreground">
-                      {d.source.includes("Google") ? "Google" : "Zoho"}
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className="text-[9px] px-1.5 py-0 rounded-full border-0"
-                      style={{ backgroundColor: TYPE_COLORS[d.type] + "22", color: TYPE_COLORS[d.type] }}
-                    >
-                      {d.type}
-                    </Badge>
+                    {(() => {
+                      const phaseMatch = d.title.match(/^\[([^\]]+)\]/);
+                      const phase = phaseMatch?.[1] ?? "Strategic";
+                      const PHASE_COLORS: Record<string, string> = {
+                        "Pre Seal": "#378ADD",
+                        "Close the Seal": "#1D9E75",
+                        "Post Seal": "#E24B4A",
+                        "Legacy": "#BA7517",
+                      };
+                      const color = PHASE_COLORS[phase] ?? "#888780";
+                      return (
+                        <span
+                          className="text-[9px] font-mono px-2 py-0.5 rounded-full shrink-0"
+                          style={{ background: color + "22", color }}
+                        >
+                          {phase}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
                 <div className="text-right shrink-0">
