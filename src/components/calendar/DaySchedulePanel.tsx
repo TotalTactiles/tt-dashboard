@@ -27,11 +27,13 @@ const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 08:00–20:00
 const DaySchedulePanel = ({ events, selectedDate, onPrevDay, onNextDay, onEventClick }: DaySchedulePanelProps) => {
   const dayEvents = useMemo(() => {
     return events.filter((e) => {
-      const d = new Date(e.start);
+      const raw = e.start;
+      const d = raw.includes('T') ? new Date(raw) : new Date(raw + 'T00:00:00');
+      const localDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
       return (
-        d.getDate() === selectedDate.getDate() &&
-        d.getMonth() === selectedDate.getMonth() &&
-        d.getFullYear() === selectedDate.getFullYear()
+        localDate.getDate() === selectedDate.getDate() &&
+        localDate.getMonth() === selectedDate.getMonth() &&
+        localDate.getFullYear() === selectedDate.getFullYear()
       );
     });
   }, [events, selectedDate]);

@@ -68,25 +68,29 @@ const CalendarView = () => {
     );
   };
 
-  const filtered = useMemo(
-    () =>
-      (calendarEvents ?? []).filter(
-        (e) =>
-          activeTypes.includes(e.type as EventType) &&
-          activeSources.includes(e.source as EventSource)
-      ),
-    [calendarEvents, activeTypes, activeSources]
-  );
+  const filtered = useMemo(() => {
+    const activeCustomLabels = (customFilters ?? []).filter((f: any) => f.active).map((f: any) => f.label.toLowerCase());
+    return (calendarEvents ?? []).filter((e) => {
+      if (activeCustomLabels.length > 0 && activeCustomLabels.some((lbl: string) => e.title.toLowerCase().includes(lbl))) return true;
+      const knownSources = ["Google Calendar", "Zoho Calendar", "Zoho Projects", "Strategic Board"];
+      const sourcePass = activeSources.includes(e.source as EventSource) || !knownSources.includes(e.source);
+      const knownTypes = [...EVENT_TYPES];
+      const typePass = activeTypes.includes(e.type as EventType) || !knownTypes.includes(e.type as EventType);
+      return sourcePass && typePass;
+    });
+  }, [calendarEvents, activeTypes, activeSources]);
 
-  const filteredUpcoming = useMemo(
-    () =>
-      (upcomingEvents ?? []).filter(
-        (e) =>
-          activeTypes.includes(e.type as EventType) &&
-          activeSources.includes(e.source as EventSource)
-      ),
-    [upcomingEvents, activeTypes, activeSources]
-  );
+  const filteredUpcoming = useMemo(() => {
+    const activeCustomLabels = (customFilters ?? []).filter((f: any) => f.active).map((f: any) => f.label.toLowerCase());
+    return (upcomingEvents ?? []).filter((e) => {
+      if (activeCustomLabels.length > 0 && activeCustomLabels.some((lbl: string) => e.title.toLowerCase().includes(lbl))) return true;
+      const knownSources = ["Google Calendar", "Zoho Calendar", "Zoho Projects", "Strategic Board"];
+      const sourcePass = activeSources.includes(e.source as EventSource) || !knownSources.includes(e.source);
+      const knownTypes = [...EVENT_TYPES];
+      const typePass = activeTypes.includes(e.type as EventType) || !knownTypes.includes(e.type as EventType);
+      return sourcePass && typePass;
+    });
+  }, [upcomingEvents, activeTypes, activeSources]);
 
   const prevDay = () => setSelectedDate((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1));
   const nextDay = () => setSelectedDate((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1));
