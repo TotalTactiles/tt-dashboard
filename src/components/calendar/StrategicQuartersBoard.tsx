@@ -732,7 +732,7 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
       </div>
 
       {/* Section cards */}
-      <div className="flex gap-4 overflow-x-auto pb-2 snap-x md:flex-row flex-col">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {data.sections.map((sec) => {
           const phaseColor = PHASE_COLORS[sec.phase];
           const doneCount = sec.tasks.filter((t) => t.done).length;
@@ -745,7 +745,8 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
               initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="min-w-[340px] flex-1 rounded-xl border border-border/40 bg-background/60 p-4 snap-start"
+              className="w-full rounded-xl border border-border/40 bg-background/60 p-4"
+              style={{ borderLeft: `4px solid ${phaseColor}` }}
             >
               {/* Section header */}
               <div className="flex items-center gap-2 mb-3 group/section">
