@@ -69,9 +69,7 @@ const CalendarView = () => {
   };
 
   const filtered = useMemo(() => {
-    const activeCustomLabels = (customFilters ?? []).filter((f: any) => f.active).map((f: any) => f.label.toLowerCase());
     return (calendarEvents ?? []).filter((e) => {
-      if (activeCustomLabels.length > 0 && activeCustomLabels.some((lbl: string) => e.title.toLowerCase().includes(lbl))) return true;
       const knownSources = ["Google Calendar", "Zoho Calendar", "Zoho Projects", "Strategic Board"];
       const sourcePass = activeSources.includes(e.source as EventSource) || !knownSources.includes(e.source);
       const knownTypes = [...EVENT_TYPES];
@@ -81,9 +79,7 @@ const CalendarView = () => {
   }, [calendarEvents, activeTypes, activeSources]);
 
   const filteredUpcoming = useMemo(() => {
-    const activeCustomLabels = (customFilters ?? []).filter((f: any) => f.active).map((f: any) => f.label.toLowerCase());
     return (upcomingEvents ?? []).filter((e) => {
-      if (activeCustomLabels.length > 0 && activeCustomLabels.some((lbl: string) => e.title.toLowerCase().includes(lbl))) return true;
       const knownSources = ["Google Calendar", "Zoho Calendar", "Zoho Projects", "Strategic Board"];
       const sourcePass = activeSources.includes(e.source as EventSource) || !knownSources.includes(e.source);
       const knownTypes = [...EVENT_TYPES];
