@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 const CALENDAR_WRITE_WEBHOOK = 'https://n8n.srv1437130.hstgr.cloud/webhook/calendar-write';
 
-const EVENT_TYPES = ["Meeting", "Deadline", "Milestone", "Care", "Valuation", "Distribution"] as const;
+const EVENT_TYPES = ["Meeting", "Deadline", "Milestone", "Care", "Valuation", "Distribution", "Task", "Event"] as const;
 const EVENT_SOURCES = ["Google Calendar", "Zoho Calendar", "Zoho Projects", "Strategic Board"] as const;
 
 type EventType = typeof EVENT_TYPES[number];
@@ -31,6 +31,8 @@ interface WriteDebug {
 const CalendarView = () => {
   const { calendarEvents, upcomingEvents, calendarSummary, setCalendarEvents, syncCalendar } = useDashboardData();
   const { toast } = useToast();
+
+  console.log('[Calendar Debug] raw events:', calendarEvents?.length, 'sample source:', calendarEvents?.[0]?.source, 'sample type:', calendarEvents?.[0]?.type);
 
   const [activeTypes, setActiveTypes] = useState<EventType[]>([...EVENT_TYPES]);
   const [activeSources, setActiveSources] = useState<EventSource[]>([...EVENT_SOURCES]);
