@@ -44,10 +44,10 @@ const CalendarView = () => {
 
   const handleSQBInjectEvents = useCallback(
     (sqbEvents: LiveCalendarEvent[]) => {
-      const sqbIds = new Set(sqbEvents.map((e) => e.id));
-      setSqbInjectedIds(sqbIds);
+      setSqbInjectedIds(new Set(sqbEvents.map((e) => e.id)));
       setCalendarEvents((prev) => {
-        const withoutOld = prev.filter((e) => !e.id.startsWith("sqb-"));
+        const safe = Array.isArray(prev) ? prev : [];
+        const withoutOld = safe.filter((e) => !e.id.startsWith("sqb-"));
         return [...withoutOld, ...sqbEvents];
       });
     },
@@ -68,7 +68,7 @@ const CalendarView = () => {
 
   const filtered = useMemo(
     () =>
-      calendarEvents.filter(
+      (calendarEvents ?? []).filter(
         (e) =>
           activeTypes.includes(e.type as EventType) &&
           activeSources.includes(e.source as EventSource)
@@ -78,7 +78,7 @@ const CalendarView = () => {
 
   const filteredUpcoming = useMemo(
     () =>
-      upcomingEvents.filter(
+      (upcomingEvents ?? []).filter(
         (e) =>
           activeTypes.includes(e.type as EventType) &&
           activeSources.includes(e.source as EventSource)
