@@ -42,19 +42,13 @@ const CalendarView = () => {
   const [calendarDebug, setCalendarDebug] = useState<WriteDebug>({
     lastAction: null, lastError: null, lastSuccess: null, timestamp: null,
   });
-  const [sqbInjectedIds, setSqbInjectedIds] = useState<Set<string>>(new Set());
+  const [sqbEvents, setSqbEvents] = useState<LiveCalendarEvent[]>([]);
 
-  const handleSQBInjectEvents = useCallback(
-    (sqbEvents: LiveCalendarEvent[]) => {
-      setSqbInjectedIds(new Set(sqbEvents.map((e) => e.id)));
-      setCalendarEvents((prev) => {
-        const safe = Array.isArray(prev) ? prev : [];
-        const withoutOld = safe.filter((e) => !e.id.startsWith("sqb-"));
-        return [...withoutOld, ...sqbEvents];
-      });
-    },
-    [setCalendarEvents]
-  );
+  const allCalendarEvents = useMemo(() => {
+    const real = Array.isArray(calendarEvents) ? calendarEvents : [];
+    const withoutSqb = real.filter((e) => !e.id.startsWith("sqb-"));
+    return [...withoutSqb, ...sqbEvents];
+  }, [calendarEvents, sqbEvents]);
 
   const toggleType = (type: EventType) => {
     setActiveTypes((prev) =>
@@ -69,24 +63,27 @@ const CalendarView = () => {
   };
 
   const filtered = useMemo(() => {
-    return (calendarEvents ?? []).filter((e) => {
+    return allCalendarEvents.filter((e) => {
       const knownSources = ["Google Calendar", "Zoho Calendar", "Zoho Projects", "Strategic Board"];
       const sourcePass = activeSources.includes(e.source as EventSource) || !knownSources.includes(e.source);
       const knownTypes = [...EVENT_TYPES];
       const typePass = activeTypes.includes(e.type as EventType) || !knownTypes.includes(e.type as EventType);
       return sourcePass && typePass;
     });
-  }, [calendarEvents, activeTypes, activeSources]);
+  }, [allCalendarEvents, activeTypes, activeSources]);
 
   const filteredUpcoming = useMemo(() => {
-    return (upcomingEvents ?? []).filter((e) => {
-      const knownSources = ["Google Calendar", "Zoho Calendar", "Zoho Projects", "Strategic Board"];
-      const sourcePass = activeSources.includes(e.source as EventSource) || !knownSources.includes(e.source);
-      const knownTypes = [...EVENT_TYPES];
-      const typePass = activeTypes.includes(e.type as EventType) || !knownTypes.includes(e.type as EventType);
-      return sourcePass && typePass;
-    });
-  }, [upcomingEvents, activeTypes, activeSources]);
+    const now = new Date().toISOString();
+    return allCalendarEvents
+      .filter((e) => {
+        const knownSources = ["Google Calendar", "Zoho Calendar", "Zoho Projects", "Strategic Board"];
+        const sourcePass = activeSources.includes(e.source as EventSource) || !knownSources.includes(e.source);
+        const knownTypes = [...EVENT_TYPES];
+        const typePass = activeTypes.includes(e.type as EventType) || !knownTypes.includes(e.type as EventType);
+        return sourcePass && typePass && e.start >= now;
+      })
+      .sort((a, b) => a.start.localeCompare(b.start));
+  }, [allCalendarEvents, activeTypes, activeSources]);
 
   const prevDay = () => setSelectedDate((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1));
   const nextDay = () => setSelectedDate((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1));
@@ -252,7 +249,7 @@ const CalendarView = () => {
       </div>
 
       <div className="mt-4 md:mt-6">
-        <StrategicQuartersBoard onInjectEvents={handleSQBInjectEvents} />
+        <StrategicQuartersBoard onInjectEvents={setSqbEvents} />
       </div>
 
       <div className="mt-4 md:mt-6">

@@ -1063,7 +1063,12 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       dataHealth, quotesDebug, isLoading, isRefreshing, hasLiveData, connectedCount, lastUpdated,
       sources: ds.sources, toggleConnection: ds.toggleConnection,
       updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow, syncCalendar: ds.syncCalendar,
-      calendarEvents: calendarEventsOverride ?? rawCalendarEvents,
+      calendarEvents: calendarEventsOverride !== null
+        ? [
+            ...rawCalendarEvents.filter((e) => !e.id.startsWith("sqb-")),
+            ...calendarEventsOverride.filter((e) => e.id.startsWith("sqb-")),
+          ]
+        : rawCalendarEvents,
       upcomingEvents: rawUpcomingEvents,
       calendarSummary: rawCalendarSummary,
       setCalendarEvents: setCalendarEventsState,
