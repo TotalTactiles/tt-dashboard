@@ -233,6 +233,16 @@ const CalendarView = () => {
           >
             + Add Event
           </button>
+          <button
+            onClick={() => {
+              localStorage.removeItem("dashboard_calendar_data");
+              syncCalendar();
+              toast({ title: "Calendar sync triggered", description: "Fetching fresh data from Google Calendar & Zoho Projects…" });
+            }}
+            className="px-4 py-2.5 md:py-2 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors duration-150 touch-target md:min-h-0"
+          >
+            ↻ Sync
+          </button>
         </div>
       </div>
 

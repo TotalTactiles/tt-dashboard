@@ -655,12 +655,25 @@ export function useDataSources() {
       if (responseData?._proxyError) throw new Error(responseData.error || "Calendar proxy error");
 
       let unwrapped = responseData;
+      // Handle array envelope from n8n
       if (Array.isArray(unwrapped)) unwrapped = unwrapped[0];
+      // Handle { json: {...} } Code node wrapper
       if (unwrapped?.json && typeof unwrapped.json === "object") unwrapped = unwrapped.json;
+      // Handle { body: {...} } respondToWebhook wrapper
+      if (unwrapped?.body && typeof unwrapped.body === "object") unwrapped = unwrapped.body;
+      // Handle { output: {...} } wrapper
+      if (unwrapped?.output && typeof unwrapped.output === "object" && unwrapped.output.calendarEvents) unwrapped = unwrapped.output;
+
+      console.log('[Calendar Unwrap] keys after unwrap:', Object.keys(unwrapped ?? {}));
+      console.log('[Calendar Unwrap] calendarEvents present:', Array.isArray(unwrapped?.calendarEvents), '| count:', unwrapped?.calendarEvents?.length ?? 0);
 
       const calEvents = Array.isArray(unwrapped?.calendarEvents) ? unwrapped.calendarEvents : [];
       const upEvents = Array.isArray(unwrapped?.upcomingEvents) ? unwrapped.upcomingEvents : [];
       const calSummary = unwrapped?.calendarSummary ?? { totalEvents: 0, upcomingCount: 0, byType: {} };
+
+      console.log('[Calendar Poll] sources in response:', [...new Set(calEvents.map((e: any) => e.source))]);
+      console.log('[Calendar Poll] types in response:', [...new Set(calEvents.map((e: any) => e.type))]);
+      console.log('[Calendar Poll] total events:', calEvents.length, '| Zoho count:', calEvents.filter((e: any) => e.source?.includes('Zoho')).length);
 
       if (calEvents.length === 0) {
         console.warn('[Calendar Poll] calendarEvents empty from tt-calendar-read webhook');
@@ -677,6 +690,8 @@ export function useDataSources() {
   }, []);
 
   useEffect(() => {
+    // Clear stale calendar cache on mount to force fresh fetch with Zoho data
+    localStorage.removeItem(CALENDAR_CACHE_KEY);
     fetchCalendar();
     calendarInterval.current = setInterval(fetchCalendar, CALENDAR_POLL_INTERVAL);
     return () => {

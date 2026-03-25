@@ -66,7 +66,7 @@ serve(async (req) => {
     }
 
     // For write webhooks that return empty 200s, ensure success flag exists
-    if (response.ok && Object.keys(data).length === 0) {
+    if (response.ok && Object.keys(data).length === 0 && !text.trim()) {
       data = { success: true };
     }
 
