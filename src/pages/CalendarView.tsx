@@ -250,9 +250,16 @@ const CalendarView = () => {
         <DaySchedulePanel events={filtered} selectedDate={selectedDate} onPrevDay={prevDay} onNextDay={nextDay} onEventClick={handleOpenEdit} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
-        <DeadlineTracker events={filtered} />
-        <EventTimeline events={filteredUpcoming} onEventClick={handleOpenEdit} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
+        <CollapsibleCardWrapper title="Fund Deadlines" badge={filtered.filter((e) => e.type === "Deadline" || e.type === "Distribution" || e.type === "Valuation" || e.type === "Milestone").length}>
+          <DeadlineTracker events={filtered} />
+        </CollapsibleCardWrapper>
+        <CollapsibleCardWrapper title="Upcoming Events" badge={filteredUpcoming.length}>
+          <EventTimeline events={filteredUpcoming} onEventClick={handleOpenEdit} />
+        </CollapsibleCardWrapper>
+        <CollapsibleCardWrapper title="Zoho Milestones" badge={filtered.filter((e) => e.source === "Zoho Projects" || e.type === "Milestone" || e.type === "Task").length}>
+          <ZohoMilestonesPanel events={filtered} onEventClick={handleOpenEdit} />
+        </CollapsibleCardWrapper>
       </div>
 
       <div className="mt-4 md:mt-6">
