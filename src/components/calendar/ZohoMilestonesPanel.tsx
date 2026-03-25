@@ -11,7 +11,13 @@ export default function ZohoMilestonesPanel({ events, onEventClick }: ZohoMilest
   const milestones = useMemo(() => {
     const now = new Date();
     return events
-      .filter((e) => e.source === "Zoho Projects" || e.type === "Milestone" || e.type === "Task")
+      .filter((e) =>
+        e.source === "Zoho Projects" ||
+        e.source === "Zoho Calendar" ||
+        e.source?.toLowerCase().includes("zoho") ||
+        e.type === "Milestone" ||
+        e.type === "Task"
+      )
       .map((e) => {
         const d = new Date(e.start);
         const days = Math.ceil((d.getTime() - now.getTime()) / 86400000);
@@ -26,7 +32,7 @@ export default function ZohoMilestonesPanel({ events, onEventClick }: ZohoMilest
   return (
     <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
       {milestones.length === 0 ? (
-        <p className="text-xs text-muted-foreground py-6 text-center">No Zoho project milestones found</p>
+        <p className="text-xs text-muted-foreground py-6 text-center">No Zoho milestones in current filter — check Zoho Projects is toggled on above</p>
       ) : (
         milestones.map((m) => {
           const overdue = m.daysRemaining < 0;
