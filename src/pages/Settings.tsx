@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Check, ExternalLink, RefreshCw, Zap, ArrowRight, FileSpreadsheet, Loader2, AlertCircle, Clock, ChevronDown, ChevronUp, Database } from "lucide-react";
+import { Check, ExternalLink, RefreshCw, Zap, ArrowRight, FileSpreadsheet, Loader2, AlertCircle, Clock, ChevronDown, ChevronUp, Database, CalendarDays, FolderKanban } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,7 @@ const Settings = () => {
     updateWebhookUrl,
     saveAndTest,
     syncNow,
+    syncCalendar,
     updateScreenshot,
     removeScreenshot,
     changeDetectorMeta,
@@ -372,6 +373,60 @@ const Settings = () => {
             </motion.div>
           );
         })}
+      </div>
+
+      {/* Calendar Integrations */}
+      <h2 className="text-sm font-mono text-muted-foreground uppercase tracking-wider mb-3 mt-8">
+        Calendar Integrations
+      </h2>
+      <div className="space-y-3 mb-6">
+        {/* Google Calendar */}
+        <div className="data-source-card">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <CalendarDays className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">Google Calendar</p>
+                <p className="text-xs text-muted-foreground">sales@totaltactiles.com.au · Auto-sync every 3 min</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-chart-green font-mono">● Live</span>
+              <button
+                onClick={() => syncCalendar()}
+                className="text-xs px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+              >
+                Sync now
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Zoho Projects */}
+        <div className="data-source-card">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <FolderKanban className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">Zoho Projects</p>
+                <p className="text-xs text-muted-foreground">Portal: totaltactilesprojects · Milestones + tasks</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-chart-green font-mono">● Live</span>
+              <button
+                onClick={() => syncCalendar()}
+                className="text-xs px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+              >
+                Sync now
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Data Debug Panel */}
