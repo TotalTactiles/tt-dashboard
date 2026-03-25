@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import CalendarGrid from "@/components/calendar/CalendarGrid";
-import CalendarFilters from "@/components/calendar/CalendarFilters";
+import CalendarFilters, { type CustomFilter } from "@/components/calendar/CalendarFilters";
 import DaySchedulePanel from "@/components/calendar/DaySchedulePanel";
 import DeadlineTracker from "@/components/calendar/DeadlineTracker";
 import EventTimeline from "@/components/calendar/EventTimeline";
@@ -16,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 const CALENDAR_WRITE_WEBHOOK = 'https://n8n.srv1437130.hstgr.cloud/webhook/calendar-write';
 
 const EVENT_TYPES = ["Meeting", "Deadline", "Milestone", "Care", "Valuation", "Distribution", "Task", "Event"] as const;
-const EVENT_SOURCES = ["Google Calendar", "Zoho Calendar", "Zoho Projects", "Strategic Board"] as const;
+const EVENT_SOURCES = ["Google Calendar", "Zoho Projects", "Strategic Board"] as const;
 
 type EventType = typeof EVENT_TYPES[number];
 type EventSource = typeof EVENT_SOURCES[number];
@@ -36,6 +36,7 @@ const CalendarView = () => {
 
   const [activeTypes, setActiveTypes] = useState<EventType[]>([...EVENT_TYPES]);
   const [activeSources, setActiveSources] = useState<EventSource[]>([...EVENT_SOURCES]);
+  const [customFilters, setCustomFilters] = useState<CustomFilter[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<LiveCalendarEvent | null>(null);
@@ -63,19 +64,23 @@ const CalendarView = () => {
   };
 
   const filtered = useMemo(() => {
+    const activeCustomLabels = customFilters.filter((f) => f.active).map((f) => f.label.toLowerCase());
     return allCalendarEvents.filter((e) => {
+      if (activeCustomLabels.length > 0 && activeCustomLabels.some((lbl) => e.title.toLowerCase().includes(lbl))) return true;
       const knownSources = ["Google Calendar", "Zoho Calendar", "Zoho Projects", "Strategic Board"];
       const sourcePass = activeSources.includes(e.source as EventSource) || !knownSources.includes(e.source);
       const knownTypes = [...EVENT_TYPES];
       const typePass = activeTypes.includes(e.type as EventType) || !knownTypes.includes(e.type as EventType);
       return sourcePass && typePass;
     });
-  }, [allCalendarEvents, activeTypes, activeSources]);
+  }, [allCalendarEvents, activeTypes, activeSources, customFilters]);
 
   const filteredUpcoming = useMemo(() => {
     const now = new Date().toISOString();
+    const activeCustomLabels = customFilters.filter((f) => f.active).map((f) => f.label.toLowerCase());
     return allCalendarEvents
       .filter((e) => {
+        if (activeCustomLabels.length > 0 && activeCustomLabels.some((lbl) => e.title.toLowerCase().includes(lbl))) return true;
         const knownSources = ["Google Calendar", "Zoho Calendar", "Zoho Projects", "Strategic Board"];
         const sourcePass = activeSources.includes(e.source as EventSource) || !knownSources.includes(e.source);
         const knownTypes = [...EVENT_TYPES];
@@ -83,7 +88,7 @@ const CalendarView = () => {
         return sourcePass && typePass && e.start >= now;
       })
       .sort((a, b) => a.start.localeCompare(b.start));
-  }, [allCalendarEvents, activeTypes, activeSources]);
+  }, [allCalendarEvents, activeTypes, activeSources, customFilters]);
 
   const prevDay = () => setSelectedDate((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1));
   const nextDay = () => setSelectedDate((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1));
@@ -231,10 +236,10 @@ const CalendarView = () => {
 
       <div className="mb-4 md:mb-5">
         <CalendarFilters
-          activeTypes={activeTypes}
-          onToggleType={toggleType}
           activeSources={activeSources}
           onToggleSource={toggleSource}
+          customFilters={customFilters}
+          onUpdateCustomFilters={setCustomFilters}
         />
       </div>
 
