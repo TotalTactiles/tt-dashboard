@@ -6,6 +6,7 @@ import DaySchedulePanel from "@/components/calendar/DaySchedulePanel";
 import DeadlineTracker from "@/components/calendar/DeadlineTracker";
 import EventTimeline from "@/components/calendar/EventTimeline";
 import StrategicQuartersBoard from "@/components/calendar/StrategicQuartersBoard";
+import KeepNotesPanel from "@/components/calendar/KeepNotesPanel";
 import EventModal from "@/components/calendar/EventModal";
 import { useDashboardData, type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
 import { useToast } from "@/hooks/use-toast";
@@ -250,6 +251,10 @@ const CalendarView = () => {
 
       <div className="mt-4 md:mt-6">
         <StrategicQuartersBoard onInjectEvents={handleSQBInjectEvents} />
+      </div>
+
+      <div className="mt-4 md:mt-6">
+        <KeepNotesPanel />
       </div>
 
       <EventModal
