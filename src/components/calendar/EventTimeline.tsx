@@ -33,7 +33,7 @@ const EventTimeline = ({ events, onEventClick }: EventTimelineProps) => {
       transition={{ delay: 0.15 }}
       className="stat-card"
     >
-      <h3 className="text-sm font-semibold text-foreground mb-4">Upcoming Events</h3>
+      
       <div className="space-y-1.5 max-h-[320px] overflow-y-auto pr-1">
         {events.length === 0 ? (
           <p className="text-xs text-muted-foreground py-6 text-center">No upcoming events</p>

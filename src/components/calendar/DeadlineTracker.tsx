@@ -45,7 +45,7 @@ const DeadlineTracker = ({ events }: DeadlineTrackerProps) => {
       transition={{ delay: 0.1 }}
       className="stat-card"
     >
-      <h3 className="text-sm font-semibold text-foreground mb-4">Fund Deadlines & Obligations</h3>
+      
       <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
         {deadlines.length === 0 ? (
           <p className="text-xs text-muted-foreground py-6 text-center">No upcoming deadlines</p>
