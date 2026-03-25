@@ -19,20 +19,26 @@ export default function ZohoMilestonesPanel({ events, onEventClick }: ZohoMilest
         e.type === "Task"
       )
       .map((e) => {
-        const d = new Date(e.start);
+        const raw = e.start;
+        const d = raw.includes('T') ? new Date(raw) : new Date(raw + 'T00:00:00');
         const days = Math.ceil((d.getTime() - now.getTime()) / 86400000);
         return { ...e, daysRemaining: days };
       })
       .sort((a, b) => a.daysRemaining - b.daysRemaining);
   }, [events]);
 
-  const fmt = (iso: string) =>
-    new Date(iso).toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+  const fmt = (iso: string) => {
+    const raw = iso;
+    const d = raw.includes('T') ? new Date(raw) : new Date(raw + 'T00:00:00');
+    return d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+  };
 
   return (
     <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
       {milestones.length === 0 ? (
-        <p className="text-xs text-muted-foreground py-6 text-center">No Zoho milestones in current filter — check Zoho Projects is toggled on above</p>
+        <p className="text-xs text-muted-foreground py-6 text-center">
+          No Zoho milestones found · {events.length} total events received
+        </p>
       ) : (
         milestones.map((m) => {
           const overdue = m.daysRemaining < 0;
