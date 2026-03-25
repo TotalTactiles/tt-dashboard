@@ -7,6 +7,8 @@ import DeadlineTracker from "@/components/calendar/DeadlineTracker";
 import EventTimeline from "@/components/calendar/EventTimeline";
 import StrategicQuartersBoard from "@/components/calendar/StrategicQuartersBoard";
 import KeepNotesPanel from "@/components/calendar/KeepNotesPanel";
+import CollapsibleCardWrapper from "@/components/calendar/CollapsibleCardWrapper";
+import ZohoMilestonesPanel from "@/components/calendar/ZohoMilestonesPanel";
 import EventModal from "@/components/calendar/EventModal";
 import { useDashboardData, type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
 import { useToast } from "@/hooks/use-toast";
