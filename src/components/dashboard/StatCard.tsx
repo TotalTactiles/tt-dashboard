@@ -169,6 +169,18 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
 
   const isYellow = hasToggle && mode === "alt" && !greenAltPill;
   const isActual = mode === "alt2";
+  const accentColor = isYellow ? "text-amber-400" : displayPositive ? "text-chart-green" : "text-chart-red";
+  const accentGlow = isYellow ? "" : displayPositive ? "glow-green" : "glow-red";
+  const barColor = isYellow ? "bg-amber-400" : displayPositive ? "bg-chart-green" : "bg-chart-red";
+  const pillActiveClass = isYellow
+    ? "bg-amber-400/20 text-amber-400 shadow-sm"
+    : "bg-primary text-primary-foreground shadow-sm";
+
+  const { display: abbreviatedDisplay } = abbreviateValue(displayValue);
+
+  const ylwGlowClass = isYellow ? "ring-1 ring-amber-400/40 shadow-[0_0_12px_-3px_hsl(38,92%,55%,0.3)]" : "";
+
+  const isShort = abbreviatedDisplay.length <= 8;
 
   const handleEditClick = () => {
     if (localActualValue !== null) {
