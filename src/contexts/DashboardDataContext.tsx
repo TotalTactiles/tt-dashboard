@@ -120,6 +120,10 @@ export interface KPIStat {
   momContext?: string;
   altMomContext?: string;
   greenAltPill?: boolean;
+  altValue2?: string;
+  altChange2?: string;
+  altPositive2?: boolean;
+  toggleLabelAlt2?: string;
 }
 
 export interface IncomeOutgoingsPoint {
@@ -1010,22 +1014,43 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         momDelta: noData ? undefined : (prevMonRev.count > 0 ? fmtDelta(curMonRev.netRevenue, prevMonRev.netRevenue, "currency") : noMomText),
         momContext: noData ? undefined : (curMonRev.count > 0 ? `${curMonRev.count} revenue items this month` : undefined),
       },
-      {
-        label: "Cashflow Position",
-        value: noData ? "--" : fmtAUD(cfOpeningBal),
-        change: "--",
-        positive: cfOpeningBal >= 10000, noData,
-        altValue: noData ? "--" : fmtAUD(cfToDateValue),
-        altChange: "--",
-        altPositive: cfToDateValue >= 10000,
-        toggleLabelBase: "Open",
-        toggleLabelAlt: "Today",
-        greenAltPill: true,
-        momDelta: noData ? undefined : (hasPrevCashflow ? fmtDelta(cfOpeningBal, prevOpeningBal, "currency") : noMomText),
-        altMomDelta: noData ? undefined : (hasPrevCashflow ? fmtDelta(cfToDateValue, prevToDateValue, "currency") : noMomText),
-        momContext: noData ? undefined : `Opening balance · ${cfMonthLabel}`,
-        altMomContext: noData ? undefined : `Est. net position · ${cfMonthLabel}`,
-      },
+      (() => {
+        // Read manual actual balance from localStorage
+        const manualActualBalance = (() => {
+          try {
+            const stored = localStorage.getItem('tt_actual_bank_balance');
+            if (!stored) return null;
+            const parsed = JSON.parse(stored);
+            return typeof parsed.value === 'number' ? parsed : null;
+          } catch { return null; }
+        })();
+        const cfActualValue = manualActualBalance?.value ?? null;
+        const cfActualDate = manualActualBalance?.date ?? null;
+        const cfActualLabel = cfActualDate
+          ? `Actual · ${cfActualDate}`
+          : 'Actual · not set';
+
+        return {
+          label: "Cashflow Position",
+          value: noData ? "--" : fmtAUD(cfOpeningBal),
+          change: "--",
+          positive: cfOpeningBal >= 10000, noData,
+          altValue: noData ? "--" : fmtAUD(cfToDateValue),
+          altChange: "--",
+          altPositive: cfToDateValue >= 10000,
+          toggleLabelBase: "Open",
+          toggleLabelAlt: "Today",
+          greenAltPill: true,
+          momDelta: noData ? undefined : (hasPrevCashflow ? fmtDelta(cfOpeningBal, prevOpeningBal, "currency") : noMomText),
+          altMomDelta: noData ? undefined : (hasPrevCashflow ? fmtDelta(cfToDateValue, prevToDateValue, "currency") : noMomText),
+          momContext: noData ? undefined : `Opening balance · ${cfMonthLabel}`,
+          altMomContext: noData ? undefined : `Est. net position · ${cfMonthLabel}`,
+          altValue2: cfActualValue !== null ? (noData ? "--" : fmtAUD(cfActualValue)) : "Tap to set",
+          altChange2: cfActualLabel,
+          altPositive2: (cfActualValue ?? 0) >= 0,
+          toggleLabelAlt2: "Actual",
+        };
+      })(),
       {
         label: "Conversion Rate",
         value: noData ? "--" : `${confirmedConvRate.toFixed(1)}%`,
