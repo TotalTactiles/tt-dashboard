@@ -448,19 +448,18 @@ const DashboardContent = () => {
               )}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" style={{ containerType: 'inline-size' }}>
                 {(() => {
-                  const ebitda        = (im.ebitda ?? 0) as number;
-                  const revenueExGST  = (im.revenueExGST ?? 0) as number;
-                  const totalExpenses = (im.ytdTotalExpenses ?? 0) as number;
+                  // Scope-aware values
+                  const scopeIm = activeInvestorMetrics as any;
 
-                  // Net Profit = Revenue − ALL expenses
+                  const ebitda        = (scopeIm.ebitda ?? 0) as number;
+                  const revenueExGST  = (scopeIm.revenueExGST ?? 0) as number;
+                  const totalExpenses = (scopeIm.ytdTotalExpenses ?? 0) as number;
+
+                  // Net Profit = Revenue − ALL expenses for the active scope
                   const netProfit = revenueExGST - totalExpenses;
 
-                  // Cashflow = current month anticipated surplus from cashflow sheet
-                  const cs = (liveData as any)?.cashflowSummary;
-                  const ABBR_P = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-                  const nowP = new Date();
-                  const curMonKey = `${ABBR_P[nowP.getMonth()]}-${String(nowP.getFullYear()).slice(-2)}`;
-                  const cashflowSurplus = cs?.anticipatedSurplus?.[curMonKey] ?? 0;
+                  const nowDate = new Date();
+                  const ABBR_LOCAL = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
                   const fmtVal = (n: number) => {
                     const abs = Math.abs(n);
@@ -470,19 +469,19 @@ const DashboardContent = () => {
                     return `${sign}$${Math.round(abs).toLocaleString()}`;
                   };
 
+                  const scopeLabel = investorScope === "month"
+                    ? `${ABBR_LOCAL[nowDate.getMonth()]} ${nowDate.getFullYear()}`
+                    : investorScope === "full_year"
+                    ? "Company lifetime"
+                    : `Jan–${ABBR_LOCAL[nowDate.getMonth()]} ${nowDate.getFullYear()} YTD`;
+
                   const ebitdaMarginPct = revenueExGST > 0
                     ? `${((ebitda / revenueExGST) * 100).toFixed(1)}% margin`
-                    : im.ebitdaMarginFormatted ?? "--";
+                    : scopeIm.ebitdaMarginFormatted ?? "--";
 
                   const netProfitMarginPct = revenueExGST > 0
                     ? `${((netProfit / revenueExGST) * 100).toFixed(1)}% margin`
                     : "--";
-
-                  const scopeLabel = investorScope === "month"
-                    ? "This month"
-                    : investorScope === "full_year"
-                    ? "Company lifetime"
-                    : `This Year Jan–${ABBR_P[nowP.getMonth()]} ${nowP.getFullYear()}`;
 
                   return (
                     <StatCard
@@ -496,12 +495,8 @@ const DashboardContent = () => {
                       altChange={netProfitMarginPct}
                       altPositive={netProfit >= 0}
                       altMomContext={scopeLabel}
-                      altValue2={fmtVal(cashflowSurplus)}
-                      altChange2={`${curMonKey} surplus`}
-                      altPositive2={cashflowSurplus >= 0}
                       toggleLabelBase="EBITDA"
                       toggleLabelAlt="Net Profit"
-                      toggleLabelAlt2="Cashflow"
                       greenAltPill={true}
                     />
                   );
