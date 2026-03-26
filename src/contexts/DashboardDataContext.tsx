@@ -1169,6 +1169,50 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       console.warn('[Calendar] calendarEvents empty — check tt-calendar-read webhook returns this key');
     }
 
+    // ── Debt Service Ratio ────────────────────────────────────────────
+    const bizLoanRow_im = rawCashflow.find((r: any) =>
+      getCashflowRowLabel(r).toUpperCase().includes('BUSINESS LOAN')
+    );
+    const carLoanRow_im = rawCashflow.find((r: any) =>
+      getCashflowRowLabel(r).toUpperCase().includes('MOTOR VEHICLE REPAY')
+    );
+
+    const monthlyBizLoan = Math.abs(cfRowVal(bizLoanRow_im, currentMonthKey));
+    const monthlyCarLoan = Math.abs(cfRowVal(carLoanRow_im, currentMonthKey));
+    const monthlyDebtService = monthlyBizLoan + monthlyCarLoan;
+    const annualDebtService  = monthlyDebtService * 12;
+
+    const monthsElapsedYTD = currentMonthIdx + 1;
+    const investorMetricsRevenue = ((liveData as any)?.investorMetrics?.revenueExGST ?? 0) as number;
+    const annualisedRevenue = monthsElapsedYTD > 0
+      ? (investorMetricsRevenue / monthsElapsedYTD) * 12
+      : investorMetricsRevenue;
+
+    const debtServiceRatio = annualisedRevenue > 0
+      ? (annualDebtService / annualisedRevenue) * 100
+      : 0;
+
+    const monthlyRevenue_dsr = cfRowVal(totalIncomeRow, currentMonthKey);
+    const debtServiceRatioMonth = monthlyRevenue_dsr > 0
+      ? (monthlyDebtService / monthlyRevenue_dsr) * 100
+      : 0;
+
+    const dsrFields = {
+      monthlyDebtService,
+      annualDebtService,
+      debtServiceRatio,
+      debtServiceRatioMonth,
+      debtServiceRatioFormatted: `${debtServiceRatio.toFixed(1)}%`,
+      debtServiceRatioMonthFormatted: `${debtServiceRatioMonth.toFixed(1)}%`,
+      bizLoanMonthly: monthlyBizLoan,
+      carLoanMonthly: monthlyCarLoan,
+    };
+
+    const rawInvestorMetrics = (liveData as any)?.investorMetrics ?? null;
+    const enrichedInvestorMetrics = rawInvestorMetrics
+      ? { ...rawInvestorMetrics, ...dsrFields }
+      : null;
+
     return {
       quotedJobs, revenueProjects, expenseCategories, grandTotalExpense,
       cashflowPositionRaw: cashflowPosition,
@@ -1191,7 +1235,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       liveData,
       isOffline: ds.isOffline ?? false,
       lastCachedAt: ds.lastCachedAt ?? null,
-      investorMetrics: (liveData as any)?.investorMetrics ?? null,
+      investorMetrics: enrichedInvestorMetrics,
       updateScreenshot: ds.updateScreenshot,
       removeScreenshot: ds.removeScreenshot,
       changeDetectorMeta: ds.changeDetectorMeta ?? { lastChecked: null, lastTriggered: null, noChangeCount: 0 },
