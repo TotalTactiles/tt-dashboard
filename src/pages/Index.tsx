@@ -465,16 +465,21 @@ const DashboardContent = () => {
                   } else {
                     const val = (investorMetrics as any)?.revenueGrowthMoM ?? null;
                     const fmt = (investorMetrics as any)?.revenueGrowthMoMFormatted ?? "N/A";
-                    const label = (investorMetrics as any)?.revenueGrowthLabel ?? "This Year";
-                    return (
-                      <StatCard
-                        label="Revenue Growth"
-                        value={fmt}
-                        change={label}
-                        positive={val === null ? true : val >= 0}
-                        index={12}
-                      />
-                    );
+                    const lbl = (investorMetrics as any)?.revenueGrowthLabel ?? "This Year";
+                    growthValue = val;
+                    growthFormatted = fmt;
+                    growthLabel = lbl;
+                  }
+
+                  return (
+                    <StatCard
+                      label="Revenue Growth"
+                      value={growthFormatted}
+                      change={growthLabel}
+                      positive={growthValue === null ? true : growthValue >= 0}
+                      index={12}
+                    />
+                  );
                 })()}
                 <StatCard label="Pipeline Coverage" value={im.pipelineCoverageFormatted ?? "N/A"} change={im.pipelineValueFormatted ? `${im.pipelineValueFormatted} pipeline` : ""} positive={(im.pipelineCoverage ?? 0) >= 2} index={13} />
                 <StatCard
