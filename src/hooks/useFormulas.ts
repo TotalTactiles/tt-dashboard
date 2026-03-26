@@ -13,18 +13,30 @@ export interface MetricFormula {
 }
 
 export const DASHBOARD_CARDS = [
+  // Business Overview KPI cards
   "Total Quoted",
   "Total Won",
   "Quoted Remaining",
-  "Conversion Rate",
   "Net Revenue",
   "Cashflow Position",
-  "Monthly Expenses",
+  "Conversion Rate",
+  // Cashflow & Forecasts
+  "Cashflow Opening Balance",
+  "Cashflow Today Estimate",
+  "Cashflow Actual (Manual)",
+  "Forecast Anticipated Surplus",
+  "Forecast With Probable Jobs",
+  // Investor Metrics
+  "Profitability",
   "Gross Profit Margin",
-  "Forecast Chart",
-  "Deal Pipeline",
-  "Revenue Projects Table",
-  "Expense Breakdown",
+  "Revenue Growth",
+  "Pipeline Coverage",
+  "Avg Contract Value",
+  "Operating Expense Ratio",
+  "Labour Cost Ratio",
+  "Revenue Per Job",
+  "CAC Per Client",
+  "Win Rate",
 ];
 
 export const DATA_SOURCES = [
@@ -37,7 +49,7 @@ export const DATA_SOURCES = [
 
 const STORAGE_KEY = "meridian_formulas";
 const SEED_KEY = "meridian_formulas_seeded";
-const FORMULA_MIGRATION_KEY = "meridian_formulas_v7_project_execution_desc";
+const FORMULA_MIGRATION_KEY = "meridian_formulas_v9_full_alignment";
 
 const GROSS_PROFIT_MARGIN_DESCRIPTION = `What is calculated:
 • Gross Profit Margin % for each month shown in the chart
@@ -65,33 +77,176 @@ Source fields / rows used:
 • Month key format: Mon-YY (e.g. Jan-26)`;
 
 const DEFAULT_FORMULAS: Omit<MetricFormula, "id">[] = [
-  // Business Overview
-  { name: "Total Quoted", expression: "TotalQuoted", description: "Sum of all quoted project values", unit: "$", category: "Financial", dashboardCard: "Total Quoted", dataSource: "Google Sheets", section: "Business Overview" },
-  { name: "Total Won", expression: "TotalWon", description: "Sum of all won project values", unit: "$", category: "Financial", dashboardCard: "Total Won", dataSource: "Google Sheets", section: "Business Overview" },
-  { name: "Quoted Remaining", expression: "QuotedRemaining", description: "Value of quotes still pending", unit: "$", category: "Financial", dashboardCard: "Quoted Remaining", dataSource: "Google Sheets", section: "Business Overview" },
-  { name: "Conversion Rate (Confirmed)", expression: "ConversionRateConfirmed", description: "PO Received (GRN) + Completed jobs only divided by total quoted. Excludes Verbal Confirmation (YLW) stage.", unit: "%", category: "Growth", dashboardCard: "Conversion Rate", dataSource: "Google Sheets", section: "Business Overview" },
-  { name: "Conversion Rate (With YLWs)", expression: "ConversionRate", description: "YLW + GRN confirmed + verbal wins divided by total quoted. Includes Verbal Confirmation (YLW) stage jobs.", unit: "%", category: "Growth", dashboardCard: "Conversion Rate", dataSource: "Google Sheets", section: "Business Overview" },
-  { name: "Net Revenue", expression: "NetRevenue", description: "Revenue minus cost of sales", unit: "$", category: "Financial", dashboardCard: "Net Revenue", dataSource: "Google Sheets", section: "Business Overview" },
-  { name: "Cashflow Position", expression: "CashPosition", description: "Current available cash position", unit: "$", category: "Financial", dashboardCard: "Cashflow Position", dataSource: "Google Sheets", section: "Business Overview" },
-  { name: "Monthly Expenses", expression: "MonthlyExpenses", description: "Total monthly operating expenses", unit: "$", category: "Operational", dashboardCard: "Monthly Expenses", dataSource: "Google Sheets", section: "Business Overview" },
-  { name: "Gross Profit Margin", expression: "GrossProfitMargin", description: GROSS_PROFIT_MARGIN_DESCRIPTION, unit: "%", category: "Growth", dashboardCard: "Gross Profit Margin", dataSource: "Google Sheets", section: "Business Overview" },
-  { name: "Total Won (With YLWs)", expression: "YLWplusGRN", description: "Total won value including Verbal Confirmation (YLW) jobs", unit: "$", category: "Financial", dashboardCard: "Total Won", dataSource: "Google Sheets", section: "Business Overview" },
-  // Project Execution
-  { name: "On-Time Delivery", expression: "onTimeDelivery", description: `What is calculated:\n• % of milestones and tasks completed on or before their due date across all active Zoho Projects\n\nHow it is calculated:\n• On-Time % = Completed On-Time Tasks ÷ Total Completed Tasks × 100\n• A task is "on time" if its completion date ≤ its due date\n• Only completed tasks with a due date are counted\n• Late task count = completed tasks where completion date > due date\n\nWhy it matters:\n• Direct measure of project delivery discipline\n• Below 80% signals scheduling or resourcing issues\n• Below 60% indicates systemic project management problems\n\nSource: Zoho Projects — task completion dates vs due dates, computed by n8n tt-project-kpis workflow.`, unit: "%", category: "Delivery", dataSource: "Zoho Projects", section: "Project Execution" },
-  { name: "Schedule Slippage", expression: "scheduleSlippage", description: `What is calculated:\n• Average days overdue across all currently overdue milestones and tasks in active projects\n\nHow it is calculated:\n• For each overdue item: Days Overdue = Today − Due Date\n• Average Slippage = Σ(Days Overdue) ÷ Count of Overdue Items\n• Only active/incomplete items past their due date are included\n• Grouped by project for the "Per Project" view (worst milestone per project shown)\n\nColour thresholds:\n• Green: 0 days average (no overdue items)\n• Amber: 1–14 days average slippage\n• Red: 15+ days average slippage\n\nWhy it matters:\n• Identifies which projects are running behind and by how much\n• High slippage cascades into cashflow delays and margin erosion\n\nSource: Zoho Projects — milestone and task due dates vs today, computed by n8n tt-project-kpis workflow.`, unit: "days", category: "Delivery", dataSource: "Zoho Projects", section: "Project Execution" },
-  { name: "Margin Variance", expression: "marginVariance", description: `What is calculated:\n• Actual Gross Profit % minus your GP target %. Positive = above target, negative = below.\n\nHow it is calculated:\n• Margin Variance = Actual GP% − Target GP%\n• Actual GP% = (Revenue ex GST − Total COGS) ÷ Revenue ex GST × 100\n• Revenue sourced from Google Sheets REVENUE tab (Value ex GST per job)\n• COGS = Labour Cost + Tactile Cost + Other Products per job\n• Target GP% = configurable slider on the Gross Margin chart (default 30%)\n• Jobs where GP% < 0 are flagged individually as "at loss"\n\nColour logic:\n• Green: actual GP% ≥ target\n• Red: actual GP% < target\n\nWhy it matters:\n• Tracks whether won work is actually profitable at the margin level\n• Negative margin variance on multiple jobs signals pricing or cost control issues\n\nSource: Google Sheets REVENUE tab + GP target setting. Computed by n8n dashboard workflow.`, unit: "%", category: "Profit", dataSource: "Zoho Projects", section: "Project Execution" },
-  { name: "Labour Efficiency", expression: "labourEfficiency", description: `What is calculated:\n• Ratio of estimated hours to actual logged hours across active projects. 100% = exactly on budget.\n\nHow it is calculated:\n• Labour Efficiency = Estimated Hours ÷ Actual Logged Hours × 100\n• Estimated Hours = task duration fields set in Zoho Projects\n• Actual Hours = time logged against tasks in Zoho Projects\n• Values above 100% mean work completed faster than estimated (efficient)\n• Values below 100% mean work is taking longer than planned (over budget on time)\n• Shows "Data pending" when task durations have not been set in Zoho Projects\n\nWhy it matters:\n• Time overruns directly erode labour margin\n• Consistent sub-100% efficiency signals estimating errors or scope creep\n• Requires task duration fields to be populated in Zoho Projects to activate\n\nSource: Zoho Projects — task estimated duration vs logged hours, computed by n8n tt-project-kpis workflow.`, unit: "%", category: "Delivery", dataSource: "Zoho Projects", section: "Project Execution" },
-  // Investor Metrics
-  { name: "EBITDA (Estimated)", expression: "investorMetrics.ebitda", description: `What is calculated:\n• Earnings Before Interest, Tax, Depreciation & Amortisation — estimated from operational data\n\nHow it is calculated:\n• EBITDA = Gross Profit (YTD) − Total Operating Expenses (annualised)\n• Gross Profit = Revenue ex GST − Total COGS (from REVENUE sheet)\n• Operating Expenses = Grand Total from EXPENSES sheet (yearly)\n\nSource fields:\n• REVENUE sheet: Value (incl. GST) ÷ 1.1, Total COGS\n• EXPENSES sheet: Grand Total yearly cost row\n\nNote: Computed by n8n investorMetrics block, not the formula engine. Value reflects annual expense base vs YTD revenue.`, unit: "$", category: "Profitability", dataSource: "Google Sheets", section: "Investor Metrics" },
-  { name: "EBITDA Margin %", expression: "investorMetrics.ebitdaMargin", description: `What is calculated:\n• EBITDA as a percentage of total revenue YTD\n\nHow it is calculated:\n• EBITDA Margin = EBITDA ÷ Revenue YTD × 100\n• Revenue YTD = total revenue ex GST from REVENUE sheet\n• EBITDA = Gross Profit − Operating Expenses (see EBITDA formula)\n\nBenchmark: 15%+ is healthy for a contracting business. Negative indicates expenses exceed gross profit.\n\nSource: Computed by n8n investorMetrics block.`, unit: "%", category: "Profitability", dataSource: "Google Sheets", section: "Investor Metrics" },
-  { name: "Gross Profit Margin %", expression: "investorMetrics.grossMarginPct", description: `What is calculated:\n• Gross Profit as a percentage of revenue, excluding GST\n\nHow it is calculated:\n• GP Margin = (Revenue ex GST − Total COGS) ÷ Revenue ex GST × 100\n• Revenue ex GST = Value (incl. GST) ÷ 1.1 per revenue line item\n• Total COGS = Labour Cost + Tactile Cost + Other Products per job\n• Calculated across all revenue line items YTD\n\nSource fields:\n• REVENUE sheet: Value (incl. GST), Labour Cost, Tactile Cost (GST N/A), Other Products (incl. GST), Total COGS\n• Computed by n8n investorMetrics block.`, unit: "%", category: "Profitability", dataSource: "Google Sheets", section: "Investor Metrics" },
-  { name: "Revenue Growth (MoM)", expression: "investorMetrics.revenueGrowthMoM", description: `What is calculated:\n• Month-on-month revenue growth rate as a percentage\n\nHow it is calculated:\n• Growth = (Current Month Revenue − Prior Month Revenue) ÷ Prior Month Revenue × 100\n• Current Month = most recent month with non-zero Total Income in CASHFLOW sheet\n• Prior Month = the month immediately before current with non-zero income\n\nSource fields:\n• CASHFLOW sheet: Total Income row, all month columns\n• Only months with income > 0 are considered\n• Computed by n8n investorMetrics block.`, unit: "%", category: "Growth", dataSource: "Google Sheets", section: "Investor Metrics" },
-  { name: "Pipeline Coverage Ratio", expression: "investorMetrics.pipelineCoverage", description: `What is calculated:\n• How many times over the active pipeline covers current YTD revenue\n\nHow it is calculated:\n• Pipeline Coverage = Active Pipeline Value ÷ Revenue YTD\n• Active Pipeline = GRAND TOTAL (Active) row from QTS SMMRY sheet\n• Revenue YTD = total revenue ex GST from REVENUE sheet\n• Result expressed as a multiplier (e.g. 2.4x)\n\nBenchmark: 2x+ indicates strong forward revenue runway.\n\nSource fields:\n• QTS SMMRY sheet: GRAND TOTAL (Active) row\n• REVENUE sheet: total Value (incl. GST) ÷ 1.1\n• Computed by n8n investorMetrics block.`, unit: "x", category: "Pipeline", dataSource: "Google Sheets", section: "Investor Metrics" },
-  { name: "Average Contract Value", expression: "investorMetrics.avgContractValue", description: `What is calculated:\n• Average value per quoted job across all pipeline stages\n\nHow it is calculated:\n• Avg Contract Value = Grand Total Quoted Value ÷ Total Job Count\n• Grand Total = GRAND TOTAL row from QTS SMMRY sheet\n• Count = total number of jobs across all stages\n\nSource fields:\n• QTS SMMRY sheet: GRAND TOTAL row — Total Value ($) and Count columns\n• Computed by n8n investorMetrics block.`, unit: "$", category: "Pipeline", dataSource: "Google Sheets", section: "Investor Metrics" },
-  { name: "Operating Expense Ratio", expression: "investorMetrics.operatingExpRatio", description: `What is calculated:\n• Total operating expenses as a percentage of revenue YTD\n\nHow it is calculated:\n• Op Expense Ratio = Total Annual Expenses ÷ Revenue YTD × 100\n• Total Annual Expenses = Grand Total yearly cost from EXPENSES sheet\n• Revenue YTD = total revenue ex GST from REVENUE sheet\n\nBenchmark: Below 60% is healthy. Above 100% means expenses exceed revenue.\n\nSource fields:\n• EXPENSES sheet: Grand Total row — Yearly Cost column\n• REVENUE sheet: total Value (incl. GST) ÷ 1.1\n• Computed by n8n investorMetrics block.`, unit: "%", category: "Profitability", dataSource: "Google Sheets", section: "Investor Metrics" },
-  { name: "Labour Cost Ratio", expression: "investorMetrics.labourCostRatio", description: `What is calculated:\n• Total labour and salary costs as a percentage of revenue YTD\n\nHow it is calculated:\n• Labour Cost Ratio = Effective Labour Cost (yearly) ÷ Revenue YTD × 100\n• Effective Labour Cost = Personal Expenses (wages/salaries) from EXPENSES sheet\n• Falls back to rows containing 'Wage' or 'Salary' in sub-category\n• Revenue YTD = total revenue ex GST from REVENUE sheet\n\nBenchmark: Below 35% is efficient for a contracting business.\n\nSource fields:\n• EXPENSES sheet: Personal Expenses category, yearly cost\n• REVENUE sheet: total Value (incl. GST) ÷ 1.1\n• Computed by n8n investorMetrics block.`, unit: "%", category: "Profitability", dataSource: "Google Sheets", section: "Investor Metrics" },
-  { name: "Revenue Per Job Won", expression: "investorMetrics.revenuePerJobWon", description: `What is calculated:\n• Average revenue generated per won (PO Received) job\n\nHow it is calculated:\n• Revenue Per Job = Revenue YTD ÷ Won Job Count\n• Won Job Count = PO Received (GRN) count from QTS SMMRY sheet\n• Revenue YTD = total revenue ex GST from REVENUE sheet\n\nHigher values indicate larger, more complex contracts being won.\n\nSource fields:\n• QTS SMMRY sheet: PO Received (GRN) row — Count column\n• REVENUE sheet: total Value (incl. GST) ÷ 1.1\n• Computed by n8n investorMetrics block.`, unit: "$", category: "Pipeline", dataSource: "Google Sheets", section: "Investor Metrics" },
-  { name: "CAC Per Client", expression: "investorMetrics.cacPerClient", description: `What is calculated:\n• Cost to acquire one new client via paid advertising\n\nHow it is calculated:\n• CAC = Monthly Google Ads Spend ÷ Average Jobs Won Per Month\n• Google Ads Spend = Advertising sub-category from EXPENSES sheet (monthly cost)\n• Avg Jobs Won Per Month = Total Won Jobs (GRN) ÷ 12\n• Returns 'N/A (no ad spend)' when Google Ads monthly cost is $0\n\nNote: Set a monthly Google Ads budget in the EXPENSES sheet (Business Expenses → Advertising → Google Ads) to activate this metric.\n\nSource fields:\n• EXPENSES sheet: Business Expenses → Advertising sub-category or Item containing 'Google Ads'\n• QTS SMMRY sheet: PO Received (GRN) row — Count column\n• Computed by n8n investorMetrics block.`, unit: "$", category: "Growth", dataSource: "Google Sheets", section: "Investor Metrics" },
+
+  // ── BUSINESS OVERVIEW ────────────────────────────────────────────────────
+  {
+    name: "Total Quoted",
+    expression: "TotalQuoted",
+    description: `What is calculated:\n• Total value of all active quoted jobs across all pipeline stages\n\nHow it is calculated:\n• Sum of Contract Value for all jobs in Zoho CRM with active stages\n• Includes: Quote Sent, Negotiation/Review, Verbal Confirmation (YLW), PO Received (GRN), Completed\n• Excludes: Lost/Dead\n\nSource: Zoho CRM → QUOTES sheet (QTS SMMRY tab) → GRAND TOTAL row`,
+    unit: "$", category: "Financial", dashboardCard: "Total Quoted", dataSource: "Google Sheets", section: "Business Overview",
+  },
+  {
+    name: "Total Won (Confirmed)",
+    expression: "TotalWon",
+    description: `What is calculated:\n• Total value of confirmed won jobs — PO Received (GRN) + Completed stages only\n\nHow it is calculated:\n• Sum of Contract Value for jobs in PO Received (GRN) and Completed stages\n• Does NOT include Verbal Confirmation (YLW) jobs\n• Use "With YLWs" toggle on the dashboard card to include verbal confirmations\n\nSource: Zoho CRM → QUOTES sheet → PO Received (GRN) + Completed rows`,
+    unit: "$", category: "Financial", dashboardCard: "Total Won", dataSource: "Google Sheets", section: "Business Overview",
+  },
+  {
+    name: "Total Won (With YLWs)",
+    expression: "YLWplusGRN",
+    description: `What is calculated:\n• Total value of won jobs INCLUDING Verbal Confirmation (YLW) stage\n\nHow it is calculated:\n• Sum of PO Received (GRN) + Completed + Verbal Confirmation (YLW) job values\n• Represents best-case pipeline including verbal commitments not yet formalised\n\nSource: Zoho CRM → QUOTES sheet → YLW + GRN combined row`,
+    unit: "$", category: "Financial", dashboardCard: "Total Won", dataSource: "Google Sheets", section: "Business Overview",
+  },
+  {
+    name: "Quoted Remaining",
+    expression: "QuotedRemaining",
+    description: `What is calculated:\n• Value of quotes still active in pipeline — not yet won, lost or completed\n\nHow it is calculated:\n• Total Quoted − Total Won (GRN + Completed)\n• Represents the undecided pipeline: Quote Sent + Negotiation/Review + YLW stages\n\nSource: Zoho CRM → QUOTES sheet → GRAND TOTAL (Active) row`,
+    unit: "$", category: "Financial", dashboardCard: "Quoted Remaining", dataSource: "Google Sheets", section: "Business Overview",
+  },
+  {
+    name: "Net Revenue",
+    expression: "NetRevenue",
+    description: `What is calculated:\n• Revenue from completed/invoiced jobs minus direct cost of sales (COGS)\n\nHow it is calculated:\n• Net Revenue = Total Value ex GST − Total COGS\n• Value ex GST = Value (incl. GST) ÷ 1.1 per revenue line item\n• Total COGS = Labour Cost + Tactile Cost (GST N/A) + Other Products per job\n• Only jobs appearing in the REVENUE sheet are included\n\nSource: REVENUE sheet — Value (incl. GST), Labour Cost, Tactile Cost, Other Products columns`,
+    unit: "$", category: "Financial", dashboardCard: "Net Revenue", dataSource: "Google Sheets", section: "Business Overview",
+  },
+  {
+    name: "Cashflow Position (Opening)",
+    expression: "CashPosition",
+    description: `What is calculated:\n• The opening bank balance for the current month as recorded in the cashflow sheet\n\nHow it is calculated:\n• Reads OPENING BALANCES row (row 2) for the current month column\n• This is the closing balance carried forward from the prior month\n• Represents what the business started the month with\n• Toggle "Today" to see the estimated pre-invoice position after costs paid so far\n• Toggle "Actual" to manually enter the real CBA bank balance\n\nNote: Opening balances are forecast projections until Basiq (CBA open banking) is connected.\n\nSource: CASHFLOW sheet → OPENING BALANCES row → current month column`,
+    unit: "$", category: "Financial", dashboardCard: "Cashflow Position", dataSource: "Google Sheets", section: "Business Overview",
+  },
+  {
+    name: "Conversion Rate (Confirmed)",
+    expression: "ConversionRateConfirmed",
+    description: `What is calculated:\n• Percentage of quoted jobs that converted to confirmed wins (PO Received + Completed)\n\nHow it is calculated:\n• Confirmed Conversion Rate = Won Jobs (GRN + Completed) ÷ Total Quoted Jobs × 100\n• Uses job COUNT not value\n• Excludes Verbal Confirmation (YLW) stage\n• Use "With YLWs" toggle to include verbal confirmations in the rate\n\nBenchmark: 30%+ is strong for a construction/fitout business.\n\nSource: QUOTES sheet → QTS SMMRY tab → stage counts`,
+    unit: "%", category: "Growth", dashboardCard: "Conversion Rate", dataSource: "Google Sheets", section: "Business Overview",
+  },
+  {
+    name: "Conversion Rate (With YLWs)",
+    expression: "ConversionRate",
+    description: `What is calculated:\n• Conversion rate including Verbal Confirmation (YLW) jobs as wins\n\nHow it is calculated:\n• Combined Rate = (Won GRN + Completed + YLW) ÷ Total Quoted × 100\n• Represents optimistic conversion if all verbal commitments convert\n\nSource: QUOTES sheet → QTS SMMRY tab → YLW + GRN combined count`,
+    unit: "%", category: "Growth", dashboardCard: "Conversion Rate", dataSource: "Google Sheets", section: "Business Overview",
+  },
+
+  // ── CASHFLOW & FORECASTS ──────────────────────────────────────────────────
+  {
+    name: "Cashflow Opening Balance",
+    expression: "CashPosition",
+    description: `What is calculated:\n• Current month opening bank balance from cashflow sheet row 2\n\nHow it is calculated:\n• Reads OPENING BALANCES row for the current month\n• March 2026 = $154,514.76\n• Each month's opening = prior month's anticipated closing surplus\n\nNote: Update row 2 with actual CBA bank balance each month for accuracy. Basiq integration will automate this.\n\nSource: CASHFLOW sheet → OPENING BALANCES row (row 2)`,
+    unit: "$", category: "Financial", dashboardCard: "Cashflow Opening Balance", dataSource: "Google Sheets", section: "Cashflow & Forecasts",
+  },
+  {
+    name: "Cashflow Today (Pre-Invoice)",
+    expression: "CashPosition",
+    description: `What is calculated:\n• Estimated conservative cash position today — after costs paid so far, before any invoices clear\n\nHow it is calculated:\n• Today = Opening Balance − Month-to-date costs already paid\n• Payment timing rules:\n  - Fixed OpEx ($7,320): exits day 1 — 100% by any day\n  - Salaries ($14,756): weekly pays — 3/4 done by day 26\n  - Labour/COGS: weekly subcontractors — same as salaries\n  - GST Paid: direct debit — 100%\n  - Car loan: mid-month — 100% if past day 15\n  - Business loan: end of month — 0% before day 28\n  - Income: NOT included — invoices arrive as lump payments\n\nFor March day 26: $154,514 − ~$29,482 costs = ~$125,032\n\nSource: CASHFLOW sheet — individual row values × payment timing fractions`,
+    unit: "$", category: "Financial", dashboardCard: "Cashflow Today Estimate", dataSource: "Google Sheets", section: "Cashflow & Forecasts",
+  },
+  {
+    name: "Forecast Anticipated Surplus",
+    expression: "CashPosition",
+    description: `What is calculated:\n• End-of-month anticipated cash surplus — the full month forecast closing balance\n\nHow it is calculated:\n• Reads Anticipated Cash Surplus/(Deficit) row (row 71) for current month\n• = Opening Balance + Total Income − Total Outgoings for the month\n• March 2026 = $176,026.82\n• This is the accrual-basis forecast — includes all invoiced income for the month\n\nSource: CASHFLOW sheet → Anticipated Cash Surplus/(Deficit) row (row 71) → current month`,
+    unit: "$", category: "Financial", dashboardCard: "Forecast Anticipated Surplus", dataSource: "Google Sheets", section: "Cashflow & Forecasts",
+  },
+  {
+    name: "Forecast With Probable Jobs",
+    expression: "CashPosition",
+    description: `What is calculated:\n• End-of-month cash surplus including income from probable pipeline jobs\n\nHow it is calculated:\n• = Anticipated Surplus + Jobs Probable To Be Won − Cost of Probable Jobs\n• Probable jobs = YLW stage deals with high conversion likelihood\n• Adds expected income from verbal confirmation jobs not yet in cashflow\n\nSource: CASHFLOW sheet → Anticipated Cash Surplus/(Deficit) Including Probable Jobs row (row 76)`,
+    unit: "$", category: "Financial", dashboardCard: "Forecast With Probable Jobs", dataSource: "Google Sheets", section: "Cashflow & Forecasts",
+  },
+
+  // ── PROJECT EXECUTION ────────────────────────────────────────────────────
+  {
+    name: "On-Time Delivery",
+    expression: "onTimeDelivery",
+    description: `What is calculated:\n• Percentage of milestones and tasks completed on or before their due date\n\nHow it is calculated:\n• On-Time % = Completed On-Time Tasks ÷ Total Completed Tasks × 100\n• A task is "on time" if completion date ≤ due date\n• Only completed tasks with a due date are counted\n\nBenchmark: 80%+ is healthy. Below 60% signals systemic scheduling issues.\n\nSource: Zoho Projects — task completion dates vs due dates`,
+    unit: "%", category: "Delivery", dataSource: "Zoho Projects", section: "Project Execution",
+  },
+  {
+    name: "Schedule Slippage",
+    expression: "scheduleSlippage",
+    description: `What is calculated:\n• Average number of days milestones are overdue across all active projects\n\nHow it is calculated:\n• Schedule Slippage = Average (Today − Due Date) for all overdue incomplete milestones\n• Only milestones past their due date and not yet completed are counted\n• Higher numbers = more severe scheduling problems\n\nBenchmark: Under 7 days average is acceptable. Over 30 days requires immediate review.\n\nSource: Zoho Projects — milestone due dates vs today's date`,
+    unit: "days", category: "Delivery", dataSource: "Zoho Projects", section: "Project Execution",
+  },
+  {
+    name: "Margin Variance",
+    expression: "marginVariance",
+    description: `What is calculated:\n• Difference between forecast GP margin and actual GP margin across active projects\n\nHow it is calculated:\n• Margin Variance = Actual GP% − Forecast GP%\n• Positive = better than forecast (ahead of budget)\n• Negative = worse than forecast (over budget on costs)\n\nSource: Zoho Projects cost tracking vs REVENUE sheet GP calculations`,
+    unit: "%", category: "Profit", dataSource: "Zoho Projects", section: "Project Execution",
+  },
+  {
+    name: "Labour Efficiency",
+    expression: "labourEfficiency",
+    description: `What is calculated:\n• Ratio of estimated hours to actual logged hours across active projects\n\nHow it is calculated:\n• Labour Efficiency = Estimated Hours ÷ Actual Logged Hours × 100\n• Above 100% = completed faster than estimated (efficient)\n• Below 100% = taking longer than planned (time overrun)\n\nRequires task duration fields to be set in Zoho Projects.\n\nSource: Zoho Projects — task estimated duration vs logged hours`,
+    unit: "%", category: "Delivery", dataSource: "Zoho Projects", section: "Project Execution",
+  },
+
+  // ── INVESTOR METRICS ─────────────────────────────────────────────────────
+  {
+    name: "Profitability — EBITDA",
+    expression: "investorMetrics.ebitda",
+    description: `What is calculated:\n• EBITDA (Earnings Before Interest, Tax, Depreciation & Amortisation) — estimated from operational data\n\nHow it is calculated:\n• EBITDA = Gross Profit (scope period) − Total Operating Expenses\n• Gross Profit = Revenue ex GST − Total COGS (from REVENUE sheet)\n• Operating Expenses = from EXPENSES sheet (annualised)\n• Scope-aware: changes with This Year / Month / Lifetime filter\n\nBenchmark: 15%+ EBITDA margin is healthy for a contracting business.\n\nSource: REVENUE sheet (GP) + EXPENSES sheet (OpEx) — computed by n8n investorMetrics block`,
+    unit: "$", category: "Profitability", dashboardCard: "Profitability", dataSource: "Google Sheets", section: "Investor Metrics",
+  },
+  {
+    name: "Profitability — Net Profit",
+    expression: "investorMetrics.ebitda",
+    description: `What is calculated:\n• Net Profit = Revenue minus ALL expenses including COGS, salaries, OpEx, loans\n\nHow it is calculated:\n• Net Profit = Revenue ex GST − Total Expenses (all categories)\n• More conservative than EBITDA — includes interest payments and all overhead\n• Scope-aware: changes with This Year / Month / Lifetime filter\n• Toggle between EBITDA and Net Profit on the Profitability card\n\nSource: REVENUE sheet + CASHFLOW sheet total outgoings — computed by n8n`,
+    unit: "$", category: "Profitability", dashboardCard: "Profitability", dataSource: "Google Sheets", section: "Investor Metrics",
+  },
+  {
+    name: "Gross Profit Margin %",
+    expression: "investorMetrics.grossMarginPct",
+    description: GROSS_PROFIT_MARGIN_DESCRIPTION,
+    unit: "%", category: "Profitability", dashboardCard: "Gross Profit Margin", dataSource: "Google Sheets", section: "Investor Metrics",
+  },
+  {
+    name: "Revenue Growth",
+    expression: "investorMetrics.revenueGrowthMoM",
+    description: `What is calculated:\n• Revenue growth — shown as $ YTD total or % growth depending on toggle and scope\n\nHow it is calculated:\n• This Year ($): Total revenue ex GST Jan–current month YTD\n• This Year (%): Average month-on-month growth rate across YTD months\n• Month (%): Current month vs prior month revenue change\n• Lifetime (%): Total revenue growth from first recorded month to now\n\nToggle between $ and % using the pill on the Revenue Growth card.\n\nSource: CASHFLOW sheet → Total Income row (all months) + REVENUE sheet`,
+    unit: "%", category: "Growth", dashboardCard: "Revenue Growth", dataSource: "Google Sheets", section: "Investor Metrics",
+  },
+  {
+    name: "Pipeline Coverage Ratio",
+    expression: "investorMetrics.pipelineCoverage",
+    description: `What is calculated:\n• How many times the active pipeline covers current revenue — forward revenue runway\n\nHow it is calculated:\n• Pipeline Coverage = Active Pipeline Value ÷ Revenue YTD\n• Active Pipeline = GRAND TOTAL (Active) from QTS SMMRY sheet\n• Revenue YTD = total revenue ex GST from REVENUE sheet\n• Expressed as a multiplier (e.g. 1.8x)\n\nBenchmark: 2x+ indicates strong forward revenue runway.\n\nSource: QTS SMMRY sheet + REVENUE sheet — computed by n8n investorMetrics block`,
+    unit: "x", category: "Pipeline", dashboardCard: "Pipeline Coverage", dataSource: "Google Sheets", section: "Investor Metrics",
+  },
+  {
+    name: "Average Contract Value",
+    expression: "investorMetrics.avgContractValue",
+    description: `What is calculated:\n• Average value per won job (PO Received / GRN stage)\n\nHow it is calculated:\n• Avg Contract Value = Revenue YTD ÷ Won Job Count (GRN)\n• Toggle between Won and Quoted average on the dashboard card\n• Won = revenue from jobs on the REVENUE sheet ÷ count of invoiced jobs\n• Quoted = total pipeline value ÷ total quoted job count\n\nSource: REVENUE sheet + QTS SMMRY sheet — computed by n8n investorMetrics block`,
+    unit: "$", category: "Pipeline", dashboardCard: "Avg Contract Value", dataSource: "Google Sheets", section: "Investor Metrics",
+  },
+  {
+    name: "Operating Expense Ratio",
+    expression: "investorMetrics.operatingExpRatio",
+    description: `What is calculated:\n• Total operating expenses as a percentage of revenue — overhead efficiency metric\n\nHow it is calculated:\n• Op Expense Ratio = Total Annual Expenses ÷ Revenue YTD × 100\n• Total Expenses = Grand Total from EXPENSES sheet (yearly cost)\n• Revenue YTD = total revenue ex GST from REVENUE sheet\n\nBenchmark: Below 60% is healthy. The current 19% ratio reflects strong revenue relative to fixed overhead.\n\nSource: EXPENSES sheet (Grand Total row) + REVENUE sheet`,
+    unit: "%", category: "Profitability", dashboardCard: "Operating Expense Ratio", dataSource: "Google Sheets", section: "Investor Metrics",
+  },
+  {
+    name: "Labour Cost Ratio",
+    expression: "investorMetrics.labourCostRatio",
+    description: `What is calculated:\n• Labour and salary costs as a percentage of revenue — workforce cost efficiency\n\nHow it is calculated:\n• Labour Cost Ratio = Total Labour Costs (yearly) ÷ Revenue YTD × 100\n• Labour Costs = salaries (Krishan, Mehmet, Shania, Workers Comp) + subcontractor labour\n• Toggle between Ratio % and $ absolute value on the dashboard card\n\nBenchmark: Below 35% is efficient for a contracting business.\n\nSource: EXPENSES sheet (Personal Expenses) + CASHFLOW sheet salaries rows`,
+    unit: "%", category: "Profitability", dashboardCard: "Labour Cost Ratio", dataSource: "Google Sheets", section: "Investor Metrics",
+  },
+  {
+    name: "Revenue Per Job Won",
+    expression: "investorMetrics.revenuePerJobWon",
+    description: `What is calculated:\n• Average revenue per completed/invoiced job — deal size metric\n\nHow it is calculated:\n• Revenue Per Job = Revenue YTD ÷ Count of invoiced jobs on REVENUE sheet\n• Toggle between Won (invoiced) and Quoted (pipeline average) on the dashboard card\n• Higher values = larger, more complex contracts being won\n\nSource: REVENUE sheet (invoiced jobs) + QTS SMMRY sheet (pipeline count)`,
+    unit: "$", category: "Pipeline", dashboardCard: "Revenue Per Job", dataSource: "Google Sheets", section: "Investor Metrics",
+  },
+  {
+    name: "CAC Per Client",
+    expression: "investorMetrics.cacPerClient",
+    description: `What is calculated:\n• Cost to acquire one new client via paid advertising\n\nHow it is calculated:\n• CAC = Monthly Google Ads Spend ÷ Average Jobs Won Per Month\n• Returns 'N/A (no ad spend)' when Google Ads spend = $0\n• To activate: set a monthly Google Ads budget in EXPENSES sheet under Business Expenses → Advertising\n\nSource: EXPENSES sheet (Advertising sub-category) + QTS SMMRY sheet (GRN count)`,
+    unit: "$", category: "Growth", dashboardCard: "CAC Per Client", dataSource: "Google Sheets", section: "Investor Metrics",
+  },
+  {
+    name: "Win Rate",
+    expression: "ConversionRateConfirmed",
+    description: `What is calculated:\n• Percentage of active quoted jobs that have been won (confirmed GRN)\n\nHow it is calculated:\n• Win Rate = Won Jobs (GRN) ÷ Total Active Jobs × 100\n• Shown on dashboard as count e.g. "10 of 65 active jobs"\n• Lower win rate with high pipeline value = strong quoting volume but selective wins\n\nSource: QUOTES sheet → QTS SMMRY tab — GRN count ÷ active total`,
+    unit: "%", category: "Growth", dashboardCard: "Win Rate", dataSource: "Google Sheets", section: "Investor Metrics",
+  },
 ];
 
 // Simple tokenizer and evaluator for arithmetic expressions with named variables
