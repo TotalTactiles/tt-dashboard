@@ -645,15 +645,47 @@ const DashboardContent = () => {
                 />
                 <StatCard label="CAC Per Client" value={im.cacPerClientFormatted ?? "N/A"} change={`$${im.googleAdsMonthly ?? 0}/mo ads`} positive={(im.cacPerClient ?? 0) < 5000} index={18} />
                 {(() => {
-                  // Win Rate uses scope-aware metrics if month has pre-computed winRate
-                  if (aim.winRateFormatted) {
-                    return <StatCard label="Win Rate" value={aim.winRateFormatted} change={aim.winRateSubLabel ?? ""} positive={(aim.winRate ?? 0) >= 25} index={19} />;
-                  }
-                  const qs = dataStore?.quotesSummary as any;
-                  const wonCount = aim.wonCount ?? im.wonCount ?? 0;
-                  const activeCount = (Number(qs?.remaining?.count ?? 0)) + (Number(qs?.totalWon?.count ?? 0)) + (Number(qs?.totalYellow?.count ?? 0));
-                  const winRate = activeCount > 0 ? `${(wonCount / activeCount * 100).toFixed(1)}%` : "N/A";
-                  return <StatCard label="Win Rate" value={winRate} change={`${wonCount} of ${activeCount} active jobs`} positive={activeCount > 0 && (wonCount / activeCount) >= 0.25} index={19} />;
+                  const im_full = investorMetrics as any;
+
+                  const dsrValue = investorScope === 'month'
+                    ? (aim.debtServiceRatioMonth ?? im_full?.debtServiceRatioMonth ?? 0)
+                    : (aim.debtServiceRatio ?? im_full?.debtServiceRatio ?? 0);
+
+                  const dsrFormatted = `${dsrValue.toFixed(1)}%`;
+
+                  const isHealthy  = dsrValue <= 15;
+                  const isDanger   = dsrValue > 25;
+
+                  const healthLabel = isHealthy
+                    ? 'Healthy — under 15%'
+                    : isDanger
+                    ? 'High — above 25%'
+                    : 'Monitor — 15–25%';
+
+                  const bizLoan = im_full?.bizLoanMonthly ?? 4318;
+                  const carLoan = im_full?.carLoanMonthly ?? 1223;
+                  const monthly = bizLoan + carLoan;
+                  const annual  = monthly * 12;
+
+                  const fmtK = (n: number) =>
+                    n >= 1000 ? `$${(n/1000).toFixed(1)}K` : `$${Math.round(n)}`;
+
+                  const scopeLabel = investorScope === 'month'
+                    ? `${fmtK(monthly)}/mo debt service`
+                    : investorScope === 'full_year'
+                    ? `${fmtK(annual)}/yr — lifetime`
+                    : `${fmtK(annual)}/yr annualised`;
+
+                  return (
+                    <StatCard
+                      label="Debt Service Ratio"
+                      value={dsrFormatted}
+                      change={scopeLabel}
+                      positive={!isDanger}
+                      index={19}
+                      momContext={healthLabel}
+                    />
+                  );
                 })()}
               </div>
             </div>

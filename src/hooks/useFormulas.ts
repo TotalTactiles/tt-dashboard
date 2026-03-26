@@ -36,7 +36,7 @@ export const DASHBOARD_CARDS = [
   "Labour Cost Ratio",
   "Revenue Per Job",
   "CAC Per Client",
-  "Win Rate",
+  "Debt Service Ratio",
 ];
 
 export const DATA_SOURCES = [
@@ -49,7 +49,7 @@ export const DATA_SOURCES = [
 
 const STORAGE_KEY = "meridian_formulas";
 const SEED_KEY = "meridian_formulas_seeded";
-const FORMULA_MIGRATION_KEY = "meridian_formulas_v9_full_alignment";
+const FORMULA_MIGRATION_KEY = "meridian_formulas_v10_debt_service_ratio";
 
 const GROSS_PROFIT_MARGIN_DESCRIPTION = `What is calculated:
 • Gross Profit Margin % for each month shown in the chart
@@ -242,10 +242,10 @@ const DEFAULT_FORMULAS: Omit<MetricFormula, "id">[] = [
     unit: "$", category: "Growth", dashboardCard: "CAC Per Client", dataSource: "Google Sheets", section: "Investor Metrics",
   },
   {
-    name: "Win Rate",
-    expression: "ConversionRateConfirmed",
-    description: `What is calculated:\n• Percentage of active quoted jobs that have been won (confirmed GRN)\n\nHow it is calculated:\n• Win Rate = Won Jobs (GRN) ÷ Total Active Jobs × 100\n• Shown on dashboard as count e.g. "10 of 65 active jobs"\n• Lower win rate with high pipeline value = strong quoting volume but selective wins\n\nSource: QUOTES sheet → QTS SMMRY tab — GRN count ÷ active total`,
-    unit: "%", category: "Growth", dashboardCard: "Win Rate", dataSource: "Google Sheets", section: "Investor Metrics",
+    name: "Debt Service Ratio",
+    expression: "investorMetrics.debtServiceRatio",
+    description: `What is calculated:\n• Annual loan repayments as a percentage of annualised revenue — measures debt burden relative to income\n\nHow it is calculated:\n• DSR = Annual Debt Repayments ÷ Annualised Revenue × 100\n• Annual Debt = (Business Loan $4,318 + Car Loan $1,223) × 12 = $66,492/year\n• Revenue is annualised from YTD: (Revenue YTD ÷ months elapsed) × 12\n• Month scope: monthly repayments ÷ that month's income\n• Lifetime scope: same annual debt ÷ lifetime annualised revenue\n\nBenchmarks:\n• Under 15% = Healthy — debt is well-covered by revenue\n• 15–25% = Monitor — debt is manageable but watch revenue\n• Above 25% = High — debt obligations are a significant burden\n\nCurrent fixed debt obligations:\n• Business Loan Repayment & Monthly Fee: $4,318/month\n• Motor Vehicle Repayments: $1,223/month\n• Total: $5,541/month | $66,492/year\n\nNote: This uses monthly repayment amounts from the CASHFLOW sheet, not outstanding loan principal balances. Once Basiq is connected, actual principal balances will enable a true Debt-to-Equity ratio.\n\nSource: CASHFLOW sheet → Business Loan Repayment (row 57) + Motor Vehicle Repayments (row 58)`,
+    unit: "%", category: "Financial Health", dashboardCard: "Debt Service Ratio", dataSource: "Google Sheets", section: "Investor Metrics",
   },
 ];
 
