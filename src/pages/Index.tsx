@@ -471,6 +471,34 @@ const DashboardContent = () => {
                     growthLabel = lbl;
                   }
 
+                  // For YTD scope: add $ / % pill toggle when growth is null (YTD dollar amount)
+                  if (investorScope === "ytd" || investorScope === "full_year" || investorScope === "month") {
+                    // Compute alt values: if base is $ (null growth), alt = MoM %
+                    // If base is % (has growth), alt = $ amount
+                    const momVal = (investorMetrics as any)?.revenueGrowthMoM ?? null;
+                    const momFmt = (investorMetrics as any)?.revenueGrowthMoMFormatted ?? "N/A";
+                    const momLbl = (investorMetrics as any)?.revenueGrowthLabel ?? "Month on Month";
+
+                    if (investorScope === "ytd" && growthValue === null) {
+                      // Base = $ amount, Alt = MoM %
+                      return (
+                        <StatCard
+                          label="Revenue Growth"
+                          value={growthFormatted}
+                          change={growthLabel}
+                          positive={true}
+                          index={12}
+                          altValue={momFmt}
+                          altChange={momLbl}
+                          altPositive={(momVal ?? 0) >= 0}
+                          toggleLabelBase="$"
+                          toggleLabelAlt="%"
+                          greenAltPill={true}
+                        />
+                      );
+                    }
+                  }
+
                   return (
                     <StatCard
                       label="Revenue Growth"
