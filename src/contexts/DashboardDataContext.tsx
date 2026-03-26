@@ -838,10 +838,21 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const prevMonRev = revenueByMonth(prevMonKey);
 
     // Per-month cashflow position — helper to read a row value for a given month key
-    const cfRowVal = (row: any, mk: string): number => {
+    const cfRowVal = (row: any, key: string): number => {
       if (!row) return 0;
-      const rk = findMatchingRowKey(row, normalizeKey(mk));
-      return parseNum(row[rk ?? ""] ?? 0);
+      const target = key.trim().toUpperCase();
+      // 1. Direct key match (case-insensitive)
+      const directMatch = Object.keys(row).find(k => k.trim().toUpperCase() === target);
+      if (directMatch !== undefined) {
+        return parseNum(row[directMatch] ?? 0);
+      }
+      // 2. Fallback via findMatchingRowKey
+      const rk = findMatchingRowKey(row, normalizeKey(key));
+      if (rk !== null) {
+        return parseNum(row[rk] ?? 0);
+      }
+      console.warn(`[cfRowVal MISS] key="${key}" not found in row "${row._label_rowLabel ?? row.col_1 ?? '?'}" | available month keys: ${Object.keys(row).filter(k => /^[A-Za-z]/.test(k) && k !== '_label_rowLabel' && k !== 'col_1' && k !== '_source').slice(0, 10).join(', ')}`);
+      return 0;
     };
 
     // Current month values
@@ -849,13 +860,28 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const cfToDateValue = cfRowVal(anticipatedSurplusRow, currentMonthKey);
     const cfMonthLabel = `${MONTH_ABBR_LIST[currentMonthIdx]}-${String(currentYear).slice(-2)}`;
 
-    console.log('[CashflowCard Verification]', {
-      currentMonthKey,
-      cfOpeningBal,
-      cfToDateValue,
-      openingBalRowKeys: openingBalancesRow ? Object.keys(openingBalancesRow).filter(k => /^[A-Za-z]{3}-\d{2}$/.test(k)) : [],
-      surplusRowKeys: anticipatedSurplusRow ? Object.keys(anticipatedSurplusRow).filter(k => /^[A-Za-z]{3}-\d{2}$/.test(k)) : [],
-    });
+    // CASHFLOW POSITION DIAGNOSTICS
+    console.log('[CF DIAG] currentMonthKey:', currentMonthKey);
+    console.log('[CF DIAG] openingBalancesRow label:', openingBalancesRow?._label_rowLabel ?? openingBalancesRow?.col_1 ?? 'NOT FOUND');
+    console.log('[CF DIAG] openingBalancesRow Mar-26 value:', openingBalancesRow?.['Mar-26']);
+    console.log('[CF DIAG] openingBalancesRow all month keys and values:',
+      openingBalancesRow
+        ? Object.entries(openingBalancesRow)
+            .filter(([k]) => /^[A-Za-z]{3}-\d{2}$/.test(k))
+            .map(([k, v]) => `${k}=${v}`)
+            .join(', ')
+        : 'ROW NOT FOUND'
+    );
+    console.log('[CF DIAG] cfOpeningBal resolved to:', cfOpeningBal);
+    console.log('[CF DIAG] cfToDateValue resolved to:', cfToDateValue);
+    console.log('[CF DIAG] prevMonKey:', prevMonKey);
+    console.log('[CF DIAG] cfRowVal(openingBalancesRow, Mar-26) direct test:',
+      openingBalancesRow ? (() => {
+        const keys = Object.keys(openingBalancesRow);
+        const match = keys.find(k => k.trim().toUpperCase() === 'MAR-26');
+        return match ? `matched "${match}" = ${openingBalancesRow[match]}` : `NO MATCH — available: ${keys.filter(k => /^[A-Za-z]{3}-\d{2}$/i.test(k)).join(', ')}`;
+      })() : 'row not found'
+    );
 
     // Prev month values for comparison
     const prevNormKey = normalizeKey(prevMonKey);
@@ -937,7 +963,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         momDelta: noData ? undefined : (hasPrevCashflow ? fmtDelta(cfOpeningBal, prevOpeningBal, "currency") : noMomText),
         altMomDelta: noData ? undefined : (hasPrevCashflow ? fmtDelta(cfToDateValue, prevToDateValue, "currency") : noMomText),
         momContext: noData ? undefined : `Opening balance · ${cfMonthLabel}`,
-        altMomContext: noData ? undefined : `Net cash balance · ${cfMonthLabel}`,
+        altMomContext: noData ? undefined : `Anticipated surplus · ${cfMonthLabel}`,
       },
       {
         label: "Conversion Rate",
