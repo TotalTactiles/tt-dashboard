@@ -846,22 +846,15 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     // Current month values
     const cfOpeningBal = cfRowVal(openingBalancesRow, currentMonthKey);
-    const cfTotalIncome = cfRowVal(totalIncomeRow, currentMonthKey);
-    const cfVariableCosts = cfRowVal(totalCostOfSalesRow, currentMonthKey);
-    // Fixed opex arrives as negative after toNum fix — Math.abs() makes it sign-safe
-    const cfFixedMonthly = Math.abs(cfRowVal(totalOpExInclSalariesRow, currentMonthKey));
+    const cfToDateValue = cfRowVal(anticipatedSurplusRow, currentMonthKey);
+    const cfMonthLabel = `${MONTH_ABBR_LIST[currentMonthIdx]}-${String(currentYear).slice(-2)}`;
 
-    const today = now; // already defined above
-    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-    const dayOfMonth = today.getDate();
-    const cfProratedFixed = cfFixedMonthly * (dayOfMonth / daysInMonth);
-
-    const cfToDateValue = cfOpeningBal - cfProratedFixed - cfVariableCosts;
-    const cfMonthLabel = `${MONTH_ABBR_LIST[currentMonthIdx]} ${String(currentYear).slice(-2)}`;
-
-    console.log('[CF Position Calc]', {
-      currentMonthKey, dayOfMonth, daysInMonth,
-      cfOpeningBal, cfTotalIncome, cfVariableCosts, cfFixedMonthly, cfProratedFixed, cfToDateValue,
+    console.log('[CashflowCard Verification]', {
+      currentMonthKey,
+      cfOpeningBal,
+      cfToDateValue,
+      openingBalRowKeys: openingBalancesRow ? Object.keys(openingBalancesRow).filter(k => /^[A-Za-z]{3}-\d{2}$/.test(k)) : [],
+      surplusRowKeys: anticipatedSurplusRow ? Object.keys(anticipatedSurplusRow).filter(k => /^[A-Za-z]{3}-\d{2}$/.test(k)) : [],
     });
 
     // Prev month values for comparison
