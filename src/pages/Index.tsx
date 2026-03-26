@@ -526,6 +526,16 @@ const DashboardContent = () => {
                       />
                     );
                   }
+
+                  return (
+                    <StatCard
+                      label="Revenue Growth"
+                      value={growthFormatted}
+                      change={growthLabel}
+                      positive={growthValue === null ? true : growthValue >= 0}
+                      index={12}
+                    />
+                  );
                 })()}
                 <StatCard label="Pipeline Coverage" value={im.pipelineCoverageFormatted ?? "N/A"} change={im.pipelineValueFormatted ? `${im.pipelineValueFormatted} pipeline` : ""} positive={(im.pipelineCoverage ?? 0) >= 2} index={13} />
                 <StatCard
