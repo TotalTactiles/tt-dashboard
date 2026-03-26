@@ -268,6 +268,13 @@ const CalendarView = () => {
         >
           <DeadlineTracker events={filtered} />
         </CollapsibleCardWrapper>
+        {(() => {
+          console.log('[ZohoMilestones] Total calendarEvents:', allCalendarEvents.length,
+            '| Zoho Projects events:', allCalendarEvents.filter(e => e.source === 'Zoho Projects').length,
+            '| All sources:', [...new Set(allCalendarEvents.map(e => e.source))],
+            '| All types:', [...new Set(allCalendarEvents.map(e => e.type))]);
+          return null;
+        })()}
         <CollapsibleCardWrapper
           title="Zoho Project Milestones"
           defaultOpen={true}
