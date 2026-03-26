@@ -667,8 +667,37 @@ export function useDataSources() {
       console.log('[Calendar Unwrap] keys after unwrap:', Object.keys(unwrapped ?? {}));
       console.log('[Calendar Unwrap] calendarEvents present:', Array.isArray(unwrapped?.calendarEvents), '| count:', unwrapped?.calendarEvents?.length ?? 0);
 
-      const calEvents = Array.isArray(unwrapped?.calendarEvents) ? unwrapped.calendarEvents : [];
-      const upEvents = Array.isArray(unwrapped?.upcomingEvents) ? unwrapped.upcomingEvents : [];
+      // Normalise source and type fields so filters work regardless of n8n casing
+      const normaliseEvent = (e: any) => {
+        if (!e || typeof e !== 'object') return e;
+        const rawSource = String(e.source ?? '').trim();
+        const rawType = String(e.type ?? 'Meeting').trim();
+
+        let source = rawSource;
+        const srcLower = rawSource.toLowerCase().replace(/[\s_-]/g, '');
+        if (srcLower === 'googlecalendar' || srcLower === 'google') source = 'Google Calendar';
+        else if (srcLower === 'zohocalendar' || srcLower === 'zoho') source = 'Zoho Calendar';
+        else if (srcLower === 'zohoprojects' || srcLower === 'zohoprojects') source = 'Zoho Projects';
+
+        const typeLower = rawType.toLowerCase();
+        let type = rawType;
+        if (typeLower === 'milestone') type = 'Milestone';
+        else if (typeLower === 'deadline') type = 'Deadline';
+        else if (typeLower === 'meeting') type = 'Meeting';
+        else if (typeLower === 'task') type = 'Milestone';
+        else if (typeLower === 'distribution') type = 'Distribution';
+        else if (typeLower === 'valuation') type = 'Valuation';
+        else if (typeLower === 'care') type = 'Care';
+
+        return { ...e, source, type };
+      };
+
+      const calEvents = Array.isArray(unwrapped?.calendarEvents)
+        ? unwrapped.calendarEvents.map(normaliseEvent)
+        : [];
+      const upEvents = Array.isArray(unwrapped?.upcomingEvents)
+        ? unwrapped.upcomingEvents.map(normaliseEvent)
+        : [];
       const calSummary = unwrapped?.calendarSummary ?? { totalEvents: 0, upcomingCount: 0, byType: {} };
 
       console.log('[Calendar Poll] sources in response:', [...new Set(calEvents.map((e: any) => e.source))]);
