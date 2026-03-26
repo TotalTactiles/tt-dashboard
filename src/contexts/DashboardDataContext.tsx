@@ -642,13 +642,14 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       const anticipated = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[m] ?? 0) : sv(cs?.anticipatedSurplus, m);
       const probable = jobsProbableRow ? parseNum(jobsProbableRow[m] ?? 0) : 0;
       const costProbable = costOfJobsProbableRow ? parseNum(costOfJobsProbableRow[m] ?? 0) : 0;
-      const surplusWithJobs = surplusWithJobsRow ? parseNum(surplusWithJobsRow[m] ?? 0) : (cs?.anticipatedSurplusWithJobs ? sv(cs.anticipatedSurplusWithJobs, m) : 0);
+      // Compute independently — do NOT read surplusWithJobsRow from the sheet.
+      // The sheet row double-counts jobs that are promoted from YLW to confirmed,
+      // causing both surplus lines to converge. Computing fresh guarantees a real gap.
+      const surplusWithJobs = anticipated + probable - costProbable;
       return { month: m, totalOutgoings: totalOut, anticipatedSurplus: anticipated, probableJobs: probable, costOfJobsProbable: costProbable, surplusIncludingProbable: surplusWithJobs };
     });
 
-    // Debug: log first forecast data point to verify all 5 series have data
     if (forecastChartData.length > 0) {
-      const sample = forecastChartData[0];
       const hasData = {
         totalOutgoings: forecastChartData.some(d => d.totalOutgoings !== 0),
         anticipatedSurplus: forecastChartData.some(d => d.anticipatedSurplus !== 0),
@@ -656,7 +657,14 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         costOfJobsProbable: forecastChartData.some(d => d.costOfJobsProbable !== 0),
         surplusIncludingProbable: forecastChartData.some(d => d.surplusIncludingProbable !== 0),
       };
-      console.log("[Forecast Series Debug]", { sampleMonth: sample.month, sample, hasNonZeroData: hasData });
+      const monthsWithProbable = forecastChartData.filter(d => d.probableJobs > 0);
+      console.log("[Forecast Series Debug] surplusIncludingProbable now COMPUTED as anticipated+probable-cost (not read from sheet row)", { hasNonZeroData: hasData });
+      if (monthsWithProbable.length > 0) {
+        console.log("[Forecast Series Debug] Gap verification:", monthsWithProbable.map(d => ({
+          month: d.month, baseSurplus: d.anticipatedSurplus, withProbable: d.surplusIncludingProbable,
+          gap: d.surplusIncludingProbable - d.anticipatedSurplus, probableNet: d.probableJobs - d.costOfJobsProbable,
+        })));
+      }
     }
 
     // ===== KPI STAT CARDS =====

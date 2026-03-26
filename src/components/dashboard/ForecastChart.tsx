@@ -11,7 +11,7 @@ const SERIES = [
   { key: "anticipatedSurplus", label: "Anticipated Cash Surplus/(Deficit)", color: "green" as const, dash: undefined, strokeWidth: 2.5 },
   { key: "probableJobs", label: "Jobs Probable To Be Won", color: "amber" as const, dash: "8 4", strokeWidth: 2 },
   { key: "costOfJobsProbable", label: "Cost of Jobs Probable To Be Won", color: "orange" as const, dash: "4 4", strokeWidth: 2 },
-  { key: "surplusIncludingProbable", label: "Anticipated Cash Surplus/(Deficit) Including Probable Jobs", color: "brightGreen" as const, dash: "10 3", strokeWidth: 2.5 },
+  { key: "surplusIncludingProbable", label: "Anticipated Cash Surplus/(Deficit) Including Probable Jobs", color: "teal" as const, dash: "10 3", strokeWidth: 2.5 },
 ] as const;
 
 const ForecastChart = React.memo(() => {
@@ -26,20 +26,14 @@ const ForecastChart = React.memo(() => {
     green: tc.green,
     amber: tc.amber,
     orange: tc.orange,
-    brightGreen: tc.green,
+    teal: "#2dd4bf",
+    brightGreen: "#2dd4bf",
     purple: tc.purple,
     blue: tc.blue,
   };
 
-  // Make "bright green" slightly different from the standard green
-  // by using a brighter shade for the surplus including probable line
-  const getBrightGreen = () => {
-    // Use the CSS green but it's already bright enough from the token
-    return tc.green;
-  };
-
   const getSeriesColor = (colorKey: string) => {
-    if (colorKey === "brightGreen") return getBrightGreen();
+    if (colorKey === "teal" || colorKey === "brightGreen") return "#2dd4bf";
     return seriesColors[colorKey] || tc.blue;
   };
 
