@@ -893,65 +893,71 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       return 0;
     };
 
-    // Open = OPENING BALANCES row (row 2) for current month
-    const cfOpeningBal = cfRowVal(openingBalancesRow, currentMonthKey);
+    // ── Opening Balance ───────────────────────────────────────────────
+    const cfOpeningBal  = cfRowVal(openingBalancesRow, currentMonthKey);
+    const daysInMonth   = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const dayOfMonth    = now.getDate();
+    const cfMonthLabel  = `${MONTH_ABBR_LIST[currentMonthIdx]}-${String(currentYear).slice(-2)}`;
 
-    // Today = prorated net position:
-    // Opening Balance + (Total Income × day proration) - (Total Cost of Sales × day proration) - (Fixed OpEx × day proration)
-    const cfTotalIncome    = cfRowVal(totalIncomeRow, currentMonthKey);
-    const cfVariableCosts  = Math.abs(cfRowVal(totalCostOfSalesRow, currentMonthKey));
-    const cfFixedMonthly   = Math.abs(cfRowVal(totalOpExInclSalariesRow, currentMonthKey));
-    const daysInMonth      = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    const dayOfMonth       = now.getDate();
-    const dayFraction      = dayOfMonth / daysInMonth;
-    // Prorated: what portion of monthly income/costs has likely been incurred by today
-    const cfProratedIncome    = cfTotalIncome * dayFraction;
-    const cfProratedVariable  = cfVariableCosts * dayFraction;
-    const cfProratedFixed     = cfFixedMonthly * dayFraction;
-    const cfToDateValue       = cfOpeningBal + cfProratedIncome - cfProratedVariable - cfProratedFixed;
-    const cfMonthLabel        = `${MONTH_ABBR_LIST[currentMonthIdx]}-${String(currentYear).slice(-2)}`;
+    // ── Read individual cashflow rows for timing-accurate "Today" calc ─
+    const findCFRow = (labelFragment: string) =>
+      rawCashflow.find((r: any) => {
+        const lbl = getCashflowRowLabel(r).toUpperCase();
+        return lbl.includes(labelFragment.toUpperCase());
+      }) ?? null;
 
-    console.log('[CashflowPosition FINAL]', {
-      currentMonthKey, dayOfMonth, daysInMonth, dayFraction: dayFraction.toFixed(3),
+    const salariesRow_cf   = findCFRow('TOTAL SALARIES');
+    const cosRow_cf        = findCFRow('TOTAL COST OF SALES');
+    const opexOnlyRow_cf   = rawCashflow.find((r: any) => {
+      const lbl = getCashflowRowLabel(r).toUpperCase();
+      return lbl === 'TOTAL OPERATING EXPENSES' ||
+        (lbl.includes('TOTAL OPERATING EXPENSES') && !lbl.includes('SALARIES'));
+    }) ?? null;
+    const gstPaidRow_cf    = findCFRow('GST PAID');
+    const carLoanRow_cf    = findCFRow('MOTOR VEHICLE REPAY');
+    const bizLoanRow_cf    = findCFRow('BUSINESS LOAN');
+
+    const cfSalaries    = Math.abs(cfRowVal(salariesRow_cf,  currentMonthKey));
+    const cfLabour      = Math.abs(cfRowVal(cosRow_cf,       currentMonthKey));
+    const cfOpExOnly    = Math.abs(cfRowVal(opexOnlyRow_cf,  currentMonthKey));
+    const cfGSTPaid     = Math.abs(cfRowVal(gstPaidRow_cf,   currentMonthKey));
+    const cfCarLoan     = Math.abs(cfRowVal(carLoanRow_cf,   currentMonthKey));
+    const cfBizLoan     = Math.abs(cfRowVal(bizLoanRow_cf,   currentMonthKey));
+
+    // ── Payment timing rules ──────────────────────────────────────────
+    const weeksElapsed   = Math.min(Math.floor(dayOfMonth / 7), 4);
+    const weeklyFraction = weeksElapsed / 4;
+
+    const cfMTDCosts =
+      cfOpExOnly  * 1                              +
+      cfSalaries  * weeklyFraction                 +
+      cfLabour    * weeklyFraction                 +
+      cfGSTPaid   * 1                              +
+      cfCarLoan   * (dayOfMonth >= 15 ? 1 : 0)    +
+      cfBizLoan   * (dayOfMonth >= 28 ? 1 : 0);
+
+    const cfToDateValue = cfOpeningBal - cfMTDCosts;
+
+    console.log('[CashflowPosition]', {
+      currentMonthKey, dayOfMonth, weeksElapsed, weeklyFraction,
       cfOpeningBal,
-      cfTotalIncome, cfProratedIncome,
-      cfVariableCosts, cfProratedVariable,
-      cfFixedMonthly, cfProratedFixed,
-      cfToDateValue,
-      openingBalRowLabel: getCashflowRowLabel(openingBalancesRow ?? {}),
+      costs: {
+        opex_100pct:    cfOpExOnly,
+        salaries_pct:   +(cfSalaries * weeklyFraction).toFixed(0),
+        labour_pct:     +(cfLabour   * weeklyFraction).toFixed(0),
+        gst_100pct:     cfGSTPaid,
+        carLoan:        cfCarLoan   * (dayOfMonth >= 15 ? 1 : 0),
+        bizLoan:        cfBizLoan   * (dayOfMonth >= 28 ? 1 : 0),
+      },
+      cfMTDCosts: +cfMTDCosts.toFixed(0),
+      cfToDateValue: +cfToDateValue.toFixed(0),
     });
 
-    // CASHFLOW POSITION DIAGNOSTICS
-    console.log('[CF DIAG] currentMonthKey:', currentMonthKey);
-    console.log('[CF DIAG] openingBalancesRow label:', openingBalancesRow?._label_rowLabel ?? openingBalancesRow?.col_1 ?? 'NOT FOUND');
-    console.log('[CF DIAG] openingBalancesRow Mar-26 value:', openingBalancesRow?.['Mar-26']);
-    console.log('[CF DIAG] openingBalancesRow all month keys and values:',
-      openingBalancesRow
-        ? Object.entries(openingBalancesRow)
-            .filter(([k]) => /^[A-Za-z]{3}-\d{2}$/.test(k))
-            .map(([k, v]) => `${k}=${v}`)
-            .join(', ')
-        : 'ROW NOT FOUND'
-    );
-    console.log('[CF DIAG] cfOpeningBal resolved to:', cfOpeningBal);
-    console.log('[CF DIAG] cfToDateValue resolved to:', cfToDateValue);
-    console.log('[CF DIAG] prevMonKey:', prevMonKey);
-    console.log('[CF DIAG] cfRowVal(openingBalancesRow, Mar-26) direct test:',
-      openingBalancesRow ? (() => {
-        const keys = Object.keys(openingBalancesRow);
-        const match = keys.find(k => k.trim().toUpperCase() === 'MAR-26');
-        return match ? `matched "${match}" = ${openingBalancesRow[match]}` : `NO MATCH — available: ${keys.filter(k => /^[A-Za-z]{3}-\d{2}$/i.test(k)).join(', ')}`;
-      })() : 'row not found'
-    );
-
-    // Prev month values for comparison
-    const prevNormKey = normalizeKey(prevMonKey);
+    // ── Prev month comparison ─────────────────────────────────────────
+    const prevNormKey    = normalizeKey(prevMonKey);
     const prevOpeningBal = cfRowVal(openingBalancesRow, prevMonKey);
-    // Prev month was complete — use full month income minus full costs
-    const prevTotalIncome   = Math.abs(cfRowVal(totalIncomeRow, prevMonKey));
-    const prevVariableCosts = Math.abs(cfRowVal(totalCostOfSalesRow, prevMonKey));
-    const prevFixedMonthly  = Math.abs(cfRowVal(totalOpExInclSalariesRow, prevMonKey));
-    const prevToDateValue   = prevOpeningBal + prevTotalIncome - prevVariableCosts - prevFixedMonthly;
+    const prevTotalOut   = Math.abs(cfRowVal(totalOutgoingsRow, prevMonKey));
+    const prevToDateValue = prevOpeningBal - prevTotalOut;
     const hasPrevCashflow = !!(openingBalancesRow && findMatchingRowKey(openingBalancesRow, prevNormKey));
 
     // Helper for MoM delta formatting
@@ -1044,7 +1050,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
           momDelta: noData ? undefined : (hasPrevCashflow ? fmtDelta(cfOpeningBal, prevOpeningBal, "currency") : noMomText),
           altMomDelta: noData ? undefined : (hasPrevCashflow ? fmtDelta(cfToDateValue, prevToDateValue, "currency") : noMomText),
           momContext: noData ? undefined : `Opening balance · ${cfMonthLabel}`,
-          altMomContext: noData ? undefined : `Est. net position · ${cfMonthLabel}`,
+          altMomContext: noData ? undefined : `Pre-invoice · day ${dayOfMonth}/${daysInMonth} · ${cfMonthLabel}`,
           altValue2: cfActualValue !== null ? (noData ? "--" : fmtAUD(cfActualValue)) : "Tap to set",
           altChange2: cfActualLabel,
           altPositive2: (cfActualValue ?? 0) >= 0,
