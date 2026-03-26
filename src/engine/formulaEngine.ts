@@ -771,41 +771,37 @@ export function resolveKpiVariables(store: DataStore): Record<string, number> {
       : 0
     : 0;
 
-  // CashPosition = "Anticipated Cash Surplus/(Deficit)" row × current month ONLY (no fallback)
-  const anticipatedSurplusRow = findCashflowRow(store.cashflow, "Anticipated Cash Surplus/(Deficit)");
-  // Exclude the "Including Probable Jobs" variant
-  const anticipatedSurplusRowFiltered = (() => {
-    if (!anticipatedSurplusRow) return undefined;
-    const label = normalizeRowLabel(anticipatedSurplusRow._label_rowLabel ?? anticipatedSurplusRow.col_1 ?? "");
-    if (label.includes("INCLUDING PROBABLE")) return undefined;
-    return anticipatedSurplusRow;
+  // CashPosition variable = OPENING BALANCES row (row 2) for current month
+  // This is the actual bank opening balance, not a forecast surplus
+  const openingBalRow = (() => {
+    const strict = store.cashflow.find(r => normalizeRowLabel(r._label_rowLabel ?? r.col_1 ?? "") === "OPENING BALANCES");
+    if (strict) return strict;
+    return store.cashflow.find(r => {
+      const lbl = normalizeRowLabel(r._label_rowLabel ?? r.col_1 ?? "");
+      return lbl.includes("OPENING") && !lbl.includes("PROBABLE") && !lbl.includes("WITH");
+    });
   })();
 
   const cashPositionMonthKey = buildCurrentMonthKey();
   let cashPositionValue = 0;
   let cashPositionMatchedKey: string | null = null;
-  let cashPositionFallback = false;
 
-  if (anticipatedSurplusRowFiltered) {
-    const rowMonthKeys = getRowMonthKeys(anticipatedSurplusRowFiltered);
+  if (openingBalRow) {
+    const rowMonthKeys = getRowMonthKeys(openingBalRow);
     const monthMap = getCanonicalMonthMap(rowMonthKeys);
     const currentNorm = normalizeMonthKey(cashPositionMonthKey)?.toUpperCase() ?? cashPositionMonthKey.toUpperCase();
     const exactKey = monthMap.get(currentNorm) ?? null;
     if (exactKey) {
-      cashPositionValue = parseNum(anticipatedSurplusRowFiltered[exactKey] ?? 0);
+      cashPositionValue = parseNum(openingBalRow[exactKey] ?? 0);
       cashPositionMatchedKey = exactKey;
     }
-    // NO fallback to past months
   }
 
-  console.log("[CashPosition Variable Verification]", {
-    browserDate: new Date().toISOString(),
+  console.log("[CashPosition Variable]", {
+    sourceRow: "OPENING BALANCES",
     resolvedMonthKey: cashPositionMonthKey,
-    sourceRow: "Anticipated Cash Surplus/(Deficit)",
     matchedColumn: cashPositionMatchedKey,
     value: cashPositionValue,
-    fallbackTriggered: cashPositionFallback,
-    reason: cashPositionMatchedKey ? "PASS" : `Current month "${cashPositionMonthKey}" not found`,
   });
 
   // Confirmed-only conversion rate: (PO Received + Completed) / Grand Total

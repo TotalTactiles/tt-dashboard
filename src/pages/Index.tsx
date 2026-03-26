@@ -463,51 +463,69 @@ const DashboardContent = () => {
                     growthFormatted = (aim as any).revenueGrowthMoMFormatted ?? "N/A";
                     growthLabel = "Dec-25 → Mar-26";
                   } else {
-                    const val = (investorMetrics as any)?.revenueGrowthMoM ?? null;
-                    const fmt = (investorMetrics as any)?.revenueGrowthMoMFormatted ?? "N/A";
-                    const lbl = (investorMetrics as any)?.revenueGrowthLabel ?? "This Year";
-                    growthValue = val;
-                    growthFormatted = fmt;
-                    growthLabel = lbl;
+                    // This Year (YTD) scope
+                    const im = investorMetrics as any;
+                    const ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                    const nowDate = new Date();
+                    const cMonthIdx = nowDate.getMonth();
+                    const cYear = nowDate.getFullYear();
+
+                    // Primary value: YTD revenue total (absolute $)
+                    const ytdRevenue = im?.revenueExGST ?? 0;
+                    const ytdFmt = ytdRevenue >= 1000
+                      ? `$${(ytdRevenue / 1000).toFixed(1)}K`
+                      : `$${Math.round(ytdRevenue).toLocaleString()}`;
+                    const ytdLabel = `Jan–${ABBR[cMonthIdx]} ${cYear} YTD`;
+
+                    // Alt value: % growth — use n8n's value if available, otherwise compute MoM trend
+                    const growthPct = im?.revenueGrowthMoM ?? null;
+                    const growthFmtAlt = growthPct !== null
+                      ? (growthPct >= 0 ? `+${growthPct.toFixed(1)}%` : `${growthPct.toFixed(1)}%`)
+                      : (() => {
+                          // Compute average MoM growth across YTD months from cashflow data
+                          const cashflowData = (liveData as any)?.cashflow as any[] ?? [];
+                          const incomeRow = cashflowData.find((r: any) => {
+                            const lbl = String(r._label_rowLabel ?? r.col_1 ?? "").toUpperCase().trim();
+                            return lbl === "TOTAL INCOME";
+                          });
+                          if (!incomeRow) return "N/A";
+                          const ytdMonthKeys: string[] = [];
+                          for (let i = 0; i <= cMonthIdx; i++) {
+                            ytdMonthKeys.push(`${ABBR[i]}-${String(cYear).slice(-2)}`);
+                          }
+                          const ytdValues = ytdMonthKeys
+                            .map(k => parseFloat(String(incomeRow[k] ?? "0").replace(/[$,()]/g, "")) || 0)
+                            .filter(v => v > 0);
+                          if (ytdValues.length < 2) return "N/A";
+                          let totalGrowth = 0;
+                          let count = 0;
+                          for (let i = 1; i < ytdValues.length; i++) {
+                            if (ytdValues[i-1] > 0) {
+                              totalGrowth += ((ytdValues[i] - ytdValues[i-1]) / ytdValues[i-1]) * 100;
+                              count++;
+                            }
+                          }
+                          const avgGrowth = count > 0 ? totalGrowth / count : 0;
+                          return avgGrowth >= 0 ? `+${avgGrowth.toFixed(1)}%` : `${avgGrowth.toFixed(1)}%`;
+                        })();
+                    const growthLabelAlt = im?.revenueGrowthLabel ?? `Jan–${ABBR[cMonthIdx]} vs prior year`;
+
+                    return (
+                      <StatCard
+                        label="Revenue Growth"
+                        value={ytdFmt}
+                        change={ytdLabel}
+                        positive={true}
+                        index={12}
+                        altValue={growthFmtAlt}
+                        altChange={growthFmtAlt === "N/A" ? "No prior data" : growthLabelAlt}
+                        altPositive={(growthPct ?? 0) >= 0}
+                        toggleLabelBase="$"
+                        toggleLabelAlt="%"
+                        greenAltPill={true}
+                      />
+                    );
                   }
-
-                  // For YTD scope: add $ / % pill toggle when growth is null (YTD dollar amount)
-                  if (investorScope === "ytd" || investorScope === "full_year" || investorScope === "month") {
-                    // Compute alt values: if base is $ (null growth), alt = MoM %
-                    // If base is % (has growth), alt = $ amount
-                    const momVal = (investorMetrics as any)?.revenueGrowthMoM ?? null;
-                    const momFmt = (investorMetrics as any)?.revenueGrowthMoMFormatted ?? "N/A";
-                    const momLbl = (investorMetrics as any)?.revenueGrowthLabel ?? "Month on Month";
-
-                    if (investorScope === "ytd" && growthValue === null) {
-                      // Base = $ amount, Alt = MoM %
-                      return (
-                        <StatCard
-                          label="Revenue Growth"
-                          value={growthFormatted}
-                          change={growthLabel}
-                          positive={true}
-                          index={12}
-                          altValue={momFmt}
-                          altChange={momLbl}
-                          altPositive={(momVal ?? 0) >= 0}
-                          toggleLabelBase="$"
-                          toggleLabelAlt="%"
-                          greenAltPill={true}
-                        />
-                      );
-                    }
-                  }
-
-                  return (
-                    <StatCard
-                      label="Revenue Growth"
-                      value={growthFormatted}
-                      change={growthLabel}
-                      positive={growthValue === null ? true : growthValue >= 0}
-                      index={12}
-                    />
-                  );
                 })()}
                 <StatCard label="Pipeline Coverage" value={im.pipelineCoverageFormatted ?? "N/A"} change={im.pipelineValueFormatted ? `${im.pipelineValueFormatted} pipeline` : ""} positive={(im.pipelineCoverage ?? 0) >= 2} index={13} />
                 <StatCard
