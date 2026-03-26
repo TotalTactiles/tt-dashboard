@@ -860,11 +860,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     // Prev month values for comparison
     const prevNormKey = normalizeKey(prevMonKey);
     const prevOpeningBal = cfRowVal(openingBalancesRow, prevMonKey);
-    const prevTotalIncome = cfRowVal(totalIncomeRow, prevMonKey);
-    const prevVariableCosts = cfRowVal(totalCostOfSalesRow, prevMonKey);
-    const prevFixedMonthly = Math.abs(cfRowVal(totalOpExInclSalariesRow, prevMonKey));
-    // Prev month is complete so use full fixed costs (no proration)
-    const prevToDateValue = prevOpeningBal - prevFixedMonthly - prevVariableCosts;
+    const prevToDateValue = cfRowVal(anticipatedSurplusRow, prevMonKey);
     const hasPrevCashflow = !!(openingBalancesRow && findMatchingRowKey(openingBalancesRow, prevNormKey));
 
     // Helper for MoM delta formatting
