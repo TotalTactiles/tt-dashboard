@@ -456,25 +456,59 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     // Helper to get value from a summary dict for a month
     const sv = (dict: any, month: string) => parseNum(dict?.[month] ?? 0);
 
-    // Find cashflow row by EXACT label match first, then fuzzy fallback
     const getCashflowRowLabel = (r: any): string => (r._label_rowLabel ?? r.col_1 ?? "").toString().trim();
+
+    // Strict finder: exact match only, never fuzzy — prevents wrong-row matches
+    const findCashflowRowStrict = (label: string) => {
+      const upper = label.toUpperCase().trim();
+      return rawCashflow.find((r: any) => getCashflowRowLabel(r).toUpperCase() === upper) ?? null;
+    };
+
+    // Fuzzy finder: exact first, then contains — only used for rows with stable unique labels
     const findCashflowRowExact = (label: string) => {
       const upper = label.toUpperCase().trim();
-      // 1. Exact match
       const exact = rawCashflow.find((r: any) => getCashflowRowLabel(r).toUpperCase() === upper);
       if (exact) return exact;
-      // 2. Fuzzy: but require the row label to contain the FULL search term (not the other way around for short labels)
       return rawCashflow.find((r: any) => {
         const rl = getCashflowRowLabel(r).toUpperCase();
         return rl.includes(upper);
       }) ?? null;
     };
 
-    // IMPORTANT: Find longer/more specific labels FIRST to avoid ambiguous fuzzy matches
+    // Log all cashflow row labels so we can see exactly what n8n is sending
+    console.log("[Cashflow Row Labels from n8n]", rawCashflow.slice(0, 10).map((r: any, i: number) => `[${i}] "${getCashflowRowLabel(r)}"`).join(' | '));
+    console.log("[Cashflow Row Labels from n8n rows 10-20]", rawCashflow.slice(10, 20).map((r: any, i: number) => `[${i+10}] "${getCashflowRowLabel(r)}"`).join(' | '));
+
     const surplusWithJobsRow = findCashflowRowExact("Anticipated Cash Surplus/(Deficit) Including Probable Jobs");
     const costOfJobsProbableRow = findCashflowRowExact("Cost of Jobs Probable To Be Won");
     const jobsProbableRow = findCashflowRowExact("Jobs Probable To Be Won");
-    const openingBalancesRow = findCashflowRowExact("OPENING BALANCES");
+
+    // OPENING BALANCES — use strict match first, then positional fallback
+    const openingBalancesRow = (() => {
+      const strict = findCashflowRowStrict("OPENING BALANCES");
+      if (strict) {
+        console.log("[openingBalancesRow] Found via strict label match:", getCashflowRowLabel(strict));
+        return strict;
+      }
+      const fuzzy = rawCashflow.find((r: any) => {
+        const lbl = getCashflowRowLabel(r).toUpperCase();
+        return lbl.includes("OPENING") && !lbl.includes("PROBABLE") && !lbl.includes("WITH");
+      });
+      if (fuzzy) {
+        console.log("[openingBalancesRow] Found via fuzzy match:", getCashflowRowLabel(fuzzy));
+        return fuzzy;
+      }
+      const positional = rawCashflow[0] ?? null;
+      console.warn("[openingBalancesRow] Using positional fallback (index 0). Label:", getCashflowRowLabel(positional ?? {}));
+      return positional;
+    })();
+
+    console.log("[openingBalancesRow FINAL]", {
+      label: getCashflowRowLabel(openingBalancesRow ?? {}),
+      'Mar-26': openingBalancesRow?.['Mar-26'],
+      'Apr-26': openingBalancesRow?.['Apr-26'],
+      allMonthKeys: openingBalancesRow ? Object.keys(openingBalancesRow).filter(k => /^[A-Za-z]{3}-\d{2}$/i.test(k)).map(k => `${k}=${openingBalancesRow[k]}`).join(', ') : 'NOT FOUND',
+    });
     const totalOutgoingsRow = findCashflowRowExact("Total Outgoings");
     const totalIncomeRow = findCashflowRowExact("Total Income");
     const totalCostOfSalesRow = findCashflowRowExact("Total Cost of Sales");
