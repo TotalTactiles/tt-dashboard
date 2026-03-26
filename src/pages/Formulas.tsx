@@ -58,7 +58,7 @@ const Formulas = () => {
     result.push({
       key: "Cashflow & Forecasts",
       title: "Cashflow & Forecasts",
-      subtitle: "Coming soon",
+      subtitle: "Opening balance, today estimate, forecast surplus & probable jobs",
       formulas: grouped["Cashflow & Forecasts"] || [],
     });
 
