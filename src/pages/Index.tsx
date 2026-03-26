@@ -463,19 +463,12 @@ const DashboardContent = () => {
                     growthFormatted = (aim as any).revenueGrowthMoMFormatted ?? "N/A";
                     growthLabel = "Dec-25 → Mar-26";
                   } else {
-                    const lifetimeIm = (liveData as any)?.investorMetricsLifetime as any;
-                    const ytdRevenue2026 = (investorMetrics as any)?.revenueExGST ?? 0;
-                    const ytdRevenue2025 = lifetimeIm?.revenueExGST2025 ?? null;
-
-                    if (ytdRevenue2025 && ytdRevenue2025 > 0 && ytdRevenue2026 > 0) {
-                      growthValue = ((ytdRevenue2026 - ytdRevenue2025) / ytdRevenue2025) * 100;
-                      growthFormatted = `${growthValue >= 0 ? "+" : ""}${growthValue.toFixed(1)}%`;
-                      growthLabel = "vs same period last year";
-                    } else {
-                      growthValue = (investorMetrics as any)?.revenueGrowthMoM ?? null;
-                      growthFormatted = (investorMetrics as any)?.revenueGrowthMoMFormatted ?? "N/A";
-                      growthLabel = (investorMetrics as any)?.revenueGrowthLabel ?? "Month on Month";
-                    }
+                    const val = (investorMetrics as any)?.revenueGrowthMoM ?? null;
+                    const fmt = (investorMetrics as any)?.revenueGrowthMoMFormatted ?? "N/A";
+                    const lbl = (investorMetrics as any)?.revenueGrowthLabel ?? "This Year";
+                    growthValue = val;
+                    growthFormatted = fmt;
+                    growthLabel = lbl;
                   }
 
                   return (
@@ -483,7 +476,7 @@ const DashboardContent = () => {
                       label="Revenue Growth"
                       value={growthFormatted}
                       change={growthLabel}
-                      positive={(growthValue ?? 0) >= 0}
+                      positive={growthValue === null ? true : growthValue >= 0}
                       index={12}
                     />
                   );
