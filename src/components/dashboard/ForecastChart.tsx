@@ -120,10 +120,51 @@ const ForecastChart = React.memo(() => {
                   maxWidth: "320px",
                   boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
                 }}
-                formatter={(value: number, name: string) => {
-                  const series = SERIES.find((s) => s.key === name);
-                  if (!series || !visibleKeys.has(name)) return null;
-                  return [`$${value.toLocaleString()}`, series.label];
+                content={({ active, payload, label }) => {
+                  if (!active || !payload || payload.length === 0) return null;
+                  const point = payload[0]?.payload as any;
+                  if (!point) return null;
+                  const visiblePayload = payload.filter(p => visibleKeys.has(p.dataKey as string));
+                  const baseSurplus = point.anticipatedSurplus ?? 0;
+                  const withProbable = point.surplusIncludingProbable ?? 0;
+                  const gap = withProbable - baseSurplus;
+                  const showGap = Math.abs(gap) > 0 &&
+                    visibleKeys.has("anticipatedSurplus") &&
+                    visibleKeys.has("surplusIncludingProbable");
+                  return (
+                    <div style={{
+                      backgroundColor: tc.tooltipBg,
+                      border: `1px solid ${tc.tooltipBorder}`,
+                      borderRadius: "8px",
+                      fontFamily: "JetBrains Mono",
+                      fontSize: "11px",
+                      padding: "8px 12px",
+                      maxWidth: "320px",
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+                    }}>
+                      <p style={{ color: tc.tooltipText, marginBottom: 6, fontWeight: 600 }}>{label}</p>
+                      {visiblePayload.map((p) => {
+                        const s = SERIES.find(s => s.key === p.dataKey);
+                        if (!s) return null;
+                        const color = getSeriesColor(s.color);
+                        return (
+                          <p key={p.dataKey as string} style={{ color, marginBottom: 2 }}>
+                            {s.label}: ${(p.value as number).toLocaleString()}
+                          </p>
+                        );
+                      })}
+                      {showGap && (
+                        <p style={{
+                          color: gap > 0 ? "#2dd4bf" : tc.red,
+                          marginTop: 6,
+                          paddingTop: 6,
+                          borderTop: `1px solid ${tc.tooltipBorder}`,
+                        }}>
+                          Probable uplift: {gap > 0 ? "+" : ""}${Math.round(gap).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  );
                 }}
               />
               {SERIES.map((s) => {
