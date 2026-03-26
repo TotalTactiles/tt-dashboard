@@ -115,15 +115,57 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [localActualValue, setLocalActualValue] = useState<number | null>(() => {
+    try {
+      const stored = localStorage.getItem('tt_actual_bank_balance');
+      if (!stored) return null;
+      const parsed = JSON.parse(stored);
+      return typeof parsed.value === 'number' ? parsed.value : null;
+    } catch { return null; }
+  });
+  const [localActualDate, setLocalActualDate] = useState<string | null>(() => {
+    try {
+      const stored = localStorage.getItem('tt_actual_bank_balance');
+      if (!stored) return null;
+      const parsed = JSON.parse(stored);
+      return parsed.date ?? null;
+    } catch { return null; }
+  });
+
+  const saveActualBalance = (raw: string) => {
+    const num = parseFloat(raw.replace(/[^0-9.-]/g, ""));
+    if (isNaN(num)) {
+      setEditing(false);
+      return;
+    }
+    const dateStr = new Date().toLocaleDateString('en-AU', {
+      day: '2-digit', month: 'short', year: 'numeric'
+    });
+    localStorage.setItem('tt_actual_bank_balance', JSON.stringify({
+      value: num,
+      date: dateStr
+    }));
+    setLocalActualValue(num);
+    setLocalActualDate(dateStr);
+    setEditing(false);
+  };
+
   const hasToggle = !!altValue;
   const hasThirdToggle = !!toggleLabelAlt2;
 
   // Legacy compat
   const showAlt = mode === "alt";
 
-  const displayValue = mode === "alt2" && altValue2 ? altValue2 : mode === "alt" && altValue ? altValue : value;
-  const displayChange = mode === "alt2" && altChange2 ? altChange2 : mode === "alt" && altChange ? altChange : change;
-  const displayPositive = mode === "alt2" && altPositive2 !== undefined ? altPositive2 : mode === "alt" && altPositive !== undefined ? altPositive : positive;
+  // Use local state for Actual if available (instant update without reload)
+  const resolvedActualValue = localActualValue !== null
+    ? `$${localActualValue >= 1_000_000 ? (localActualValue / 1_000_000).toFixed(2) + 'M' : localActualValue >= 1000 ? (localActualValue / 1000).toFixed(1) + 'K' : localActualValue.toFixed(0)}`
+    : altValue2 ?? "Tap to set";
+  const resolvedActualDate = localActualDate ? `Actual · ${localActualDate}` : (altChange2 ?? 'Actual · not set');
+  const isActualNotSet = resolvedActualValue === "Tap to set";
+
+  const displayValue = mode === "alt2" ? resolvedActualValue : mode === "alt" && altValue ? altValue : value;
+  const displayChange = mode === "alt2" ? resolvedActualDate : mode === "alt" && altChange ? altChange : change;
+  const displayPositive = mode === "alt2" ? (localActualValue ?? 0) >= 0 : mode === "alt" && altPositive !== undefined ? altPositive : positive;
 
   const isYellow = hasToggle && mode === "alt" && !greenAltPill;
   const isActual = mode === "alt2";
@@ -140,28 +182,10 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
 
   const isShort = abbreviatedDisplay.length <= 8;
 
-  const isActualNotSet = isActual && altValue2 === "Tap to set";
-
-  const saveActualBalance = (raw: string) => {
-    const num = parseFloat(raw.replace(/[^0-9.-]/g, ""));
-    if (isNaN(num)) {
-      setEditing(false);
-      return;
-    }
-    localStorage.setItem('tt_actual_bank_balance', JSON.stringify({
-      value: num,
-      date: new Date().toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' })
-    }));
-    setEditing(false);
-    // Trigger re-render by dispatching storage event
-    window.dispatchEvent(new Event('storage'));
-    // Force page reload to pick up new localStorage value in context
-    window.location.reload();
-  };
-
   const handleEditClick = () => {
-    // Pre-fill with current value if set
-    if (altValue2 && altValue2 !== "Tap to set") {
+    if (localActualValue !== null) {
+      setInputValue(String(localActualValue));
+    } else if (altValue2 && altValue2 !== "Tap to set") {
       setInputValue(altValue2.replace(/[^0-9.-]/g, ""));
     } else {
       setInputValue("");
@@ -335,14 +359,45 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
         </p>
       )}
 
-      {/* ROW 3b — Monthly context */}
+      {/* ROW 3b — Monthly context / Actual discrepancy */}
       {!noData && (() => {
         if (isActual) {
-          return displayChange && displayChange !== "--" ? (
-            <p className="font-mono text-muted-foreground/80" style={noteStyle} title={displayChange}>
-              {displayChange}
-            </p>
-          ) : null;
+          if (isActualNotSet) return null;
+          return (
+            <div className="space-y-0.5">
+              {/* Date line */}
+              <p style={sublineStyle} className="text-muted-foreground font-mono">
+                {resolvedActualDate}
+              </p>
+              {/* Discrepancy vs Today estimate */}
+              {(() => {
+                if (localActualValue === null) return null;
+                const todayRaw = altValue ?? "";
+                let todayNum = 0;
+                const mM = todayRaw.match(/\$([0-9.]+)M/);
+                const mK = todayRaw.match(/\$([0-9.]+)K/);
+                const mPlain = todayRaw.match(/\$([0-9,]+)/);
+                if (mM) todayNum = parseFloat(mM[1]) * 1_000_000;
+                else if (mK) todayNum = parseFloat(mK[1]) * 1_000;
+                else if (mPlain) todayNum = parseFloat(mPlain[1].replace(/,/g, ''));
+                if (todayNum === 0) return null;
+                const diff = localActualValue - todayNum;
+                const isOver = diff >= 0;
+                const absDiff = Math.abs(diff);
+                const diffFmt = absDiff >= 1000
+                  ? `$${(absDiff / 1000).toFixed(1)}K`
+                  : `$${Math.round(absDiff).toLocaleString()}`;
+                return (
+                  <p
+                    style={sublineStyle}
+                    className={`font-mono font-medium ${isOver ? 'text-chart-green' : 'text-chart-red'}`}
+                  >
+                    {isOver ? '↑' : '↓'} {diffFmt} {isOver ? 'above' : 'below'} est.
+                  </p>
+                );
+              })()}
+            </div>
+          );
         }
         const ctx = showAlt && altMomContext ? altMomContext : momContext;
         return ctx ? (
