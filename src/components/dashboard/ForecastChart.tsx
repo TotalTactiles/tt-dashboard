@@ -166,7 +166,7 @@ const ForecastChart = React.memo(() => {
                     dot={isGhost ? { r: 2.5, fill: sColor, strokeWidth: 0 } : { r: 3, fill: sColor, strokeWidth: 1, stroke: tc.dotStroke }}
                     activeDot={isGhost ? { r: 4, fill: sColor, strokeWidth: 1, stroke: tc.dotStroke } : { r: 5, fill: sColor, strokeWidth: 2, stroke: tc.dotStroke }}
                     animationDuration={1500}
-                    connectNulls={false}
+                    connectNulls={isGhost ? false : true}
                   />
                 ) : null;
               })}

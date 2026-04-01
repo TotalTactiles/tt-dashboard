@@ -693,7 +693,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     if (forecastChartData.length > 0) {
       const actualPoints = forecastChartData.filter(d => d.actualCashBalance !== null);
-      console.log("[Forecast Series Debug] Series: anticipatedSurplus + actualCashBalance (Row 73)");
+      console.log("[Forecast Series Debug] Series: totalOutgoings + anticipatedSurplus + actualCashBalance (Row 73)");
       console.log("[Forecast Series Debug] Actual cash balance data points:", actualPoints.length, actualPoints.map(d => ({ month: d.month, actual: d.actualCashBalance })));
     }
 
