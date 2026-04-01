@@ -700,9 +700,20 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     // ===== KPI STAT CARDS =====
     const noData = !hasLiveData;
 
-    // Card 4: Net Revenue = revenueSummary.totalValue - revenueSummary.totalCOGS (unified with formulaEngine)
+    // Card 4: Net Revenue = current year revenue ex-GST minus current year COGS
+    // Scoped to current year using revenueProjects (NOT revenueSummary which is all-time lifetime)
     const rs = liveData?.revenueSummary as any;
-    const netRevenue = (parseNum(rs?.totalValue ?? 0)) - (parseNum(rs?.totalCOGS ?? 0));
+    const currentYear4Digit = currentYear; // e.g. 2026
+    const currentYearRevenueProjects = revenueProjects.filter(rp => {
+      const dateStr = rp.invoiceDate || rp.otherDate;
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      return !isNaN(d.getTime()) && d.getFullYear() === currentYear4Digit;
+    });
+    const netRevenue = currentYearRevenueProjects.reduce((s, rp) => s + rp.valueExclGST, 0)
+      - currentYearRevenueProjects.reduce((s, rp) => s + rp.totalCOGS, 0);
+
+    console.log("[Net Revenue] Scoped to year:", currentYear4Digit, "| projects:", currentYearRevenueProjects.length, "| netRevenue:", netRevenue);
 
     // Card 5: Cashflow Position = current month's OPENING BALANCES value
     // Generate current month key in stable Mon-YY format (locale-independent)
@@ -997,20 +1008,31 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         momDelta: noData ? undefined : (hasPrevMon ? fmtDelta(curMon.wonVal, prevMon.wonVal, "currency") : noMomText),
         momContext: noData ? undefined : (curMon.wonCount > 0 ? `+${curMon.wonCount} jobs this month` : undefined),
       },
-      {
-        label: "Quoted Remaining",
-        value: noData ? "--" : fmtAUD(parseNum(qs?.remaining?.value ?? 0)),
-        change: noData ? "--" : `${parseNum(qs?.remaining?.count ?? 0)} jobs`,
-        positive: parseNum(qs?.remaining?.value ?? 0) >= 0, noData,
-        momDelta: noData ? undefined : (hasPrevMon ? fmtDelta(curMon.remainingVal, prevMon.remainingVal, "currency") : noMomText),
-      },
+      (() => {
+        // Quoted Remaining = Total Quoted minus Won (GRN) minus Lost/Dead
+        // Do NOT use qs.remaining — n8n sends GRAND TOTAL Active which includes YLW+GRN (~$1.2M, wrong)
+        // Correct figure = quotes with status "pending" only (Quote Sent + Negotiation — not yet won or lost)
+        const remainingJobs = quotedJobs.filter(j => j.status === "pending");
+        const remainingVal = remainingJobs.reduce((s, j) => s + j.value, 0);
+        const remainingCount = remainingJobs.length;
+        const prevRemaining = quotedJobs
+          .filter(j => j.status === "pending" && dateToMonKeyLocal(j.dateQuoted) === prevMonKey)
+          .reduce((s, j) => s + j.value, 0);
+        return {
+          label: "Quoted Remaining",
+          value: noData ? "--" : fmtAUD(remainingVal),
+          change: noData ? "--" : `${remainingCount} jobs`,
+          positive: remainingVal >= 0, noData,
+          momDelta: noData ? undefined : (hasPrevMon ? fmtDelta(curMon.remainingVal, prevRemaining, "currency") : noMomText),
+        };
+      })(),
       {
         label: "Net Revenue",
         value: noData ? "--" : fmtAUD(netRevenue),
         change: "--",
         positive: netRevenue >= 0, noData,
         momDelta: noData ? undefined : (prevMonRev.count > 0 ? fmtDelta(curMonRev.netRevenue, prevMonRev.netRevenue, "currency") : noMomText),
-        momContext: noData ? undefined : (curMonRev.count > 0 ? `${curMonRev.count} revenue items this month` : undefined),
+        momContext: noData ? undefined : (curMonRev.count > 0 ? `${curMonRev.count} revenue items this month` : `${currentYear4Digit} YTD`),
       },
       (() => {
         // Read manual actual balance from localStorage
