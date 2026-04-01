@@ -24,11 +24,14 @@ function parseMonthLabel(label: string): { month: number; year: number } | null 
 interface CashflowChartProps {
   adjustedData?: IncomeOutgoingsPoint[];
   adjustments?: GoalAdjustment[];
+  hasActiveGoals?: boolean;
 }
 
-const CashflowChartInner = ({ adjustedData, adjustments = [] }: CashflowChartProps) => {
+const CashflowChartInner = ({ adjustedData, adjustments = [], hasActiveGoals = false }: CashflowChartProps) => {
   const { incomeOutgoingsData, dataHealth } = useDashboardData();
   const chartData = useMemo(() => adjustedData ?? incomeOutgoingsData, [adjustedData, incomeOutgoingsData]);
+  // baselineData is always the unmodified surplus — used to draw the green baseline when goals are active
+  const baselineData = incomeOutgoingsData;
   const { resolvedTheme } = useTheme();
 
   const [selStart, setSelStart] = useState<string | null>(null);
@@ -70,9 +73,10 @@ const CashflowChartInner = ({ adjustedData, adjustments = [] }: CashflowChartPro
       if (monthAdj.length === 0) return point;
       const seen = new Set<string>();
       const unique = monthAdj.filter(a => { if (seen.has(a.goalId)) return false; seen.add(a.goalId); return true; });
-      return { ...point, _goalAdjustments: unique };
+      const baseline = baselineData.find(b => b.month === point.month);
+      return { ...point, _goalAdjustments: unique, _baselineSurplus: baseline?.surplus ?? point.surplus };
     });
-  }, [chartData, adjustments]);
+  }, [chartData, adjustments, baselineData]);
 
   const handleMouseDown = useCallback((e: any) => {
     if (e?.activeLabel) {
@@ -144,9 +148,21 @@ const CashflowChartInner = ({ adjustedData, adjustments = [] }: CashflowChartPro
           <h3 className={`text-sm font-medium ${titleColor}`}>
             Cash Surplus / Deficit
           </h3>
-          <p className="text-xs text-muted-foreground font-mono mb-4">
+          <p className="text-xs text-muted-foreground font-mono mb-1">
             {rangeSummary ? "Drag to select range" : "Click & drag to analyse a range"}
           </p>
+          {hasActiveGoals && (
+            <div className="flex items-center gap-3 mb-2">
+              <span className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
+                <span className="inline-block w-4 border-t border-dashed" style={{ borderColor: tc.green, opacity: 0.6 }} />
+                Baseline
+              </span>
+              <span className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
+                <span className="inline-block w-4 border-t-2" style={{ borderColor: tc.amber }} />
+                With Goals
+              </span>
+            </div>
+          )}
         </div>
         {rangeSummary && (
           <button
@@ -272,11 +288,24 @@ const CashflowChartInner = ({ adjustedData, adjustments = [] }: CashflowChartPro
                   strokeDasharray="3 3"
                 />
               )}
+              {hasActiveGoals && (
+                <Area
+                  type="monotone"
+                  dataKey="_baselineSurplus"
+                  stroke={tc.green}
+                  fill="none"
+                  strokeWidth={1.5}
+                  strokeDasharray="4 3"
+                  strokeOpacity={0.5}
+                  animationDuration={800}
+                  dot={false}
+                />
+              )}
               <Area
                 type="monotone"
                 dataKey="surplus"
-                stroke="url(#splitStroke)"
-                fill="url(#splitFill)"
+                stroke={hasActiveGoals ? tc.amber : "url(#splitStroke)"}
+                fill={hasActiveGoals ? "none" : "url(#splitFill)"}
                 strokeWidth={2}
                 animationDuration={800}
                 baseValue={0}
