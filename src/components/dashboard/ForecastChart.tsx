@@ -7,6 +7,7 @@ import NoData from "./NoData";
 import { useTheme } from "next-themes";
 
 const SERIES = [
+  { key: "totalOutgoings", label: "Total Outgoings", color: "red" as const, dash: undefined, strokeWidth: 2.5 },
   { key: "anticipatedSurplus", label: "Anticipated Cash Surplus/(Deficit)", color: "green" as const, dash: undefined, strokeWidth: 2.5 },
   { key: "actualCashBalance", label: "Actual Cash Balance", color: "ghost" as const, dash: "6 3", strokeWidth: 1.5 },
 ] as const;
