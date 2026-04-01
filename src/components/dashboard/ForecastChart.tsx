@@ -144,7 +144,7 @@ const ForecastChart = React.memo(() => {
                         const val = p.value as number | null;
                         return (
                           <p key={p.dataKey as string} style={{ color, marginBottom: 2 }}>
-                            {s.label}: {val != null ? `$${val.toLocaleString()}` : "—"}
+                            {s.label}: {val != null ? `$${Math.round(val).toLocaleString()}` : "—"}
                           </p>
                         );
                       })}
