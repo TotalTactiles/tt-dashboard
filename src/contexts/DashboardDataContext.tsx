@@ -555,8 +555,9 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         const isFuture = parsed ? (parsed.year > currentYear || (parsed.year === currentYear && parsed.month > currentMonthIdx)) : false;
         // Use exact "Anticipated Cash Surplus/(Deficit)" row for surplus — do NOT derive from inc - out
         const surplus = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[m] ?? 0) : sv(cs?.anticipatedSurplus, m);
-        // For future months: derive probable income from surplus + outgoings (reconstructs forecast model's implied income)
-        const probableIncome = isFuture ? Math.max(0, surplus + out) : 0;
+        // For future months: use Total Income row (Row 11) directly — this is the cashflow model's actual forecast
+        // DO NOT derive from surplus + outgoings — that reverse-engineers a fabricated number from the cumulative balance
+        const probableIncome = isFuture ? Math.max(0, inc) : 0;
         return {
           month: m,
           income: inc,
