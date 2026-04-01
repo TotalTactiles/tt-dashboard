@@ -24,11 +24,14 @@ function parseMonthLabel(label: string): { month: number; year: number } | null 
 interface CashflowChartProps {
   adjustedData?: IncomeOutgoingsPoint[];
   adjustments?: GoalAdjustment[];
+  hasActiveGoals?: boolean;
 }
 
-const CashflowChartInner = ({ adjustedData, adjustments = [] }: CashflowChartProps) => {
+const CashflowChartInner = ({ adjustedData, adjustments = [], hasActiveGoals = false }: CashflowChartProps) => {
   const { incomeOutgoingsData, dataHealth } = useDashboardData();
   const chartData = useMemo(() => adjustedData ?? incomeOutgoingsData, [adjustedData, incomeOutgoingsData]);
+  // baselineData is always the unmodified surplus — used to draw the green baseline when goals are active
+  const baselineData = incomeOutgoingsData;
   const { resolvedTheme } = useTheme();
 
   const [selStart, setSelStart] = useState<string | null>(null);
