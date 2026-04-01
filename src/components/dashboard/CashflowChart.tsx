@@ -73,9 +73,10 @@ const CashflowChartInner = ({ adjustedData, adjustments = [], hasActiveGoals = f
       if (monthAdj.length === 0) return point;
       const seen = new Set<string>();
       const unique = monthAdj.filter(a => { if (seen.has(a.goalId)) return false; seen.add(a.goalId); return true; });
-      return { ...point, _goalAdjustments: unique };
+      const baseline = baselineData.find(b => b.month === point.month);
+      return { ...point, _goalAdjustments: unique, _baselineSurplus: baseline?.surplus ?? point.surplus };
     });
-  }, [chartData, adjustments]);
+  }, [chartData, adjustments, baselineData]);
 
   const handleMouseDown = useCallback((e: any) => {
     if (e?.activeLabel) {
