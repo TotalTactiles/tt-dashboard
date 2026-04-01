@@ -545,21 +545,23 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     };
 
     // Income vs Outgoings bar chart
+    // Outgoings = abs(COGS Row 18) + abs(OpEx incl Salaries Row 48) — always positive for bar display
+    // Do NOT use "Total Outgoings" row — it's a net figure with inconsistent signs
+    // Surplus line = monthly net cash movement = Row 71 (closing) - Row 2 (opening balance)
     const incomeOutgoingsData: IncomeOutgoingsPoint[] = months
       .map((m) => {
         const inc = totalIncomeRow ? parseNum(totalIncomeRow[m] ?? 0) : sv(cs?.totalIncome, m);
-        const out = totalOutgoingsRow
-          ? Math.abs(parseNum(totalOutgoingsRow[m] ?? 0))
-          : (Math.abs(sv(cs?.totalCostOfSales, m)) + Math.abs(sv(cs?.totalOperatingExpenses, m)));
+        // Outgoings = COGS + OpEx incl Salaries — both negative in sheet, take abs for bar height
+        const cogs = totalCostOfSalesRow ? Math.abs(parseNum(totalCostOfSalesRow[m] ?? 0)) : 0;
+        const opex = totalOpExInclSalariesRow ? Math.abs(parseNum(totalOpExInclSalariesRow[m] ?? 0)) : 0;
+        const out = cogs + opex;
         const parsed = parseMonthLabel(m);
         const isFuture = parsed ? (parsed.year > currentYear || (parsed.year === currentYear && parsed.month > currentMonthIdx)) : false;
-        // Monthly net = closing balance (Row 71) minus opening balance (Row 2) for this month
-        // This gives the actual cash gain/loss for the month — consistent with income/outgoings bars
+        // Monthly net = closing balance (Row 71) minus opening balance (Row 2)
         const closingBalance = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[m] ?? 0) : sv(cs?.anticipatedSurplus, m);
         const openingBalance = openingBalancesRow ? parseNum(openingBalancesRow[m] ?? 0) : 0;
         const surplus = closingBalance - openingBalance;
-        // For future months: use Total Income row (Row 11) directly — this is the cashflow model's actual forecast
-        // DO NOT derive from surplus + outgoings — that reverse-engineers a fabricated number from the cumulative balance
+        // For future months: use Total Income row (Row 11) directly from cashflow model
         const probableIncome = isFuture ? Math.max(0, inc) : 0;
         return {
           month: m,
