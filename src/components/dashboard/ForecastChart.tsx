@@ -33,7 +33,7 @@ const ForecastChart = React.memo(() => {
 
   const getSeriesColor = (colorKey: string) => {
     if (colorKey === "teal" || colorKey === "brightGreen") return "#2dd4bf";
-    if (colorKey === "ghost") return "rgba(255,255,255,0.35)";
+    if (colorKey === "ghost") return "rgba(255,255,255,0.32)";
     return seriesColors[colorKey] || tc.blue;
   };
 
