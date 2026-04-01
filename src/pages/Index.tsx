@@ -183,11 +183,23 @@ const DashboardContent = () => {
     const revPerJobWon = wonCount > 0 ? revenueExGST / wonCount : 0;
     const revPerJobQuoted = totalCount > 0 ? revenueExGST / totalCount : 0;
 
-    // Pipeline coverage: all pending+yellow / revenueExGST
+    // Pipeline coverage: current open pipeline / YTD revenue run rate
+    // Pipeline value = all pending + yellow jobs (always a current snapshot — not time-scoped)
+    // Denominator = always YTD revenue (not quarter) — gives meaningful "months of work ahead" ratio
     const pipelineVal = quotedJobs
       .filter(j => j.status === "pending" || j.status === "yellow")
       .reduce((s, j) => s + j.value, 0);
-    const pipelineCoverage = revenueExGST > 0 ? pipelineVal / revenueExGST : 0;
+    const nowDate = new Date();
+    const todayEnd = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate() + 1);
+    const ytdRevenueForCoverage = revenueProjects
+      .filter(rp => {
+        const dateStr = rp.invoiceDate || rp.otherDate;
+        if (!dateStr) return false;
+        const d = new Date(dateStr);
+        return !isNaN(d.getTime()) && d.getFullYear() === nowDate.getFullYear() && d <= todayEnd;
+      })
+      .reduce((s, rp) => s + rp.valueExclGST, 0);
+    const pipelineCoverage = ytdRevenueForCoverage > 0 ? pipelineVal / ytdRevenueForCoverage : 0;
 
     // Debt service ratio
     const im_full = investorMetrics as any;
