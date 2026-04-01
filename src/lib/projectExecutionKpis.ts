@@ -420,7 +420,8 @@ function calcCashExpected(cashflowData: IncomeOutgoingsPoint[], revenue: Revenue
 }
 
 // ── 7b. CASH EXPECTED — TO BE INVOICED mode ───────────────────────
-// To Be Invoiced = invoiceDate in the SELECTED month
+// "To Be Invoiced" = jobs with invoiceDate in the SELECTED month.
+// These are jobs being invoiced this month — cash will arrive NEXT month (shows in "To Be Paid" next period).
 
 function calcCashExpectedToBeInvoiced(cashflowData: IncomeOutgoingsPoint[], revenue: RevenueProject[], period: PeriodSpec): KPIResult {
   const monthSet = new Set(period.months);

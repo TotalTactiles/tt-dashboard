@@ -832,7 +832,7 @@ function CashExpectedCard({
           }`}
           style={titleStyle}
         >
-          Invoiced
+          To Be Paid
         </button>
         <button
           onClick={() => onInvoiceFilterChange("to_be_invoiced")}
