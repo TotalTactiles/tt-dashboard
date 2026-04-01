@@ -700,9 +700,20 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     // ===== KPI STAT CARDS =====
     const noData = !hasLiveData;
 
-    // Card 4: Net Revenue = revenueSummary.totalValue - revenueSummary.totalCOGS (unified with formulaEngine)
+    // Card 4: Net Revenue = current year revenue ex-GST minus current year COGS
+    // Scoped to current year using revenueProjects (NOT revenueSummary which is all-time lifetime)
     const rs = liveData?.revenueSummary as any;
-    const netRevenue = (parseNum(rs?.totalValue ?? 0)) - (parseNum(rs?.totalCOGS ?? 0));
+    const currentYear4Digit = currentYear; // e.g. 2026
+    const currentYearRevenueProjects = revenueProjects.filter(rp => {
+      const dateStr = rp.invoiceDate || rp.otherDate;
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      return !isNaN(d.getTime()) && d.getFullYear() === currentYear4Digit;
+    });
+    const netRevenue = currentYearRevenueProjects.reduce((s, rp) => s + rp.valueExclGST, 0)
+      - currentYearRevenueProjects.reduce((s, rp) => s + rp.totalCOGS, 0);
+
+    console.log("[Net Revenue] Scoped to year:", currentYear4Digit, "| projects:", currentYearRevenueProjects.length, "| netRevenue:", netRevenue);
 
     // Card 5: Cashflow Position = current month's OPENING BALANCES value
     // Generate current month key in stable Mon-YY format (locale-independent)
