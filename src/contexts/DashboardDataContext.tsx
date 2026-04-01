@@ -1009,39 +1009,24 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         momContext: noData ? undefined : (curMon.wonCount > 0 ? `+${curMon.wonCount} jobs this month` : undefined),
       },
       (() => {
-        // Quoted Remaining base = Quote Sent + Negotiation/Review (status "pending") only
-        // Alt toggle = pending + YLW (status "yellow") — mirrors Total Won card pattern
-        const pendingJobs = quotedJobs.filter(j => j.status === "pending");
-        const pendingVal = pendingJobs.reduce((s, j) => s + j.value, 0);
-        const pendingCount = pendingJobs.length;
+        // Quoted Remaining = ALL active jobs (Quote Sent + Negotiation + YLW + GRN)
+        // This matches GRAND TOTAL (Active) in QTS SMMRY — excludes Lost/Dead and Completed only
+        // No toggle needed — YLW/GRN split is handled by the Total Won card
+        const activeJobs = quotedJobs.filter(j => j.status === "pending" || j.status === "yellow" || j.status === "won");
+        const activeVal = activeJobs.reduce((s, j) => s + j.value, 0);
+        const activeCount = activeJobs.length;
 
-        const ylwRemainingJobs = quotedJobs.filter(j => j.status === "yellow");
-        const ylwRemainingVal = ylwRemainingJobs.reduce((s, j) => s + j.value, 0);
-        const ylwRemainingCount = ylwRemainingJobs.length;
-
-        const withYlwVal = pendingVal + ylwRemainingVal;
-        const withYlwCount = pendingCount + ylwRemainingCount;
-
-        const prevRemaining = quotedJobs
-          .filter(j => j.status === "pending" && dateToMonKeyLocal(j.dateQuoted) === prevMonKey)
-          .reduce((s, j) => s + j.value, 0);
-        const prevWithYlw = quotedJobs
-          .filter(j => (j.status === "pending" || j.status === "yellow") && dateToMonKeyLocal(j.dateQuoted) === prevMonKey)
+        const prevActiveVal = quotedJobs
+          .filter(j => (j.status === "pending" || j.status === "yellow" || j.status === "won") && dateToMonKeyLocal(j.dateQuoted) === prevMonKey)
           .reduce((s, j) => s + j.value, 0);
 
         return {
           label: "Quoted Remaining",
-          value: noData ? "--" : fmtAUD(pendingVal),
-          change: noData ? "--" : `${pendingCount} jobs`,
+          value: noData ? "--" : fmtAUD(activeVal),
+          change: noData ? "--" : `${activeCount} jobs`,
           positive: true, noData,
-          altValue: noData ? "--" : fmtAUD(withYlwVal),
-          altChange: noData ? "--" : `${withYlwCount} jobs`,
-          altPositive: true,
-          altDiff: noData ? undefined : (ylwRemainingVal > 0 ? `+${fmtAUD(ylwRemainingVal)} / ${ylwRemainingCount} YLW jobs` : undefined),
-          toggleLabelBase: "Confirmed",
-          toggleLabelAlt: "With YLWs",
-          momDelta: noData ? undefined : (hasPrevMon ? fmtDelta(pendingVal, prevRemaining, "currency") : noMomText),
-          altMomDelta: noData ? undefined : (hasPrevMon ? fmtDelta(withYlwVal, prevWithYlw, "currency") : noMomText),
+          momDelta: noData ? undefined : (hasPrevMon ? fmtDelta(activeVal, prevActiveVal, "currency") : noMomText),
+          momContext: noData ? undefined : "Active pipeline (excl. lost & completed)",
         };
       })(),
       {
