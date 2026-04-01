@@ -168,6 +168,7 @@ const ForecastChart = React.memo(() => {
               />
               {SERIES.map((s) => {
                 const sColor = getSeriesColor(s.color);
+                const isGhost = s.color === "ghost";
                 return visibleKeys.has(s.key) ? (
                   <Line
                     key={s.key}
@@ -176,10 +177,10 @@ const ForecastChart = React.memo(() => {
                     stroke={sColor}
                     strokeWidth={s.strokeWidth}
                     strokeDasharray={s.dash}
-                    dot={{ r: 3, fill: sColor, strokeWidth: 1, stroke: tc.dotStroke }}
-                    activeDot={{ r: 5, fill: sColor, strokeWidth: 2, stroke: tc.dotStroke }}
+                    dot={isGhost ? { r: 2.5, fill: sColor, strokeWidth: 0 } : { r: 3, fill: sColor, strokeWidth: 1, stroke: tc.dotStroke }}
+                    activeDot={isGhost ? { r: 4, fill: sColor, strokeWidth: 1, stroke: tc.dotStroke } : { r: 5, fill: sColor, strokeWidth: 2, stroke: tc.dotStroke }}
                     animationDuration={1500}
-                    connectNulls
+                    connectNulls={false}
                   />
                 ) : null;
               })}

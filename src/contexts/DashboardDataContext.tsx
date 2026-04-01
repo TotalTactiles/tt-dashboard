@@ -691,21 +691,9 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     });
 
     if (forecastChartData.length > 0) {
-      const hasData = {
-        totalOutgoings: forecastChartData.some(d => d.totalOutgoings !== 0),
-        anticipatedSurplus: forecastChartData.some(d => d.anticipatedSurplus !== 0),
-        probableJobs: forecastChartData.some(d => d.probableJobs !== 0),
-        costOfJobsProbable: forecastChartData.some(d => d.costOfJobsProbable !== 0),
-        surplusIncludingProbable: forecastChartData.some(d => d.surplusIncludingProbable !== 0),
-      };
-      const monthsWithProbable = forecastChartData.filter(d => d.probableJobs > 0);
-      console.log("[Forecast Series Debug] surplusIncludingProbable now COMPUTED as anticipated+probable-cost (not read from sheet row)", { hasNonZeroData: hasData });
-      if (monthsWithProbable.length > 0) {
-        console.log("[Forecast Series Debug] Gap verification:", monthsWithProbable.map(d => ({
-          month: d.month, baseSurplus: d.anticipatedSurplus, withProbable: d.surplusIncludingProbable,
-          gap: d.surplusIncludingProbable - d.anticipatedSurplus, probableNet: d.probableJobs - d.costOfJobsProbable,
-        })));
-      }
+      const actualPoints = forecastChartData.filter(d => d.actualCashBalance !== null);
+      console.log("[Forecast Series Debug] Series: anticipatedSurplus + actualCashBalance (Row 73)");
+      console.log("[Forecast Series Debug] Actual cash balance data points:", actualPoints.length, actualPoints.map(d => ({ month: d.month, actual: d.actualCashBalance })));
     }
 
     // ===== KPI STAT CARDS =====
