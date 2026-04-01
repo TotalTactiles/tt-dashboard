@@ -7,11 +7,8 @@ import NoData from "./NoData";
 import { useTheme } from "next-themes";
 
 const SERIES = [
-  { key: "totalOutgoings", label: "Total Outgoings", color: "red" as const, dash: undefined, strokeWidth: 2.5 },
   { key: "anticipatedSurplus", label: "Anticipated Cash Surplus/(Deficit)", color: "green" as const, dash: undefined, strokeWidth: 2.5 },
-  { key: "probableJobs", label: "Jobs Probable To Be Won", color: "amber" as const, dash: "8 4", strokeWidth: 2 },
-  { key: "costOfJobsProbable", label: "Cost of Jobs Probable To Be Won", color: "orange" as const, dash: "4 4", strokeWidth: 2 },
-  { key: "surplusIncludingProbable", label: "Anticipated Cash Surplus/(Deficit) Including Probable Jobs", color: "teal" as const, dash: "10 3", strokeWidth: 2.5 },
+  { key: "actualCashBalance", label: "Actual Cash Balance", color: "ghost" as const, dash: "6 3", strokeWidth: 1.5 },
 ] as const;
 
 const ForecastChart = React.memo(() => {
@@ -30,10 +27,12 @@ const ForecastChart = React.memo(() => {
     brightGreen: "#2dd4bf",
     purple: tc.purple,
     blue: tc.blue,
+    ghost: "rgba(255,255,255,0.35)",
   };
 
   const getSeriesColor = (colorKey: string) => {
     if (colorKey === "teal" || colorKey === "brightGreen") return "#2dd4bf";
+    if (colorKey === "ghost") return "rgba(255,255,255,0.35)";
     return seriesColors[colorKey] || tc.blue;
   };
 
@@ -125,12 +124,6 @@ const ForecastChart = React.memo(() => {
                   const point = payload[0]?.payload as any;
                   if (!point) return null;
                   const visiblePayload = payload.filter(p => visibleKeys.has(p.dataKey as string));
-                  const baseSurplus = point.anticipatedSurplus ?? 0;
-                  const withProbable = point.surplusIncludingProbable ?? 0;
-                  const gap = withProbable - baseSurplus;
-                  const showGap = Math.abs(gap) > 0 &&
-                    visibleKeys.has("anticipatedSurplus") &&
-                    visibleKeys.has("surplusIncludingProbable");
                   return (
                     <div style={{
                       backgroundColor: tc.tooltipBg,
@@ -147,28 +140,20 @@ const ForecastChart = React.memo(() => {
                         const s = SERIES.find(s => s.key === p.dataKey);
                         if (!s) return null;
                         const color = getSeriesColor(s.color);
+                        const val = p.value as number | null;
                         return (
                           <p key={p.dataKey as string} style={{ color, marginBottom: 2 }}>
-                            {s.label}: ${(p.value as number).toLocaleString()}
+                            {s.label}: {val != null ? `$${val.toLocaleString()}` : "—"}
                           </p>
                         );
                       })}
-                      {showGap && (
-                        <p style={{
-                          color: gap > 0 ? "#2dd4bf" : tc.red,
-                          marginTop: 6,
-                          paddingTop: 6,
-                          borderTop: `1px solid ${tc.tooltipBorder}`,
-                        }}>
-                          Probable uplift: {gap > 0 ? "+" : ""}${Math.round(gap).toLocaleString()}
-                        </p>
-                      )}
                     </div>
                   );
                 }}
               />
               {SERIES.map((s) => {
                 const sColor = getSeriesColor(s.color);
+                const isGhost = s.color === "ghost";
                 return visibleKeys.has(s.key) ? (
                   <Line
                     key={s.key}
@@ -177,10 +162,10 @@ const ForecastChart = React.memo(() => {
                     stroke={sColor}
                     strokeWidth={s.strokeWidth}
                     strokeDasharray={s.dash}
-                    dot={{ r: 3, fill: sColor, strokeWidth: 1, stroke: tc.dotStroke }}
-                    activeDot={{ r: 5, fill: sColor, strokeWidth: 2, stroke: tc.dotStroke }}
+                    dot={isGhost ? { r: 2.5, fill: sColor, strokeWidth: 0 } : { r: 3, fill: sColor, strokeWidth: 1, stroke: tc.dotStroke }}
+                    activeDot={isGhost ? { r: 4, fill: sColor, strokeWidth: 1, stroke: tc.dotStroke } : { r: 5, fill: sColor, strokeWidth: 2, stroke: tc.dotStroke }}
                     animationDuration={1500}
-                    connectNulls
+                    connectNulls={false}
                   />
                 ) : null;
               })}

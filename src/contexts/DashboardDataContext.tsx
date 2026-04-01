@@ -143,11 +143,8 @@ export interface ProfitMarginPoint {
 
 export interface ForecastChartPoint {
   month: string;
-  totalOutgoings: number;
   anticipatedSurplus: number;
-  probableJobs: number;
-  costOfJobsProbable: number;
-  surplusIncludingProbable: number;
+  actualCashBalance: number | null;
 }
 
 export interface ExpenseAllocationItem {
@@ -674,35 +671,29 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     }
     console.log("[GP Chart Proof] === END VERIFICATION ===");
 
-    // Forecast chart — use exact named rows (5 distinct series)
+    // Forecast chart — 2 series only: Anticipated Surplus + Actual Cash Balance
+    // Actual Cash Balance = CASHFLOW Row 73 "Actual Bank Balance"
+    // Row 73 has real values only for past months; future months are 0 (not yet entered).
+    // We convert 0 → null so the line terminates at the last real entry rather than dropping to zero.
+    const actualBankBalanceRow = rawCashflow.find((r: any) => {
+      const lbl = getCashflowRowLabel(r).toUpperCase().trim();
+      return lbl === "ACTUAL BANK BALANCE" || lbl.includes("ACTUAL BANK");
+    }) ?? null;
+
+    console.log("[ForecastChart] actualBankBalanceRow found:", !!actualBankBalanceRow, getCashflowRowLabel(actualBankBalanceRow ?? {}));
+
     const forecastChartData: ForecastChartPoint[] = months.map((m) => {
-      const totalOut = totalOutgoingsRow ? Math.abs(parseNum(totalOutgoingsRow[m] ?? 0)) : 0;
       const anticipated = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[m] ?? 0) : sv(cs?.anticipatedSurplus, m);
-      const probable = jobsProbableRow ? parseNum(jobsProbableRow[m] ?? 0) : 0;
-      const costProbable = costOfJobsProbableRow ? parseNum(costOfJobsProbableRow[m] ?? 0) : 0;
-      // Compute independently — do NOT read surplusWithJobsRow from the sheet.
-      // The sheet row double-counts jobs that are promoted from YLW to confirmed,
-      // causing both surplus lines to converge. Computing fresh guarantees a real gap.
-      const surplusWithJobs = anticipated + probable - costProbable;
-      return { month: m, totalOutgoings: totalOut, anticipatedSurplus: anticipated, probableJobs: probable, costOfJobsProbable: costProbable, surplusIncludingProbable: surplusWithJobs };
+      const rawActual = actualBankBalanceRow ? parseNum(actualBankBalanceRow[m] ?? 0) : 0;
+      // Treat 0 as null (no data entered) so the line terminates rather than dropping to zero
+      const actualCashBalance = rawActual !== 0 ? rawActual : null;
+      return { month: m, anticipatedSurplus: anticipated, actualCashBalance };
     });
 
     if (forecastChartData.length > 0) {
-      const hasData = {
-        totalOutgoings: forecastChartData.some(d => d.totalOutgoings !== 0),
-        anticipatedSurplus: forecastChartData.some(d => d.anticipatedSurplus !== 0),
-        probableJobs: forecastChartData.some(d => d.probableJobs !== 0),
-        costOfJobsProbable: forecastChartData.some(d => d.costOfJobsProbable !== 0),
-        surplusIncludingProbable: forecastChartData.some(d => d.surplusIncludingProbable !== 0),
-      };
-      const monthsWithProbable = forecastChartData.filter(d => d.probableJobs > 0);
-      console.log("[Forecast Series Debug] surplusIncludingProbable now COMPUTED as anticipated+probable-cost (not read from sheet row)", { hasNonZeroData: hasData });
-      if (monthsWithProbable.length > 0) {
-        console.log("[Forecast Series Debug] Gap verification:", monthsWithProbable.map(d => ({
-          month: d.month, baseSurplus: d.anticipatedSurplus, withProbable: d.surplusIncludingProbable,
-          gap: d.surplusIncludingProbable - d.anticipatedSurplus, probableNet: d.probableJobs - d.costOfJobsProbable,
-        })));
-      }
+      const actualPoints = forecastChartData.filter(d => d.actualCashBalance !== null);
+      console.log("[Forecast Series Debug] Series: anticipatedSurplus + actualCashBalance (Row 73)");
+      console.log("[Forecast Series Debug] Actual cash balance data points:", actualPoints.length, actualPoints.map(d => ({ month: d.month, actual: d.actualCashBalance })));
     }
 
     // ===== KPI STAT CARDS =====
