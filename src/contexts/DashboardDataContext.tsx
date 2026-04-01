@@ -684,11 +684,11 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     console.log("[ForecastChart] actualBankBalanceRow found:", !!actualBankBalanceRow, getCashflowRowLabel(actualBankBalanceRow ?? {}));
 
     const forecastChartData: ForecastChartPoint[] = months.map((m) => {
+      const totalOut = totalOutgoingsRow ? Math.abs(parseNum(totalOutgoingsRow[m] ?? 0)) : 0;
       const anticipated = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[m] ?? 0) : sv(cs?.anticipatedSurplus, m);
       const rawActual = actualBankBalanceRow ? parseNum(actualBankBalanceRow[m] ?? 0) : 0;
-      // Treat 0 as null (no data entered) so the line terminates rather than dropping to zero
       const actualCashBalance = rawActual !== 0 ? rawActual : null;
-      return { month: m, anticipatedSurplus: anticipated, actualCashBalance };
+      return { month: m, totalOutgoings: totalOut, anticipatedSurplus: anticipated, actualCashBalance };
     });
 
     if (forecastChartData.length > 0) {
