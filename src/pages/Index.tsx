@@ -101,46 +101,110 @@ const DashboardContent = () => {
   // ── Shared "All" toggle for both tables — always starts OFF ──
   const [showAllTables, setShowAllTables] = useState(false);
   const [invoiceFilter, setInvoiceFilter] = useState<"invoiced" | "to_be_invoiced">("invoiced");
-  const [investorScope, setInvestorScope] = useState<"ytd" | "month" | "full_year">("ytd");
+  const [investorScope, setInvestorScope] = useState<"ytd" | "quarter">("ytd");
 
-  // Expose month-scoped and lifetime investor metrics from n8n
-  const investorMetricsMonth = (liveData as any)?.investorMetricsMonth ?? null;
-  const investorMetricsLifetime = (liveData as any)?.investorMetricsLifetime ?? null;
-  const activeInvestorMetrics = investorScope === 'month' && investorMetricsMonth
-    ? investorMetricsMonth
-    : investorScope === 'full_year' && investorMetricsLifetime
-      ? investorMetricsLifetime
-      : investorMetrics;
+  // ── Compute date windows from real current date ──────────────────
+  const investorDateWindows = useMemo(() => {
+    const now = new Date();
+    const yr = now.getFullYear();
+    const mo = now.getMonth(); // 0-indexed
+    const ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const yr2 = String(yr).slice(-2);
 
-  // Computed toggle data for investor metric cards
-  const investorToggleData = useMemo(() => {
-    const im = activeInvestorMetrics as any;
-    if (!im) return null;
+    // YTD: Jan of current year → current month inclusive
+    const ytdMonths: string[] = [];
+    for (let i = 0; i <= mo; i++) ytdMonths.push(`${ABBR[i]}-${yr2}`);
 
-    const wonJobs = quotedJobs.filter(j => j.status === "won");
-    const allActive = quotedJobs.filter(j => j.status !== "lost");
-    const wonCount = im.wonCount ?? wonJobs.length;
-    const totalCount = im.totalCount ?? allActive.length;
-    const wonTotalValue = wonJobs.reduce((s, j) => s + j.value, 0);
-    const allTotalValue = allActive.reduce((s, j) => s + j.value, 0);
+    // Current quarter: Q1=Jan-Mar, Q2=Apr-Jun, Q3=Jul-Sep, Q4=Oct-Dec
+    const qNum = Math.floor(mo / 3) + 1;
+    const qStart = (qNum - 1) * 3;
+    const qMonths: string[] = [];
+    for (let i = qStart; i < qStart + 3 && i <= mo; i++) qMonths.push(`${ABBR[i]}-${yr2}`);
+    const qLabel = `Q${qNum} ${yr} (${ABBR[qStart]}–${ABBR[Math.min(qStart + 2, 11)]})`;
 
-    // Avg Contract Value — use n8n pre-computed values for Won mode
-    const avgWon = im.avgContractValueWon ?? (wonCount > 0 ? wonTotalValue / wonCount : 0);
-    const wonPlusCompletedCount = im.wonPlusCompletedCount ?? wonCount;
-    const avgQuoted = totalCount > 0 ? allTotalValue / totalCount : 0;
+    return { ytdMonths, qMonths, qLabel, yr, yr2, mo, ABBR };
+  }, []);
 
-    // Revenue Per Job — use revenueExGST / wonPlusCompletedCount for Won mode
-    const revenueExGST = im.revenueExGST ?? 0;
-    const revPerJobWon = wonPlusCompletedCount > 0 ? revenueExGST / wonPlusCompletedCount : (im.revenuePerJobWon ?? 0);
-    const revPerJobQuoted = totalCount > 0 ? (revPerJobWon * wonPlusCompletedCount) / totalCount : 0;
+  // ── Filter source data to active scope ───────────────────────────
+  const scopedInvestorData = useMemo(() => {
+    const { ytdMonths, qMonths } = investorDateWindows;
+    const activeMonths = investorScope === "ytd" ? ytdMonths : qMonths;
+    const activeMonthSet = new Set(activeMonths);
+
+    const dateToMK = (s: string): string | null => {
+      if (!s) return null;
+      const d = new Date(s);
+      if (isNaN(d.getTime())) return null;
+      const A = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      return `${A[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
+    };
+
+    // Revenue projects in scope
+    const scopedRevenue = revenueProjects.filter(rp => {
+      const mk = dateToMK(rp.invoiceDate) ?? dateToMK(rp.otherDate);
+      return mk ? activeMonthSet.has(mk) : false;
+    });
+
+    // Quoted jobs in scope (by dateQuoted)
+    const scopedQuotes = quotedJobs.filter(j => {
+      const mk = dateToMK(j.dateQuoted);
+      return mk ? activeMonthSet.has(mk) : false;
+    });
+
+    // Won jobs in scope
+    const scopedWonOnly = scopedQuotes.filter(j => j.status === "won");
+
+    // Revenue metrics
+    const revenueExGST = scopedRevenue.reduce((s, r) => s + r.valueExclGST, 0);
+    const totalCOGS = scopedRevenue.reduce((s, r) => s + r.totalCOGS, 0);
+    const grossProfit = revenueExGST - totalCOGS;
+    const grossMarginPct = revenueExGST > 0 ? (grossProfit / revenueExGST) * 100 : 0;
+
+    // Expenses from cashflow
+    const rawCF = (liveData as any)?.cashflow as any[] ?? [];
+    const findCFRow = (label: string) => rawCF.find((r: any) => {
+      const l = String(r._label_rowLabel ?? r.col_1 ?? "").toUpperCase().trim();
+      return l === label.toUpperCase();
+    });
+    const opexRow = findCFRow("TOTAL OPERATING EXPENSES (INCL. SALARIES)");
+    const labourRow = findCFRow("TOTAL COST OF SALES");
+    const parseN = (v: any) => { const n = parseFloat(String(v ?? "0").replace(/[$,()]/g, "")); return isNaN(n) ? 0 : Math.abs(n); };
+    const totalExpenses = activeMonths.reduce((s, mk) => s + parseN(opexRow?.[mk]), 0);
+    const totalLabour = activeMonths.reduce((s, mk) => s + parseN(labourRow?.[mk]), 0);
+    const netProfit = revenueExGST - totalExpenses;
+    const opExpRatio = revenueExGST > 0 ? (totalExpenses / revenueExGST) * 100 : 0;
+    const labourRatio = revenueExGST > 0 ? (totalLabour / revenueExGST) * 100 : 0;
+
+    // Job metrics
+    const wonCount = scopedWonOnly.length;
+    const totalCount = scopedQuotes.length;
+    const avgWon = wonCount > 0 ? scopedWonOnly.reduce((s, j) => s + j.value, 0) / wonCount : 0;
+    const avgQuoted = totalCount > 0 ? scopedQuotes.reduce((s, j) => s + j.value, 0) / totalCount : 0;
+    const revPerJobWon = wonCount > 0 ? revenueExGST / wonCount : 0;
+    const revPerJobQuoted = totalCount > 0 ? revenueExGST / totalCount : 0;
+
+    // Pipeline coverage: all pending+yellow / revenueExGST
+    const pipelineVal = quotedJobs
+      .filter(j => j.status === "pending" || j.status === "yellow")
+      .reduce((s, j) => s + j.value, 0);
+    const pipelineCoverage = revenueExGST > 0 ? pipelineVal / revenueExGST : 0;
+
+    // Debt service ratio
+    const im_full = investorMetrics as any;
+    const bizLoan = im_full?.bizLoanMonthly ?? 4318;
+    const carLoan = im_full?.carLoanMonthly ?? 1223;
+    const monthlyDebt = bizLoan + carLoan;
+    const annualDebt = monthlyDebt * 12;
+    const dsrValue = revenueExGST > 0 ? (annualDebt / revenueExGST) * 100 : 0;
 
     return {
-      avgWon, avgQuoted, wonCount: wonPlusCompletedCount, totalCount,
-      revPerJobWon, revPerJobQuoted,
-      ytdTotalExpenses: im.ytdTotalExpenses ?? null,
-      ytdLabour: im.ytdLabour ?? null,
+      revenueExGST, totalCOGS, grossProfit, grossMarginPct,
+      totalExpenses, totalLabour, netProfit, opExpRatio, labourRatio,
+      wonCount, totalCount, avgWon, avgQuoted, revPerJobWon, revPerJobQuoted,
+      pipelineVal, pipelineCoverage, dsrValue, bizLoan, carLoan, monthlyDebt, annualDebt,
+      scopedMonthCount: activeMonths.length,
     };
-  }, [activeInvestorMetrics, quotedJobs]);
+  }, [investorScope, investorDateWindows, revenueProjects, quotedJobs, liveData, investorMetrics]);
 
   // Find current-year YTD index for auto-switch
   const currentYearYtdIdx = useMemo(() => {
@@ -416,189 +480,98 @@ const DashboardContent = () => {
           )}
           </div>
 
-          {investorMetrics && investorToggleData && (() => {
-            const im = investorMetrics as any; // always YTD for EBITDA, Pipeline, Avg Contract, CAC
-            const aim = activeInvestorMetrics as any; // scope-aware for the 6 affected cards
-            const td = investorToggleData;
+          {investorMetrics && (() => {
+            const sd = scopedInvestorData;
+            const { yr, mo, ABBR } = investorDateWindows;
+
+            const fmtVal = (n: number) => {
+              const abs = Math.abs(n);
+              const sign = n < 0 ? '-' : '';
+              if (abs >= 1_000_000) return `${sign}$${(abs/1_000_000).toFixed(2).replace(/\.?0+$/,'')}M`;
+              if (abs >= 1_000)     return `${sign}$${(abs/1_000).toFixed(1).replace(/\.?0+$/,'')}K`;
+              return `${sign}$${Math.round(abs).toLocaleString()}`;
+            };
+
+            const scopeLabel = investorScope === "ytd"
+              ? `Jan–${ABBR[mo]} ${yr} YTD`
+              : investorDateWindows.qLabel;
+
+            const ebitdaMarginPct = sd.revenueExGST > 0
+              ? `${((sd.grossProfit / sd.revenueExGST) * 100).toFixed(1)}% margin`
+              : "--";
+            const netProfitMarginPct = sd.revenueExGST > 0
+              ? `${((sd.netProfit / sd.revenueExGST) * 100).toFixed(1)}% margin`
+              : "--";
+            const gmPct = sd.grossMarginPct.toFixed(2);
+
             return (
             <div className="mt-4 mb-4">
               <div className="flex items-center gap-2 mb-3 px-1">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Investor Metrics</span>
                 <div className="flex-1 h-px bg-border" />
                 <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
-                  {(["ytd", "month", "full_year"] as const).map((scope) => (
+                  {(["ytd", "quarter"] as const).map((scope) => (
                     <button
                       key={scope}
                       onClick={() => setInvestorScope(scope)}
                       className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${investorScope === scope ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                    >{scope === "ytd" ? "This Year" : scope === "month" ? "Month" : "Lifetime"}</button>
+                    >{scope === "ytd" ? "This Year" : investorDateWindows.qLabel}</button>
                   ))}
                 </div>
                 <span className="text-xs text-muted-foreground font-mono">Business Health</span>
               </div>
-              {investorScope === "full_year" && (
-                <div className="text-xs font-mono text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded px-3 py-1.5 mb-3">
-                  Showing company lifetime data — 2025 + 2026 combined
-                </div>
-              )}
-              {investorScope === "month" && (
-                <div className="text-xs font-mono text-blue-500 bg-blue-500/10 border border-blue-500/20 rounded px-3 py-1.5 mb-3">
-                  Showing {new Date().toLocaleString("en-AU", { month: "long", year: "numeric" })}
-                </div>
-              )}
+              <div className="text-xs font-mono text-muted-foreground/70 bg-secondary/40 border border-border/50 rounded px-3 py-1.5 mb-3">
+                {investorScope === "ytd"
+                  ? `Jan–${ABBR[mo]} ${yr} YTD · ${investorDateWindows.ytdMonths.length} months`
+                  : `${investorDateWindows.qLabel} · ${investorDateWindows.qMonths.length} months to date`}
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" style={{ containerType: 'inline-size' }}>
-                {(() => {
-                  // Scope-aware values
-                  const scopeIm = activeInvestorMetrics as any;
-
-                  const ebitda        = (scopeIm.ebitda ?? 0) as number;
-                  const revenueExGST  = (scopeIm.revenueExGST ?? 0) as number;
-                  const totalExpenses = (scopeIm.ytdTotalExpenses ?? 0) as number;
-
-                  // Net Profit = Revenue − ALL expenses for the active scope
-                  const netProfit = revenueExGST - totalExpenses;
-
-                  const nowDate = new Date();
-                  const ABBR_LOCAL = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
-                  const fmtVal = (n: number) => {
-                    const abs = Math.abs(n);
-                    const sign = n < 0 ? '-' : '';
-                    if (abs >= 1_000_000) return `${sign}$${(abs/1_000_000).toFixed(2).replace(/\.?0+$/,'')}M`;
-                    if (abs >= 1_000)     return `${sign}$${(abs/1_000).toFixed(1).replace(/\.?0+$/,'')}K`;
-                    return `${sign}$${Math.round(abs).toLocaleString()}`;
-                  };
-
-                  const scopeLabel = investorScope === "month"
-                    ? `${ABBR_LOCAL[nowDate.getMonth()]} ${nowDate.getFullYear()}`
-                    : investorScope === "full_year"
-                    ? "Company lifetime"
-                    : `Jan–${ABBR_LOCAL[nowDate.getMonth()]} ${nowDate.getFullYear()} YTD`;
-
-                  const ebitdaMarginPct = revenueExGST > 0
-                    ? `${((ebitda / revenueExGST) * 100).toFixed(1)}% margin`
-                    : scopeIm.ebitdaMarginFormatted ?? "--";
-
-                  const netProfitMarginPct = revenueExGST > 0
-                    ? `${((netProfit / revenueExGST) * 100).toFixed(1)}% margin`
-                    : "--";
-
-                  return (
-                    <StatCard
-                      label="Profitability"
-                      value={fmtVal(ebitda)}
-                      change={ebitdaMarginPct}
-                      positive={ebitda >= 0}
-                      index={10}
-                      momContext={scopeLabel}
-                      altValue={fmtVal(netProfit)}
-                      altChange={netProfitMarginPct}
-                      altPositive={netProfit >= 0}
-                      altMomContext={scopeLabel}
-                      toggleLabelBase="EBITDA"
-                      toggleLabelAlt="Net Profit"
-                      greenAltPill={true}
-                    />
-                  );
-                })()}
-                <StatCard label="Gross Margin %" value={aim.grossMarginPctFormatted ?? "N/A"} change={(aim.grossMarginSubLabel as string) ?? `avg ${Number(aim.grossMarginPct ?? 0).toFixed(2)}%`} positive={(aim.grossMarginPct ?? 0) >= 30} index={11} />
-                {(() => {
-                  let growthValue: number | null = null;
-                  let growthFormatted = "N/A";
-                  let growthLabel = "Month on Month";
-
-                  if (investorScope === "month") {
-                    growthValue = (aim as any).revenueGrowthMoM ?? null;
-                    growthFormatted = (aim as any).revenueGrowthMoMFormatted ?? "N/A";
-                    growthLabel = (aim as any).revenueGrowthLabel ?? "Month on Month";
-                  } else if (investorScope === "full_year") {
-                    growthValue = (aim as any).revenueGrowthMoM ?? null;
-                    growthFormatted = (aim as any).revenueGrowthMoMFormatted ?? "N/A";
-                    growthLabel = "Dec-25 → Mar-26";
-                  } else {
-                    // This Year (YTD) scope
-                    const im = investorMetrics as any;
-                    const ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                    const nowDate = new Date();
-                    const cMonthIdx = nowDate.getMonth();
-                    const cYear = nowDate.getFullYear();
-
-                    // Primary value: YTD revenue total (absolute $)
-                    const ytdRevenue = im?.revenueExGST ?? 0;
-                    const ytdFmt = ytdRevenue >= 1000
-                      ? `$${(ytdRevenue / 1000).toFixed(1)}K`
-                      : `$${Math.round(ytdRevenue).toLocaleString()}`;
-                    const ytdLabel = `Jan–${ABBR[cMonthIdx]} ${cYear} YTD`;
-
-                    // Alt value: % growth — use n8n's value if available, otherwise compute MoM trend
-                    const growthPct = im?.revenueGrowthMoM ?? null;
-                    const growthFmtAlt = growthPct !== null
-                      ? (growthPct >= 0 ? `+${growthPct.toFixed(1)}%` : `${growthPct.toFixed(1)}%`)
-                      : (() => {
-                          // Compute average MoM growth across YTD months from cashflow data
-                          const cashflowData = (liveData as any)?.cashflow as any[] ?? [];
-                          const incomeRow = cashflowData.find((r: any) => {
-                            const lbl = String(r._label_rowLabel ?? r.col_1 ?? "").toUpperCase().trim();
-                            return lbl === "TOTAL INCOME";
-                          });
-                          if (!incomeRow) return "N/A";
-                          const ytdMonthKeys: string[] = [];
-                          for (let i = 0; i <= cMonthIdx; i++) {
-                            ytdMonthKeys.push(`${ABBR[i]}-${String(cYear).slice(-2)}`);
-                          }
-                          const ytdValues = ytdMonthKeys
-                            .map(k => parseFloat(String(incomeRow[k] ?? "0").replace(/[$,()]/g, "")) || 0)
-                            .filter(v => v > 0);
-                          if (ytdValues.length < 2) return "N/A";
-                          let totalGrowth = 0;
-                          let count = 0;
-                          for (let i = 1; i < ytdValues.length; i++) {
-                            if (ytdValues[i-1] > 0) {
-                              totalGrowth += ((ytdValues[i] - ytdValues[i-1]) / ytdValues[i-1]) * 100;
-                              count++;
-                            }
-                          }
-                          const avgGrowth = count > 0 ? totalGrowth / count : 0;
-                          return avgGrowth >= 0 ? `+${avgGrowth.toFixed(1)}%` : `${avgGrowth.toFixed(1)}%`;
-                        })();
-                    const growthLabelAlt = im?.revenueGrowthLabel ?? `Jan–${ABBR[cMonthIdx]} vs prior year`;
-
-                    return (
-                      <StatCard
-                        label="Revenue Growth"
-                        value={ytdFmt}
-                        change={ytdLabel}
-                        positive={true}
-                        index={12}
-                        altValue={growthFmtAlt}
-                        altChange={growthFmtAlt === "N/A" ? "No prior data" : growthLabelAlt}
-                        altPositive={(growthPct ?? 0) >= 0}
-                        toggleLabelBase="$"
-                        toggleLabelAlt="%"
-                        greenAltPill={true}
-                      />
-                    );
-                  }
-
-                  return (
-                    <StatCard
-                      label="Revenue Growth"
-                      value={growthFormatted}
-                      change={growthLabel}
-                      positive={growthValue === null ? true : growthValue >= 0}
-                      index={12}
-                    />
-                  );
-                })()}
-                <StatCard label="Pipeline Coverage" value={im.pipelineCoverageFormatted ?? "N/A"} change={im.pipelineValueFormatted ? `${im.pipelineValueFormatted} pipeline` : ""} positive={(im.pipelineCoverage ?? 0) >= 2} index={13} />
+                <StatCard
+                  label="Profitability"
+                  value={fmtVal(sd.grossProfit)}
+                  change={ebitdaMarginPct}
+                  positive={sd.grossProfit >= 0}
+                  index={10}
+                  momContext={scopeLabel}
+                  altValue={fmtVal(sd.netProfit)}
+                  altChange={netProfitMarginPct}
+                  altPositive={sd.netProfit >= 0}
+                  altMomContext={scopeLabel}
+                  toggleLabelBase="Gross Profit"
+                  toggleLabelAlt="Net Profit"
+                  greenAltPill={true}
+                />
+                <StatCard
+                  label="Gross Margin %"
+                  value={`${gmPct}%`}
+                  change={`avg ${gmPct}%`}
+                  positive={sd.grossMarginPct >= 30}
+                  index={11}
+                  momContext={scopeLabel}
+                />
+                <StatCard
+                  label="Revenue Growth"
+                  value={fmtVal(sd.revenueExGST)}
+                  change={scopeLabel}
+                  positive={true}
+                  index={12}
+                  momContext={`${sd.wonCount} jobs won`}
+                />
+                <StatCard
+                  label="Pipeline Coverage"
+                  value={`${sd.pipelineCoverage.toFixed(1)}x`}
+                  change={fmtVal(sd.pipelineVal) + " pipeline"}
+                  positive={sd.pipelineCoverage >= 2}
+                  index={13}
+                />
                 <StatCard
                   label="Avg Contract Value"
-                  value={fmtAUD(td.avgWon)}
-                  change={`${td.wonCount} jobs won`}
+                  value={fmtVal(sd.avgWon)}
+                  change={`${sd.wonCount} jobs won`}
                   positive={true}
                   index={14}
-                  altValue={fmtAUD(td.avgQuoted)}
-                  altChange={`${td.totalCount} jobs quoted`}
+                  altValue={fmtVal(sd.avgQuoted)}
+                  altChange={`${sd.totalCount} jobs quoted`}
                   altPositive={true}
                   toggleLabelBase="Won"
                   toggleLabelAlt="Quoted"
@@ -606,87 +579,58 @@ const DashboardContent = () => {
                 />
                 <StatCard
                   label="Op. Expense Ratio"
-                  value={aim.operatingExpRatioFormatted ?? "N/A"}
+                  value={`${sd.opExpRatio.toFixed(1)}%`}
                   change="Expenses / Revenue"
-                  positive={(aim.operatingExpRatio ?? 100) < 60}
+                  positive={sd.opExpRatio < 60}
                   index={15}
-                  altValue={td.ytdTotalExpenses ? fmtAUD(td.ytdTotalExpenses) : "–"}
-                  altChange={investorScope === "month" ? "Monthly operating expenses" : "YTD operating expenses"}
-                  altPositive={(aim.operatingExpRatio ?? 100) < 60}
+                  altValue={fmtVal(sd.totalExpenses)}
+                  altChange={`${scopeLabel} expenses`}
+                  altPositive={sd.opExpRatio < 60}
                   toggleLabelBase="Ratio"
                   toggleLabelAlt="$"
                   greenAltPill={true}
                 />
                 <StatCard
                   label="Labour Cost Ratio"
-                  value={aim.labourCostRatioFormatted ?? "N/A"}
+                  value={`${sd.labourRatio.toFixed(1)}%`}
                   change="Labour / Revenue"
-                  positive={(aim.labourCostRatio ?? 100) < 35}
+                  positive={sd.labourRatio < 35}
                   index={16}
-                  altValue={td.ytdLabour ? fmtAUD(td.ytdLabour) : "–"}
-                  altChange={investorScope === "month" ? "Monthly labour costs" : "YTD labour costs"}
-                  altPositive={(aim.labourCostRatio ?? 100) < 35}
+                  altValue={fmtVal(sd.totalLabour)}
+                  altChange={`${scopeLabel} labour`}
+                  altPositive={sd.labourRatio < 35}
                   toggleLabelBase="Ratio"
                   toggleLabelAlt="$"
                   greenAltPill={true}
                 />
                 <StatCard
                   label="Revenue Per Job"
-                  value={aim.revenuePerJobWonFormatted ?? fmtAUD(td.revPerJobWon)}
-                  change={`${td.wonCount} jobs won`}
+                  value={fmtVal(sd.revPerJobWon)}
+                  change={`${sd.wonCount} jobs won`}
                   positive={true}
                   index={17}
-                  altValue={fmtAUD(td.revPerJobQuoted)}
-                  altChange={`${td.totalCount} jobs quoted`}
+                  altValue={fmtVal(sd.revPerJobQuoted)}
+                  altChange={`${sd.totalCount} jobs quoted`}
                   altPositive={true}
                   toggleLabelBase="Won"
                   toggleLabelAlt="Quoted"
                   greenAltPill={true}
                 />
-                <StatCard label="CAC Per Client" value={im.cacPerClientFormatted ?? "N/A"} change={`$${im.googleAdsMonthly ?? 0}/mo ads`} positive={(im.cacPerClient ?? 0) < 5000} index={18} />
-                {(() => {
-                  const im_full = investorMetrics as any;
-
-                  const dsrValue = investorScope === 'month'
-                    ? (aim.debtServiceRatioMonth ?? im_full?.debtServiceRatioMonth ?? 0)
-                    : (aim.debtServiceRatio ?? im_full?.debtServiceRatio ?? 0);
-
-                  const dsrFormatted = `${dsrValue.toFixed(1)}%`;
-
-                  const isHealthy  = dsrValue <= 15;
-                  const isDanger   = dsrValue > 25;
-
-                  const healthLabel = isHealthy
-                    ? 'Healthy — under 15%'
-                    : isDanger
-                    ? 'High — above 25%'
-                    : 'Monitor — 15–25%';
-
-                  const bizLoan = im_full?.bizLoanMonthly ?? 4318;
-                  const carLoan = im_full?.carLoanMonthly ?? 1223;
-                  const monthly = bizLoan + carLoan;
-                  const annual  = monthly * 12;
-
-                  const fmtK = (n: number) =>
-                    n >= 1000 ? `$${(n/1000).toFixed(1)}K` : `$${Math.round(n)}`;
-
-                  const scopeLabel = investorScope === 'month'
-                    ? `${fmtK(monthly)}/mo debt service`
-                    : investorScope === 'full_year'
-                    ? `${fmtK(annual)}/yr — lifetime`
-                    : `${fmtK(annual)}/yr annualised`;
-
-                  return (
-                    <StatCard
-                      label="Debt Service Ratio"
-                      value={dsrFormatted}
-                      change={scopeLabel}
-                      positive={!isDanger}
-                      index={19}
-                      momContext={healthLabel}
-                    />
-                  );
-                })()}
+                <StatCard
+                  label="CAC Per Client"
+                  value="N/A (no ad spend)"
+                  change="$0/mo ads"
+                  positive={true}
+                  index={18}
+                />
+                <StatCard
+                  label="Debt Service Ratio"
+                  value={`${sd.dsrValue.toFixed(1)}%`}
+                  change={`$${((sd.bizLoan + sd.carLoan) * 12 / 1000).toFixed(1)}K/yr annualised`}
+                  positive={sd.dsrValue <= 25}
+                  index={19}
+                  momContext={sd.dsrValue <= 15 ? "Healthy — under 15%" : sd.dsrValue > 25 ? "High — above 25%" : "Monitor — 15–25%"}
+                />
               </div>
             </div>
             );
