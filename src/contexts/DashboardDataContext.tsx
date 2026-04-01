@@ -143,11 +143,8 @@ export interface ProfitMarginPoint {
 
 export interface ForecastChartPoint {
   month: string;
-  totalOutgoings: number;
   anticipatedSurplus: number;
-  probableJobs: number;
-  costOfJobsProbable: number;
-  surplusIncludingProbable: number;
+  actualCashBalance: number | null;
 }
 
 export interface ExpenseAllocationItem {
