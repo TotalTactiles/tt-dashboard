@@ -316,9 +316,9 @@ const CashflowChartInner = ({ adjustedData, adjustments = [] }: CashflowChartPro
                   <p className="text-foreground font-medium">{rangeSummary.start} → {rangeSummary.end}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Total {rangeSummary.total >= 0 ? "Surplus" : "Deficit"}</p>
+                  <p className="text-muted-foreground">Net Change</p>
                   <p className={rangeSummary.total >= 0 ? "text-chart-green font-medium" : "text-chart-red font-medium"}>
-                    {formatMetricValue(rangeSummary.total, "currency")}
+                    {rangeSummary.total >= 0 ? "+" : ""}{formatMetricValue(rangeSummary.total, "currency")}
                   </p>
                 </div>
                 <div>
