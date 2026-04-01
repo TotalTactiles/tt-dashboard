@@ -366,8 +366,10 @@ function calcGrossProfitPerJob(revenue: RevenueProject[], period: PeriodSpec): K
 }
 
 // ── 7. CASH EXPECTED THIS PERIOD (INVOICED mode) ──────────────────
-// ── 7a. CASH EXPECTED — INVOICED mode ─────────────────────────────
-// Invoiced = invoiceDate in prior month OR dueDate in selected month (no double-count)
+// ── 7a. CASH EXPECTED — TO BE PAID mode ───────────────────────────
+// "To Be Paid" = invoiced last month, payment expected to land in the bank THIS month.
+// Matches: invoiceDate in prior month OR dueDate in selected month (no double-count).
+// These are jobs already invoiced — cash should arrive this period.
 
 function calcCashExpected(cashflowData: IncomeOutgoingsPoint[], revenue: RevenueProject[], period: PeriodSpec): KPIResult {
   const monthSet = new Set(period.months);
@@ -418,7 +420,8 @@ function calcCashExpected(cashflowData: IncomeOutgoingsPoint[], revenue: Revenue
 }
 
 // ── 7b. CASH EXPECTED — TO BE INVOICED mode ───────────────────────
-// To Be Invoiced = invoiceDate in the SELECTED month
+// "To Be Invoiced" = jobs with invoiceDate in the SELECTED month.
+// These are jobs being invoiced this month — cash will arrive NEXT month (shows in "To Be Paid" next period).
 
 function calcCashExpectedToBeInvoiced(cashflowData: IncomeOutgoingsPoint[], revenue: RevenueProject[], period: PeriodSpec): KPIResult {
   const monthSet = new Set(period.months);
