@@ -276,11 +276,24 @@ const CashflowChartInner = ({ adjustedData, adjustments = [], hasActiveGoals = f
                   strokeDasharray="3 3"
                 />
               )}
+              {hasActiveGoals && (
+                <Area
+                  type="monotone"
+                  dataKey="_baselineSurplus"
+                  stroke={tc.green}
+                  fill="none"
+                  strokeWidth={1.5}
+                  strokeDasharray="4 3"
+                  strokeOpacity={0.5}
+                  animationDuration={800}
+                  dot={false}
+                />
+              )}
               <Area
                 type="monotone"
                 dataKey="surplus"
-                stroke="url(#splitStroke)"
-                fill="url(#splitFill)"
+                stroke={hasActiveGoals ? tc.amber : "url(#splitStroke)"}
+                fill={hasActiveGoals ? "none" : "url(#splitFill)"}
                 strokeWidth={2}
                 animationDuration={800}
                 baseValue={0}
