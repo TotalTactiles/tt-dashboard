@@ -107,9 +107,13 @@ const CashflowChartInner = ({ adjustedData, adjustments = [] }: CashflowChartPro
     if (startIdx > endIdx) [startIdx, endIdx] = [endIdx, startIdx];
     const rangeData = enrichedData.slice(startIdx, endIdx + 1);
     if (rangeData.length === 0) return null;
-    const total = rangeData.reduce((s, d) => s + d.surplus, 0);
-    const avg = total / rangeData.length;
-    return { start: rangeData[0].month, end: rangeData[rangeData.length - 1].month, total, avg, count: rangeData.length };
+    // surplus is a CUMULATIVE running cash balance (not monthly net income).
+    // Correct "net change over period" = ending balance minus starting balance.
+    const startSurplus = rangeData[0].surplus;
+    const endSurplus = rangeData[rangeData.length - 1].surplus;
+    const netChange = endSurplus - startSurplus;
+    const avg = rangeData.reduce((s, d) => s + d.surplus, 0) / rangeData.length;
+    return { start: rangeData[0].month, end: rangeData[rangeData.length - 1].month, total: netChange, avg, count: rangeData.length };
   }, [selStart, selEnd, enrichedData]);
 
   const orderedSel = useMemo(() => {
