@@ -537,8 +537,8 @@ const DashboardContent = () => {
                   altChange={netProfitMarginPct}
                   altPositive={sd.netProfit >= 0}
                   altMomContext={scopeLabel}
-                  toggleLabelBase="Gross Profit"
-                  toggleLabelAlt="Net Profit"
+                      toggleLabelBase="Net Profit"
+                      toggleLabelAlt="Gross Profit"
                   greenAltPill={true}
                 />
                 <StatCard

@@ -703,11 +703,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     // Card 4: Net Revenue = current year revenue ex-GST minus current year COGS (YTD only)
     // IMPORTANT: DO NOT use revenueSummary — that is an all-time lifetime sum across all years
     const currentYear4Digit = currentYear; // e.g. 2026
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1); // end of today
     const currentYearRevenueProjects = revenueProjects.filter(rp => {
       const dateStr = rp.invoiceDate || rp.otherDate;
       if (!dateStr) return false;
       const d = new Date(dateStr);
-      return !isNaN(d.getTime()) && d.getFullYear() === currentYear4Digit;
+      // Must be current year AND not a future date (exclude May/Jun/Aug etc)
+      return !isNaN(d.getTime()) && d.getFullYear() === currentYear4Digit && d <= todayMidnight;
     });
     const netRevenue = currentYearRevenueProjects.reduce((s, rp) => s + rp.valueExclGST, 0)
       - currentYearRevenueProjects.reduce((s, rp) => s + rp.totalCOGS, 0);
