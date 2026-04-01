@@ -575,6 +575,7 @@ const DashboardContent = () => {
                   change={fmtVal(sd.pipelineVal) + " pipeline"}
                   positive={sd.pipelineCoverage >= 2}
                   index={13}
+                  momContext="vs YTD revenue run rate"
                 />
                 <StatCard
                   label="Avg Contract Value"
