@@ -143,6 +143,7 @@ export interface ProfitMarginPoint {
 
 export interface ForecastChartPoint {
   month: string;
+  totalOutgoings: number;
   anticipatedSurplus: number;
   actualCashBalance: number | null;
 }
