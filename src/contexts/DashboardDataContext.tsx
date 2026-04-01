@@ -1009,21 +1009,39 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         momContext: noData ? undefined : (curMon.wonCount > 0 ? `+${curMon.wonCount} jobs this month` : undefined),
       },
       (() => {
-        // Quoted Remaining = Total Quoted minus Won (GRN) minus Lost/Dead
-        // Do NOT use qs.remaining — n8n sends GRAND TOTAL Active which includes YLW+GRN (~$1.2M, wrong)
-        // Correct figure = quotes with status "pending" only (Quote Sent + Negotiation — not yet won or lost)
-        const remainingJobs = quotedJobs.filter(j => j.status === "pending");
-        const remainingVal = remainingJobs.reduce((s, j) => s + j.value, 0);
-        const remainingCount = remainingJobs.length;
+        // Quoted Remaining base = Quote Sent + Negotiation/Review (status "pending") only
+        // Alt toggle = pending + YLW (status "yellow") — mirrors Total Won card pattern
+        const pendingJobs = quotedJobs.filter(j => j.status === "pending");
+        const pendingVal = pendingJobs.reduce((s, j) => s + j.value, 0);
+        const pendingCount = pendingJobs.length;
+
+        const ylwRemainingJobs = quotedJobs.filter(j => j.status === "yellow");
+        const ylwRemainingVal = ylwRemainingJobs.reduce((s, j) => s + j.value, 0);
+        const ylwRemainingCount = ylwRemainingJobs.length;
+
+        const withYlwVal = pendingVal + ylwRemainingVal;
+        const withYlwCount = pendingCount + ylwRemainingCount;
+
         const prevRemaining = quotedJobs
           .filter(j => j.status === "pending" && dateToMonKeyLocal(j.dateQuoted) === prevMonKey)
           .reduce((s, j) => s + j.value, 0);
+        const prevWithYlw = quotedJobs
+          .filter(j => (j.status === "pending" || j.status === "yellow") && dateToMonKeyLocal(j.dateQuoted) === prevMonKey)
+          .reduce((s, j) => s + j.value, 0);
+
         return {
           label: "Quoted Remaining",
-          value: noData ? "--" : fmtAUD(remainingVal),
-          change: noData ? "--" : `${remainingCount} jobs`,
-          positive: remainingVal >= 0, noData,
-          momDelta: noData ? undefined : (hasPrevMon ? fmtDelta(curMon.remainingVal, prevRemaining, "currency") : noMomText),
+          value: noData ? "--" : fmtAUD(pendingVal),
+          change: noData ? "--" : `${pendingCount} jobs`,
+          positive: true, noData,
+          altValue: noData ? "--" : fmtAUD(withYlwVal),
+          altChange: noData ? "--" : `${withYlwCount} jobs`,
+          altPositive: true,
+          altDiff: noData ? undefined : (ylwRemainingVal > 0 ? `+${fmtAUD(ylwRemainingVal)} / ${ylwRemainingCount} YLW jobs` : undefined),
+          toggleLabelBase: "Confirmed",
+          toggleLabelAlt: "With YLWs",
+          momDelta: noData ? undefined : (hasPrevMon ? fmtDelta(pendingVal, prevRemaining, "currency") : noMomText),
+          altMomDelta: noData ? undefined : (hasPrevMon ? fmtDelta(withYlwVal, prevWithYlw, "currency") : noMomText),
         };
       })(),
       {
