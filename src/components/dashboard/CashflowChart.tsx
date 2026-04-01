@@ -148,9 +148,21 @@ const CashflowChartInner = ({ adjustedData, adjustments = [], hasActiveGoals = f
           <h3 className={`text-sm font-medium ${titleColor}`}>
             Cash Surplus / Deficit
           </h3>
-          <p className="text-xs text-muted-foreground font-mono mb-4">
+          <p className="text-xs text-muted-foreground font-mono mb-1">
             {rangeSummary ? "Drag to select range" : "Click & drag to analyse a range"}
           </p>
+          {hasActiveGoals && (
+            <div className="flex items-center gap-3 mb-2">
+              <span className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
+                <span className="inline-block w-4 border-t border-dashed" style={{ borderColor: tc.green, opacity: 0.6 }} />
+                Baseline
+              </span>
+              <span className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground">
+                <span className="inline-block w-4 border-t-2" style={{ borderColor: tc.amber }} />
+                With Goals
+              </span>
+            </div>
+          )}
         </div>
         {rangeSummary && (
           <button

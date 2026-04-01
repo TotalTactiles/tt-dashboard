@@ -662,7 +662,7 @@ const DashboardContent = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
-            <CashflowChart adjustedData={adjustedData} adjustments={adjustments} />
+            <CashflowChart adjustedData={adjustedData} adjustments={adjustments} hasActiveGoals={hasActiveGoals} />
             <FundPerformanceChart />
           </div>
 
