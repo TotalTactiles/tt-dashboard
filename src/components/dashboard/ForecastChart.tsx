@@ -7,6 +7,7 @@ import NoData from "./NoData";
 import { useTheme } from "next-themes";
 
 const SERIES = [
+  { key: "totalOutgoings", label: "Total Outgoings", color: "red" as const, dash: undefined, strokeWidth: 2.5 },
   { key: "anticipatedSurplus", label: "Anticipated Cash Surplus/(Deficit)", color: "green" as const, dash: undefined, strokeWidth: 2.5 },
   { key: "actualCashBalance", label: "Actual Cash Balance", color: "ghost" as const, dash: "6 3", strokeWidth: 1.5 },
 ] as const;
@@ -27,12 +28,12 @@ const ForecastChart = React.memo(() => {
     brightGreen: "#2dd4bf",
     purple: tc.purple,
     blue: tc.blue,
-    ghost: "rgba(255,255,255,0.35)",
+    ghost: "rgba(255,255,255,0.32)",
   };
 
   const getSeriesColor = (colorKey: string) => {
     if (colorKey === "teal" || colorKey === "brightGreen") return "#2dd4bf";
-    if (colorKey === "ghost") return "rgba(255,255,255,0.35)";
+    if (colorKey === "ghost") return "rgba(255,255,255,0.32)";
     return seriesColors[colorKey] || tc.blue;
   };
 
@@ -143,7 +144,7 @@ const ForecastChart = React.memo(() => {
                         const val = p.value as number | null;
                         return (
                           <p key={p.dataKey as string} style={{ color, marginBottom: 2 }}>
-                            {s.label}: {val != null ? `$${val.toLocaleString()}` : "—"}
+                            {s.label}: {val != null ? `$${Math.round(val).toLocaleString()}` : "—"}
                           </p>
                         );
                       })}
@@ -165,7 +166,7 @@ const ForecastChart = React.memo(() => {
                     dot={isGhost ? { r: 2.5, fill: sColor, strokeWidth: 0 } : { r: 3, fill: sColor, strokeWidth: 1, stroke: tc.dotStroke }}
                     activeDot={isGhost ? { r: 4, fill: sColor, strokeWidth: 1, stroke: tc.dotStroke } : { r: 5, fill: sColor, strokeWidth: 2, stroke: tc.dotStroke }}
                     animationDuration={1500}
-                    connectNulls={false}
+                    connectNulls={isGhost ? false : true}
                   />
                 ) : null;
               })}
