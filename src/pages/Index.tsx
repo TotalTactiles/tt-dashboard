@@ -101,46 +101,110 @@ const DashboardContent = () => {
   // ── Shared "All" toggle for both tables — always starts OFF ──
   const [showAllTables, setShowAllTables] = useState(false);
   const [invoiceFilter, setInvoiceFilter] = useState<"invoiced" | "to_be_invoiced">("invoiced");
-  const [investorScope, setInvestorScope] = useState<"ytd" | "month" | "full_year">("ytd");
+  const [investorScope, setInvestorScope] = useState<"ytd" | "quarter">("ytd");
 
-  // Expose month-scoped and lifetime investor metrics from n8n
-  const investorMetricsMonth = (liveData as any)?.investorMetricsMonth ?? null;
-  const investorMetricsLifetime = (liveData as any)?.investorMetricsLifetime ?? null;
-  const activeInvestorMetrics = investorScope === 'month' && investorMetricsMonth
-    ? investorMetricsMonth
-    : investorScope === 'full_year' && investorMetricsLifetime
-      ? investorMetricsLifetime
-      : investorMetrics;
+  // ── Compute date windows from real current date ──────────────────
+  const investorDateWindows = useMemo(() => {
+    const now = new Date();
+    const yr = now.getFullYear();
+    const mo = now.getMonth(); // 0-indexed
+    const ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const yr2 = String(yr).slice(-2);
 
-  // Computed toggle data for investor metric cards
-  const investorToggleData = useMemo(() => {
-    const im = activeInvestorMetrics as any;
-    if (!im) return null;
+    // YTD: Jan of current year → current month inclusive
+    const ytdMonths: string[] = [];
+    for (let i = 0; i <= mo; i++) ytdMonths.push(`${ABBR[i]}-${yr2}`);
 
-    const wonJobs = quotedJobs.filter(j => j.status === "won");
-    const allActive = quotedJobs.filter(j => j.status !== "lost");
-    const wonCount = im.wonCount ?? wonJobs.length;
-    const totalCount = im.totalCount ?? allActive.length;
-    const wonTotalValue = wonJobs.reduce((s, j) => s + j.value, 0);
-    const allTotalValue = allActive.reduce((s, j) => s + j.value, 0);
+    // Current quarter: Q1=Jan-Mar, Q2=Apr-Jun, Q3=Jul-Sep, Q4=Oct-Dec
+    const qNum = Math.floor(mo / 3) + 1;
+    const qStart = (qNum - 1) * 3;
+    const qMonths: string[] = [];
+    for (let i = qStart; i < qStart + 3 && i <= mo; i++) qMonths.push(`${ABBR[i]}-${yr2}`);
+    const qLabel = `Q${qNum} ${yr} (${ABBR[qStart]}–${ABBR[Math.min(qStart + 2, 11)]})`;
 
-    // Avg Contract Value — use n8n pre-computed values for Won mode
-    const avgWon = im.avgContractValueWon ?? (wonCount > 0 ? wonTotalValue / wonCount : 0);
-    const wonPlusCompletedCount = im.wonPlusCompletedCount ?? wonCount;
-    const avgQuoted = totalCount > 0 ? allTotalValue / totalCount : 0;
+    return { ytdMonths, qMonths, qLabel, yr, yr2, mo, ABBR };
+  }, []);
 
-    // Revenue Per Job — use revenueExGST / wonPlusCompletedCount for Won mode
-    const revenueExGST = im.revenueExGST ?? 0;
-    const revPerJobWon = wonPlusCompletedCount > 0 ? revenueExGST / wonPlusCompletedCount : (im.revenuePerJobWon ?? 0);
-    const revPerJobQuoted = totalCount > 0 ? (revPerJobWon * wonPlusCompletedCount) / totalCount : 0;
+  // ── Filter source data to active scope ───────────────────────────
+  const scopedInvestorData = useMemo(() => {
+    const { ytdMonths, qMonths } = investorDateWindows;
+    const activeMonths = investorScope === "ytd" ? ytdMonths : qMonths;
+    const activeMonthSet = new Set(activeMonths);
+
+    const dateToMK = (s: string): string | null => {
+      if (!s) return null;
+      const d = new Date(s);
+      if (isNaN(d.getTime())) return null;
+      const A = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      return `${A[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
+    };
+
+    // Revenue projects in scope
+    const scopedRevenue = revenueProjects.filter(rp => {
+      const mk = dateToMK(rp.invoiceDate) ?? dateToMK(rp.otherDate);
+      return mk ? activeMonthSet.has(mk) : false;
+    });
+
+    // Quoted jobs in scope (by dateQuoted)
+    const scopedQuotes = quotedJobs.filter(j => {
+      const mk = dateToMK(j.dateQuoted);
+      return mk ? activeMonthSet.has(mk) : false;
+    });
+
+    // Won jobs in scope
+    const scopedWonOnly = scopedQuotes.filter(j => j.status === "won");
+
+    // Revenue metrics
+    const revenueExGST = scopedRevenue.reduce((s, r) => s + r.valueExclGST, 0);
+    const totalCOGS = scopedRevenue.reduce((s, r) => s + r.totalCOGS, 0);
+    const grossProfit = revenueExGST - totalCOGS;
+    const grossMarginPct = revenueExGST > 0 ? (grossProfit / revenueExGST) * 100 : 0;
+
+    // Expenses from cashflow
+    const rawCF = (liveData as any)?.cashflow as any[] ?? [];
+    const findCFRow = (label: string) => rawCF.find((r: any) => {
+      const l = String(r._label_rowLabel ?? r.col_1 ?? "").toUpperCase().trim();
+      return l === label.toUpperCase();
+    });
+    const opexRow = findCFRow("TOTAL OPERATING EXPENSES (INCL. SALARIES)");
+    const labourRow = findCFRow("TOTAL COST OF SALES");
+    const parseN = (v: any) => { const n = parseFloat(String(v ?? "0").replace(/[$,()]/g, "")); return isNaN(n) ? 0 : Math.abs(n); };
+    const totalExpenses = activeMonths.reduce((s, mk) => s + parseN(opexRow?.[mk]), 0);
+    const totalLabour = activeMonths.reduce((s, mk) => s + parseN(labourRow?.[mk]), 0);
+    const netProfit = revenueExGST - totalExpenses;
+    const opExpRatio = revenueExGST > 0 ? (totalExpenses / revenueExGST) * 100 : 0;
+    const labourRatio = revenueExGST > 0 ? (totalLabour / revenueExGST) * 100 : 0;
+
+    // Job metrics
+    const wonCount = scopedWonOnly.length;
+    const totalCount = scopedQuotes.length;
+    const avgWon = wonCount > 0 ? scopedWonOnly.reduce((s, j) => s + j.value, 0) / wonCount : 0;
+    const avgQuoted = totalCount > 0 ? scopedQuotes.reduce((s, j) => s + j.value, 0) / totalCount : 0;
+    const revPerJobWon = wonCount > 0 ? revenueExGST / wonCount : 0;
+    const revPerJobQuoted = totalCount > 0 ? revenueExGST / totalCount : 0;
+
+    // Pipeline coverage: all pending+yellow / revenueExGST
+    const pipelineVal = quotedJobs
+      .filter(j => j.status === "pending" || j.status === "yellow")
+      .reduce((s, j) => s + j.value, 0);
+    const pipelineCoverage = revenueExGST > 0 ? pipelineVal / revenueExGST : 0;
+
+    // Debt service ratio
+    const im_full = investorMetrics as any;
+    const bizLoan = im_full?.bizLoanMonthly ?? 4318;
+    const carLoan = im_full?.carLoanMonthly ?? 1223;
+    const monthlyDebt = bizLoan + carLoan;
+    const annualDebt = monthlyDebt * 12;
+    const dsrValue = revenueExGST > 0 ? (annualDebt / revenueExGST) * 100 : 0;
 
     return {
-      avgWon, avgQuoted, wonCount: wonPlusCompletedCount, totalCount,
-      revPerJobWon, revPerJobQuoted,
-      ytdTotalExpenses: im.ytdTotalExpenses ?? null,
-      ytdLabour: im.ytdLabour ?? null,
+      revenueExGST, totalCOGS, grossProfit, grossMarginPct,
+      totalExpenses, totalLabour, netProfit, opExpRatio, labourRatio,
+      wonCount, totalCount, avgWon, avgQuoted, revPerJobWon, revPerJobQuoted,
+      pipelineVal, pipelineCoverage, dsrValue, bizLoan, carLoan, monthlyDebt, annualDebt,
+      scopedMonthCount: activeMonths.length,
     };
-  }, [activeInvestorMetrics, quotedJobs]);
+  }, [investorScope, investorDateWindows, revenueProjects, quotedJobs, liveData, investorMetrics]);
 
   // Find current-year YTD index for auto-switch
   const currentYearYtdIdx = useMemo(() => {
