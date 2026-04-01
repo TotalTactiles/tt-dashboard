@@ -1032,7 +1032,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         change: "--",
         positive: netRevenue >= 0, noData,
         momDelta: noData ? undefined : (prevMonRev.count > 0 ? fmtDelta(curMonRev.netRevenue, prevMonRev.netRevenue, "currency") : noMomText),
-        momContext: noData ? undefined : (curMonRev.count > 0 ? `${curMonRev.count} revenue items this month` : undefined),
+        momContext: noData ? undefined : (curMonRev.count > 0 ? `${curMonRev.count} revenue items this month` : `${currentYear4Digit} YTD`),
       },
       (() => {
         // Read manual actual balance from localStorage
