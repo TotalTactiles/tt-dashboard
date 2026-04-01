@@ -997,13 +997,24 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         momDelta: noData ? undefined : (hasPrevMon ? fmtDelta(curMon.wonVal, prevMon.wonVal, "currency") : noMomText),
         momContext: noData ? undefined : (curMon.wonCount > 0 ? `+${curMon.wonCount} jobs this month` : undefined),
       },
-      {
-        label: "Quoted Remaining",
-        value: noData ? "--" : fmtAUD(parseNum(qs?.remaining?.value ?? 0)),
-        change: noData ? "--" : `${parseNum(qs?.remaining?.count ?? 0)} jobs`,
-        positive: parseNum(qs?.remaining?.value ?? 0) >= 0, noData,
-        momDelta: noData ? undefined : (hasPrevMon ? fmtDelta(curMon.remainingVal, prevMon.remainingVal, "currency") : noMomText),
-      },
+      (() => {
+        // Quoted Remaining = Total Quoted minus Won (GRN) minus Lost/Dead
+        // Do NOT use qs.remaining — n8n sends GRAND TOTAL Active which includes YLW+GRN (~$1.2M, wrong)
+        // Correct figure = quotes with status "pending" only (Quote Sent + Negotiation — not yet won or lost)
+        const remainingJobs = quotedJobs.filter(j => j.status === "pending");
+        const remainingVal = remainingJobs.reduce((s, j) => s + j.value, 0);
+        const remainingCount = remainingJobs.length;
+        const prevRemaining = quotedJobs
+          .filter(j => j.status === "pending" && dateToMonKeyLocal(j.dateQuoted) === prevMonKey)
+          .reduce((s, j) => s + j.value, 0);
+        return {
+          label: "Quoted Remaining",
+          value: noData ? "--" : fmtAUD(remainingVal),
+          change: noData ? "--" : `${remainingCount} jobs`,
+          positive: remainingVal >= 0, noData,
+          momDelta: noData ? undefined : (hasPrevMon ? fmtDelta(curMon.remainingVal, prevRemaining, "currency") : noMomText),
+        };
+      })(),
       {
         label: "Net Revenue",
         value: noData ? "--" : fmtAUD(netRevenue),
