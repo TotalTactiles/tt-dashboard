@@ -149,8 +149,6 @@ const ForecastChart = React.memo(() => {
                       })}
                     </div>
                   );
-                    </div>
-                  );
                 }}
               />
               {SERIES.map((s) => {
