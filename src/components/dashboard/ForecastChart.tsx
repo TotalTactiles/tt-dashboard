@@ -124,12 +124,6 @@ const ForecastChart = React.memo(() => {
                   const point = payload[0]?.payload as any;
                   if (!point) return null;
                   const visiblePayload = payload.filter(p => visibleKeys.has(p.dataKey as string));
-                  const baseSurplus = point.anticipatedSurplus ?? 0;
-                  const withProbable = point.surplusIncludingProbable ?? 0;
-                  const gap = withProbable - baseSurplus;
-                  const showGap = Math.abs(gap) > 0 &&
-                    visibleKeys.has("anticipatedSurplus") &&
-                    visibleKeys.has("surplusIncludingProbable");
                   return (
                     <div style={{
                       backgroundColor: tc.tooltipBg,
@@ -146,22 +140,15 @@ const ForecastChart = React.memo(() => {
                         const s = SERIES.find(s => s.key === p.dataKey);
                         if (!s) return null;
                         const color = getSeriesColor(s.color);
+                        const val = p.value as number | null;
                         return (
                           <p key={p.dataKey as string} style={{ color, marginBottom: 2 }}>
-                            {s.label}: ${(p.value as number).toLocaleString()}
+                            {s.label}: {val != null ? `$${val.toLocaleString()}` : "—"}
                           </p>
                         );
                       })}
-                      {showGap && (
-                        <p style={{
-                          color: gap > 0 ? "#2dd4bf" : tc.red,
-                          marginTop: 6,
-                          paddingTop: 6,
-                          borderTop: `1px solid ${tc.tooltipBorder}`,
-                        }}>
-                          Probable uplift: {gap > 0 ? "+" : ""}${Math.round(gap).toLocaleString()}
-                        </p>
-                      )}
+                    </div>
+                  );
                     </div>
                   );
                 }}
