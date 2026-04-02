@@ -296,6 +296,7 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
               />
               <YAxis
                 yAxisId="surplus"
+                hide={true}
                 orientation="right"
                 stroke={tc.axis}
                 fontSize={10}
