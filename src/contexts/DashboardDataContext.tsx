@@ -545,23 +545,23 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     };
 
     // Income vs Outgoings bar chart
-    // Outgoings = abs(COGS Row 18) + abs(OpEx incl Salaries Row 48) — always positive for bar display
-    // Do NOT use "Total Outgoings" row — it's a net figure with inconsistent signs
-    // Surplus line = monthly net cash movement = Row 71 (closing) - Row 2 (opening balance)
+    // Income bar  = Row 11 (Total Income) — what landed in the bank
+    // Outgoings bar = Row 18 (Total Cost of Sales) + Row 48 (Total OpEx incl. Salaries)
+    //   Row 70 "Total Outgoings" is a NET figure and unsuitable for bars (goes positive when income > expenses)
+    // Surplus line = Row 71 "Anticipated Cash Surplus/(Deficit)" directly — the running cash position
+    // Probable income for future months = Row 11 directly (what the cashflow model forecasts)
     const incomeOutgoingsData: IncomeOutgoingsPoint[] = months
       .map((m) => {
         const inc = totalIncomeRow ? parseNum(totalIncomeRow[m] ?? 0) : sv(cs?.totalIncome, m);
-        // Outgoings = COGS + OpEx incl Salaries — both negative in sheet, take abs for bar height
-        const cogs = totalCostOfSalesRow ? Math.abs(parseNum(totalCostOfSalesRow[m] ?? 0)) : 0;
-        const opex = totalOpExInclSalariesRow ? Math.abs(parseNum(totalOpExInclSalariesRow[m] ?? 0)) : 0;
-        const out = cogs + opex;
+        // Use COGS + OpEx rows directly for outgoings bars — always represents true expense outflow
+        const cogsVal = totalCostOfSalesRow ? Math.abs(parseNum(totalCostOfSalesRow[m] ?? 0)) : 0;
+        const opexVal = totalOpExInclSalariesRow ? Math.abs(parseNum(totalOpExInclSalariesRow[m] ?? 0)) : 0;
+        const out = cogsVal + opexVal;
         const parsed = parseMonthLabel(m);
         const isFuture = parsed ? (parsed.year > currentYear || (parsed.year === currentYear && parsed.month > currentMonthIdx)) : false;
-        // Monthly net = closing balance (Row 71) minus opening balance (Row 2)
-        const closingBalance = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[m] ?? 0) : sv(cs?.anticipatedSurplus, m);
-        const openingBalance = openingBalancesRow ? parseNum(openingBalancesRow[m] ?? 0) : 0;
-        const surplus = closingBalance - openingBalance;
-        // For future months: use Total Income row (Row 11) directly from cashflow model
+        // Surplus = Row 71 directly — the anticipated cumulative cash position from the cashflow model
+        const surplus = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[m] ?? 0) : sv(cs?.anticipatedSurplus, m);
+        // Probable income for future months = Row 11 (cashflow model forecast), not derived from surplus
         const probableIncome = isFuture ? Math.max(0, inc) : 0;
         return {
           month: m,
