@@ -154,23 +154,17 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
     [filteredData, currentMonthLabel]
   );
 
-  const barDomain = useMemo(() => {
+  const sharedDomain = useMemo(() => {
     if (filteredData.length === 0) return [0, 100000];
-    let maxBar = 0;
-    for (const d of filteredData) {
-      maxBar = Math.max(maxBar, d.income, d.outgoings, d.probableIncome);
-    }
-    return [0, Math.ceil(maxBar * 1.15 / 10000) * 10000 || 10000];
+    const allVals = filteredData.flatMap((d) => [d.income, d.outgoings, d.probableIncome, d.surplus]);
+    const min = Math.min(0, ...allVals);
+    const max = Math.max(...allVals);
+    const pad = Math.ceil(max * 0.15 / 10000) * 10000;
+    return [Math.floor(min / 5000) * 5000, Math.ceil((max + pad) / 10000) * 10000 || 10000];
   }, [filteredData]);
 
-  const surplusDomain = useMemo(() => {
-    if (filteredData.length === 0) return [-10000, 10000];
-    const vals = filteredData.map((d) => d.surplus);
-    const min = Math.min(...vals);
-    const max = Math.max(...vals);
-    const pad = Math.max(Math.abs(max - min) * 0.15, 5000);
-    return [Math.floor((min - pad) / 5000) * 5000, Math.ceil((max + pad) / 5000) * 5000];
-  }, [filteredData]);
+  const barDomain = sharedDomain;
+  const surplusDomain = sharedDomain;
 
   const renderSurplusDot = (props: any) => {
     const { cx, cy, payload } = props;
