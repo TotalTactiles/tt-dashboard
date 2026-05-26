@@ -32,7 +32,6 @@ const getTypeColor = (type: string) => TYPE_COLORS[type] || "#378ADD";
 
 const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onAddEvent }: CalendarGridProps) => {
   const [currentDate, setCurrentDate] = useState(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
-  const [expandedDay, setExpandedDay] = useState<number | null>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
