@@ -222,7 +222,7 @@ const CalendarView = () => {
     <DashboardLayout>
       {/* Calendar zone — fits within viewport */}
       <div
-        className="flex flex-col gap-2 overflow-hidden"
+        className="flex flex-col gap-2 overflow-hidden overflow-x-hidden"
         style={{ height: "calc(100vh - 4rem)" }}
       >
         {/* Header row */}
