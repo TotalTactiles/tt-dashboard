@@ -167,6 +167,35 @@ const DaySchedulePanel = ({ events, selectedDate, onPrevDay, onNextDay, onEventC
                           )}
                         </div>
                       )}
+                      {ev.source === 'Zoho Projects' && (ev as any).subtasks && ((ev as any).subtasks as any[]).length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-white/10">
+                          <p className="text-xs text-white/50 uppercase tracking-wider mb-2">
+                            Subtasks ({((ev as any).subtasks as any[]).length})
+                          </p>
+                          <ul className="space-y-1">
+                            {((ev as any).subtasks as any[]).map((sub: any) => (
+                              <li key={sub.id} className="flex items-start gap-2 text-sm">
+                                <span className={`mt-0.5 w-3 h-3 rounded-full flex-shrink-0 border ${
+                                  sub.status === 'completed' || sub.status === 'closed'
+                                    ? 'bg-green-500 border-green-500'
+                                    : 'border-white/30 bg-transparent'
+                                }`} />
+                                <span className={sub.status === 'completed' || sub.status === 'closed'
+                                  ? 'line-through text-white/40'
+                                  : 'text-white/80'
+                                }>
+                                  {sub.name}
+                                  {sub.due && (
+                                    <span className="ml-2 text-white/40 text-xs">
+                                      {new Date(sub.due + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                                    </span>
+                                  )}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
