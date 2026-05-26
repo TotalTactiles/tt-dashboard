@@ -26,6 +26,7 @@ import {
 const navItems = [
 { title: "Dashboard", url: "/", icon: LayoutDashboard },
 { title: "Calendar", url: "/calendar", icon: CalendarDays },
+{ title: "Employee Tracking", url: "/employees", icon: HardHat },
 { title: "Goals & Targets", url: "/goals", icon: Target },
 { title: "Formulas", url: "/formulas", icon: FunctionSquare },
 { title: "Portfolio", url: "/portfolio", icon: TrendingUp },
