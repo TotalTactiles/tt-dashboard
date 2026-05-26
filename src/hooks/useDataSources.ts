@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 const STORAGE_KEY = "dashboard_data_sources";
 const DATA_CACHE_KEY = "dashboard_live_data";
 const CALENDAR_CACHE_KEY = "dashboard_calendar_data";
+const ZOHO_CALENDAR_CACHE_KEY = "tt_zoho_calendar_events";
+const ZOHO_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const PROJECT_KPI_CACHE_KEY = "dashboard_project_kpi_data";
 const POLL_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const DATA_CACHE_META_KEY = "dashboard_data_cache_meta";
