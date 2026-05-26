@@ -109,7 +109,7 @@ const fmtMoney2 = (n: number) => `$${n.toLocaleString("en-AU", { minimumFraction
 const statusPill = (status: string) => {
   const base = "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider";
   if (status === "active") return <span className={`${base} bg-chart-green/15 text-chart-green`}>active</span>;
-  if (status === "paused") return <span className={`${base} bg-chart-yellow/15 text-chart-yellow`}>paused</span>;
+  if (status === "paused") return <span className={`${base} bg-chart-orange/15 text-chart-orange`}>paused</span>;
   return <span className={`${base} bg-muted text-muted-foreground`}>ended</span>;
 };
 
@@ -343,7 +343,7 @@ const EmployeeTracking = () => {
       </div>
 
       {isMockData && (
-        <div className="mb-4 px-3 py-2 rounded-md border border-chart-yellow/40 bg-chart-yellow/10 text-[11px] font-mono text-chart-yellow">
+        <div className="mb-4 px-3 py-2 rounded-md border border-chart-orange/40 bg-chart-orange/10 text-[11px] font-mono text-chart-orange">
           Showing sample data — live Upwork & Zoho Projects sync not yet connected.
         </div>
       )}
