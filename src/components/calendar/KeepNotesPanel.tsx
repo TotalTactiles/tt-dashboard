@@ -111,18 +111,18 @@ export default function KeepNotesPanel() {
       transition={{ duration: 0.35, ease: "easeOut" }}
     >
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div className="min-w-0">
           <h2 className="text-fluid-lg font-semibold text-foreground">Notes</h2>
           <p className="text-fluid-xs text-muted-foreground font-mono">Google Keep &amp; manual notes</p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
           <input
             placeholder="Search…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-8 px-3 rounded-lg text-xs bg-muted border-0 outline-none focus:ring-1 focus:ring-primary/40 w-36"
+            className="h-8 px-3 rounded-lg text-xs bg-muted border-0 outline-none focus:ring-1 focus:ring-primary/40 w-36 min-w-0 flex-shrink"
           />
 
           {/* Import Popover */}
