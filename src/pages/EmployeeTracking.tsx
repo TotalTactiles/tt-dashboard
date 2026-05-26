@@ -1,9 +1,16 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Users, Clock, DollarSign, TrendingUp, ChevronDown } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Users, Clock, DollarSign, TrendingUp, ChevronDown, Pencil, Check as CheckIcon, Plus } from "lucide-react";
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -24,7 +31,8 @@ import {
 const USD_TO_AUD = 1.55;
 const ZOHO_RATE_AUD = 40;
 
-type WorkerType = "casual_labour" | "subcontractor" | "digital_freelancer";
+type WorkerType = string; // free-form to allow custom types
+const DEFAULT_TYPES = ["casual_labour", "digital_freelancer", "subcontractor"];
 
 const MOCK_UPWORK_DATA = {
   source: "Upwork",
@@ -39,9 +47,9 @@ const MOCK_UPWORK_DATA = {
     avgRateUSD: 22.33,
   },
   workers: [
-    { workerId: "u1", name: "Israr", role: "Digital Automation / n8n Dev", type: "Hourly", workerType: "digital_freelancer" as WorkerType, rateUSD: 25, status: "active", startDate: "2026-01-10", totalBilledUSD: 900, totalBilledAUD: 900 * USD_TO_AUD, hoursWorked: 36 },
-    { workerId: "u2", name: "Haider", role: "Digital Automation / n8n Dev", type: "Hourly", workerType: "digital_freelancer" as WorkerType, rateUSD: 22, status: "active", startDate: "2026-02-01", totalBilledUSD: 704, totalBilledAUD: 704 * USD_TO_AUD, hoursWorked: 32 },
-    { workerId: "u3", name: "Muhammed", role: "Digital / Web Contractor", type: "Hourly", workerType: "digital_freelancer" as WorkerType, rateUSD: 20, status: "active", startDate: "2026-03-01", totalBilledUSD: 400, totalBilledAUD: 400 * USD_TO_AUD, hoursWorked: 20 },
+    { workerId: "u1", name: "Israr", role: "Digital Automation / n8n Dev", type: "Hourly", workerType: "digital_freelancer", rateUSD: 25, status: "active", startDate: "2026-01-10", totalBilledUSD: 900, totalBilledAUD: 900 * USD_TO_AUD, hoursWorked: 36 },
+    { workerId: "u2", name: "Haider", role: "Digital Automation / n8n Dev", type: "Hourly", workerType: "digital_freelancer", rateUSD: 22, status: "active", startDate: "2026-02-01", totalBilledUSD: 704, totalBilledAUD: 704 * USD_TO_AUD, hoursWorked: 32 },
+    { workerId: "u3", name: "Muhammed", role: "Digital / Web Contractor", type: "Hourly", workerType: "digital_freelancer", rateUSD: 20, status: "active", startDate: "2026-03-01", totalBilledUSD: 400, totalBilledAUD: 400 * USD_TO_AUD, hoursWorked: 20 },
   ],
   timesheets: [
     { date: "2026-05-20", workerName: "Israr", hours: 6, payoutUSD: 150, payoutAUD: 150 * USD_TO_AUD, month: "2026-05", source: "Upwork", projectName: "" },
@@ -71,8 +79,8 @@ const MOCK_ZOHO_DATA = {
     totalCostAUD: 8000,
   },
   workers: [
-    { workerId: "z1", name: "Asad Afzaal", role: "Site Installation", type: "Hourly", workerType: "casual_labour" as WorkerType, rateAUD: ZOHO_RATE_AUD, status: "active", startDate: "2025-08-01", totalBilledAUD: 4800, hoursWorked: 120, projects: ["Dalmeny PS", "BESIX Watpac St George S2"] },
-    { workerId: "z2", name: "Abdul", role: "Site Installation", type: "Hourly", workerType: "casual_labour" as WorkerType, rateAUD: ZOHO_RATE_AUD, status: "active", startDate: "2025-10-15", totalBilledAUD: 3200, hoursWorked: 80, projects: ["Dalmeny PS"] },
+    { workerId: "z1", name: "Asad Afzaal", role: "Site Installation", type: "Hourly", workerType: "casual_labour", rateAUD: ZOHO_RATE_AUD, status: "active", startDate: "2025-08-01", totalBilledAUD: 4800, hoursWorked: 120, projects: ["Dalmeny PS", "BESIX Watpac St George S2"] },
+    { workerId: "z2", name: "Abdul", role: "Site Installation", type: "Hourly", workerType: "casual_labour", rateAUD: ZOHO_RATE_AUD, status: "active", startDate: "2025-10-15", totalBilledAUD: 3200, hoursWorked: 80, projects: ["Dalmeny PS"] },
   ],
   timesheets: [
     { date: "2026-05-22", workerName: "Asad Afzaal", hours: 8, costAUD: 320, month: "2026-05", source: "Zoho Projects", projectName: "Dalmeny PS", rateAUD: ZOHO_RATE_AUD },
@@ -119,14 +127,27 @@ const sourcePill = (source: string) => {
   return <span className={`${base} bg-chart-blue/15 text-chart-blue`}>Zoho</span>;
 };
 
+const typeLabel = (t: WorkerType) => {
+  if (t === "casual_labour") return "Casual Labour";
+  if (t === "subcontractor") return "Subcontractor";
+  if (t === "digital_freelancer") return "Digital";
+  return t;
+};
 const typePill = (t: WorkerType) => {
   const base = "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider";
   if (t === "casual_labour") return <span className={`${base} bg-chart-orange/15 text-chart-orange`}>Casual Labour</span>;
   if (t === "subcontractor") return <span className={`${base} bg-chart-purple/15 text-chart-purple`}>Subcontractor</span>;
-  return <span className={`${base} bg-chart-blue/15 text-chart-blue`}>Digital</span>;
+  if (t === "digital_freelancer") return <span className={`${base} bg-chart-blue/15 text-chart-blue`}>Digital</span>;
+  return <span className={`${base} bg-muted text-foreground`}>{t}</span>;
 };
 
 const DONUT_COLORS = ["#22c55e", "#60a5fa", "#a78bfa", "#f59e0b", "#ef4444", "#14b8a6"];
+
+// ============= LOCAL STORAGE KEYS =============
+const LS_DISPLAY = "tt_worker_display_config";
+const LS_TYPES = "tt_worker_types";
+
+type WorkerDisplayConfig = Record<string, { displayName: string; role: string; workerType: string }>;
 
 // ============= KPI CARD =============
 interface KPIProps {
@@ -159,27 +180,119 @@ const KPI = ({ label, value, sub, Icon, active, onClick }: KPIProps) => (
 const EmployeeTracking = () => {
   const upwork: typeof MOCK_UPWORK_DATA | null = MOCK_UPWORK_DATA;
   const zoho: typeof MOCK_ZOHO_DATA | null = MOCK_ZOHO_DATA;
-  const isMockData = true; // when both sources live, set false
+  const isMockData = true;
 
   const [expandedCard, setExpandedCard] = useState<null | "workers" | "hours" | "spend" | "rate">(null);
-  const [workerFilter, setWorkerFilter] = useState<string>("All Workers");
   const [monthFilter, setMonthFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("All Sources");
   const [chartSource, setChartSource] = useState<"all" | "upwork" | "zoho">("all");
   const [bankOpen, setBankOpen] = useState(false);
 
+  // ===== Worker display config (localStorage) =====
+  const rawSourceWorkers = useMemo(() => {
+    const up = (upwork?.workers ?? []).map((w) => ({ sourceId: w.name, role: w.role, workerType: w.workerType }));
+    const zh = (zoho?.workers ?? []).map((w) => ({ sourceId: w.name, role: w.role, workerType: w.workerType }));
+    return [...up, ...zh];
+  }, [upwork, zoho]);
+
+  const buildDefaultConfig = (): WorkerDisplayConfig => {
+    const cfg: WorkerDisplayConfig = {};
+    rawSourceWorkers.forEach((w) => {
+      cfg[w.sourceId] = { displayName: w.sourceId, role: w.role, workerType: w.workerType };
+    });
+    return cfg;
+  };
+
+  const [displayConfig, setDisplayConfig] = useState<WorkerDisplayConfig>(() => {
+    try {
+      const raw = localStorage.getItem(LS_DISPLAY);
+      if (raw) return JSON.parse(raw);
+    } catch { /* noop */ }
+    return {};
+  });
+
+  // Ensure config has entry for every source worker (merge defaults without overwriting user edits)
+  useEffect(() => {
+    setDisplayConfig((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      rawSourceWorkers.forEach((w) => {
+        if (!next[w.sourceId]) {
+          next[w.sourceId] = { displayName: w.sourceId, role: w.role, workerType: w.workerType };
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [rawSourceWorkers]);
+
+  // Debounced persistence
+  const saveTimer = useRef<number | null>(null);
+  useEffect(() => {
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      try { localStorage.setItem(LS_DISPLAY, JSON.stringify(displayConfig)); } catch { /* noop */ }
+    }, 500);
+    return () => { if (saveTimer.current) window.clearTimeout(saveTimer.current); };
+  }, [displayConfig]);
+
+  const [customTypes, setCustomTypes] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem(LS_TYPES);
+      if (raw) return JSON.parse(raw);
+    } catch { /* noop */ }
+    return [];
+  });
+  useEffect(() => {
+    try { localStorage.setItem(LS_TYPES, JSON.stringify(customTypes)); } catch { /* noop */ }
+  }, [customTypes]);
+
+  const allTypeOptions = useMemo(() => {
+    const set = new Set<string>([...DEFAULT_TYPES, ...customTypes]);
+    return Array.from(set);
+  }, [customTypes]);
+
+  // Helpers to resolve display values from sourceId
+  const displayOf = (sourceId: string) => displayConfig[sourceId]?.displayName ?? sourceId;
+  const roleOf = (sourceId: string, fallback: string) => displayConfig[sourceId]?.role ?? fallback;
+  const typeOf = (sourceId: string, fallback: string) => displayConfig[sourceId]?.workerType ?? fallback;
+
+  // Edit mode
+  const [editMode, setEditMode] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [addingRoleFor, setAddingRoleFor] = useState<string | null>(null);
+  const [addingTypeFor, setAddingTypeFor] = useState<string | null>(null);
+  const [newRoleDraft, setNewRoleDraft] = useState("");
+  const [newTypeDraft, setNewTypeDraft] = useState("");
+
+  const updateField = (sourceId: string, field: "displayName" | "role" | "workerType", value: string) => {
+    setDisplayConfig((prev) => ({
+      ...prev,
+      [sourceId]: {
+        displayName: prev[sourceId]?.displayName ?? sourceId,
+        role: prev[sourceId]?.role ?? "",
+        workerType: prev[sourceId]?.workerType ?? "casual_labour",
+        ...prev[sourceId],
+        [field]: value,
+      },
+    }));
+  };
+
+  const resetAllDisplay = () => {
+    setDisplayConfig(buildDefaultConfig());
+    setConfirmReset(false);
+  };
+
   // Merged workers
   const allWorkers = useMemo(() => {
     const up = (upwork?.workers ?? []).map((w) => ({
       id: w.workerId,
-      name: w.name,
-      role: w.role,
+      sourceId: w.name,
+      sourceRole: w.role,
+      sourceType: w.workerType,
       source: "Upwork" as const,
-      workerType: w.workerType,
-      type: w.type,
-      rateDisplay: `$${w.rateUSD.toFixed(2)} USD/hr`,
       rateAUDequiv: w.rateUSD * USD_TO_AUD,
-      rateNative: w.rateUSD,
+      rateUSD: w.rateUSD,
       currency: "USD",
       hoursWorked: w.hoursWorked,
       totalBilledAUD: w.totalBilledAUD,
@@ -187,14 +300,12 @@ const EmployeeTracking = () => {
     }));
     const zh = (zoho?.workers ?? []).map((w) => ({
       id: w.workerId,
-      name: w.name,
-      role: w.role,
+      sourceId: w.name,
+      sourceRole: w.role,
+      sourceType: w.workerType,
       source: "Zoho Projects" as const,
-      workerType: w.workerType,
-      type: w.type,
-      rateDisplay: `$${w.rateAUD.toFixed(2)} AUD/hr`,
       rateAUDequiv: w.rateAUD,
-      rateNative: w.rateAUD,
+      rateUSD: 0,
       currency: "AUD",
       hoursWorked: w.hoursWorked,
       totalBilledAUD: w.totalBilledAUD,
@@ -203,7 +314,7 @@ const EmployeeTracking = () => {
     return [...up, ...zh].sort((a, b) => b.totalBilledAUD - a.totalBilledAUD);
   }, [upwork, zoho]);
 
-  // Merged timesheets (normalised)
+  // Merged timesheets (normalised) — keep workerName as sourceId
   const allTimesheets = useMemo(() => {
     const up = (upwork?.timesheets ?? []).map((t) => ({
       date: t.date,
@@ -226,7 +337,7 @@ const EmployeeTracking = () => {
     return [...up, ...zh];
   }, [upwork, zoho]);
 
-  // Merged monthly chart data
+  // Monthly chart
   const mergedMonthly = useMemo(() => {
     const map = new Map<string, { month: string; totalHours: number; totalCostAUD: number }>();
     const add = (arr: { month: string; totalHours: number; totalCostAUD: number }[]) => {
@@ -249,7 +360,6 @@ const EmployeeTracking = () => {
   const zohoHours = zoho?.summary.totalHours ?? 0;
   const totalHours = upworkHours + zohoHours;
   const upworkAUD = upwork?.summary.totalCostAUD ?? 0;
-  const upworkUSD = upwork?.summary.totalCostUSD ?? 0;
   const zohoAUD = zoho?.summary.totalCostAUD ?? 0;
   const totalAUD = upworkAUD + zohoAUD;
   const upActive = upwork?.summary.activeWorkers ?? 0;
@@ -258,38 +368,100 @@ const EmployeeTracking = () => {
   const avgRateAUD = totalHours > 0 ? totalAUD / totalHours : 0;
   const upworkAvgUSD = upwork?.summary.avgRateUSD ?? 0;
 
-  // Filters
+  // Filter: month list
   const uniqueMonths = useMemo(
     () => Array.from(new Set(allTimesheets.map((t) => t.month))).sort(),
     [allTimesheets],
   );
-  const workerPills = ["All Workers", "Israr", "Haider", "Muhammed", "Asad Afzaal", "Abdul"];
+
+  // === Multi-select worker filter ===
+  const allWorkerSourceIds = useMemo(() => allWorkers.map((w) => w.sourceId), [allWorkers]);
+  const [selectedWorkers, setSelectedWorkers] = useState<string[]>([]); // empty = all
+  const workerFilterLabel = (() => {
+    const n = selectedWorkers.length;
+    if (n === 0 || n === allWorkerSourceIds.length) return "All Workers";
+    if (n === 1) return displayOf(selectedWorkers[0]);
+    return `${n} Workers`;
+  })();
+  const toggleWorker = (id: string) => {
+    setSelectedWorkers((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
+  };
 
   const filteredTimesheets = useMemo(() => {
+    const activeSet = selectedWorkers.length === 0 ? null : new Set(selectedWorkers);
     return allTimesheets
-      .filter((t) => (workerFilter === "All Workers" ? true : t.workerName === workerFilter))
+      .filter((t) => (activeSet ? activeSet.has(t.workerName) : true))
       .filter((t) => (monthFilter === "all" ? true : t.month === monthFilter))
       .filter((t) => (sourceFilter === "All Sources" ? true : t.source === sourceFilter))
       .sort((a, b) => (a.date < b.date ? 1 : -1));
-  }, [allTimesheets, workerFilter, monthFilter, sourceFilter]);
+  }, [allTimesheets, selectedWorkers, monthFilter, sourceFilter]);
 
   const filteredTotals = useMemo(
     () => filteredTimesheets.reduce((acc, t) => ({ hours: acc.hours + t.hours, aud: acc.aud + t.costAUD }), { hours: 0, aud: 0 }),
     [filteredTimesheets],
   );
 
-  // Hours-by-worker for Card 2 panel
-  const hoursByWorker = useMemo(
-    () => [...allWorkers].map((w) => ({ name: w.name, hours: w.hoursWorked })).sort((a, b) => b.hours - a.hours),
-    [allWorkers],
-  );
+  // === Hours-by-worker with time period & avg mode ===
+  const [hoursPeriod, setHoursPeriod] = useState<"daily" | "weekly" | "monthly">("monthly");
+  const [hoursMode, setHoursMode] = useState<"total" | "avg">("total");
 
-  // Spend-by-worker for Card 3 panel
+  const periodFilteredTimesheets = useMemo(() => {
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    if (hoursPeriod === "daily") {
+      return allTimesheets.filter((t) => t.date === todayStr);
+    }
+    if (hoursPeriod === "weekly") {
+      // ISO week: Monday as start
+      const day = now.getDay() || 7; // Sun=0 -> 7
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - (day - 1));
+      monday.setHours(0, 0, 0, 0);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+      return allTimesheets.filter((t) => {
+        const d = new Date(t.date);
+        return d >= monday && d <= sunday;
+      });
+    }
+    // monthly
+    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    return allTimesheets.filter((t) => t.month === ym);
+  }, [allTimesheets, hoursPeriod]);
+
+  const hoursByWorker = useMemo(() => {
+    const totals = new Map<string, { hours: number; days: Set<string> }>();
+    periodFilteredTimesheets.forEach((t) => {
+      const cur = totals.get(t.workerName) ?? { hours: 0, days: new Set<string>() };
+      cur.hours += t.hours;
+      cur.days.add(t.date);
+      totals.set(t.workerName, cur);
+    });
+    // Include all known workers (zero rows shown only if non-empty period?). Only show those with hours > 0.
+    const arr = Array.from(totals.entries()).map(([sourceId, v]) => {
+      const value = hoursMode === "avg" ? (v.days.size > 0 ? v.hours / v.days.size : 0) : v.hours;
+      return { name: displayOf(sourceId), value };
+    });
+    return arr.sort((a, b) => b.value - a.value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodFilteredTimesheets, hoursMode, displayConfig]);
+
+  const hoursChartTitle = (() => {
+    const base =
+      hoursPeriod === "daily" ? "Hours by Worker — Today"
+      : hoursPeriod === "weekly" ? "Hours by Worker — This Week"
+      : "Hours by Worker — This Month";
+    return hoursMode === "avg" ? `${base} (Avg per day)` : base;
+  })();
+
+  // Spend-by-worker
   const spendByWorker = useMemo(() => {
-    const items = allWorkers.map((w) => ({ name: w.name, source: w.source, value: w.totalBilledAUD }));
+    const items = allWorkers.map((w) => ({ name: displayOf(w.sourceId), source: w.source, value: w.totalBilledAUD }));
     const sum = items.reduce((s, i) => s + i.value, 0) || 1;
     return items.map((i) => ({ ...i, pct: (i.value / sum) * 100 })).sort((a, b) => b.value - a.value);
-  }, [allWorkers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allWorkers, displayConfig]);
 
   const hasData = allWorkers.length > 0;
 
@@ -311,6 +483,21 @@ const EmployeeTracking = () => {
   }
 
   const toggle = (k: typeof expandedCard) => setExpandedCard((c) => (c === k ? null : k));
+
+  // Existing roles (deduped, for dropdown)
+  const allRoleOptions = useMemo(() => {
+    const set = new Set<string>();
+    allWorkers.forEach((w) => {
+      const r = roleOf(w.sourceId, w.sourceRole);
+      if (r) set.add(r);
+    });
+    return Array.from(set);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allWorkers, displayConfig]);
+
+  // Active-filter trigger style helper
+  const activeTriggerCls = (active: boolean) =>
+    `w-[170px] h-8 text-xs ${active ? "border-chart-green ring-1 ring-chart-green/30" : ""}`;
 
   return (
     <DashboardLayout>
@@ -389,7 +576,28 @@ const EmployeeTracking = () => {
         <Card className="p-4 mb-4 md:mb-6 animate-in fade-in slide-in-from-top-2 duration-200">
           {expandedCard === "workers" && (
             <>
-              <h3 className="text-sm font-semibold mb-3">Contractors</h3>
+              <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+                <h3 className="text-sm font-semibold">Contractors</h3>
+                <Button
+                  size="sm"
+                  variant={editMode ? "default" : "outline"}
+                  className={`h-7 text-[11px] px-2.5 ${editMode ? "bg-chart-green text-background hover:bg-chart-green/90" : ""}`}
+                  onClick={() => setEditMode((e) => !e)}
+                >
+                  {editMode ? (
+                    <><CheckIcon className="h-3 w-3 mr-1" />Done</>
+                  ) : (
+                    <><Pencil className="h-3 w-3 mr-1" />Edit</>
+                  )}
+                </Button>
+              </div>
+
+              {editMode && (
+                <div className="mb-3 px-3 py-2 rounded-md border border-chart-orange/40 bg-chart-orange/10 text-[11px] font-mono text-chart-orange">
+                  Editing display names only — backend data is not affected.
+                </div>
+              )}
+
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
@@ -405,41 +613,232 @@ const EmployeeTracking = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {allWorkers.map((w) => (
-                      <tr key={w.id} className="border-b border-border/50">
-                        <td className="py-2 pr-2 font-medium">{w.name}</td>
-                        <td className="py-2 pr-2">{sourcePill(w.source)}</td>
-                        <td className="py-2 pr-2 text-muted-foreground">{w.role}</td>
-                        <td className="py-2 pr-2">{typePill(w.workerType)}</td>
-                        <td className="py-2 pr-2 text-right tabular-nums">{w.rateDisplay}</td>
-                        <td className="py-2 pr-2 text-right tabular-nums">{w.hoursWorked.toFixed(1)}</td>
-                        <td className="py-2 pr-2 text-right tabular-nums">{fmtAUD(w.totalBilledAUD)}</td>
-                        <td className="py-2 pr-2">{statusPill(w.status)}</td>
-                      </tr>
-                    ))}
+                    {allWorkers.map((w) => {
+                      const rate = w.source === "Upwork"
+                        ? `$${w.rateUSD.toFixed(2)} USD/hr`
+                        : `$${w.rateAUDequiv.toFixed(2)} AUD/hr`;
+                      const curRole = roleOf(w.sourceId, w.sourceRole);
+                      const curType = typeOf(w.sourceId, w.sourceType);
+                      return (
+                        <tr key={w.id} className="border-b border-border/50">
+                          {/* Name */}
+                          <td className="py-2 pr-2 font-medium">
+                            {editMode ? (
+                              <Input
+                                value={displayOf(w.sourceId)}
+                                placeholder={w.sourceId}
+                                onChange={(e) => updateField(w.sourceId, "displayName", e.target.value)}
+                                className="h-7 text-xs"
+                              />
+                            ) : (
+                              displayOf(w.sourceId)
+                            )}
+                          </td>
+                          <td className="py-2 pr-2">{sourcePill(w.source)}</td>
+                          {/* Role */}
+                          <td className="py-2 pr-2 text-muted-foreground min-w-[160px]">
+                            {editMode ? (
+                              addingRoleFor === w.sourceId ? (
+                                <div className="flex gap-1">
+                                  <Input
+                                    autoFocus
+                                    value={newRoleDraft}
+                                    placeholder="New role"
+                                    onChange={(e) => setNewRoleDraft(e.target.value)}
+                                    className="h-7 text-xs"
+                                  />
+                                  <Button
+                                    size="sm"
+                                    className="h-7 px-2"
+                                    onClick={() => {
+                                      if (newRoleDraft.trim()) updateField(w.sourceId, "role", newRoleDraft.trim());
+                                      setAddingRoleFor(null);
+                                      setNewRoleDraft("");
+                                    }}
+                                  >OK</Button>
+                                </div>
+                              ) : (
+                                <Select
+                                  value={curRole}
+                                  onValueChange={(v) => {
+                                    if (v === "__add__") {
+                                      setAddingRoleFor(w.sourceId);
+                                      setNewRoleDraft("");
+                                    } else {
+                                      updateField(w.sourceId, "role", v);
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    {allRoleOptions.map((r) => (
+                                      <SelectItem key={r} value={r}>{r}</SelectItem>
+                                    ))}
+                                    <SelectItem value="__add__">
+                                      <span className="flex items-center gap-1"><Plus className="h-3 w-3" />Add new role</span>
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              )
+                            ) : (
+                              curRole
+                            )}
+                          </td>
+                          {/* Type */}
+                          <td className="py-2 pr-2 min-w-[160px]">
+                            {editMode ? (
+                              addingTypeFor === w.sourceId ? (
+                                <div className="flex gap-1">
+                                  <Input
+                                    autoFocus
+                                    value={newTypeDraft}
+                                    placeholder="New type"
+                                    onChange={(e) => setNewTypeDraft(e.target.value)}
+                                    className="h-7 text-xs"
+                                  />
+                                  <Button
+                                    size="sm"
+                                    className="h-7 px-2"
+                                    onClick={() => {
+                                      const v = newTypeDraft.trim();
+                                      if (v) {
+                                        if (!allTypeOptions.includes(v)) setCustomTypes((p) => [...p, v]);
+                                        updateField(w.sourceId, "workerType", v);
+                                      }
+                                      setAddingTypeFor(null);
+                                      setNewTypeDraft("");
+                                    }}
+                                  >OK</Button>
+                                </div>
+                              ) : (
+                                <Select
+                                  value={curType}
+                                  onValueChange={(v) => {
+                                    if (v === "__add__") {
+                                      setAddingTypeFor(w.sourceId);
+                                      setNewTypeDraft("");
+                                    } else {
+                                      updateField(w.sourceId, "workerType", v);
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    {allTypeOptions.map((t) => (
+                                      <SelectItem key={t} value={t}>{typeLabel(t)}</SelectItem>
+                                    ))}
+                                    <SelectItem value="__add__">
+                                      <span className="flex items-center gap-1"><Plus className="h-3 w-3" />Add new type</span>
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              )
+                            ) : (
+                              typePill(curType)
+                            )}
+                          </td>
+                          <td className="py-2 pr-2 text-right tabular-nums">{rate}</td>
+                          <td className="py-2 pr-2 text-right tabular-nums">{w.hoursWorked.toFixed(1)}</td>
+                          <td className="py-2 pr-2 text-right tabular-nums">{fmtAUD(w.totalBilledAUD)}</td>
+                          <td className="py-2 pr-2">{statusPill(w.status)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
+              </div>
+
+              <div className="flex items-center justify-between mt-3">
+                <Popover open={confirmReset} onOpenChange={setConfirmReset}>
+                  <PopoverTrigger asChild>
+                    <button className="text-[11px] font-mono text-muted-foreground hover:text-foreground underline underline-offset-2">
+                      Reset to defaults
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent side="top" className="w-64 text-xs">
+                    <p className="mb-2">Reset all display names to original? This cannot be undone.</p>
+                    <div className="flex justify-end gap-2">
+                      <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => setConfirmReset(false)}>Cancel</Button>
+                      <Button size="sm" className="h-7 text-[11px]" onClick={resetAllDisplay}>Reset</Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <button
+                  onClick={() => setExpandedCard(null)}
+                  className="text-[11px] font-mono text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  ▲ Collapse
+                </button>
               </div>
             </>
           )}
 
           {expandedCard === "hours" && (
             <>
-              <h3 className="text-sm font-semibold mb-3">Hours by Worker</h3>
-              <div style={{ height: Math.max(180, hoursByWorker.length * 40) }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={hoursByWorker} layout="vertical" margin={{ top: 5, right: 40, left: 20, bottom: 5 }}>
-                    <CartesianGrid stroke="hsl(var(--border))" strokeOpacity={0.4} horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                    <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} width={100} />
-                    <Tooltip
-                      contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12 }}
-                      formatter={(v: number) => [`${v.toFixed(1)} hrs`, "Hours"]}
-                    />
-                    <Bar dataKey="hours" fill="#22c55e" radius={[0, 4, 4, 0]} label={{ position: "right", fontSize: 11, fill: "hsl(var(--muted-foreground))", formatter: (v: number) => `${v.toFixed(1)}h` }} />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+                <h3 className="text-sm font-semibold">{hoursChartTitle}</h3>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-1">
+                    {(["daily", "weekly", "monthly"] as const).map((p) => (
+                      <Button
+                        key={p}
+                        size="sm"
+                        variant={hoursPeriod === p ? "default" : "outline"}
+                        className="h-7 text-[11px] px-2.5 capitalize"
+                        onClick={() => setHoursPeriod(p)}
+                      >
+                        {p}
+                      </Button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {(["total", "avg"] as const).map((m) => (
+                      <Button
+                        key={m}
+                        size="sm"
+                        variant={hoursMode === m ? "default" : "outline"}
+                        className="h-7 text-[11px] px-2.5"
+                        onClick={() => setHoursMode(m)}
+                      >
+                        {m === "total" ? "Total Hours" : "Avg Hours"}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
               </div>
+              {hoursByWorker.length === 0 ? (
+                <div className="py-10 text-center text-sm text-muted-foreground font-mono">
+                  No hours logged for this period.
+                </div>
+              ) : (
+                <div style={{ height: Math.max(180, hoursByWorker.length * 40) }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={hoursByWorker} layout="vertical" margin={{ top: 5, right: 60, left: 20, bottom: 5 }}>
+                      <CartesianGrid stroke="hsl(var(--border))" strokeOpacity={0.4} horizontal={false} />
+                      <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                      <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} width={100} />
+                      <Tooltip
+                        contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12 }}
+                        formatter={(v: number) => [
+                          hoursMode === "avg" ? `${v.toFixed(1)} avg hrs/day` : `${v.toFixed(1)} hrs`,
+                          hoursMode === "avg" ? "Avg/day" : "Hours",
+                        ]}
+                      />
+                      <Bar
+                        dataKey="value"
+                        fill="#22c55e"
+                        radius={[0, 4, 4, 0]}
+                        label={{
+                          position: "right",
+                          fontSize: 11,
+                          fill: "hsl(var(--muted-foreground))",
+                          formatter: (v: number) => hoursMode === "avg" ? `${v.toFixed(1)} avg hrs/day` : `${v.toFixed(1)} hrs`,
+                        }}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </>
           )}
 
@@ -494,35 +893,41 @@ const EmployeeTracking = () => {
                     <tr className="text-left text-[10px] font-mono uppercase tracking-wider text-muted-foreground border-b border-border">
                       <th className="py-2 pr-2">Worker</th>
                       <th className="py-2 pr-2">Source</th>
-                      <th className="py-2 pr-2 text-right">Rate</th>
-                      <th className="py-2 pr-2">Currency</th>
-                      <th className="py-2 pr-2 text-right">Equiv. AUD/hr</th>
+                      <th className="py-2 pr-2 text-right">Rate (AUD/hr)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {allWorkers.map((w) => (
                       <tr key={w.id} className="border-b border-border/50">
-                        <td className="py-2 pr-2 font-medium">{w.name}</td>
+                        <td className="py-2 pr-2 font-medium">{displayOf(w.sourceId)}</td>
                         <td className="py-2 pr-2">{sourcePill(w.source)}</td>
-                        <td className="py-2 pr-2 text-right tabular-nums">{w.rateNative.toFixed(2)}</td>
-                        <td className="py-2 pr-2 text-muted-foreground">{w.currency}</td>
-                        <td className="py-2 pr-2 text-right tabular-nums">{fmtMoney2(w.rateAUDequiv)}</td>
+                        <td className="py-2 pr-2 text-right tabular-nums">
+                          <span className="text-foreground">{fmtMoney2(w.rateAUDequiv)}</span>
+                          {w.source === "Upwork" && (
+                            <span className="text-muted-foreground ml-2 text-[11px]">(USD {fmtMoney2(w.rateUSD)})</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                <p className="mt-2 text-[11px] text-muted-foreground font-mono">
+                  Upwork rates converted at 1 USD = {USD_TO_AUD} AUD
+                </p>
               </div>
             </>
           )}
 
-          <div className="flex justify-end mt-3">
-            <button
-              onClick={() => setExpandedCard(null)}
-              className="text-[11px] font-mono text-muted-foreground hover:text-foreground transition-colors"
-            >
-              ▲ Collapse
-            </button>
-          </div>
+          {expandedCard !== "workers" && (
+            <div className="flex justify-end mt-3">
+              <button
+                onClick={() => setExpandedCard(null)}
+                className="text-[11px] font-mono text-muted-foreground hover:text-foreground transition-colors"
+              >
+                ▲ Collapse
+              </button>
+            </div>
+          )}
         </Card>
       )}
 
@@ -585,34 +990,64 @@ const EmployeeTracking = () => {
         <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
           <h2 className="text-sm font-semibold">Timesheet Log</h2>
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex items-center gap-1 flex-wrap">
-              {workerPills.map((w) => (
-                <Button
-                  key={w}
-                  size="sm"
-                  variant={workerFilter === w ? "default" : "outline"}
-                  className="h-7 text-[11px] px-2.5"
-                  onClick={() => setWorkerFilter(w)}
+            {/* Workers multi-select */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  className={`flex items-center justify-between gap-2 px-3 rounded-md border bg-background text-xs ${
+                    selectedWorkers.length > 0 && selectedWorkers.length < allWorkerSourceIds.length
+                      ? "border-chart-green ring-1 ring-chart-green/30"
+                      : "border-input"
+                  } w-[170px] h-8`}
                 >
-                  {w}
-                </Button>
-              ))}
-            </div>
-            <div className="flex items-center gap-1 flex-wrap">
-              {["All Sources", "Upwork", "Zoho Projects"].map((s) => (
-                <Button
-                  key={s}
-                  size="sm"
-                  variant={sourceFilter === s ? "default" : "outline"}
-                  className="h-7 text-[11px] px-2.5"
-                  onClick={() => setSourceFilter(s)}
-                >
-                  {s}
-                </Button>
-              ))}
-            </div>
+                  <span className="truncate">{workerFilterLabel}</span>
+                  <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-56 p-2">
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <button
+                    className="text-[11px] font-mono text-muted-foreground hover:text-foreground"
+                    onClick={() => setSelectedWorkers([])}
+                  >
+                    Clear (All)
+                  </button>
+                  <button
+                    className="text-[11px] font-mono text-muted-foreground hover:text-foreground"
+                    onClick={() => setSelectedWorkers([...allWorkerSourceIds])}
+                  >
+                    Select all
+                  </button>
+                </div>
+                <div className="max-h-64 overflow-y-auto flex flex-col gap-1">
+                  {allWorkerSourceIds.map((sid) => {
+                    const checked = selectedWorkers.includes(sid);
+                    return (
+                      <label key={sid} className="flex items-center gap-2 px-1 py-1 text-xs cursor-pointer hover:bg-muted/40 rounded">
+                        <Checkbox checked={checked} onCheckedChange={() => toggleWorker(sid)} />
+                        <span>{displayOf(sid)}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Source */}
+            <Select value={sourceFilter} onValueChange={setSourceFilter}>
+              <SelectTrigger className={activeTriggerCls(sourceFilter !== "All Sources")}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All Sources">All Sources</SelectItem>
+                <SelectItem value="Upwork">Upwork</SelectItem>
+                <SelectItem value="Zoho Projects">Zoho Projects</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Month */}
             <Select value={monthFilter} onValueChange={setMonthFilter}>
-              <SelectTrigger className="w-[150px] h-7 text-xs">
+              <SelectTrigger className={activeTriggerCls(monthFilter !== "all")}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -647,7 +1082,7 @@ const EmployeeTracking = () => {
                 {filteredTimesheets.map((t, i) => (
                   <tr key={i} className="border-b border-border/50">
                     <td className="py-2 pr-2 tabular-nums">{fmtDate(t.date)}</td>
-                    <td className="py-2 pr-2">{t.workerName}</td>
+                    <td className="py-2 pr-2">{displayOf(t.workerName)}</td>
                     <td className="py-2 pr-2">{sourcePill(t.source)}</td>
                     <td className="py-2 pr-2 text-muted-foreground">{t.projectName}</td>
                     <td className="py-2 pr-2 text-right tabular-nums">{t.hours.toFixed(1)}</td>
