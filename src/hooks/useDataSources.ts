@@ -710,10 +710,34 @@ export function useDataSources() {
         console.warn('[Calendar Poll] calendarEvents empty from tt-calendar-read webhook');
       }
 
-      const newData = { calendarEvents: calEvents, upcomingEvents: upEvents, calendarSummary: calSummary };
-      setCalendarData(newData);
-      localStorage.setItem(CALENDAR_CACHE_KEY, JSON.stringify(newData));
-      console.log(`[Calendar Poll] Fetched ${calEvents.length} events`);
+      // Merge logic: keep Zoho Projects events sticky across polls
+      // - Google Calendar / other sources: always replaced with fresh data
+      // - Zoho Projects: only replace if new response contains Zoho events; otherwise keep previous
+      setCalendarData((prev: any) => {
+        const prevEvents: any[] = Array.isArray(prev?.calendarEvents) ? prev.calendarEvents : [];
+        const freshZoho = calEvents.filter((e: any) => e.source === 'Zoho Projects');
+        const nonZohoFresh = calEvents.filter((e: any) => e.source !== 'Zoho Projects');
+        const zohoToUse = freshZoho.length > 0
+          ? freshZoho
+          : prevEvents.filter((e: any) => e.source === 'Zoho Projects');
+
+        const mergedEvents = [...nonZohoFresh, ...zohoToUse];
+        const newData = { calendarEvents: mergedEvents, upcomingEvents: upEvents, calendarSummary: calSummary };
+        localStorage.setItem(CALENDAR_CACHE_KEY, JSON.stringify(newData));
+
+        // Persist Zoho events separately as a longer-lived backup
+        if (freshZoho.length > 0) {
+          try {
+            localStorage.setItem(ZOHO_CALENDAR_CACHE_KEY, JSON.stringify({
+              events: freshZoho,
+              cachedAt: Date.now(),
+            }));
+          } catch {}
+        }
+
+        console.log(`[Calendar Poll] Fetched ${calEvents.length} events (Zoho fresh=${freshZoho.length}, Zoho merged=${zohoToUse.length})`);
+        return newData;
+      });
     } catch (err: any) {
       if (err.name === 'AbortError') return; // intentionally cancelled
       console.error('[Calendar Poll] Error:', err.message);
