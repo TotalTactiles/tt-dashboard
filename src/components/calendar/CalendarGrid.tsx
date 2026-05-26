@@ -46,15 +46,38 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onAddE
 
   const eventsByDay = useMemo(() => {
     const map: Record<number, LiveCalendarEvent[]> = {};
+    const parseLocal = (raw: string) =>
+      raw.includes('T') ? new Date(raw) : new Date(raw + 'T00:00:00');
+
     events.forEach((e) => {
-      // Parse date in local timezone, handling both date-only and datetime strings
-      const raw = e.start;
-      const d = raw.includes('T') ? new Date(raw) : new Date(raw + 'T00:00:00');
-      const localDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      if (localDate.getMonth() === month && localDate.getFullYear() === year) {
-        const day = localDate.getDate();
-        if (!map[day]) map[day] = [];
-        map[day].push(e);
+      const startD = parseLocal(e.start);
+      const startLocal = new Date(startD.getFullYear(), startD.getMonth(), startD.getDate());
+
+      // Determine span end (inclusive day to render on)
+      let endLocal = startLocal;
+      const endRaw = (e as any).end as string | undefined;
+      if (e.allDay && endRaw && endRaw !== e.start) {
+        const endD = parseLocal(endRaw);
+        endLocal = new Date(endD.getFullYear(), endD.getMonth(), endD.getDate());
+        // If end is date-only (Google all-day convention is exclusive), step back one day
+        // unless that would collapse the span (Zoho inclusive convention).
+        const isDateOnlyEnd = !endRaw.includes('T');
+        if (isDateOnlyEnd && endLocal.getTime() > startLocal.getTime()) {
+          const prev = new Date(endLocal);
+          prev.setDate(prev.getDate() - 1);
+          if (prev.getTime() >= startLocal.getTime()) endLocal = prev;
+        }
+      }
+
+      // Walk each day in [startLocal, endLocal]
+      const cursor = new Date(startLocal);
+      while (cursor.getTime() <= endLocal.getTime()) {
+        if (cursor.getMonth() === month && cursor.getFullYear() === year) {
+          const day = cursor.getDate();
+          if (!map[day]) map[day] = [];
+          map[day].push(e);
+        }
+        cursor.setDate(cursor.getDate() + 1);
       }
     });
     return map;
