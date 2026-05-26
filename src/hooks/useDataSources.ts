@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 const STORAGE_KEY = "dashboard_data_sources";
 const DATA_CACHE_KEY = "dashboard_live_data";
 const CALENDAR_CACHE_KEY = "dashboard_calendar_data";
+const ZOHO_CALENDAR_CACHE_KEY = "tt_zoho_calendar_events";
+const ZOHO_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const PROJECT_KPI_CACHE_KEY = "dashboard_project_kpi_data";
 const POLL_INTERVAL = 5 * 60 * 1000; // 5 minutes
 const DATA_CACHE_META_KEY = "dashboard_data_cache_meta";
@@ -708,10 +710,34 @@ export function useDataSources() {
         console.warn('[Calendar Poll] calendarEvents empty from tt-calendar-read webhook');
       }
 
-      const newData = { calendarEvents: calEvents, upcomingEvents: upEvents, calendarSummary: calSummary };
-      setCalendarData(newData);
-      localStorage.setItem(CALENDAR_CACHE_KEY, JSON.stringify(newData));
-      console.log(`[Calendar Poll] Fetched ${calEvents.length} events`);
+      // Merge logic: keep Zoho Projects events sticky across polls
+      // - Google Calendar / other sources: always replaced with fresh data
+      // - Zoho Projects: only replace if new response contains Zoho events; otherwise keep previous
+      setCalendarData((prev: any) => {
+        const prevEvents: any[] = Array.isArray(prev?.calendarEvents) ? prev.calendarEvents : [];
+        const freshZoho = calEvents.filter((e: any) => e.source === 'Zoho Projects');
+        const nonZohoFresh = calEvents.filter((e: any) => e.source !== 'Zoho Projects');
+        const zohoToUse = freshZoho.length > 0
+          ? freshZoho
+          : prevEvents.filter((e: any) => e.source === 'Zoho Projects');
+
+        const mergedEvents = [...nonZohoFresh, ...zohoToUse];
+        const newData = { calendarEvents: mergedEvents, upcomingEvents: upEvents, calendarSummary: calSummary };
+        localStorage.setItem(CALENDAR_CACHE_KEY, JSON.stringify(newData));
+
+        // Persist Zoho events separately as a longer-lived backup
+        if (freshZoho.length > 0) {
+          try {
+            localStorage.setItem(ZOHO_CALENDAR_CACHE_KEY, JSON.stringify({
+              events: freshZoho,
+              cachedAt: Date.now(),
+            }));
+          } catch {}
+        }
+
+        console.log(`[Calendar Poll] Fetched ${calEvents.length} events (Zoho fresh=${freshZoho.length}, Zoho merged=${zohoToUse.length})`);
+        return newData;
+      });
     } catch (err: any) {
       if (err.name === 'AbortError') return; // intentionally cancelled
       console.error('[Calendar Poll] Error:', err.message);
@@ -719,8 +745,30 @@ export function useDataSources() {
   }, []);
 
   useEffect(() => {
-    // Clear stale calendar cache on mount to force fresh fetch with Zoho data
-    localStorage.removeItem(CALENDAR_CACHE_KEY);
+    // Seed Zoho Projects events from longer-lived cache so they appear instantly on load
+    try {
+      const stored = localStorage.getItem(ZOHO_CALENDAR_CACHE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const events = Array.isArray(parsed?.events) ? parsed.events : [];
+        const cachedAt = typeof parsed?.cachedAt === 'number' ? parsed.cachedAt : 0;
+        if (events.length > 0 && Date.now() - cachedAt < ZOHO_CACHE_TTL_MS) {
+          setCalendarData((prev: any) => {
+            const prevEvents: any[] = Array.isArray(prev?.calendarEvents) ? prev.calendarEvents : [];
+            const merged = [
+              ...prevEvents.filter((e: any) => e.source !== 'Zoho Projects'),
+              ...events,
+            ];
+            return {
+              calendarEvents: merged,
+              upcomingEvents: Array.isArray(prev?.upcomingEvents) ? prev.upcomingEvents : [],
+              calendarSummary: prev?.calendarSummary ?? { totalEvents: 0, upcomingCount: 0, byType: {} },
+            };
+          });
+        }
+      }
+    } catch {}
+
     fetchCalendar();
     calendarInterval.current = setInterval(fetchCalendar, CALENDAR_POLL_INTERVAL);
     return () => {

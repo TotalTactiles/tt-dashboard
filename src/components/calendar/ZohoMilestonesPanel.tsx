@@ -33,11 +33,20 @@ export default function ZohoMilestonesPanel({ events, onEventClick }: ZohoMilest
     return d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
   };
 
+  const zohoCount = useMemo(
+    () => events.filter((e) =>
+      e.source === "Zoho Projects" ||
+      e.source === "Zoho Calendar" ||
+      e.source?.toLowerCase().includes("zoho")
+    ).length,
+    [events]
+  );
+
   return (
     <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
       {milestones.length === 0 ? (
         <p className="text-xs text-muted-foreground py-6 text-center">
-          No Zoho milestones found · {events.length} total events received
+          No Zoho milestones found · {zohoCount} Zoho events in state · {events.length} total
         </p>
       ) : (
         milestones.map((m) => {
