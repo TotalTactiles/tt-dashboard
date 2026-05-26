@@ -77,10 +77,11 @@ const DaySchedulePanel = ({ events, selectedDate, onPrevDay, onNextDay, onEventC
     <motion.div
       initial={{ opacity: 0, x: 12 }}
       animate={{ opacity: 1, x: 0 }}
-      className="stat-card w-full lg:w-[35%] lg:min-w-[320px] flex flex-col"
+      className="stat-card flex flex-col overflow-hidden shrink-0"
+      style={{ width: "clamp(240px, 28%, 340px)" }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-3 shrink-0">
         <div className="flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-primary" />
           <h3 className="text-sm font-semibold text-foreground">Scheduled</h3>
@@ -89,15 +90,16 @@ const DaySchedulePanel = ({ events, selectedDate, onPrevDay, onNextDay, onEventC
           <button onClick={onPrevDay} className="p-1.5 rounded-lg hover:bg-secondary transition-colors duration-150">
             <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
-          <span className="text-xs font-mono text-muted-foreground px-2">{dateStr}</span>
+          <span className="text-[11px] font-mono text-muted-foreground px-1 truncate">{dateStr}</span>
           <button onClick={onNextDay} className="p-1.5 rounded-lg hover:bg-secondary transition-colors duration-150">
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
         </div>
       </div>
 
-      {/* Timeline */}
-      <div className="flex-1 overflow-y-auto max-h-[500px] space-y-0">
+      {/* Timeline — fills remaining space, scrolls internally */}
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-0 pr-1" style={{ scrollbarWidth: "thin" }}>
+
         {dayEvents.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <CalendarDays className="h-10 w-10 text-muted-foreground/30 mb-3" />

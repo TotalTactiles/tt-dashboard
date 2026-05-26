@@ -42,16 +42,21 @@ export default function CollapsibleCardWrapper({
   }
 
   return (
-    <div className="stat-card flex-1 min-w-0">
+    <div className="stat-card flex-1 min-w-0 flex flex-col overflow-hidden">
       <button
         onClick={() => setOpen(false)}
-        className="flex items-center justify-between w-full mb-4"
+        className="flex items-center justify-between w-full mb-2 shrink-0"
       >
-        <div className="flex items-center gap-2">
-          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-sm font-semibold text-foreground">{title}</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <span
+            className="font-semibold text-foreground truncate"
+            style={{ fontSize: "clamp(11px, 1.1vw, 13px)" }}
+          >
+            {title}
+          </span>
           {badge !== undefined && (
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
               {badge}
             </span>
           )}
