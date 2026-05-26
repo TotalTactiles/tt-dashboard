@@ -4,6 +4,7 @@ import {
   TrendingUp,
   Activity,
   CalendarDays,
+  HardHat,
   Target,
   FunctionSquare,
   FileText } from
