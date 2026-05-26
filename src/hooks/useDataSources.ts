@@ -745,8 +745,30 @@ export function useDataSources() {
   }, []);
 
   useEffect(() => {
-    // Clear stale calendar cache on mount to force fresh fetch with Zoho data
-    localStorage.removeItem(CALENDAR_CACHE_KEY);
+    // Seed Zoho Projects events from longer-lived cache so they appear instantly on load
+    try {
+      const stored = localStorage.getItem(ZOHO_CALENDAR_CACHE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const events = Array.isArray(parsed?.events) ? parsed.events : [];
+        const cachedAt = typeof parsed?.cachedAt === 'number' ? parsed.cachedAt : 0;
+        if (events.length > 0 && Date.now() - cachedAt < ZOHO_CACHE_TTL_MS) {
+          setCalendarData((prev: any) => {
+            const prevEvents: any[] = Array.isArray(prev?.calendarEvents) ? prev.calendarEvents : [];
+            const merged = [
+              ...prevEvents.filter((e: any) => e.source !== 'Zoho Projects'),
+              ...events,
+            ];
+            return {
+              calendarEvents: merged,
+              upcomingEvents: Array.isArray(prev?.upcomingEvents) ? prev.upcomingEvents : [],
+              calendarSummary: prev?.calendarSummary ?? { totalEvents: 0, upcomingCount: 0, byType: {} },
+            };
+          });
+        }
+      }
+    } catch {}
+
     fetchCalendar();
     calendarInterval.current = setInterval(fetchCalendar, CALENDAR_POLL_INTERVAL);
     return () => {
