@@ -292,7 +292,10 @@ const CalendarView = () => {
             defaultOpen={true}
             badge={filtered.filter(e => e.type === "Deadline" || e.type === "Milestone" || e.type === "Distribution" || e.type === "Valuation").length}
           >
-            <div className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
+            <div
+              className="flex-1 min-h-0 overflow-y-auto"
+              style={{ maxHeight: "180px", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
+            >
               <DeadlineTracker events={filtered} />
             </div>
           </CollapsibleCardWrapper>
@@ -306,7 +309,10 @@ const CalendarView = () => {
               e.type === "Task"
             ).length}
           >
-            <div className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
+            <div
+              className="flex-1 min-h-0 overflow-y-auto"
+              style={{ maxHeight: "180px", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
+            >
               <ZohoMilestonesPanel events={allCalendarEvents} onEventClick={handleOpenEdit} />
             </div>
           </CollapsibleCardWrapper>
@@ -315,9 +321,13 @@ const CalendarView = () => {
             defaultOpen={true}
             badge={filteredUpcoming.length}
           >
-            <div className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
+            <div
+              className="flex-1 min-h-0 overflow-y-auto"
+              style={{ maxHeight: "180px", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
+            >
               <EventTimeline events={filteredUpcoming} onEventClick={handleOpenEdit} />
             </div>
+
           </CollapsibleCardWrapper>
         </div>
       </div>
