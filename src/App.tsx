@@ -16,6 +16,7 @@ const Settings = React.lazy(() => import("./pages/Settings"));
 const CalendarView = React.lazy(() => import("./pages/CalendarView"));
 const GoalsTargets = React.lazy(() => import("./pages/GoalsTargets"));
 const Formulas = React.lazy(() => import("./pages/Formulas"));
+const EmployeeTracking = React.lazy(() => import("./pages/EmployeeTracking"));
 
 const queryClient = new QueryClient();
 
