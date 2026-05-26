@@ -16,6 +16,7 @@ const Settings = React.lazy(() => import("./pages/Settings"));
 const CalendarView = React.lazy(() => import("./pages/CalendarView"));
 const GoalsTargets = React.lazy(() => import("./pages/GoalsTargets"));
 const Formulas = React.lazy(() => import("./pages/Formulas"));
+const EmployeeTracking = React.lazy(() => import("./pages/EmployeeTracking"));
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/investment-memorandum" element={<InvestmentMemorandum />} />
                 <Route path="/calendar" element={<CalendarView />} />
+                <Route path="/employees" element={<EmployeeTracking />} />
                 <Route path="/goals" element={<GoalsTargets />} />
                 <Route path="/formulas" element={<Formulas />} />
                 <Route path="/settings" element={<Settings />} />
