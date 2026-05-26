@@ -218,44 +218,26 @@ const CalendarView = () => {
     );
   })();
 
-  const thinScroll: React.CSSProperties = {
-    scrollbarWidth: "thin",
-    scrollbarColor: "rgba(255,255,255,0.15) transparent",
-  };
-
   return (
     <DashboardLayout>
-      {/* Viewport-locked calendar page — fills the area below the top nav */}
+      {/* Calendar zone — fits within viewport */}
       <div
-        className="flex flex-col overflow-hidden box-border"
-        style={{
-          height: "100%",
-          maxHeight: "100%",
-          gap: "clamp(8px, 1vh, 14px)",
-        }}
+        className="flex flex-col gap-2 overflow-hidden"
+        style={{ height: "calc(100vh - 4rem)" }}
       >
-        {/* Header row — single line, never wraps */}
-        <div className="flex items-center justify-between shrink-0 gap-2 flex-nowrap">
-          <div className="min-w-0 flex-1 overflow-hidden">
-            <h1
-              className="font-semibold truncate"
-              style={{ fontSize: "clamp(16px, 2vw, 26px)", whiteSpace: "nowrap" }}
-            >
-              Calendar &amp; Deadlines
-            </h1>
-            <p
-              className="text-muted-foreground font-mono truncate"
-              style={{ fontSize: "clamp(9px, 0.85vw, 12px)" }}
-            >
+        {/* Header row */}
+        <div className="flex flex-wrap items-center justify-between gap-2 shrink-0">
+          <div className="min-w-0">
+            <h1 className="text-fluid-2xl font-semibold truncate">Calendar &amp; Deadlines</h1>
+            <p className="text-fluid-xs text-muted-foreground font-mono truncate">
               Event Schedule &amp; Critical Dates
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0 flex-nowrap">
-            <span className="hidden sm:inline-flex">{debugBadge}</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="calendar-header-badge hidden sm:inline-flex">{debugBadge}</span>
             <button
               onClick={handleOpenCreate}
-              className="px-3 py-1.5 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors duration-150 whitespace-nowrap"
-              style={{ fontSize: "clamp(10px, 0.9vw, 12px)" }}
+              className="px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors duration-150"
             >
               + Add Event
             </button>
@@ -265,16 +247,15 @@ const CalendarView = () => {
                 syncCalendar();
                 toast({ title: "Calendar sync triggered", description: "Fetching fresh data from Google Calendar & Zoho Projects…" });
               }}
-              className="px-3 py-1.5 rounded-xl border border-border font-medium text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors duration-150 whitespace-nowrap"
-              style={{ fontSize: "clamp(10px, 0.9vw, 12px)" }}
+              className="px-3 py-1.5 rounded-xl border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors duration-150"
             >
               ↻ Sync
             </button>
           </div>
         </div>
 
-        {/* Filter bar — wraps gracefully */}
-        <div className="shrink-0 flex flex-wrap gap-1.5 items-center">
+        {/* Filter bar */}
+        <div className="shrink-0 flex flex-wrap gap-1.5">
           <CalendarFilters
             activeSources={activeSources}
             onToggleSource={toggleSource}
@@ -283,11 +264,8 @@ const CalendarView = () => {
           />
         </div>
 
-        {/* Main row: Calendar grid + Scheduled panel — takes remaining space */}
-        <div
-          className="flex min-h-0 overflow-hidden"
-          style={{ flex: "1 1 0", gap: "clamp(8px, 1vw, 14px)" }}
-        >
+        {/* Top row: Calendar grid + Scheduled panel */}
+        <div className="flex flex-1 min-h-0 gap-2 overflow-hidden">
           <CalendarGrid
             events={filtered}
             selectedDate={selectedDate}
@@ -304,17 +282,17 @@ const CalendarView = () => {
           />
         </div>
 
-        {/* Three info panels row */}
+        {/* Bottom row: 3 fixed-height panels */}
         <div
-          className="flex shrink-0"
-          style={{ gap: "clamp(8px, 1vw, 14px)", height: "clamp(130px, 20vh, 190px)" }}
+          className="flex gap-2 shrink-0"
+          style={{ height: "clamp(140px, 22vh, 200px)" }}
         >
           <CollapsibleCardWrapper
             title="Fund Deadlines & Obligations"
             defaultOpen={true}
             badge={filtered.filter(e => e.type === "Deadline" || e.type === "Milestone" || e.type === "Distribution" || e.type === "Valuation").length}
           >
-            <div className="flex-1 min-h-0 overflow-y-auto" style={thinScroll}>
+            <div className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
               <DeadlineTracker events={filtered} />
             </div>
           </CollapsibleCardWrapper>
@@ -328,7 +306,7 @@ const CalendarView = () => {
               e.type === "Task"
             ).length}
           >
-            <div className="flex-1 min-h-0 overflow-y-auto" style={thinScroll}>
+            <div className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
               <ZohoMilestonesPanel events={allCalendarEvents} onEventClick={handleOpenEdit} />
             </div>
           </CollapsibleCardWrapper>
@@ -337,31 +315,20 @@ const CalendarView = () => {
             defaultOpen={true}
             badge={filteredUpcoming.length}
           >
-            <div className="flex-1 min-h-0 overflow-y-auto" style={thinScroll}>
+            <div className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
               <EventTimeline events={filteredUpcoming} onEventClick={handleOpenEdit} />
             </div>
           </CollapsibleCardWrapper>
         </div>
+      </div>
 
-        {/* Strategic Quarters — fixed proportional height, scrolls internally */}
-        <div
-          className="shrink-0 overflow-hidden flex flex-col"
-          style={{ height: "clamp(130px, 18vh, 180px)" }}
-        >
-          <div className="flex-1 min-h-0 overflow-y-auto" style={thinScroll}>
-            <StrategicQuartersBoard onInjectEvents={setSqbEvents} />
-          </div>
-        </div>
+      {/* Auxiliary sections below — scrollable beyond the viewport-locked calendar zone */}
+      <div className="mt-4">
+        <StrategicQuartersBoard onInjectEvents={setSqbEvents} />
+      </div>
 
-        {/* Notes — fixed proportional height, scrolls internally */}
-        <div
-          className="shrink-0 overflow-hidden flex flex-col"
-          style={{ height: "clamp(100px, 15vh, 150px)" }}
-        >
-          <div className="flex-1 min-h-0 overflow-y-auto" style={thinScroll}>
-            <KeepNotesPanel />
-          </div>
-        </div>
+      <div className="mt-4 mb-4">
+        <KeepNotesPanel />
       </div>
 
       <EventModal
