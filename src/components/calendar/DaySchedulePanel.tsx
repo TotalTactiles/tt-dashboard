@@ -98,7 +98,10 @@ const DaySchedulePanel = ({ events, selectedDate, onPrevDay, onNextDay, onEventC
       </div>
 
       {/* Timeline — fills remaining space, scrolls internally */}
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-0 pr-1" style={{ scrollbarWidth: "thin" }}>
+      <div
+        className="flex-1 min-h-0 overflow-y-auto space-y-0 pr-1"
+        style={{ maxHeight: "65vh", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
+      >
 
         {dayEvents.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
