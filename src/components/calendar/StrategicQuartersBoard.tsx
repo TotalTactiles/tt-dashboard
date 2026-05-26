@@ -749,16 +749,16 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
               initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full rounded-xl border border-border/40 bg-background/60 p-4"
+              className="w-full rounded-xl border border-border/40 bg-background/60 p-4 min-w-0 overflow-hidden"
               style={{ borderLeft: `4px solid ${phaseColor}` }}
             >
               {/* Section header */}
-              <div className="flex items-center gap-2 mb-3 group/section">
-                <button onClick={() => toggleSectionCollapse(sec.id)} className="text-muted-foreground">
+              <div className="flex items-center gap-2 mb-3 group/section min-w-0">
+                <button onClick={() => toggleSectionCollapse(sec.id)} className="text-muted-foreground shrink-0">
                   {sec.collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </button>
                 <span
-                  className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                  className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0"
                   style={{ background: `${phaseColor}22`, color: phaseColor }}
                 >
                   {sec.phase}
@@ -766,7 +766,7 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
                 <InlineEdit
                   value={sec.title}
                   onSave={(v) => updateSectionTitle(sec.id, v)}
-                  className="text-sm font-semibold text-foreground"
+                  className="text-sm font-semibold text-foreground truncate min-w-0 overflow-hidden whitespace-nowrap"
                 />
                 <InlineEdit
                   value={sec.quarter}
