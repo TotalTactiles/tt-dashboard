@@ -663,22 +663,6 @@ const DashboardContent = () => {
                   momContext={scopeLabel}
                 />
                 <StatCard
-                  label="Revenue Growth"
-                  value={fmtVal(sd.revenueExGST)}
-                  change={scopeLabel}
-                  positive={true}
-                  index={12}
-                  momContext={`${sd.wonCount} jobs won`}
-                />
-                <StatCard
-                  label="Pipeline Coverage"
-                  value={`${sd.pipelineCoverage.toFixed(1)}x`}
-                  change={fmtVal(sd.pipelineVal) + " pipeline"}
-                  positive={sd.pipelineCoverage >= 2}
-                  index={13}
-                  momContext="vs YTD revenue run rate"
-                />
-                <StatCard
                   label="Avg Contract Value"
                   value={fmtVal(sd.avgWon)}
                   change={`${sd.wonCount} jobs won`}
@@ -691,52 +675,22 @@ const DashboardContent = () => {
                   toggleLabelAlt="Quoted"
                   greenAltPill={true}
                 />
-                <StatCard
-                  label="Op. Expense Ratio"
-                  value={`${sd.opExpRatio.toFixed(1)}%`}
-                  change="Expenses / Revenue"
-                  positive={sd.opExpRatio < 60}
-                  index={15}
-                  altValue={fmtVal(sd.totalExpenses)}
-                  altChange={`${scopeLabel} expenses`}
-                  altPositive={sd.opExpRatio < 60}
-                  toggleLabelBase="Ratio"
-                  toggleLabelAlt="$"
-                  greenAltPill={true}
-                />
-                <StatCard
-                  label="Labour Cost Ratio"
-                  value={`${sd.labourRatio.toFixed(1)}%`}
-                  change="Labour / Revenue"
-                  positive={sd.labourRatio < 35}
-                  index={16}
-                  altValue={fmtVal(sd.totalLabour)}
-                  altChange={`${scopeLabel} labour`}
-                  altPositive={sd.labourRatio < 35}
-                  toggleLabelBase="Ratio"
-                  toggleLabelAlt="$"
-                  greenAltPill={true}
-                />
-                <StatCard
-                  label="Revenue Per Job"
-                  value={fmtVal(sd.revPerJobWon)}
-                  change={`${sd.wonCount} jobs won`}
-                  positive={true}
-                  index={17}
-                  altValue={fmtVal(sd.revPerJobQuoted)}
-                  altChange={`${sd.totalCount} jobs quoted`}
-                  altPositive={true}
-                  toggleLabelBase="Won"
-                  toggleLabelAlt="Quoted"
-                  greenAltPill={true}
-                />
-                <StatCard
-                  label="CAC Per Client"
-                  value="N/A (no ad spend)"
-                  change="$0/mo ads"
-                  positive={true}
-                  index={18}
-                />
+                {(() => {
+                  const netProfit = sd.netProfit;
+                  const wonCount = sd.wonCount;
+                  const profitPerJob = wonCount > 0 ? netProfit / wonCount : 0;
+                  const ebitdaPerJob = wonCount > 0 ? sd.grossProfit / wonCount : 0;
+                  return (
+                    <StatCard
+                      label="Profit Per Job"
+                      value={fmtVal(profitPerJob)}
+                      change={`${wonCount} jobs won`}
+                      positive={profitPerJob >= 0}
+                      index={13}
+                      momContext={`EBITDA/job: ${fmtVal(ebitdaPerJob)}`}
+                    />
+                  );
+                })()}
                 <StatCard
                   label="Debt Service Ratio"
                   value={`${sd.dsrValue.toFixed(1)}%`}
@@ -746,6 +700,84 @@ const DashboardContent = () => {
                   momContext={sd.dsrValue <= 15 ? "Healthy — under 15%" : sd.dsrValue > 25 ? "High — above 25%" : "Monitor — 15–25%"}
                 />
               </div>
+              {visibleOptionalCards.size > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-3" style={{ containerType: 'inline-size' }}>
+                  {visibleOptionalCards.has("Revenue Growth") && (
+                    <StatCard
+                      label="Revenue Growth"
+                      value={fmtVal(sd.revenueExGST)}
+                      change={scopeLabel}
+                      positive={true}
+                      index={12}
+                      momContext={`${sd.wonCount} jobs won`}
+                    />
+                  )}
+                  {visibleOptionalCards.has("Pipeline Coverage") && (
+                    <StatCard
+                      label="Pipeline Coverage"
+                      value={`${sd.pipelineCoverage.toFixed(1)}x`}
+                      change={fmtVal(sd.pipelineVal) + " pipeline"}
+                      positive={sd.pipelineCoverage >= 2}
+                      index={13}
+                      momContext="vs YTD revenue run rate"
+                    />
+                  )}
+                  {visibleOptionalCards.has("Op. Expense Ratio") && (
+                    <StatCard
+                      label="Op. Expense Ratio"
+                      value={`${sd.opExpRatio.toFixed(1)}%`}
+                      change="Expenses / Revenue"
+                      positive={sd.opExpRatio < 60}
+                      index={15}
+                      altValue={fmtVal(sd.totalExpenses)}
+                      altChange={`${scopeLabel} expenses`}
+                      altPositive={sd.opExpRatio < 60}
+                      toggleLabelBase="Ratio"
+                      toggleLabelAlt="$"
+                      greenAltPill={true}
+                    />
+                  )}
+                  {visibleOptionalCards.has("Labour Cost Ratio") && (
+                    <StatCard
+                      label="Labour Cost Ratio"
+                      value={`${sd.labourRatio.toFixed(1)}%`}
+                      change="Labour / Revenue"
+                      positive={sd.labourRatio < 35}
+                      index={16}
+                      altValue={fmtVal(sd.totalLabour)}
+                      altChange={`${scopeLabel} labour`}
+                      altPositive={sd.labourRatio < 35}
+                      toggleLabelBase="Ratio"
+                      toggleLabelAlt="$"
+                      greenAltPill={true}
+                    />
+                  )}
+                  {visibleOptionalCards.has("Revenue Per Job") && (
+                    <StatCard
+                      label="Revenue Per Job"
+                      value={fmtVal(sd.revPerJobWon)}
+                      change={`${sd.wonCount} jobs won`}
+                      positive={true}
+                      index={17}
+                      altValue={fmtVal(sd.revPerJobQuoted)}
+                      altChange={`${sd.totalCount} jobs quoted`}
+                      altPositive={true}
+                      toggleLabelBase="Won"
+                      toggleLabelAlt="Quoted"
+                      greenAltPill={true}
+                    />
+                  )}
+                  {visibleOptionalCards.has("CAC Per Client") && (
+                    <StatCard
+                      label="CAC Per Client"
+                      value="N/A (no ad spend)"
+                      change="$0/mo ads"
+                      positive={true}
+                      index={18}
+                    />
+                  )}
+                </div>
+              )}
             </div>
             );
           })()}
