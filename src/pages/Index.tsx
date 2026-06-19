@@ -639,21 +639,34 @@ const DashboardContent = () => {
                   : `${investorDateWindows.qLabel} · ${investorDateWindows.qMonths.length} months to date`}
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" style={{ containerType: 'inline-size' }}>
-                <StatCard
-                  label="Profitability"
-                  value={fmtVal(sd.grossProfit)}
-                  change={ebitdaMarginPct}
-                  positive={sd.grossProfit >= 0}
-                  index={10}
-                  momContext={scopeLabel}
-                  altValue={fmtVal(sd.netProfit)}
-                  altChange={netProfitMarginPct}
-                  altPositive={sd.netProfit >= 0}
-                  altMomContext={scopeLabel}
+                {(() => {
+                  const revenueExGST = sd.revenueExGST;
+                  const totalExpenses = sd.totalExpenses;
+                  let grossProfit = revenueExGST * ((sd.grossMarginPct ?? 0) / 100);
+                  let netProfit = revenueExGST - totalExpenses;
+                  if (grossProfit < netProfit && sd.totalCOGS !== undefined) {
+                    grossProfit = revenueExGST - sd.totalCOGS;
+                  }
+                  const gpMargin = revenueExGST > 0 ? ((grossProfit / revenueExGST) * 100).toFixed(1) : "0.0";
+                  const netMargin = revenueExGST > 0 ? ((netProfit / revenueExGST) * 100).toFixed(1) : "0.0";
+                  return (
+                    <StatCard
+                      label="Profitability"
+                      value={fmtVal(netProfit)}
+                      change={`${netMargin}% net margin`}
+                      positive={netProfit >= 0}
+                      index={10}
+                      momContext={scopeLabel}
+                      altValue={fmtVal(grossProfit)}
+                      altChange={`${gpMargin}% GP margin`}
+                      altPositive={grossProfit >= 0}
+                      altMomContext={scopeLabel}
                       toggleLabelBase="Net Profit"
                       toggleLabelAlt="Gross Profit"
-                  greenAltPill={true}
-                />
+                      greenAltPill={true}
+                    />
+                  );
+                })()}
                 <StatCard
                   label="Gross Margin %"
                   value={`${gmPct}%`}
