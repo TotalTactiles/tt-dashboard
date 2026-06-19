@@ -103,6 +103,25 @@ const DashboardContent = () => {
   const [invoiceFilter, setInvoiceFilter] = useState<"invoiced" | "to_be_invoiced">("invoiced");
   const [investorScope, setInvestorScope] = useState<"ytd" | "quarter">("ytd");
 
+  const OPTIONAL_INVESTOR_CARDS = [
+    "Revenue Growth",
+    "Pipeline Coverage",
+    "Op. Expense Ratio",
+    "Labour Cost Ratio",
+    "Revenue Per Job",
+    "CAC Per Client",
+  ] as const;
+  type OptionalCard = typeof OPTIONAL_INVESTOR_CARDS[number];
+  const [visibleOptionalCards, setVisibleOptionalCards] = useState<Set<OptionalCard>>(new Set());
+  const [metricsDropdownOpen, setMetricsDropdownOpen] = useState(false);
+  const toggleOptionalCard = (card: OptionalCard) => {
+    setVisibleOptionalCards(prev => {
+      const next = new Set(prev);
+      if (next.has(card)) next.delete(card); else next.add(card);
+      return next;
+    });
+  };
+
   // ── Compute date windows from real current date ──────────────────
   const investorDateWindows = useMemo(() => {
     const now = new Date();
@@ -531,6 +550,88 @@ const DashboardContent = () => {
                   ))}
                 </div>
                 <span className="text-xs text-muted-foreground font-mono">Business Health</span>
+                <div style={{ position: "relative" }}>
+                  <button
+                    onClick={() => setMetricsDropdownOpen(o => !o)}
+                    style={{
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.15)",
+                      borderRadius: "6px",
+                      color: "#94a3b8",
+                      padding: "4px 10px",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <span>＋ Metrics</span>
+                    {visibleOptionalCards.size > 0 && (
+                      <span style={{
+                        background: "#22c55e",
+                        color: "#000",
+                        borderRadius: "9999px",
+                        fontSize: "10px",
+                        fontWeight: 700,
+                        padding: "0 5px",
+                        lineHeight: "16px",
+                      }}>
+                        {visibleOptionalCards.size}
+                      </span>
+                    )}
+                  </button>
+                  {metricsDropdownOpen && (
+                    <>
+                      <div
+                        style={{ position: "fixed", inset: 0, zIndex: 40 }}
+                        onClick={() => setMetricsDropdownOpen(false)}
+                      />
+                      <div style={{
+                        position: "absolute",
+                        top: "calc(100% + 6px)",
+                        right: 0,
+                        zIndex: 50,
+                        background: "#0f1623",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        borderRadius: "10px",
+                        padding: "8px 0",
+                        minWidth: "200px",
+                        boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                      }}>
+                        <div style={{ padding: "6px 14px 8px", fontSize: "10px", color: "#475569", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                          Optional Metrics
+                        </div>
+                        {OPTIONAL_INVESTOR_CARDS.map(card => (
+                          <label
+                            key={card}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "10px",
+                              padding: "7px 14px",
+                              cursor: "pointer",
+                              color: visibleOptionalCards.has(card) ? "#e2e8f0" : "#64748b",
+                              fontSize: "13px",
+                              transition: "background 0.15s",
+                            }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={visibleOptionalCards.has(card)}
+                              onChange={() => toggleOptionalCard(card)}
+                              style={{ accentColor: "#22c55e", width: "14px", height: "14px", cursor: "pointer" }}
+                            />
+                            {card}
+                          </label>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
               <div className="text-xs font-mono text-muted-foreground/70 bg-secondary/40 border border-border/50 rounded px-3 py-1.5 mb-3">
                 {investorScope === "ytd"
@@ -562,22 +663,6 @@ const DashboardContent = () => {
                   momContext={scopeLabel}
                 />
                 <StatCard
-                  label="Revenue Growth"
-                  value={fmtVal(sd.revenueExGST)}
-                  change={scopeLabel}
-                  positive={true}
-                  index={12}
-                  momContext={`${sd.wonCount} jobs won`}
-                />
-                <StatCard
-                  label="Pipeline Coverage"
-                  value={`${sd.pipelineCoverage.toFixed(1)}x`}
-                  change={fmtVal(sd.pipelineVal) + " pipeline"}
-                  positive={sd.pipelineCoverage >= 2}
-                  index={13}
-                  momContext="vs YTD revenue run rate"
-                />
-                <StatCard
                   label="Avg Contract Value"
                   value={fmtVal(sd.avgWon)}
                   change={`${sd.wonCount} jobs won`}
@@ -590,52 +675,22 @@ const DashboardContent = () => {
                   toggleLabelAlt="Quoted"
                   greenAltPill={true}
                 />
-                <StatCard
-                  label="Op. Expense Ratio"
-                  value={`${sd.opExpRatio.toFixed(1)}%`}
-                  change="Expenses / Revenue"
-                  positive={sd.opExpRatio < 60}
-                  index={15}
-                  altValue={fmtVal(sd.totalExpenses)}
-                  altChange={`${scopeLabel} expenses`}
-                  altPositive={sd.opExpRatio < 60}
-                  toggleLabelBase="Ratio"
-                  toggleLabelAlt="$"
-                  greenAltPill={true}
-                />
-                <StatCard
-                  label="Labour Cost Ratio"
-                  value={`${sd.labourRatio.toFixed(1)}%`}
-                  change="Labour / Revenue"
-                  positive={sd.labourRatio < 35}
-                  index={16}
-                  altValue={fmtVal(sd.totalLabour)}
-                  altChange={`${scopeLabel} labour`}
-                  altPositive={sd.labourRatio < 35}
-                  toggleLabelBase="Ratio"
-                  toggleLabelAlt="$"
-                  greenAltPill={true}
-                />
-                <StatCard
-                  label="Revenue Per Job"
-                  value={fmtVal(sd.revPerJobWon)}
-                  change={`${sd.wonCount} jobs won`}
-                  positive={true}
-                  index={17}
-                  altValue={fmtVal(sd.revPerJobQuoted)}
-                  altChange={`${sd.totalCount} jobs quoted`}
-                  altPositive={true}
-                  toggleLabelBase="Won"
-                  toggleLabelAlt="Quoted"
-                  greenAltPill={true}
-                />
-                <StatCard
-                  label="CAC Per Client"
-                  value="N/A (no ad spend)"
-                  change="$0/mo ads"
-                  positive={true}
-                  index={18}
-                />
+                {(() => {
+                  const netProfit = sd.netProfit;
+                  const wonCount = sd.wonCount;
+                  const profitPerJob = wonCount > 0 ? netProfit / wonCount : 0;
+                  const ebitdaPerJob = wonCount > 0 ? sd.grossProfit / wonCount : 0;
+                  return (
+                    <StatCard
+                      label="Profit Per Job"
+                      value={fmtVal(profitPerJob)}
+                      change={`${wonCount} jobs won`}
+                      positive={profitPerJob >= 0}
+                      index={13}
+                      momContext={`EBITDA/job: ${fmtVal(ebitdaPerJob)}`}
+                    />
+                  );
+                })()}
                 <StatCard
                   label="Debt Service Ratio"
                   value={`${sd.dsrValue.toFixed(1)}%`}
@@ -645,6 +700,84 @@ const DashboardContent = () => {
                   momContext={sd.dsrValue <= 15 ? "Healthy — under 15%" : sd.dsrValue > 25 ? "High — above 25%" : "Monitor — 15–25%"}
                 />
               </div>
+              {visibleOptionalCards.size > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-3" style={{ containerType: 'inline-size' }}>
+                  {visibleOptionalCards.has("Revenue Growth") && (
+                    <StatCard
+                      label="Revenue Growth"
+                      value={fmtVal(sd.revenueExGST)}
+                      change={scopeLabel}
+                      positive={true}
+                      index={12}
+                      momContext={`${sd.wonCount} jobs won`}
+                    />
+                  )}
+                  {visibleOptionalCards.has("Pipeline Coverage") && (
+                    <StatCard
+                      label="Pipeline Coverage"
+                      value={`${sd.pipelineCoverage.toFixed(1)}x`}
+                      change={fmtVal(sd.pipelineVal) + " pipeline"}
+                      positive={sd.pipelineCoverage >= 2}
+                      index={13}
+                      momContext="vs YTD revenue run rate"
+                    />
+                  )}
+                  {visibleOptionalCards.has("Op. Expense Ratio") && (
+                    <StatCard
+                      label="Op. Expense Ratio"
+                      value={`${sd.opExpRatio.toFixed(1)}%`}
+                      change="Expenses / Revenue"
+                      positive={sd.opExpRatio < 60}
+                      index={15}
+                      altValue={fmtVal(sd.totalExpenses)}
+                      altChange={`${scopeLabel} expenses`}
+                      altPositive={sd.opExpRatio < 60}
+                      toggleLabelBase="Ratio"
+                      toggleLabelAlt="$"
+                      greenAltPill={true}
+                    />
+                  )}
+                  {visibleOptionalCards.has("Labour Cost Ratio") && (
+                    <StatCard
+                      label="Labour Cost Ratio"
+                      value={`${sd.labourRatio.toFixed(1)}%`}
+                      change="Labour / Revenue"
+                      positive={sd.labourRatio < 35}
+                      index={16}
+                      altValue={fmtVal(sd.totalLabour)}
+                      altChange={`${scopeLabel} labour`}
+                      altPositive={sd.labourRatio < 35}
+                      toggleLabelBase="Ratio"
+                      toggleLabelAlt="$"
+                      greenAltPill={true}
+                    />
+                  )}
+                  {visibleOptionalCards.has("Revenue Per Job") && (
+                    <StatCard
+                      label="Revenue Per Job"
+                      value={fmtVal(sd.revPerJobWon)}
+                      change={`${sd.wonCount} jobs won`}
+                      positive={true}
+                      index={17}
+                      altValue={fmtVal(sd.revPerJobQuoted)}
+                      altChange={`${sd.totalCount} jobs quoted`}
+                      altPositive={true}
+                      toggleLabelBase="Won"
+                      toggleLabelAlt="Quoted"
+                      greenAltPill={true}
+                    />
+                  )}
+                  {visibleOptionalCards.has("CAC Per Client") && (
+                    <StatCard
+                      label="CAC Per Client"
+                      value="N/A (no ad spend)"
+                      change="$0/mo ads"
+                      positive={true}
+                      index={18}
+                    />
+                  )}
+                </div>
+              )}
             </div>
             );
           })()}
