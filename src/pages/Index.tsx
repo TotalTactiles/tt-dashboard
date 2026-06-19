@@ -103,6 +103,25 @@ const DashboardContent = () => {
   const [invoiceFilter, setInvoiceFilter] = useState<"invoiced" | "to_be_invoiced">("invoiced");
   const [investorScope, setInvestorScope] = useState<"ytd" | "quarter">("ytd");
 
+  const OPTIONAL_INVESTOR_CARDS = [
+    "Revenue Growth",
+    "Pipeline Coverage",
+    "Op. Expense Ratio",
+    "Labour Cost Ratio",
+    "Revenue Per Job",
+    "CAC Per Client",
+  ] as const;
+  type OptionalCard = typeof OPTIONAL_INVESTOR_CARDS[number];
+  const [visibleOptionalCards, setVisibleOptionalCards] = useState<Set<OptionalCard>>(new Set());
+  const [metricsDropdownOpen, setMetricsDropdownOpen] = useState(false);
+  const toggleOptionalCard = (card: OptionalCard) => {
+    setVisibleOptionalCards(prev => {
+      const next = new Set(prev);
+      if (next.has(card)) next.delete(card); else next.add(card);
+      return next;
+    });
+  };
+
   // ── Compute date windows from real current date ──────────────────
   const investorDateWindows = useMemo(() => {
     const now = new Date();
