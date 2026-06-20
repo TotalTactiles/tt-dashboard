@@ -183,35 +183,6 @@ const DealFlow = () => {
           </p>
         </motion.div>
 
-        {/* TEMP DATE DEBUG */}
-        <div className="chart-container mb-4 font-mono text-xs text-muted-foreground">
-          <p className="text-chart-green mb-2">Raw dateQuoted values (first 20):</p>
-          <div className="space-y-0.5">
-            {quotedJobs.slice(0, 20).map((j, i) => {
-              const d = parseDealDate(j.dateQuoted);
-              return (
-                <div key={i}>
-                  <span className="text-foreground">{JSON.stringify(j.dateQuoted)}</span>
-                  {" → parsed: "}
-                  <span className="text-chart-orange">
-                    {d ? d.toISOString().slice(0,10) : "NULL"}
-                  </span>
-                  {" · year: "}
-                  <span className="text-chart-blue">{d ? d.getFullYear() : "—"}</span>
-                </div>
-              );
-            })}
-          </div>
-          <p className="mt-2 text-chart-orange">
-            Null date count: {quotedJobs.filter(j => !parseDealDate(j.dateQuoted)).length}
-          </p>
-          <p>
-            2026 count: {quotedJobs.filter(j => { const d = parseDealDate(j.dateQuoted); return d?.getFullYear() === 2026; }).length}
-          </p>
-          <p>
-            2025 count: {quotedJobs.filter(j => { const d = parseDealDate(j.dateQuoted); return d?.getFullYear() === 2025; }).length}
-          </p>
-        </div>
 
         {/* Section 1: Funnel */}
         <motion.section variants={item} className="chart-container p-5">
