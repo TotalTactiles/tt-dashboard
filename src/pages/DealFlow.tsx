@@ -14,6 +14,10 @@ function parseDealDate(raw: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
+const norm = (s: string) => s.trim().toLowerCase();
+const isStage = (jobStatus: string, target: string) =>
+  norm(jobStatus) === norm(target);
+
 const fmt = (n: number) =>
   "$" + Math.round(n).toLocaleString("en-AU");
 
@@ -26,12 +30,17 @@ const STAGES: { key: string; label: string; colorVar: string }[] = [
 ];
 
 const STATUS_PILL: Record<string, string> = {
-  "Quote Sent": "bg-slate-400/15 text-slate-300 border-slate-400/30",
-  "Negotiation/Review": "bg-pink-400/20 text-pink-300 border-pink-400/40",
-  "Verbal Confirmation (YLW)": "bg-yellow-400/30 text-yellow-300 border-yellow-400/50",
-  "PO Received (GRN)": "bg-green-500/30 text-green-300 border-green-500/50",
+  "Quote Sent": "bg-muted/20 text-muted-foreground border-muted-foreground/30",
+  "Negotiation/Review": "bg-chart-blue/20 text-chart-blue border-chart-blue/40",
+  "Verbal Confirmation (YLW)": "bg-chart-orange/20 text-chart-orange border-chart-orange/40",
+  "PO Received (GRN)": "bg-chart-green/20 text-chart-green border-chart-green/40",
   "Completed": "bg-emerald-700/40 text-emerald-300 border-emerald-600/50",
   "Lost/Dead": "bg-red-500/25 text-red-400 border-red-500/40",
+};
+
+const statusPillFor = (status: string) => {
+  const key = Object.keys(STATUS_PILL).find(k => isStage(k, status));
+  return key ? STATUS_PILL[key] : STATUS_PILL["Quote Sent"];
 };
 
 const container = {
@@ -50,24 +59,26 @@ const DealFlow = () => {
 
   const byStage = useMemo(() => {
     const m: Record<string, any[]> = {};
-    STAGES.forEach(s => { m[s.key] = []; });
-    m["Lost/Dead"] = [];
+    STAGES.forEach(s => { m[norm(s.key)] = []; });
+    m[norm("Lost/Dead")] = [];
     jobs.forEach((j: any) => {
-      if (m[j.status]) m[j.status].push(j);
+      const key = STAGES.find(s => isStage(j.status, s.key))?.key ??
+        (isStage(j.status, "Lost/Dead") ? "Lost/Dead" : null);
+      if (key) m[norm(key)].push(j);
     });
     return m;
   }, [jobs]);
 
   const stageStats = STAGES.map(s => {
-    const items = byStage[s.key] ?? [];
+    const items = byStage[norm(s.key)] ?? [];
     const value = items.reduce((a, b) => a + (Number(b.value) || 0), 0);
     return { ...s, count: items.length, value };
   });
 
-  const lostItems = byStage["Lost/Dead"] ?? [];
+  const lostItems = byStage[norm("Lost/Dead")] ?? [];
   const lostValue = lostItems.reduce((a, b) => a + (Number(b.value) || 0), 0);
-  const completedItems = byStage["Completed"] ?? [];
-  const grnItems = byStage["PO Received (GRN)"] ?? [];
+  const completedItems = byStage[norm("Completed")] ?? [];
+  const grnItems = byStage[norm("PO Received (GRN)")] ?? [];
   const grnValue = grnItems.reduce((a, b) => a + (Number(b.value) || 0), 0);
   const completedValue = completedItems.reduce((a, b) => a + (Number(b.value) || 0), 0);
 
@@ -94,7 +105,7 @@ const DealFlow = () => {
   // Velocity — avg days per active stage
   const ACTIVE = ["Quote Sent", "Negotiation/Review", "Verbal Confirmation (YLW)", "PO Received (GRN)"];
   const velocityData = ACTIVE.map(stage => {
-    const items = byStage[stage] ?? [];
+    const items = byStage[norm(stage)] ?? [];
     const days = items
       .map((j: any) => {
         const d = parseDealDate(j.dateQuoted);
@@ -112,7 +123,7 @@ const DealFlow = () => {
   // Stale deals
   const staleDeals = useMemo(() => {
     return jobs
-      .filter((j: any) => j.status !== "Completed" && j.status !== "Lost/Dead")
+      .filter((j: any) => !isStage(j.status, "Completed") && !isStage(j.status, "Lost/Dead"))
       .map((j: any) => {
         const d = parseDealDate(j.dateQuoted);
         if (!d) return null;
@@ -149,7 +160,7 @@ const DealFlow = () => {
             <div className="flex flex-col md:flex-row md:items-stretch gap-2">
               {stageStats.map((s, i) => {
                 const next = stageStats[i + 1];
-                const dropOff = next && s.count > 0 ? Math.max(0, ((s.count - next.count) / s.count) * 100) : null;
+                const dropOff = next ? (s.count > 0 ? Math.max(0, ((s.count - next.count) / s.count) * 100) : "—") : null;
                 const widthPct = 40 + (s.count / maxStageCount) * 60;
                 return (
                   <div key={s.key} className="flex-1 flex flex-col md:flex-row md:items-center gap-2">
@@ -164,7 +175,13 @@ const DealFlow = () => {
                     {next && (
                       <div className="hidden md:flex flex-col items-center text-muted-foreground shrink-0 px-1">
                         <ChevronRight className="w-4 h-4" />
-                        {dropOff !== null && dropOff > 0 && (
+                        {dropOff === "—" && (
+                          <div className="text-[10px] font-mono text-muted-foreground flex items-center gap-0.5">
+                            <ArrowDown className="w-3 h-3" />
+                            —
+                          </div>
+                        )}
+                        {typeof dropOff === "number" && dropOff > 0 && (
                           <div className="text-[10px] font-mono text-destructive flex items-center gap-0.5">
                             <ArrowDown className="w-3 h-3" />
                             {dropOff.toFixed(0)}%
@@ -267,7 +284,7 @@ const DealFlow = () => {
                         <div className="text-fluid-sm font-medium truncate">{d.jobName}</div>
                         <div className="text-fluid-xs text-muted-foreground truncate">{d.company}</div>
                       </div>
-                      <span className={`text-[10px] px-2 py-0.5 rounded border ${STATUS_PILL[d.status] ?? STATUS_PILL["Quote Sent"]}`}>
+                      <span className={`text-[10px] px-2 py-0.5 rounded border ${statusPillFor(d.status)}`}>
                         {d.status}
                       </span>
                       <span className={`font-mono text-[10px] px-2 py-0.5 rounded border ${sev}`}>
