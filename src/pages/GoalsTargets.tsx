@@ -117,6 +117,88 @@ const GoalsTargets = () => {
 
         <GoalProgressChart goals={filteredGoals} />
 
+        <div className="stat-card p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-xs font-semibold text-foreground">Monthly Business Expenses</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {isOverridden
+                    ? "Manually set — used for goal calculations"
+                    : "Auto from dashboard — used for goal calculations"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {editingExpenses ? (
+                <>
+                  <span className="text-xs text-muted-foreground">$</span>
+                  <input
+                    type="number"
+                    value={expensesInputVal}
+                    onChange={(e) => setExpensesInputVal(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') saveExpensesOverride();
+                      if (e.key === 'Escape') setEditingExpenses(false);
+                    }}
+                    className="w-28 h-7 text-xs font-mono bg-background border border-border rounded px-2 text-right focus:outline-none focus:border-primary"
+                    autoFocus
+                  />
+                  <button
+                    onClick={saveExpensesOverride}
+                    className="text-xs px-2 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setEditingExpenses(false)}
+                    className="text-xs px-2 py-1 rounded border border-border text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className={`text-sm font-semibold font-mono ${isOverridden ? 'text-amber-400' : 'text-foreground'}`}>
+                    ${activeMonthlyExpenses.toLocaleString('en-AU', {maximumFractionDigits: 0})}
+                    <span className="text-[10px] font-normal text-muted-foreground">/mo</span>
+                  </span>
+                  <button
+                    onClick={() => {
+                      setExpensesInputVal(String(activeMonthlyExpenses));
+                      setEditingExpenses(true);
+                    }}
+                    className="text-[10px] px-2 py-1 rounded border border-border text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Edit
+                  </button>
+                  {isOverridden && (
+                    <button
+                      onClick={resetExpensesOverride}
+                      className="text-[10px] px-2 py-1 rounded border border-border text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Reset to auto
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+          {/* Source detail */}
+          <div className="mt-2 pt-2 border-t border-border/30 flex items-center gap-3 text-[10px] text-muted-foreground">
+            <span>Dashboard figure: ${dashboardMonthlyExpenses.toLocaleString('en-AU', {maximumFractionDigits: 0})}/mo</span>
+            {isOverridden && (
+              <>
+                <span>·</span>
+                <span className="text-amber-400">
+                  Override active: ${expensesOverride!.toLocaleString('en-AU', {maximumFractionDigits: 0})}/mo
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+
         {(() => {
           const totalMonthlyGoalCost = filteredGoals
             .filter((g) => (g.goalType ?? "expenditure") === "expenditure")
