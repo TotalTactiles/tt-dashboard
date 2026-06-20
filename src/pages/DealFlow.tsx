@@ -72,11 +72,32 @@ const DealFlow = () => {
   const wonValue = wonItems.reduce((a: number, b: any) => a + (Number(b.value) || 0), 0);
 
   // Win/Loss
-  const closedCount = wonItems.length + lostItems.length;
-  const winRate = closedCount > 0 ? (wonItems.length / closedCount) * 100 : 0;
+  const ytdJobs = jobs;
+  const wonCount = ytdJobs.filter((j: any) => isWon(j.status)).length;
+  const lostCount = ytdJobs.filter((j: any) => isLost(j.status)).length;
+  const completedCount = ytdJobs.filter((j: any) => j.status === "completed").length;
+  const pendingCount = ytdJobs.filter((j: any) => isActive(j.status)).length;
+  const totalCount = ytdJobs.length;
+
+  const winRate = (wonCount + lostCount + completedCount) > 0
+    ? ((wonCount + completedCount) / (wonCount + lostCount + completedCount)) * 100
+    : 0;
+
+  const pipelineCR = totalCount > 0
+    ? ((wonCount + completedCount) / totalCount) * 100
+    : 0;
+
   const avgWon = wonItems.length > 0 ? wonValue / wonItems.length : 0;
   const avgLost = lostItems.length > 0 ? lostValue / lostItems.length : 0;
   const totalValueWon = wonValue;
+
+  // Avg days from quote to won — for context explanation
+  const wonJobsForAvg = ytdJobs.filter((j: any) => isWon(j.status) || j.status === "completed");
+  const avgDaysToClose = wonJobsForAvg.reduce((sum: number, j: any) => {
+    const d = parseDealDate(j.dateQuoted);
+    if (!d) return sum;
+    return sum + Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));
+  }, 0) / (wonJobsForAvg.length || 1);
 
   // Loss reasons
   const lossReasons = useMemo(() => {
