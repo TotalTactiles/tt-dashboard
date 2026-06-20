@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { ArrowDown, AlertTriangle, CheckCircle2, ChevronRight } from "lucide-react";
+import { ArrowDown, AlertTriangle, CheckCircle2, ChevronRight, Info } from "lucide-react";
 
 function parseDealDate(raw: string): Date | null {
   if (!raw) return null;
