@@ -54,10 +54,12 @@ const DealFlow = () => {
 
   const byStage = useMemo(() => {
     const m: Record<string, any[]> = {};
-    STAGES.forEach(s => { m[s.key] = []; });
-    m["Lost/Dead"] = [];
+    STAGES.forEach(s => { m[norm(s.key)] = []; });
+    m[norm("Lost/Dead")] = [];
     jobs.forEach((j: any) => {
-      if (m[j.status]) m[j.status].push(j);
+      const key = STAGES.find(s => isStage(j.status, s.key))?.key ??
+        (isStage(j.status, "Lost/Dead") ? "Lost/Dead" : null);
+      if (key) m[norm(key)].push(j);
     });
     return m;
   }, [jobs]);
