@@ -189,7 +189,7 @@ const DealFlow = () => {
           <div className="flex items-baseline justify-between mb-4">
             <h2 className="text-fluid-base font-semibold">Pipeline Funnel</h2>
             <div className="text-fluid-xs text-muted-foreground">
-              {jobs.length} total deals
+              {ytdJobs.length} total deals
             </div>
           </div>
 
