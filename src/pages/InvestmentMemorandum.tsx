@@ -149,6 +149,7 @@ export default function ConsultingPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [openingLoading, setOpeningLoading] = useState(false);
   const [accountingData, setAccountingData] = useState<any>(null);
   const [accountingDataLoading, setAccountingDataLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -174,9 +175,19 @@ export default function ConsultingPage() {
     fetchAccountingData();
   }, []);
 
+  function stripMarkdown(text: string): string {
+    return text
+      .replace(/^#{1,6}\s+/gm, '')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/^[-–—]{2,}\s*$/gm, '')
+      .replace(/^>\s+/gm, '')
+      .trim();
+  }
+
   const generateOpeningObservation = useCallback(async () => {
     const dataContext = buildDataContext(liveData, investorMetrics, accountingData);
-    setLoading(true);
+    setOpeningLoading(true);
     try {
       const text = await callAI(SYSTEM_PROMPT + dataContext, [
         { role: "user", content: "Review the live business data and provide your top 2–3 most material financial observations for management. Be specific with numbers. Lead with the most critical item." },
@@ -185,11 +196,11 @@ export default function ConsultingPage() {
         setMessages([{ role: "assistant", content: "Live data connected. Ready for your questions.", timestamp: new Date() }]);
         return;
       }
-      setMessages([{ role: "assistant", content: text, timestamp: new Date() }]);
+      setMessages([{ role: "assistant", content: stripMarkdown(text), timestamp: new Date() }]);
     } catch {
       setMessages([{ role: "assistant", content: "Live data loaded. Ready for your questions.", timestamp: new Date() }]);
     } finally {
-      setLoading(false);
+      setOpeningLoading(false);
     }
   }, [liveData, investorMetrics, accountingData]);
 
@@ -212,7 +223,7 @@ export default function ConsultingPage() {
     const apiMessages = updated.slice(-20).map((m) => ({ role: m.role, content: m.content }));
     try {
       const text = await callAI(SYSTEM_PROMPT + dataContext, apiMessages);
-      setMessages((prev) => [...prev, { role: "assistant", content: text, timestamp: new Date() }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: stripMarkdown(text), timestamp: new Date() }]);
     } catch {
       setMessages((prev) => [...prev, { role: "assistant", content: "Request failed. Check your connection.", timestamp: new Date() }]);
     } finally {
