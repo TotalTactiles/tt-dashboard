@@ -127,6 +127,10 @@ export default function ConsultingPage() {
       const text = await callAI(SYSTEM_PROMPT + dataContext, [
         { role: "user", content: "Review the live business data and provide your top 2–3 most material financial observations for management. Be specific with numbers. Lead with the most critical item." },
       ]);
+      if (!text || text.trim().length === 0 || text === "No response received.") {
+        setMessages([{ role: "assistant", content: "Live data connected. Ready for your questions.", timestamp: new Date() }]);
+        return;
+      }
       setMessages([{ role: "assistant", content: text, timestamp: new Date() }]);
     } catch {
       setMessages([{ role: "assistant", content: "Live data loaded. Ready for your questions.", timestamp: new Date() }]);
