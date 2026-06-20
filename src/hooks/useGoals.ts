@@ -17,6 +17,7 @@ export interface Goal {
   period?: "weekly" | "monthly" | "yearly";
   lumpSumDate?: string;
   merge?: boolean;
+  targetYear?: number;
 }
 
 const STORAGE_KEY = "meridian_goals";
