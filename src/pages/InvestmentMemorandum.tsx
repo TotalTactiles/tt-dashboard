@@ -5,7 +5,7 @@ import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
-const WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/bb826393-569e-4270-a033-6f6d8019e0e0";
+const WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-accountant-ai";
 
 const SYSTEM_PROMPT = `You are a senior chartered accountant and financial analyst advising TT Business (Total Tactiles Pty Ltd), a Sydney-based commercial contracting company specialising in tactile paving, stair nosing, and linemarking installation.
 
