@@ -625,10 +625,8 @@ export default function ConsultingPage() {
         { role: "user", content: trimmed, timestamp: new Date() },
         { role: "assistant", content: "Of course. What would you like to discuss?", timestamp: new Date() }
       ]);
-      if (!overrideText) setInput("");
       return;
     }
-    if (!overrideText) setInput("");
     const userMessage: Message = { role: "user", content: trimmed, timestamp: new Date() };
     const updated = [...messages, userMessage];
     setMessages(updated);
