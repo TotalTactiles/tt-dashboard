@@ -221,10 +221,21 @@ const DealFlow = () => {
           <div className="chart-container p-5">
             <h2 className="text-fluid-base font-semibold mb-4">Win / Loss Summary</h2>
             <div className="grid grid-cols-2 gap-4">
+              {/* Rate cards */}
               <div>
                 <div className="text-fluid-xs text-muted-foreground">Win Rate</div>
                 <div className="font-mono text-fluid-2xl font-semibold text-chart-green">{winRate.toFixed(1)}%</div>
+                <div className="text-[11px] text-muted-foreground mt-1">Won &amp; completed ÷ decided deals</div>
               </div>
+              <div>
+                <div className="text-fluid-xs text-muted-foreground">Pipeline CR</div>
+                <div className="font-mono text-fluid-2xl font-semibold text-chart-blue">{pipelineCR.toFixed(1)}%</div>
+                <div className="text-[11px] text-muted-foreground mt-1">Won ÷ all quoted (YTD)</div>
+                <div className="border-t border-border/40 mt-3 pt-3 text-xs font-mono text-muted-foreground">
+                  Pipeline CR is lower than Win Rate because {pendingCount} deals ({totalCount > 0 ? ((pendingCount / totalCount) * 100).toFixed(0) : "0"}% of all quotes) are still active in the pipeline. TT&apos;s average quote-to-close cycle is ~{Math.round(avgDaysToClose)} days, meaning many of this year&apos;s quotes are still converting. As these resolve, Pipeline CR will trend toward Win Rate.
+                </div>
+              </div>
+              {/* Other stats */}
               <div>
                 <div className="text-fluid-xs text-muted-foreground">Total Value Won</div>
                 <div className="font-mono text-fluid-2xl font-semibold">{fmt(totalValueWon)}</div>
