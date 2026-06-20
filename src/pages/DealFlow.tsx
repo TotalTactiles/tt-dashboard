@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { ArrowDown, AlertTriangle, CheckCircle2, ChevronRight } from "lucide-react";
+import { ArrowDown, AlertTriangle, CheckCircle2, ChevronRight, Info } from "lucide-react";
 
 function parseDealDate(raw: string): Date | null {
   if (!raw) return null;
@@ -30,7 +30,7 @@ const STAGES: { key: string; label: string; colorVar: string }[] = [
 ];
 
 const STATUS_PILL: Record<string, string> = {
-  pending: "bg-muted/20 text-muted-foreground border-muted-foreground/30",
+  pending: "bg-chart-orange/20 text-chart-orange border-chart-orange/40",
   yellow: "bg-chart-orange/20 text-chart-orange border-chart-orange/40",
   won: "bg-chart-green/20 text-chart-green border-chart-green/40",
   lost: "bg-red-500/25 text-red-400 border-red-500/40",
@@ -78,6 +78,7 @@ const DealFlow = () => {
   const completedCount = ytdJobs.filter((j: any) => j.status === "completed").length;
   const pendingCount = ytdJobs.filter((j: any) => isActive(j.status)).length;
   const totalCount = ytdJobs.length;
+  const pendingPct = totalCount > 0 ? ((pendingCount / totalCount) * 100).toFixed(0) : "0";
 
   const winRate = (wonCount + lostCount + completedCount) > 0
     ? ((wonCount + completedCount) / (wonCount + lostCount + completedCount)) * 100
@@ -224,16 +225,29 @@ const DealFlow = () => {
               {/* Rate cards */}
               <div>
                 <div className="text-fluid-xs text-muted-foreground">Win Rate</div>
-                <div className="font-mono text-fluid-2xl font-semibold text-chart-green">{winRate.toFixed(1)}%</div>
+                <div className="font-mono text-fluid-2xl font-semibold text-chart-green">
+                  {winRate.toFixed(1)}%
+                  <span title="Win Rate = (Won + Completed) ÷ (Won + Lost + Completed). Measures how often TT wins when a deal reaches a decision, excluding still-active pipeline.">
+                    <Info
+                      className="text-muted-foreground hover:text-foreground cursor-help transition-colors inline-block ml-1.5 align-middle"
+                      size={14}
+                    />
+                  </span>
+                </div>
                 <div className="text-[11px] text-muted-foreground mt-1">Won &amp; completed ÷ decided deals</div>
               </div>
               <div>
                 <div className="text-fluid-xs text-muted-foreground">Pipeline CR</div>
-                <div className="font-mono text-fluid-2xl font-semibold text-chart-blue">{pipelineCR.toFixed(1)}%</div>
-                <div className="text-[11px] text-muted-foreground mt-1">Won ÷ all quoted (YTD)</div>
-                <div className="border-t border-border/40 mt-3 pt-3 text-xs font-mono text-muted-foreground">
-                  Pipeline CR is lower than Win Rate because {pendingCount} deals ({totalCount > 0 ? ((pendingCount / totalCount) * 100).toFixed(0) : "0"}% of all quotes) are still active in the pipeline. TT&apos;s average quote-to-close cycle is ~{Math.round(avgDaysToClose)} days, meaning many of this year&apos;s quotes are still converting. As these resolve, Pipeline CR will trend toward Win Rate.
+                <div className="font-mono text-fluid-2xl font-semibold text-chart-blue">
+                  {pipelineCR.toFixed(1)}%
+                  <span title={`Pipeline CR is lower than Win Rate because ${pendingCount} deals (${pendingPct}% of all quotes) are still active in the pipeline. TT's avg quote-to-close cycle is ~${Math.round(avgDaysToClose)} days, so many quotes are still converting. As these resolve, Pipeline CR will trend toward Win Rate.`}>
+                    <Info
+                      className="text-muted-foreground hover:text-foreground cursor-help transition-colors inline-block ml-1.5 align-middle"
+                      size={14}
+                    />
+                  </span>
                 </div>
+                <div className="text-[11px] text-muted-foreground mt-1">Won ÷ all quoted (YTD)</div>
               </div>
               {/* Other stats */}
               <div>
