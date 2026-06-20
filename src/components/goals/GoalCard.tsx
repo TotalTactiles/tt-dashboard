@@ -23,7 +23,7 @@ interface GoalCardProps {
   monthlyExpenses?: number;
 }
 
-export default function GoalCard({ goal, onEdit, onDelete, isAuto }: GoalCardProps) {
+export default function GoalCard({ goal, onEdit, onDelete, isAuto, monthlyExpenses: monthlyExpensesProp }: GoalCardProps) {
   const { investorMetrics } = useDashboardData();
   const [showAnalysis, setShowAnalysis] = useState(false);
 
