@@ -87,24 +87,30 @@ const DealFlow = () => {
     if (!d) return false;
     return d.getFullYear() === currentYear;
   });
-  const wonCount = ytdJobs.filter((j: any) => isWon(j.status)).length;
-  const lostCount = ytdJobs.filter((j: any) => isLost(j.status)).length;
-  const completedCount = ytdJobs.filter((j: any) => j.status === "completed").length;
+
+  const pipelineWonJobs = ytdJobs.filter((j: any) => isPipelineWin(j.status));
+  const pipelineWonCount = pipelineWonJobs.length;
+  const pipelineWonValue = pipelineWonJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
+
+  const lostJobs = ytdJobs.filter((j: any) => isLost(j.status));
+  const lostCount = lostJobs.length;
+  const ytdLostValue = lostJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
+
+  const decidedCount = pipelineWonCount + lostCount;
+  const winRate = decidedCount > 0
+    ? (pipelineWonCount / decidedCount) * 100
+    : 0;
+
+  const pipelineCR = ytdJobs.length > 0
+    ? (pipelineWonCount / ytdJobs.length) * 100
+    : 0;
+
+  const avgWonDeal = pipelineWonCount > 0 ? pipelineWonValue / pipelineWonCount : 0;
+  const avgLostDeal = lostCount > 0 ? ytdLostValue / lostCount : 0;
+
   const pendingCount = ytdJobs.filter((j: any) => isActive(j.status)).length;
   const totalCount = ytdJobs.length;
   const pendingPct = totalCount > 0 ? ((pendingCount / totalCount) * 100).toFixed(0) : "0";
-
-  const winRate = (wonCount + lostCount + completedCount) > 0
-    ? ((wonCount + completedCount) / (wonCount + lostCount + completedCount)) * 100
-    : 0;
-
-  const pipelineCR = totalCount > 0
-    ? ((wonCount + completedCount) / totalCount) * 100
-    : 0;
-
-  const avgWon = wonItems.length > 0 ? wonValue / wonItems.length : 0;
-  const avgLost = lostItems.length > 0 ? lostValue / lostItems.length : 0;
-  const totalValueWon = wonValue;
 
   // Avg days from quote to won — for context explanation
   const wonJobsForAvg = ytdJobs.filter((j: any) => isWon(j.status) || j.status === "completed");
