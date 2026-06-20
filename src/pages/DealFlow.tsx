@@ -302,13 +302,18 @@ const DealFlow = () => {
                 <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={11} />
                 <YAxis dataKey="stage" type="category" stroke="hsl(var(--muted-foreground))" fontSize={11} width={120} />
                 <Tooltip
-                  cursor={{ fill: "hsl(var(--muted) / 0.2)" }}
-                  contentStyle={{
-                    background: "hsl(var(--background))",
-                    border: "1px solid hsl(var(--border))",
-                    fontSize: 12,
+                  cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
+                    return (
+                      <div className="bg-background border border-border rounded-lg px-3 py-2 shadow-lg">
+                        <p className="text-xs text-muted-foreground font-mono mb-0.5">{label}</p>
+                        <p className="text-sm font-mono font-semibold text-foreground">
+                          {Math.round(payload[0].value as number)} days avg
+                        </p>
+                      </div>
+                    );
                   }}
-                  formatter={(v: any, _n, p: any) => [`${v} days (n=${p.payload.count})`, "Avg"]}
                 />
                 <Bar dataKey="avgDays" radius={[0, 4, 4, 0]}>
                   {velocityData.map((d, i) => (
