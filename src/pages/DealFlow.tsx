@@ -30,7 +30,7 @@ const STAGES: { key: string; label: string; colorVar: string }[] = [
 ];
 
 const STATUS_PILL: Record<string, string> = {
-  pending: "bg-muted/20 text-muted-foreground border-muted-foreground/30",
+  pending: "bg-chart-orange/20 text-chart-orange border-chart-orange/40",
   yellow: "bg-chart-orange/20 text-chart-orange border-chart-orange/40",
   won: "bg-chart-green/20 text-chart-green border-chart-green/40",
   lost: "bg-red-500/25 text-red-400 border-red-500/40",
