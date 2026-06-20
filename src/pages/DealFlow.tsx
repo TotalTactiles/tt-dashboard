@@ -70,10 +70,10 @@ const DealFlow = () => {
     return { ...s, count: items.length, value };
   });
 
-  const lostItems = byStage["Lost/Dead"] ?? [];
+  const lostItems = byStage[norm("Lost/Dead")] ?? [];
   const lostValue = lostItems.reduce((a, b) => a + (Number(b.value) || 0), 0);
-  const completedItems = byStage["Completed"] ?? [];
-  const grnItems = byStage["PO Received (GRN)"] ?? [];
+  const completedItems = byStage[norm("Completed")] ?? [];
+  const grnItems = byStage[norm("PO Received (GRN)")] ?? [];
   const grnValue = grnItems.reduce((a, b) => a + (Number(b.value) || 0), 0);
   const completedValue = completedItems.reduce((a, b) => a + (Number(b.value) || 0), 0);
 
