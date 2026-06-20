@@ -13,7 +13,7 @@ const CATEGORIES = ["All", "Revenue", "Customer", "Sales Target", "Operating Exp
 
 const GoalsTargets = () => {
   const { goals, addGoal, updateGoal, deleteGoal } = useGoals();
-  const { dataStore } = useDashboardData();
+  const { dataStore, investorMetrics } = useDashboardData();
   const qs = dataStore.quotesSummary;
   const cs = dataStore.cashflowSummary;
 
