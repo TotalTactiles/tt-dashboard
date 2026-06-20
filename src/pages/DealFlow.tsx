@@ -262,7 +262,7 @@ const DealFlow = () => {
                 <div className="text-fluid-xs text-muted-foreground">Win Rate</div>
                 <div className="font-mono text-fluid-2xl font-semibold text-chart-green">
                   {winRate.toFixed(1)}%
-                  <span title="Win Rate = (Won + Completed) ÷ (Won + Lost + Completed). Measures how often TT wins when a deal reaches a decision, excluding still-active pipeline.">
+                  <span title="Win Rate = (YLW + GRN) ÷ (YLW + GRN + Lost). Measures how often TT wins when a deal reaches a decision, excluding still-active pipeline.">
                     <Info
                       className="text-muted-foreground hover:text-foreground cursor-help transition-colors inline-block ml-1.5 align-middle"
                       size={14}
