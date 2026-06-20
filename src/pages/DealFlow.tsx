@@ -14,33 +14,26 @@ function parseDealDate(raw: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
-const norm = (s: string) => s.trim().toLowerCase();
-const isStage = (jobStatus: string, target: string) =>
-  norm(jobStatus) === norm(target);
+const isWon = (s: string) => s === "won";
+const isPending = (s: string) => s === "pending";
+const isYellow = (s: string) => s === "yellow";
+const isLost = (s: string) => s === "lost";
+const isActive = (s: string) => s === "pending" || s === "yellow" || s === "won";
 
 const fmt = (n: number) =>
   "$" + Math.round(n).toLocaleString("en-AU");
 
 const STAGES: { key: string; label: string; colorVar: string }[] = [
-  { key: "Quote Sent", label: "Quote Sent", colorVar: "hsl(var(--muted-foreground))" },
-  { key: "Negotiation/Review", label: "Negotiation", colorVar: "hsl(var(--chart-blue))" },
-  { key: "Verbal Confirmation (YLW)", label: "Verbal (YLW)", colorVar: "hsl(var(--chart-orange))" },
-  { key: "PO Received (GRN)", label: "PO Received (GRN)", colorVar: "hsl(var(--chart-green))" },
-  { key: "Completed", label: "Completed", colorVar: "hsl(var(--chart-green))" },
+  { key: "pending", label: "Active (Pending)", colorVar: "hsl(var(--muted-foreground))" },
+  { key: "yellow", label: "Verbal (YLW)", colorVar: "hsl(var(--chart-orange))" },
+  { key: "won", label: "Won", colorVar: "hsl(var(--chart-green))" },
 ];
 
 const STATUS_PILL: Record<string, string> = {
-  "Quote Sent": "bg-muted/20 text-muted-foreground border-muted-foreground/30",
-  "Negotiation/Review": "bg-chart-blue/20 text-chart-blue border-chart-blue/40",
-  "Verbal Confirmation (YLW)": "bg-chart-orange/20 text-chart-orange border-chart-orange/40",
-  "PO Received (GRN)": "bg-chart-green/20 text-chart-green border-chart-green/40",
-  "Completed": "bg-emerald-700/40 text-emerald-300 border-emerald-600/50",
-  "Lost/Dead": "bg-red-500/25 text-red-400 border-red-500/40",
-};
-
-const statusPillFor = (status: string) => {
-  const key = Object.keys(STATUS_PILL).find(k => isStage(k, status));
-  return key ? STATUS_PILL[key] : STATUS_PILL["Quote Sent"];
+  pending: "bg-muted/20 text-muted-foreground border-muted-foreground/30",
+  yellow: "bg-chart-orange/20 text-chart-orange border-chart-orange/40",
+  won: "bg-chart-green/20 text-chart-green border-chart-green/40",
+  lost: "bg-red-500/25 text-red-400 border-red-500/40",
 };
 
 const container = {
@@ -56,56 +49,34 @@ const DealFlow = () => {
   const { quotedJobs } = useDashboardData();
   const jobs = quotedJobs ?? [];
 
-  {/* TEMP DEBUG — remove after fix */}
-  const debugBlock = (
-    <div className="chart-container mb-4 font-mono text-xs text-muted-foreground">
-      <p className="text-chart-green mb-2">Status values in quotedJobs (first 20):</p>
-      <div className="space-y-0.5">
-        {jobs.slice(0, 20).map((j: any, i: number) => (
-          <div key={i}>
-            <span className="text-foreground">{JSON.stringify(j.status)}</span>
-            {" — "}{j.project}
-          </div>
-        ))}
-      </div>
-      <p className="mt-2">Total jobs: {jobs.length}</p>
-      <p>Unique statuses: {[...new Set(jobs.map((j: any) => j.status))].join(" | ")}</p>
-    </div>
-  );
-
   const today = new Date();
 
-  const byStage = useMemo(() => {
-    const m: Record<string, any[]> = {};
-    STAGES.forEach(s => { m[norm(s.key)] = []; });
-    m[norm("Lost/Dead")] = [];
-    jobs.forEach((j: any) => {
-      const key = STAGES.find(s => isStage(j.status, s.key))?.key ??
-        (isStage(j.status, "Lost/Dead") ? "Lost/Dead" : null);
-      if (key) m[norm(key)].push(j);
-    });
-    return m;
+  const byStatus = useMemo(() => {
+    return {
+      pending: jobs.filter((j: any) => isPending(j.status)),
+      yellow: jobs.filter((j: any) => isYellow(j.status)),
+      won: jobs.filter((j: any) => isWon(j.status)),
+      lost: jobs.filter((j: any) => isLost(j.status)),
+    };
   }, [jobs]);
 
   const stageStats = STAGES.map(s => {
-    const items = byStage[norm(s.key)] ?? [];
-    const value = items.reduce((a, b) => a + (Number(b.value) || 0), 0);
+    const items = byStatus[s.key as keyof typeof byStatus] ?? [];
+    const value = items.reduce((a: number, b: any) => a + (Number(b.value) || 0), 0);
     return { ...s, count: items.length, value };
   });
 
-  const lostItems = byStage[norm("Lost/Dead")] ?? [];
-  const lostValue = lostItems.reduce((a, b) => a + (Number(b.value) || 0), 0);
-  const completedItems = byStage[norm("Completed")] ?? [];
-  const grnItems = byStage[norm("PO Received (GRN)")] ?? [];
-  const grnValue = grnItems.reduce((a, b) => a + (Number(b.value) || 0), 0);
-  const completedValue = completedItems.reduce((a, b) => a + (Number(b.value) || 0), 0);
+  const lostItems = byStatus.lost;
+  const lostValue = lostItems.reduce((a: number, b: any) => a + (Number(b.value) || 0), 0);
+  const wonItems = byStatus.won;
+  const wonValue = wonItems.reduce((a: number, b: any) => a + (Number(b.value) || 0), 0);
 
   // Win/Loss
-  const closedCount = grnItems.length + lostItems.length;
-  const winRate = closedCount > 0 ? (grnItems.length / closedCount) * 100 : 0;
-  const avgWon = grnItems.length > 0 ? grnValue / grnItems.length : 0;
+  const closedCount = wonItems.length + lostItems.length;
+  const winRate = closedCount > 0 ? (wonItems.length / closedCount) * 100 : 0;
+  const avgWon = wonItems.length > 0 ? wonValue / wonItems.length : 0;
   const avgLost = lostItems.length > 0 ? lostValue / lostItems.length : 0;
-  const totalValueWon = grnValue + completedValue;
+  const totalValueWon = wonValue;
 
   // Loss reasons
   const lossReasons = useMemo(() => {
@@ -121,9 +92,13 @@ const DealFlow = () => {
   }, [lostItems]);
 
   // Velocity — avg days per active stage
-  const ACTIVE = ["Quote Sent", "Negotiation/Review", "Verbal Confirmation (YLW)", "PO Received (GRN)"];
-  const velocityData = ACTIVE.map(stage => {
-    const items = byStage[norm(stage)] ?? [];
+  const VELOCITY_STAGES = [
+    { key: "pending", label: "Pending" },
+    { key: "yellow", label: "Yellow (YLW)" },
+    { key: "won", label: "Won" },
+  ];
+  const velocityData = VELOCITY_STAGES.map(({ key, label }) => {
+    const items = byStatus[key as keyof typeof byStatus] ?? [];
     const days = items
       .map((j: any) => {
         const d = parseDealDate(j.dateQuoted);
@@ -132,7 +107,7 @@ const DealFlow = () => {
       })
       .filter((x): x is number => x !== null);
     const avg = days.length ? days.reduce((a, b) => a + b, 0) / days.length : 0;
-    return { stage: stage.replace(" Confirmation (YLW)", " (YLW)").replace(" Received (GRN)", " (GRN)"), avgDays: Math.round(avg), count: items.length };
+    return { stage: label, avgDays: Math.round(avg), count: items.length };
   });
 
   const velocityColor = (d: number) =>
@@ -141,7 +116,7 @@ const DealFlow = () => {
   // Stale deals
   const staleDeals = useMemo(() => {
     return jobs
-      .filter((j: any) => !isStage(j.status, "Completed") && !isStage(j.status, "Lost/Dead"))
+      .filter((j: any) => isActive(j.status))
       .map((j: any) => {
         const d = parseDealDate(j.dateQuoted);
         if (!d) return null;
@@ -164,8 +139,6 @@ const DealFlow = () => {
             Commercial intelligence — pipeline, win/loss, velocity &amp; cash conversion
           </p>
         </motion.div>
-
-        {debugBlock}
 
         {/* Section 1: Funnel */}
         <motion.section variants={item} className="chart-container p-5">
@@ -304,7 +277,7 @@ const DealFlow = () => {
                         <div className="text-fluid-sm font-medium truncate">{d.jobName}</div>
                         <div className="text-fluid-xs text-muted-foreground truncate">{d.company}</div>
                       </div>
-                      <span className={`text-[10px] px-2 py-0.5 rounded border ${statusPillFor(d.status)}`}>
+                      <span className={`text-[10px] px-2 py-0.5 rounded border ${STATUS_PILL[d.status] ?? STATUS_PILL.pending}`}>
                         {d.status}
                       </span>
                       <span className={`font-mono text-[10px] px-2 py-0.5 rounded border ${sev}`}>
