@@ -5,7 +5,7 @@ import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
-const WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/bb826393-569e-4270-a033-6f6d8019e0e0";
+const WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-accountant-ai";
 
 const SYSTEM_PROMPT = `You are a senior chartered accountant and financial analyst advising TT Business (Total Tactiles Pty Ltd), a Sydney-based commercial contracting company specialising in tactile paving, stair nosing, and linemarking installation.
 
@@ -44,7 +44,9 @@ function buildDataContext(liveData: any, investorMetrics: any): string {
 - Gross Profit: $${(totalRev / 1.1 - totalCOGS).toLocaleString("en-AU", { minimumFractionDigits: 0 })}
 Projects: ${revenueItems.map((r: any) => `${r._label_company ?? ""} / ${r._label_project ?? ""} — $${(parseFloat(r._label_value) || 0).toLocaleString("en-AU")} (Stage: ${r._label_projectStage ?? "?"}, Labour: $${r._label_labourCost ?? 0}, Tactile: $${r._label_tactileCost ?? 0}, Other: $${r._label_otherCost ?? 0})`).join("; ")}`);
     }
+  } catch { /* skip */ }
 
+  try {
     const quotes = liveData?.quotes ?? [];
     if (quotes.length > 0) {
       const won = quotes.filter((q: any) => (q.Status ?? q["Current Status"] ?? "").toLowerCase().includes("won"));
@@ -55,20 +57,26 @@ Projects: ${revenueItems.map((r: any) => `${r._label_company ?? ""} / ${r._label
 - Won: ${won.length}
 - Pipeline value (excl won/lost): $${totalPipeline.toLocaleString("en-AU", { minimumFractionDigits: 0 })}`);
     }
+  } catch { /* skip */ }
 
+  try {
     const cashflow = liveData?.cashflow ?? [];
     if (cashflow.length > 0) {
       const cfSummary = cashflow.slice(0, 6).map((m: any) => `${m.month ?? m.Month ?? "?"}: Income $${(parseFloat(m.totalIncome ?? m["Total Income"] ?? 0)).toLocaleString("en-AU")} | Outgoings $${(parseFloat(m.totalOutgoings ?? m["Total Outgoings"] ?? 0)).toLocaleString("en-AU")} | Closing $${(parseFloat(m.closingBalance ?? m["Closing Balance"] ?? 0)).toLocaleString("en-AU")}`).join("; ");
       sections.push(`CASHFLOW (recent months): ${cfSummary}`);
     }
+  } catch { /* skip */ }
 
+  try {
     const expenses = liveData?.expenses ?? [];
     const expItems = expenses.filter((e: any) => e["Sub-Category"] && e["Sub-Category"].toUpperCase() !== "TOTAL");
     if (expItems.length > 0) {
       const totalMonthly = expItems.reduce((s: number, e: any) => s + (parseFloat(e["Monthly Cost"]) || 0), 0);
       sections.push(`OPERATING EXPENSES: Monthly total $${totalMonthly.toLocaleString("en-AU", { minimumFractionDigits: 0 })} | Annualised $${(totalMonthly * 12).toLocaleString("en-AU", { minimumFractionDigits: 0 })}`);
     }
+  } catch { /* skip */ }
 
+  try {
     if (investorMetrics) {
       const im = investorMetrics as any;
       sections.push(`INVESTOR METRICS:
@@ -79,9 +87,7 @@ Projects: ${revenueItems.map((r: any) => `${r._label_company ?? ""} / ${r._label
 - Avg Contract Value (won): ${im.avgContractValueWonFormatted ?? "N/A"}
 - YTD Total Expenses: ${im.ytdTotalExpenses ? "$" + im.ytdTotalExpenses.toLocaleString("en-AU") : "N/A"}`);
     }
-  } catch {
-    sections.push("(Error serialising some data — partial context provided)");
-  }
+  } catch { /* skip */ }
 
   return sections.length > 0
     ? `\n\n--- LIVE BUSINESS DATA ---\n${sections.join("\n\n")}\n--- END DATA ---`
@@ -89,24 +95,18 @@ Projects: ${revenueItems.map((r: any) => `${r._label_company ?? ""} / ${r._label
 }
 
 async function callAI(system: string, messages: { role: string; content: string }[]): Promise<string> {
-  const body = {
-    model: "claude-sonnet-4-6",
-    max_tokens: 1000,
-    system,
-    messages,
-  };
   const response = await fetch(WEBHOOK_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ system, messages }),
   });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const data = await response.json();
-  // Handle Anthropic shape, n8n wrap, or plain text
-  const fromAnthropic = data?.content?.find?.((b: any) => b.type === "text")?.text;
-  const fromN8nWrap = data?.data?.content?.find?.((b: any) => b.type === "text")?.text;
-  const fromOutput = data?.output ?? data?.text ?? data?.response ?? data?.message;
-  return fromAnthropic ?? fromN8nWrap ?? (typeof fromOutput === "string" ? fromOutput : JSON.stringify(data).slice(0, 500));
+  const text = data?.content?.find((b: any) => b.type === "text")?.text
+    ?? data?.text
+    ?? data?.reply
+    ?? "No response received.";
+  return text;
 }
 
 export default function ConsultingPage() {
@@ -127,6 +127,10 @@ export default function ConsultingPage() {
       const text = await callAI(SYSTEM_PROMPT + dataContext, [
         { role: "user", content: "Review the live business data and provide your top 2–3 most material financial observations for management. Be specific with numbers. Lead with the most critical item." },
       ]);
+      if (!text || text.trim().length === 0 || text === "No response received.") {
+        setMessages([{ role: "assistant", content: "Live data connected. Ready for your questions.", timestamp: new Date() }]);
+        return;
+      }
       setMessages([{ role: "assistant", content: text, timestamp: new Date() }]);
     } catch {
       setMessages([{ role: "assistant", content: "Live data loaded. Ready for your questions.", timestamp: new Date() }]);
