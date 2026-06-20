@@ -240,11 +240,12 @@ const DealFlow = () => {
                 <div className="text-fluid-xs text-muted-foreground">Pipeline CR</div>
                 <div className="font-mono text-fluid-2xl font-semibold text-chart-blue">
                   {pipelineCR.toFixed(1)}%
-                  <Info
-                    className="text-muted-foreground hover:text-foreground cursor-help transition-colors inline-block ml-1.5 align-middle"
-                    size={14}
-                    title={`Pipeline CR is lower than Win Rate because ${pendingCount} deals (${pendingPct}% of all quotes) are still active in the pipeline. TT's avg quote-to-close cycle is ~${Math.round(avgDaysToClose)} days, so many quotes are still converting. As these resolve, Pipeline CR will trend toward Win Rate.`}
-                  />
+                  <span title={`Pipeline CR is lower than Win Rate because ${pendingCount} deals (${pendingPct}% of all quotes) are still active in the pipeline. TT's avg quote-to-close cycle is ~${Math.round(avgDaysToClose)} days, so many quotes are still converting. As these resolve, Pipeline CR will trend toward Win Rate.`}>
+                    <Info
+                      className="text-muted-foreground hover:text-foreground cursor-help transition-colors inline-block ml-1.5 align-middle"
+                      size={14}
+                    />
+                  </span>
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-1">Won ÷ all quoted (YTD)</div>
               </div>
