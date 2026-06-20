@@ -30,12 +30,17 @@ const STAGES: { key: string; label: string; colorVar: string }[] = [
 ];
 
 const STATUS_PILL: Record<string, string> = {
-  "Quote Sent": "bg-slate-400/15 text-slate-300 border-slate-400/30",
-  "Negotiation/Review": "bg-pink-400/20 text-pink-300 border-pink-400/40",
-  "Verbal Confirmation (YLW)": "bg-yellow-400/30 text-yellow-300 border-yellow-400/50",
-  "PO Received (GRN)": "bg-green-500/30 text-green-300 border-green-500/50",
+  "Quote Sent": "bg-muted/20 text-muted-foreground border-muted-foreground/30",
+  "Negotiation/Review": "bg-chart-blue/20 text-chart-blue border-chart-blue/40",
+  "Verbal Confirmation (YLW)": "bg-chart-orange/20 text-chart-orange border-chart-orange/40",
+  "PO Received (GRN)": "bg-chart-green/20 text-chart-green border-chart-green/40",
   "Completed": "bg-emerald-700/40 text-emerald-300 border-emerald-600/50",
   "Lost/Dead": "bg-red-500/25 text-red-400 border-red-500/40",
+};
+
+const statusPillFor = (status: string) => {
+  const key = Object.keys(STATUS_PILL).find(k => isStage(k, status));
+  return key ? STATUS_PILL[key] : STATUS_PILL["Quote Sent"];
 };
 
 const container = {
