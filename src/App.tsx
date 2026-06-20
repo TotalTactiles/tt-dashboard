@@ -37,7 +37,7 @@ const App = () => (
             <Suspense fallback={<PageFallback />}>
               <Routes>
                 <Route path="/" element={<Index />} />
-                <Route path="/investment-memorandum" element={<InvestmentMemorandum />} />
+                <Route path="/consulting" element={<InvestmentMemorandum />} />
                 <Route path="/calendar" element={<CalendarView />} />
                 <Route path="/employees" element={<EmployeeTracking />} />
                 <Route path="/goals" element={<GoalsTargets />} />
