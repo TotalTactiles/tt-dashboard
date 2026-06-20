@@ -22,6 +22,51 @@ const GoalsTargets = () => {
   const [editingGoal, setEditingGoal] = useState<Goal | undefined>();
   const [categoryFilter, setCategoryFilter] = useState("All");
 
+  const EXPENSES_OVERRIDE_KEY = "tt_goals_monthly_expenses_override";
+
+  const dashboardMonthlyExpenses = useMemo(() => {
+    const im = investorMetrics as any;
+    if (im?.ytdTotalExpenses && im.ytdTotalExpenses > 0) {
+      return Math.round(im.ytdTotalExpenses / 12);
+    }
+    // Fallback: sum from expenses tab
+    const expRows = dataStore.expenses ?? [];
+    return Math.round(expRows.reduce((s: number, e: any) => {
+      const sub = String(e['Sub-Category'] ?? '').toUpperCase();
+      if (sub === 'TOTAL' || sub === 'GRAND TOTAL') return s;
+      const v = parseFloat(String(e['Monthly Cost'] ?? 0).replace(/[^0-9.-]/g,''));
+      return s + (isNaN(v) ? 0 : v);
+    }, 0));
+  }, [investorMetrics, dataStore]);
+
+  const [expensesOverride, setExpensesOverride] = useState<number | null>(() => {
+    try {
+      const saved = localStorage.getItem(EXPENSES_OVERRIDE_KEY);
+      return saved ? Number(saved) : null;
+    } catch { return null; }
+  });
+
+  const [editingExpenses, setEditingExpenses] = useState(false);
+  const [expensesInputVal, setExpensesInputVal] = useState("");
+
+  const activeMonthlyExpenses = expensesOverride ?? dashboardMonthlyExpenses;
+  const isOverridden = expensesOverride !== null;
+
+  function saveExpensesOverride() {
+    const parsed = parseFloat(expensesInputVal.replace(/[^0-9.]/g, ''));
+    if (!isNaN(parsed) && parsed > 0) {
+      setExpensesOverride(parsed);
+      localStorage.setItem(EXPENSES_OVERRIDE_KEY, String(parsed));
+    }
+    setEditingExpenses(false);
+  }
+
+  function resetExpensesOverride() {
+    setExpensesOverride(null);
+    localStorage.removeItem(EXPENSES_OVERRIDE_KEY);
+    setEditingExpenses(false);
+  }
+
   const enrichedGoals = useMemo(() => {
     return goals.map((g) => {
       const auto = resolveGoalAutoValue(g, qs, cs);
