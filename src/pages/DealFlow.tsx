@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import DashboardLayout from "@/components/DashboardLayout";
-import { useDashboardData } from "@/contexts/DashboardDataContext";
+import { useDashboardData, QuotedJob } from "@/contexts/DashboardDataContext";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { ArrowDown, AlertTriangle, CheckCircle2, ChevronRight, Info } from "lucide-react";
 
@@ -19,7 +19,9 @@ const isYellow = (s: string) => s === "yellow";
 const isLost = (s: string) => s === "lost";
 const isPending = (s: string) => s === "pending";
 const isCompleted = (s: string) => s === "completed";
-const isPipelineWin = (s: string) => isWon(s) || isYellow(s);
+const isPipelineWin = (j: QuotedJob) =>
+  (j.status === "won" && !String(j.rawStatus ?? "").toLowerCase().includes("completed"))
+  || j.status === "yellow";
 const isActive = (s: string) => isPending(s) || isYellow(s) || isWon(s);
 
 const fmt = (n: number) =>
@@ -83,12 +85,13 @@ const DealFlow = () => {
   // Win/Loss
   const currentYear = new Date().getFullYear();
   const ytdJobs = jobs.filter((j: any) => {
+    if (j.status === "lost") return true;
     const d = parseDealDate(j.dateQuoted);
     if (!d) return false;
     return d.getFullYear() === currentYear;
   });
 
-  const pipelineWonJobs = ytdJobs.filter((j: any) => isPipelineWin(j.status));
+  const pipelineWonJobs = ytdJobs.filter((j: any) => isPipelineWin(j));
   const pipelineWonCount = pipelineWonJobs.length;
   const pipelineWonValue = pipelineWonJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
 
@@ -113,7 +116,7 @@ const DealFlow = () => {
   const pendingPct = totalCount > 0 ? ((pendingCount / totalCount) * 100).toFixed(0) : "0";
 
   // Avg days from quote to won — for context explanation
-  const wonJobsForAvg = ytdJobs.filter((j: any) => isPipelineWin(j.status));
+  const wonJobsForAvg = ytdJobs.filter((j: any) => isPipelineWin(j));
   const avgDaysToClose = wonJobsForAvg.reduce((sum: number, j: any) => {
     const d = parseDealDate(j.dateQuoted);
     if (!d) return sum;
@@ -196,22 +199,6 @@ const DealFlow = () => {
           </p>
         </motion.div>
 
-        {/* TEMP FULL DEBUG */}
-        <div className="chart-container mb-4 font-mono text-xs space-y-1">
-          <p className="text-chart-green font-semibold">ytdJobs breakdown:</p>
-          <p>Total ytdJobs: {ytdJobs.length}</p>
-          <p>status==="won": {ytdJobs.filter(j => (j as any).status === "won").length}</p>
-          <p>status==="yellow": {ytdJobs.filter(j => (j as any).status === "yellow").length}</p>
-          <p>status==="pending": {ytdJobs.filter(j => (j as any).status === "pending").length}</p>
-          <p>status==="lost": {ytdJobs.filter(j => (j as any).status === "lost").length}</p>
-          <p>status==="completed": {ytdJobs.filter(j => (j as any).status === "completed").length}</p>
-          <p>other: {ytdJobs.filter(j => !["won","yellow","pending","lost","completed"].includes((j as any).status)).length}</p>
-          <p className="text-chart-orange mt-2">Unique statuses: {[...new Set(ytdJobs.map(j => (j as any).status))].join(" | ")}</p>
-          <p>isPipelineWin count: {ytdJobs.filter(j => isPipelineWin((j as any).status)).length}</p>
-          <p>isLost count: {ytdJobs.filter(j => isLost((j as any).status)).length}</p>
-          <p>Won value: ${ytdJobs.filter(j => isPipelineWin((j as any).status)).reduce((s,j) => s + (j as any).value, 0).toLocaleString()}</p>
-          <p>Lost value: ${ytdJobs.filter(j => isLost((j as any).status)).reduce((s,j) => s + (j as any).value, 0).toLocaleString()}</p>
-        </div>
 
         {/* Section 1: Funnel */}
         <motion.section variants={item} className="chart-container p-5">
