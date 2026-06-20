@@ -705,10 +705,19 @@ export default function ConsultingPage() {
               </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={clearSession} disabled={loading}>
-            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-            New session
-          </Button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => startReportFlow()}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border border-border bg-muted/40 hover:bg-muted/70 text-foreground transition-colors"
+            >
+              <FileDown className="w-3.5 h-3.5" />
+              Generate Report
+            </button>
+            <Button variant="outline" size="sm" onClick={clearSession} disabled={loading}>
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+              New session
+            </Button>
+          </div>
         </div>
 
         {/* Chat window */}
