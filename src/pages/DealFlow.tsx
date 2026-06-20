@@ -84,7 +84,7 @@ const DealFlow = () => {
 
   // Win/Loss
 
-  const pipelineWonJobs = ytdJobs.filter((j: any) => isPipelineWin(j));
+  const pipelineWonJobs = jobs.filter((j: any) => isPipelineWin(j));
   const pipelineWonCount = pipelineWonJobs.length;
   const pipelineWonValue = pipelineWonJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
 
