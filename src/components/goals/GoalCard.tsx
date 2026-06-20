@@ -20,9 +20,10 @@ interface GoalCardProps {
   onEdit: (goal: Goal) => void;
   onDelete: (id: string) => void;
   isAuto?: boolean;
+  monthlyExpenses?: number;
 }
 
-export default function GoalCard({ goal, onEdit, onDelete, isAuto }: GoalCardProps) {
+export default function GoalCard({ goal, onEdit, onDelete, isAuto, monthlyExpenses: monthlyExpensesProp }: GoalCardProps) {
   const { investorMetrics } = useDashboardData();
   const [showAnalysis, setShowAnalysis] = useState(false);
 
@@ -37,7 +38,7 @@ export default function GoalCard({ goal, onEdit, onDelete, isAuto }: GoalCardPro
   const im = investorMetrics as any;
   const grossMarginPct = im?.grossMarginPct ?? 55;
   const monthlyRevenue = im?.revenueExGST ? im.revenueExGST / 12 : 0;
-  const monthlyExpenses = im?.ytdTotalExpenses ? im.ytdTotalExpenses / 12 : 0;
+  const monthlyExpenses = monthlyExpensesProp ?? (im?.ytdTotalExpenses ? im.ytdTotalExpenses / 12 : 0);
 
   const goalMonthly = (() => {
     if (goal.amountStructure === "recurring") {
