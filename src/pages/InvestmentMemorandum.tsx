@@ -235,6 +235,46 @@ export default function ConsultingPage() {
   const [accountingData, setAccountingData] = useState<any>(null);
   const [accountingDataLoading, setAccountingDataLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [attachedFile, setAttachedFile] = useState<{
+    name: string;
+    type: "pdf" | "excel" | "csv";
+    content: string;
+    size: string;
+  } | null>(null);
+
+  async function handleFileAttach(file: File) {
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+    if (ext === 'pdf') {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        setAttachedFile({ name: file.name, type: "pdf", content: base64, size: `${sizeMB}MB` });
+      };
+      reader.readAsDataURL(file);
+    } else if (['xlsx', 'xls'].includes(ext ?? '')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const csvParts: string[] = [];
+        workbook.SheetNames.forEach(sheetName => {
+          const sheet = workbook.Sheets[sheetName];
+          const csv = XLSX.utils.sheet_to_csv(sheet);
+          if (csv.trim()) csvParts.push(`Sheet: ${sheetName}\n${csv}`);
+        });
+        setAttachedFile({ name: file.name, type: "excel", content: csvParts.join('\n\n'), size: `${sizeMB}MB` });
+      };
+      reader.readAsArrayBuffer(file);
+    } else if (ext === 'csv') {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setAttachedFile({ name: file.name, type: "csv", content: reader.result as string, size: `${sizeMB}MB` });
+      };
+      reader.readAsText(file);
+    }
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
