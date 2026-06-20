@@ -327,13 +327,58 @@ const DealFlow = () => {
           <div className="chart-container p-5">
             <h2 className="text-fluid-base font-semibold mb-1">Stale Deals</h2>
             <p className="text-fluid-xs text-muted-foreground mb-4">Open deals quoted &gt; 21 days ago</p>
-            {staleDeals.length === 0 ? (
+
+            {/* Filter controls */}
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <div className="flex items-center gap-1.5">
+                {[
+                  { key: "oldest", label: "Oldest first" },
+                  { key: "newest", label: "Newest first" },
+                ].map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setStaleSort(opt.key as "oldest" | "newest")}
+                    className={`text-[11px] px-2 py-1 rounded-full border transition-colors font-mono ${
+                      staleSort === opt.key
+                        ? "bg-chart-green/20 text-chart-green border-chart-green/40"
+                        : "border-border text-muted-foreground hover:bg-secondary/50"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <div className="w-px h-4 bg-border/40" />
+              <div className="flex items-center gap-1.5">
+                {[
+                  { key: "all", label: "All" },
+                  { key: "pending", label: "Pending" },
+                  { key: "won", label: "Won" },
+                ].map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setStaleStatus(opt.key as "all" | "pending" | "won")}
+                    className={`text-[11px] px-2 py-1 rounded-full border transition-colors font-mono ${
+                      staleStatus === opt.key
+                        ? opt.key === "pending"
+                          ? "bg-chart-orange/20 text-chart-orange border-chart-orange/40"
+                          : "bg-chart-green/20 text-chart-green border-chart-green/40"
+                        : "border-border text-muted-foreground hover:bg-secondary/50"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {filteredStaleDeals.length === 0 ? (
               <div className="flex items-center gap-2 text-chart-green text-fluid-sm">
                 <CheckCircle2 className="w-4 h-4" /> No stale deals
               </div>
             ) : (
               <ul className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
-                {staleDeals.map((d: any) => {
+                {filteredStaleDeals.map((d: any) => {
                   const sev = d.daysOld >= 35 ? "bg-red-500/25 text-red-400 border-red-500/40" : "bg-orange-500/20 text-orange-300 border-orange-500/40";
                   return (
                     <li key={d.id} className="flex items-center justify-between gap-3 p-2 rounded-md border border-border/40 bg-card/30">
