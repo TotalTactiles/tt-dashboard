@@ -211,6 +211,14 @@ export default function ConsultingPage() {
   async function sendMessage(overrideText?: string) {
     const trimmed = (overrideText ?? input).trim();
     if (!trimmed || loading) return;
+    if (trimmed === "Let's Talk") {
+      setMessages(prev => [...prev,
+        { role: "user", content: trimmed, timestamp: new Date() },
+        { role: "assistant", content: "Of course. What would you like to discuss?", timestamp: new Date() }
+      ]);
+      if (!overrideText) setInput("");
+      return;
+    }
     if (!overrideText) setInput("");
     const userMessage: Message = { role: "user", content: trimmed, timestamp: new Date() };
     const updated = [...messages, userMessage];
