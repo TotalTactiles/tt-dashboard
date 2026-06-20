@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, RefreshCw, BrainCircuit, Paperclip, FileDown } from "lucide-react";
+import { Send, RefreshCw, BrainCircuit, Paperclip } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -246,6 +246,8 @@ export default function ConsultingPage() {
   } | null>(null);
   const [reportMode, setReportMode] = useState(false);
   const [reportData, setReportData] = useState<Record<string, any>>({});
+  const [showCommandMenu, setShowCommandMenu] = useState(false);
+  const [commandFilter, setCommandFilter] = useState("");
 
   function startReportFlow() {
     setReportMode(true);
@@ -667,13 +669,6 @@ export default function ConsultingPage() {
       setMessages((prev) => [...prev, { role: "assistant", content: "Request failed. Check your connection.", timestamp: new Date() }]);
     } finally {
       setLoading(false);
-    }
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
     }
   }
 
