@@ -15,10 +15,12 @@ function parseDealDate(raw: string): Date | null {
 }
 
 const isWon = (s: string) => s === "won";
-const isPending = (s: string) => s === "pending";
 const isYellow = (s: string) => s === "yellow";
 const isLost = (s: string) => s === "lost";
-const isActive = (s: string) => s === "pending" || s === "yellow" || s === "won";
+const isPending = (s: string) => s === "pending";
+const isCompleted = (s: string) => s === "completed";
+const isPipelineWin = (s: string) => isWon(s) || isYellow(s);
+const isActive = (s: string) => isPending(s) || isYellow(s) || isWon(s);
 
 const fmt = (n: number) =>
   "$" + Math.round(n).toLocaleString("en-AU");
