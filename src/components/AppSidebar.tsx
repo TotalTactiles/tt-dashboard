@@ -23,14 +23,15 @@ import {
 "@/components/ui/sidebar";
 
 const navItems = [
-{ title: "Dashboard", url: "/", icon: LayoutDashboard },
-{ title: "Calendar", url: "/calendar", icon: CalendarDays },
-{ title: "Employee Tracking", url: "/employees", icon: HardHat },
-{ title: "Goals & Targets", url: "/goals", icon: Target },
-{ title: "Formulas", url: "/formulas", icon: FunctionSquare },
-{ title: "Deal Flow", url: "/deals", icon: Activity },
-{ title: "Consulting", url: "/consulting", icon: BrainCircuit },
-{ title: "Settings", url: "/settings", icon: Settings }];
+  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Calendar", url: "/calendar", icon: CalendarDays },
+  { title: "Deal Flow", url: "/deals", icon: Activity },
+  { title: "Employee Centre", url: "/employees", icon: HardHat },
+  { title: "Goals & Targets", url: "/goals", icon: Target },
+  { title: "Consulting", url: "/consulting", icon: BrainCircuit },
+  { title: "Formulas", url: "/formulas", icon: FunctionSquare },
+  { title: "Settings", url: "/settings", icon: Settings }
+];
 
 
 
