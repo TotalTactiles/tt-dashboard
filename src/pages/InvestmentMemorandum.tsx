@@ -149,6 +149,7 @@ export default function ConsultingPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [openingLoading, setOpeningLoading] = useState(false);
   const [accountingData, setAccountingData] = useState<any>(null);
   const [accountingDataLoading, setAccountingDataLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
