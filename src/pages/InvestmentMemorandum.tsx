@@ -88,18 +88,24 @@ Projects: ${revenueItems.map((r: any) => `${r._label_company ?? ""} / ${r._label
     }
   } catch { /* skip */ }
 
-  try {
-    const quotes = liveData?.quotes ?? [];
-    if (quotes.length > 0) {
-      const won = quotes.filter((q: any) => (q.Status ?? q["Current Status"] ?? "").toLowerCase().includes("won"));
-      const pending = quotes.filter((q: any) => !["won", "lost"].includes((q.Status ?? "").toLowerCase()));
-      const totalPipeline = pending.reduce((s: number, q: any) => s + (parseFloat(q["Contract Value ($)"]) || 0), 0);
-      sections.push(`QUOTES PIPELINE:
-- Total active quotes: ${quotes.length}
-- Won: ${won.length}
-- Pipeline value (excl won/lost): $${totalPipeline.toLocaleString("en-AU", { minimumFractionDigits: 0 })}`);
-    }
-  } catch { /* skip */ }
+  // Full quotes detail
+  if (sheets?.quotes?.length > 0 || accountingData?.sheets?.quotes?.length > 0) {
+    const quotes = sheets?.quotes ?? accountingData?.sheets?.quotes ?? [];
+    const sorted = [...quotes].sort((a: any, b: any) => {
+      const aVal = parseFloat(String(a['Contract Value ($)'] ?? a['Contract Value'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
+      const bVal = parseFloat(String(b['Contract Value ($)'] ?? b['Contract Value'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
+      return bVal - aVal;
+    });
+    sections.push(`QUOTES — ALL DEALS (${quotes.length} total, sorted by value desc):
+${sorted.map((q: any) => {
+  const val = parseFloat(String(q['Contract Value ($)'] ?? q['Contract Value'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
+  const stage = q['Current Status'] ?? q['Stage'] ?? q['Status'] ?? '?';
+  const company = q['Company Name'] ?? q['_company'] ?? '?';
+  const project = q['Project Name'] ?? q['_project'] ?? '?';
+  const date = q['Estimated Job Date'] ?? q['Date Quoted'] ?? '?';
+  return `• ${company} / ${project} — $${val.toLocaleString('en-AU')} | Stage: ${stage} | Date: ${date}`;
+}).join('\n')}`);
+  }
 
   try {
     const cashflow = liveData?.cashflow ?? [];
