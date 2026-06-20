@@ -20,6 +20,7 @@ interface GoalCardProps {
   onEdit: (goal: Goal) => void;
   onDelete: (id: string) => void;
   isAuto?: boolean;
+  monthlyExpenses?: number;
 }
 
 export default function GoalCard({ goal, onEdit, onDelete, isAuto }: GoalCardProps) {
