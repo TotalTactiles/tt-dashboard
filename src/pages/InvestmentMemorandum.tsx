@@ -334,11 +334,37 @@ export default function ConsultingPage() {
     setMessages(updated);
     setLoading(true);
     const dataContext = buildDataContext(liveData, investorMetrics, accountingData);
-    const apiMessages = updated.slice(-20).map((m) => ({ role: m.role, content: m.content }));
+    const apiMessages = updated.slice(-20).map((m, idx, arr) => {
+      if (m.role === "user" && idx === arr.length - 1 && attachedFile) {
+        if (attachedFile.type === "pdf") {
+          return {
+            role: "user",
+            content: [
+              {
+                type: "document",
+                source: {
+                  type: "base64",
+                  media_type: "application/pdf",
+                  data: attachedFile.content
+                }
+              },
+              { type: "text", text: m.content }
+            ]
+          };
+        } else {
+          return {
+            role: "user",
+            content: `[Attached file: ${attachedFile.name}]\n\n${attachedFile.content}\n\n---\n${m.content}`
+          };
+        }
+      }
+      return { role: m.role, content: m.content };
+    });
     try {
-      const text = await callAI(SYSTEM_PROMPT + dataContext, apiMessages);
+      const text = await callAI(SYSTEM_PROMPT + dataContext, apiMessages as any);
       const parsed = parseResponseAndButtons(text);
       setMessages((prev) => [...prev, { role: "assistant", content: parsed.content, buttons: parsed.buttons, timestamp: new Date() }]);
+      setAttachedFile(null);
     } catch {
       setMessages((prev) => [...prev, { role: "assistant", content: "Request failed. Check your connection.", timestamp: new Date() }]);
     } finally {
