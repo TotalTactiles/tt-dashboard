@@ -807,6 +807,54 @@ export default function ConsultingPage() {
           </div>
         )}
 
+        {showCommandMenu && (
+          <div className="rounded-xl border border-border bg-background shadow-lg overflow-hidden">
+            <div className="px-3 py-2 border-b border-border bg-muted/30">
+              <p className="text-xs text-muted-foreground">
+                Commands {commandFilter && `— filtering: "${commandFilter}"`}
+              </p>
+            </div>
+            <div className="max-h-[280px] overflow-y-auto">
+              {COMMANDS
+                .filter(cmd =>
+                  !commandFilter ||
+                  cmd.label.toLowerCase().includes(commandFilter) ||
+                  cmd.description.toLowerCase().includes(commandFilter)
+                )
+                .map((cmd) => (
+                  <button
+                    key={cmd.id}
+                    onClick={() => selectCommand(cmd)}
+                    className="w-full flex items-start gap-3 px-4 py-3 hover:bg-muted/50
+                               transition-colors text-left border-b border-border/40
+                               last:border-0"
+                  >
+                    <span className="text-lg flex-shrink-0 mt-0.5">{cmd.icon}</span>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{cmd.label}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{cmd.description}</p>
+                    </div>
+                  </button>
+                ))
+              }
+              {COMMANDS.filter(cmd =>
+                !commandFilter ||
+                cmd.label.toLowerCase().includes(commandFilter) ||
+                cmd.description.toLowerCase().includes(commandFilter)
+              ).length === 0 && (
+                <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                  No commands match "{commandFilter}"
+                </div>
+              )}
+            </div>
+            <div className="px-3 py-2 border-t border-border bg-muted/30">
+              <p className="text-xs text-muted-foreground">
+                ↑↓ to navigate · Enter to select · Esc to close
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Input */}
         <div className="flex gap-2 items-end">
           <input
@@ -831,8 +879,29 @@ export default function ConsultingPage() {
           </button>
           <Textarea
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onChange={(e) => {
+              const val = e.target.value;
+              setInput(val);
+
+              if (val.startsWith("/")) {
+                setShowCommandMenu(true);
+                setCommandFilter(val.slice(1).toLowerCase());
+              } else {
+                setShowCommandMenu(false);
+                setCommandFilter("");
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape" && showCommandMenu) {
+                setShowCommandMenu(false);
+                setInput("");
+                return;
+              }
+              if (e.key === "Enter" && !e.shiftKey && !showCommandMenu) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
             placeholder="Ask a financial or accounting question…"
             className="resize-none min-h-[52px] max-h-[160px] text-sm bg-background/60"
             rows={2}
