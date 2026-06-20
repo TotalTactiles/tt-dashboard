@@ -676,6 +676,41 @@ export default function ConsultingPage() {
     setMessages([{ ...WELCOME_MESSAGE, timestamp: new Date() }]);
   }
 
+  const COMMANDS = [
+    { id: "report-monthly", label: "Generate Monthly Management Report", description: "P&L, Executive Summary, Pipeline — downloadable PDF", icon: "📊" },
+    { id: "health-check", label: "Full Financial Health Check", description: "Gross margin, cashflow, pipeline coverage, top risks", icon: "🏥" },
+    { id: "breakeven", label: "Break-Even Analysis", description: "Monthly break-even revenue based on current cost structure", icon: "⚖️" },
+    { id: "pipeline-review", label: "Pipeline Review", description: "Ranked open quotes with conversion probability assessment", icon: "🔍" },
+    { id: "cashflow-forecast", label: "Cashflow Forecast", description: "Forward cashflow based on pipeline and expense run rate", icon: "📈" },
+    { id: "expense-review", label: "Expense Review", description: "Cost structure breakdown and reduction opportunities", icon: "💸" },
+    { id: "margin-analysis", label: "Project Margin Analysis", description: "Best and worst performing projects by gross margin", icon: "📉" },
+    { id: "tax-position", label: "Tax Position Summary", description: "GST, income tax and ATO obligations overview", icon: "🧾" },
+  ];
+
+  function selectCommand(cmd: typeof COMMANDS[0]) {
+    setShowCommandMenu(false);
+    setCommandFilter("");
+    setInput("");
+
+    if (cmd.id === "report-monthly") {
+      startReportFlow();
+      return;
+    }
+
+    const prompts: Record<string, string> = {
+      "health-check": "Give me a full financial health check of the business. I want gross margin, net margin, cashflow position, pipeline coverage, cost structure breakdown, and your top 3 risks you can see in the numbers right now.",
+      "breakeven": "What is our current gross margin percentage and based on our expense structure, what is our monthly break-even revenue requirement? Show your working.",
+      "pipeline-review": "Review our full pipeline. Rank all open quotes by value, identify which are most likely to convert based on stage and timing, and flag any that appear stalled or at risk.",
+      "cashflow-forecast": "Based on our current pipeline, expected invoice dates, and monthly expense run rate, give me a forward cashflow forecast for the next 3 months. Flag any months where we may face a cash shortfall.",
+      "expense-review": "Give me a full breakdown of our operating expense structure. Identify our top 5 cost categories, flag any that appear unusually high for a business of our revenue size, and identify any reduction opportunities.",
+      "margin-analysis": "Analyse all our current projects by gross margin. Show me the top 5 best performers and bottom 5 worst performers with their COGS breakdown. Flag any loss-making projects.",
+      "tax-position": "Summarise our current tax position. Based on our revenue and expense data, estimate our GST liability, income tax position, and flag any ATO obligations we should be aware of. Search for current ATO rates if needed.",
+    };
+
+    const promptText = prompts[cmd.id] ?? cmd.label;
+    sendMessage(promptText);
+  }
+
   const formatTime = (d: Date) => d.toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" });
 
   return (
@@ -701,13 +736,6 @@ export default function ConsultingPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => startReportFlow()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border border-border bg-muted/40 hover:bg-muted/70 text-foreground transition-colors"
-            >
-              <FileDown className="w-3.5 h-3.5" />
-              Generate Report
-            </button>
             <Button variant="outline" size="sm" onClick={clearSession} disabled={loading}>
               <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
               New session
