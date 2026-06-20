@@ -14,6 +14,10 @@ function parseDealDate(raw: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
+const norm = (s: string) => s.trim().toLowerCase();
+const isStage = (jobStatus: string, target: string) =>
+  norm(jobStatus) === norm(target);
+
 const fmt = (n: number) =>
   "$" + Math.round(n).toLocaleString("en-AU");
 
