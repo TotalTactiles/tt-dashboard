@@ -462,8 +462,43 @@ export default function ConsultingPage() {
           <div ref={bottomRef} />
         </div>
 
+        {/* Attachment chip */}
+        {attachedFile && (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-xs text-primary w-fit max-w-full">
+            <span className="truncate max-w-[260px]">
+              📎 {attachedFile.name} ({attachedFile.size})
+            </span>
+            <button
+              onClick={() => setAttachedFile(null)}
+              className="text-primary/60 hover:text-primary flex-shrink-0"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* Input */}
         <div className="flex gap-2 items-end">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.xlsx,.xls,.csv"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFileAttach(file);
+              e.target.value = '';
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={loading}
+            className="h-[52px] w-[42px] flex-shrink-0 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+            title="Attach PDF, Excel or CSV"
+          >
+            <Paperclip className="w-4 h-4" />
+          </button>
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -475,7 +510,7 @@ export default function ConsultingPage() {
           />
           <Button
             onClick={() => sendMessage()}
-            disabled={loading || !input.trim()}
+            disabled={loading || (!input.trim() && !attachedFile)}
             size="icon"
             className="h-[52px] w-[52px] flex-shrink-0"
           >
