@@ -11,7 +11,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { differenceInDays, format, parseISO, differenceInMonths } from "date-fns";
+import { differenceInDays, parseISO, differenceInMonths } from "date-fns";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { useState } from "react";
 
