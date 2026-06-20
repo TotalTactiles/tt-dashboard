@@ -78,6 +78,7 @@ const DealFlow = () => {
   const completedCount = ytdJobs.filter((j: any) => j.status === "completed").length;
   const pendingCount = ytdJobs.filter((j: any) => isActive(j.status)).length;
   const totalCount = ytdJobs.length;
+  const pendingPct = totalCount > 0 ? ((pendingCount / totalCount) * 100).toFixed(0) : "0";
 
   const winRate = (wonCount + lostCount + completedCount) > 0
     ? ((wonCount + completedCount) / (wonCount + lostCount + completedCount)) * 100
