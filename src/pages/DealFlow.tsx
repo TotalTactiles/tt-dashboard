@@ -165,6 +165,8 @@ const DealFlow = () => {
           </p>
         </motion.div>
 
+        {debugBlock}
+
         {/* Section 1: Funnel */}
         <motion.section variants={item} className="chart-container p-5">
           <div className="flex items-baseline justify-between mb-4">
