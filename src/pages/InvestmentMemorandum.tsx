@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 const WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-accountant-ai";
+const ACCOUNTING_DATA_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-accounting-consultant";
 
 const SYSTEM_PROMPT = `You are a senior chartered accountant and financial analyst advising TT Business (Total Tactiles Pty Ltd), a Sydney-based commercial contracting company specialising in tactile paving, stair nosing, and linemarking installation.
 
@@ -29,8 +30,42 @@ interface Message {
   timestamp: Date;
 }
 
-function buildDataContext(liveData: any, investorMetrics: any): string {
+function buildDataContext(liveData: any, investorMetrics: any, accountingData?: any): string {
   const sections: string[] = [];
+
+  // Prefer deep accounting data webhook over dashboard liveData
+  const zoho = accountingData?.zoho ?? null;
+  const sheets = accountingData?.sheets ?? null;
+  const summary = accountingData?.summary ?? null;
+
+  // --- Accounting webhook summary block ---
+  if (summary) {
+    sections.push(`FINANCIAL SUMMARY (from accounting data feed):
+- Total Revenue incl GST: $${(summary.totalRevIncGST ?? 0).toLocaleString("en-AU", { minimumFractionDigits: 0 })}
+- Total Revenue excl GST: $${(summary.totalRevExGST ?? 0).toLocaleString("en-AU", { minimumFractionDigits: 0 })}
+- Total COGS: $${(summary.totalCOGS ?? 0).toLocaleString("en-AU", { minimumFractionDigits: 0 })}
+- Gross Profit: $${(summary.grossProfit ?? 0).toLocaleString("en-AU", { minimumFractionDigits: 0 })}
+- Total Labour Hours Logged: ${summary.totalLabourHrs ?? 0}hrs @ $40/hr = $${(summary.totalLabourCost ?? 0).toLocaleString("en-AU", { minimumFractionDigits: 0 })}
+- Deals by Stage: ${Object.entries(summary.dealsByStage ?? {}).map(([stage, val]: [string, any]) => `${stage}: ${val.count} deals, $${(val.value ?? 0).toLocaleString("en-AU", { minimumFractionDigits: 0 })}`).join(" | ")}`);
+  }
+
+  // --- Full Zoho CRM deals ---
+  if (zoho?.deals?.length > 0) {
+    const deals = zoho.deals;
+    sections.push(`ZOHO CRM — ALL DEALS (${deals.length} total):
+${deals.map((d: any) => `• ${d.Deal_Name ?? d.Company ?? "?"} | Stage: ${d.Stage ?? "?"} | Value: $${(parseFloat(d.Contract_Value ?? d.Amount ?? 0)).toLocaleString("en-AU")} | Closing: ${d.Closing_Date ?? "?"} | Costs: $${d.Total_Costs ?? "?"} | Stock: ${d.Stock_Required ?? "none"} | Next: ${d.Next_Step ?? "-"}`).join("\n")}`);
+  }
+
+  // --- Zoho Projects ---
+  if (zoho?.projects?.length > 0) {
+    sections.push(`ZOHO PROJECTS (${zoho.projects.length} active):
+${zoho.projects.map((p: any) => `• ${p.name ?? p.id} | Status: ${p.status?.name ?? "?"} | Owner: ${p.owner?.name ?? "?"}`).join("\n")}`);
+  }
+
+  // --- Stock & Inventory ---
+  if (sheets?.stock?.length > 0) {
+    sections.push(`STOCK & INVENTORY (${sheets.stock.length} items): ${sheets.stock.slice(0, 20).map((s: any) => `${s["Description"] ?? s["Product Code"] ?? "?"}: Qty ${s["Current Inventory"] ?? "?"}, Value $${s["Total Value"] ?? "?"}`).join("; ")}`);
+  }
 
   try {
     const revenue = liveData?.revenue ?? [];
@@ -114,14 +149,33 @@ export default function ConsultingPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [accountingData, setAccountingData] = useState<any>(null);
+  const [accountingDataLoading, setAccountingDataLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  async function fetchAccountingData() {
+    setAccountingDataLoading(true);
+    try {
+      const res = await fetch(ACCOUNTING_DATA_WEBHOOK);
+      const data = await res.json();
+      setAccountingData(data);
+    } catch (e) {
+      // silently fail — dashboard liveData will be used as fallback
+    } finally {
+      setAccountingDataLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchAccountingData();
+  }, []);
+
   const generateOpeningObservation = useCallback(async () => {
-    const dataContext = buildDataContext(liveData, investorMetrics);
+    const dataContext = buildDataContext(liveData, investorMetrics, accountingData);
     setLoading(true);
     try {
       const text = await callAI(SYSTEM_PROMPT + dataContext, [
@@ -137,7 +191,7 @@ export default function ConsultingPage() {
     } finally {
       setLoading(false);
     }
-  }, [liveData, investorMetrics]);
+  }, [liveData, investorMetrics, accountingData]);
 
   useEffect(() => {
     if (!hasLiveData || messages.length > 0) return;
@@ -154,7 +208,7 @@ export default function ConsultingPage() {
     setMessages(updated);
     setInput("");
     setLoading(true);
-    const dataContext = buildDataContext(liveData, investorMetrics);
+    const dataContext = buildDataContext(liveData, investorMetrics, accountingData);
     const apiMessages = updated.slice(-20).map((m) => ({ role: m.role, content: m.content }));
     try {
       const text = await callAI(SYSTEM_PROMPT + dataContext, apiMessages);
@@ -192,7 +246,13 @@ export default function ConsultingPage() {
             <div>
               <h1 className="text-lg font-semibold text-foreground">Accounting Consultant</h1>
               <p className="text-xs text-muted-foreground font-mono">
-                {hasLiveData ? "Live data connected · AUD · GST 10%" : "Connecting to live data…"}
+                {accountingDataLoading
+                  ? "Loading full financial data…"
+                  : accountingData
+                    ? "Full data connected · AUD · GST 10%"
+                    : hasLiveData
+                      ? "Live data connected · AUD · GST 10%"
+                      : "Connecting to live data…"}
               </p>
             </div>
           </div>
