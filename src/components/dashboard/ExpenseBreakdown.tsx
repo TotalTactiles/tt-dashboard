@@ -168,8 +168,8 @@ const ExpenseBreakdownInner = ({ goals = [], activeGoalIds = new Set() }: Expens
             </div>
           )}
 
-          {/* Pie Chart */}
-          <div className="mt-6 mb-6">
+          {/* Pie Chart - hidden, may be re-enabled later */}
+          <div className="hidden" style={{ display: "none" }}>
             <h4 className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-3">
               Proportional Spend ({PERIOD_LABELS[period]})
             </h4>
