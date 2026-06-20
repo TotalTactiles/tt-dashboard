@@ -55,6 +55,24 @@ const item = {
 const DealFlow = () => {
   const { quotedJobs } = useDashboardData();
   const jobs = quotedJobs ?? [];
+
+  {/* TEMP DEBUG — remove after fix */}
+  const debugBlock = (
+    <div className="chart-container mb-4 font-mono text-xs text-muted-foreground">
+      <p className="text-chart-green mb-2">Status values in quotedJobs (first 20):</p>
+      <div className="space-y-0.5">
+        {quotedJobs.slice(0, 20).map((j, i) => (
+          <div key={i}>
+            <span className="text-foreground">{JSON.stringify(j.status)}</span>
+            {" — "}{j.jobName}
+          </div>
+        ))}
+      </div>
+      <p className="mt-2">Total jobs: {quotedJobs.length}</p>
+      <p>Unique statuses: {[...new Set(quotedJobs.map(j => j.status))].join(" | ")}</p>
+    </div>
+  );
+
   const today = new Date();
 
   const byStage = useMemo(() => {
