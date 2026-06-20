@@ -108,8 +108,74 @@ export default function GoalCard({ goal, onEdit, onDelete, isAuto }: GoalCardPro
         </div>
       </div>
 
-      {/* Cost summary */}
-      {isExpenditure && goalMonthly > 0 && (
+      {/* Cost summary / Affordability */}
+      {isExpenditure && goal.amountStructure === "lump_sum" ? (
+        <div className="space-y-2 p-2.5 rounded-lg bg-muted/30 border border-border/40">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Lump Sum — {fmt(goal.targetValue)}
+          </p>
+          {(() => {
+            const monthlySurplus = currentMonthlySurplus;
+            const monthsToSave = monthlySurplus > 0
+              ? Math.ceil(goal.targetValue / monthlySurplus)
+              : null;
+            const affordableDate = monthsToSave !== null
+              ? (() => {
+                  const d = new Date();
+                  d.setMonth(d.getMonth() + monthsToSave);
+                  return d.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+                })()
+              : null;
+            const canAffordNow = monthlySurplus >= goal.targetValue;
+            const revenueFor1Month = grossMarginPct > 0 ? goal.targetValue / (grossMarginPct / 100) : 0;
+
+            return (
+              <div className="space-y-1.5">
+                {canAffordNow ? (
+                  <div className="flex items-center gap-1.5 text-xs text-green-400 font-medium">
+                    <span>✓</span>
+                    <span>Affordable from current monthly surplus</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Current monthly surplus</span>
+                      <span className={`font-mono font-semibold ${monthlySurplus >= 0 ? 'text-foreground' : 'text-red-400'}`}>
+                        {fmt(monthlySurplus)}
+                      </span>
+                    </div>
+                    {monthsToSave !== null && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Affordable by saving surplus</span>
+                        <span className="font-mono font-semibold text-primary">
+                          {monthsToSave <= 1 ? 'Next month' : `${affordableDate} (${monthsToSave} months)`}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Revenue to afford in 1 month</span>
+                      <span className="font-mono font-semibold">{fmt(revenueFor1Month)}</span>
+                    </div>
+                    {monthsToSave !== null && monthsToSave <= 12 && (
+                      <div className="mt-1 p-2 rounded bg-primary/5 border border-primary/15 text-[10px] text-muted-foreground">
+                        At your current surplus of <span className="text-primary font-semibold">{fmt(monthlySurplus)}/mo</span>,
+                        you can accumulate {fmt(goal.targetValue)} by <span className="text-primary font-semibold">{affordableDate}</span>.
+                      </div>
+                    )}
+                    {monthsToSave !== null && monthsToSave > 12 && (
+                      <div className="mt-1 p-2 rounded bg-amber-500/5 border border-amber-500/15 text-[10px] text-amber-400">
+                        At current surplus this takes {monthsToSave} months.
+                        To achieve within {goal.targetYear ?? new Date().getFullYear()},
+                        you need <span className="font-semibold">{fmt(revenueFor1Month)}</span> additional revenue this month.
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      ) : isExpenditure && goalMonthly > 0 ? (
         <div className="grid grid-cols-3 gap-2 rounded-md border border-border/60 bg-muted/20 p-2">
           <div className="text-center">
             <div className="text-[9px] uppercase tracking-wide text-muted-foreground">Weekly</div>
@@ -124,7 +190,7 @@ export default function GoalCard({ goal, onEdit, onDelete, isAuto }: GoalCardPro
             <div className="text-xs font-mono font-semibold text-foreground">{fmt(goalAnnual)}</div>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Progress */}
       <div className="space-y-1.5">
