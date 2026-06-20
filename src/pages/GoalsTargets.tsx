@@ -13,7 +13,7 @@ const CATEGORIES = ["All", "Revenue", "Customer", "Sales Target", "Operating Exp
 
 const GoalsTargets = () => {
   const { goals, addGoal, updateGoal, deleteGoal } = useGoals();
-  const { dataStore } = useDashboardData();
+  const { dataStore, investorMetrics } = useDashboardData();
   const qs = dataStore.quotesSummary;
   const cs = dataStore.cashflowSummary;
 
@@ -70,6 +70,87 @@ const GoalsTargets = () => {
         </div>
 
         <GoalProgressChart goals={filteredGoals} />
+
+        {(() => {
+          const totalMonthlyGoalCost = filteredGoals
+            .filter((g) => (g.goalType ?? "expenditure") === "expenditure")
+            .reduce((s, g) => {
+              if (g.amountStructure === "recurring") {
+                const base = g.targetValue ?? 0;
+                if (g.period === "weekly") return s + (base * 52) / 12;
+                if (g.period === "yearly") return s + base / 12;
+                return s + base;
+              }
+              return s;
+            }, 0);
+          const im = investorMetrics as any;
+          const monthlyRevenue = im?.revenueExGST ? im.revenueExGST / 12 : 0;
+          const monthlyExpenses = im?.ytdTotalExpenses ? im.ytdTotalExpenses / 12 : 0;
+          const currentSurplus = monthlyRevenue - monthlyExpenses;
+          const surplusWithAllGoals = currentSurplus - totalMonthlyGoalCost;
+          const grossMarginPct = im?.grossMarginPct ?? 55;
+          const totalRevenueNeeded = totalMonthlyGoalCost / (grossMarginPct / 100);
+          if (filteredGoals.length <= 1 || totalMonthlyGoalCost <= 0) return null;
+          const fmtNum = (n: number) =>
+            n.toLocaleString("en-AU", { maximumFractionDigits: 0 });
+          return (
+            <div className="chart-container space-y-3">
+              <div className="flex items-center gap-2">
+                <Target className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">Combined Goal Impact</h3>
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  {filteredGoals.length} goals
+                </span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="rounded-md border border-border/60 bg-muted/20 p-3">
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Total Monthly Cost
+                  </div>
+                  <div className="text-base font-mono font-semibold text-foreground mt-1">
+                    ${fmtNum(totalMonthlyGoalCost)}
+                  </div>
+                </div>
+                <div className="rounded-md border border-border/60 bg-muted/20 p-3">
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Annual Cost
+                  </div>
+                  <div className="text-base font-mono font-semibold text-foreground mt-1">
+                    ${fmtNum(totalMonthlyGoalCost * 12)}
+                  </div>
+                </div>
+                <div className="rounded-md border border-border/60 bg-muted/20 p-3">
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Revenue Needed
+                  </div>
+                  <div className="text-base font-mono font-semibold text-foreground mt-1">
+                    ${fmtNum(totalRevenueNeeded)}/mo
+                  </div>
+                </div>
+                <div
+                  className={`rounded-md border p-3 ${
+                    surplusWithAllGoals >= 0
+                      ? "border-emerald-500/40 bg-emerald-500/10"
+                      : "border-red-500/40 bg-red-500/10"
+                  }`}
+                >
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Surplus With All Goals
+                  </div>
+                  <div
+                    className={`text-base font-mono font-semibold mt-1 ${
+                      surplusWithAllGoals >= 0 ? "text-emerald-400" : "text-red-400"
+                    }`}
+                  >
+                    {surplusWithAllGoals < 0 ? "(" : ""}$
+                    {fmtNum(Math.abs(surplusWithAllGoals))}
+                    {surplusWithAllGoals < 0 ? ")" : ""}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
           {filteredGoals.map((goal) => (

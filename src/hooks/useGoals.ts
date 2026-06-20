@@ -85,21 +85,25 @@ export function resolveGoalAutoValue(
     if (val > 0) return { value: val, isAuto: true };
   }
 
-  // Expenditure / Payroll goals → expenses or cashflow
-  if (goalType === "expenditure" || cat === "financial" || cat === "profitability" || cat === "payroll" || cat === "operating expense" || 
+  // Expenditure / Payroll goals → progress = % of time period elapsed
+  if (goalType === "expenditure" || goalType === "" || cat === "financial" || cat === "profitability" || cat === "payroll" || cat === "operating expense" ||
       name.includes("salary") || name.includes("cashflow") || name.includes("cash flow") || name.includes("wage")) {
     // Lump sum: past date = 100%, before = 0%
     if (goal.amountStructure === "lump_sum" && goal.lumpSumDate) {
       const isPast = new Date(goal.lumpSumDate) <= new Date();
       return { value: isPast ? goal.targetValue : 0, isAuto: true };
     }
-    // Recurring: use cashflow anticipated surplus
-    const months: string[] = cashflowSummary?.months ?? [];
-    const surplus = cashflowSummary?.anticipatedSurplus ?? {};
-    for (let i = months.length - 1; i >= 0; i--) {
-      const raw = surplus[months[i]];
-      const val = typeof raw === "number" ? raw : parseFloat(String(raw ?? "0").replace(/[^0-9.-]/g, "")) || 0;
-      if (val !== 0) return { value: Math.abs(val), isAuto: true };
+    // Recurring/expenditure: time elapsed
+    try {
+      const start = new Date(goal.startDate).getTime();
+      const end = new Date(goal.endDate).getTime();
+      const now = Date.now();
+      if (end > start) {
+        const elapsed = Math.min(Math.max((now - start) / (end - start), 0), 1);
+        return { value: Math.round(elapsed * goal.targetValue), isAuto: true };
+      }
+    } catch {
+      // ignore
     }
   }
 
