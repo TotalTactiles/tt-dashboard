@@ -28,7 +28,7 @@ const fmt = (n: number) =>
 const STAGES: { key: string; label: string; colorVar: string }[] = [
   { key: "pending", label: "Active (Pending)", colorVar: "hsl(var(--muted-foreground))" },
   { key: "yellow", label: "Verbal (YLW)", colorVar: "hsl(var(--chart-orange))" },
-  { key: "won", label: "Won", colorVar: "hsl(var(--chart-green))" },
+  { key: "won", label: "YLW + GRN", colorVar: "hsl(var(--chart-green))" },
 ];
 
 const STATUS_PILL: Record<string, string> = {
