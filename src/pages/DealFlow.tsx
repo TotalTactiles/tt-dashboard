@@ -113,7 +113,7 @@ const DealFlow = () => {
   const pendingPct = totalCount > 0 ? ((pendingCount / totalCount) * 100).toFixed(0) : "0";
 
   // Avg days from quote to won — for context explanation
-  const wonJobsForAvg = ytdJobs.filter((j: any) => isWon(j.status) || j.status === "completed");
+  const wonJobsForAvg = ytdJobs.filter((j: any) => isPipelineWin(j.status));
   const avgDaysToClose = wonJobsForAvg.reduce((sum: number, j: any) => {
     const d = parseDealDate(j.dateQuoted);
     if (!d) return sum;
