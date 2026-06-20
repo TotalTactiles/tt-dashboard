@@ -120,14 +120,40 @@ ${sorted.map((q: any) => {
     }
   } catch { /* skip */ }
 
-  try {
-    const expenses = liveData?.expenses ?? [];
-    const expItems = expenses.filter((e: any) => e["Sub-Category"] && e["Sub-Category"].toUpperCase() !== "TOTAL");
-    if (expItems.length > 0) {
-      const totalMonthly = expItems.reduce((s: number, e: any) => s + (parseFloat(e["Monthly Cost"]) || 0), 0);
-      sections.push(`OPERATING EXPENSES: Monthly total $${totalMonthly.toLocaleString("en-AU", { minimumFractionDigits: 0 })} | Annualised $${(totalMonthly * 12).toLocaleString("en-AU", { minimumFractionDigits: 0 })}`);
+  // Full expense line items
+  const expSheet = accountingData?.sheets?.expenses ?? [];
+  const expItems = expSheet.filter((r: any) => {
+    const sub = String(r['Sub-Category'] ?? r['Name'] ?? r['Item'] ?? '').trim();
+    const cat = String(r['Category'] ?? '').trim().toUpperCase();
+    return sub && sub.toUpperCase() !== 'TOTAL' && sub.toUpperCase() !== 'ALL'
+      && cat !== 'GRAND TOTAL' && sub.toUpperCase() !== 'GRAND TOTAL';
+  });
+  if (expItems.length > 0) {
+    const totalMonthly = expItems.reduce((s: number, r: any) => {
+      const v = parseFloat(String(r['Monthly Cost'] ?? r['Monthly'] ?? 0).replace(/[^0-9.-]/g,''));
+      return s + (isNaN(v) ? 0 : v);
+    }, 0);
+    sections.push(`OPERATING EXPENSES — LINE ITEMS (${expItems.length} items, total monthly: $${totalMonthly.toLocaleString('en-AU', {minimumFractionDigits:2})}):
+${expItems.map((r: any) => {
+  const cat = String(r['Category'] ?? 'Uncategorised').trim();
+  const sub = String(r['Sub-Category'] ?? r['Name'] ?? r['Item'] ?? '').trim();
+  const monthly = parseFloat(String(r['Monthly Cost'] ?? r['Monthly'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
+  const yearly = parseFloat(String(r['Yearly Cost'] ?? r['Yearly'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
+  const pct = totalMonthly > 0 ? ((monthly / totalMonthly) * 100).toFixed(1) : '0.0';
+  return `• [${cat}] ${sub} — $${monthly.toLocaleString('en-AU', {minimumFractionDigits:2})}/mo ($${yearly.toLocaleString('en-AU', {minimumFractionDigits:0})}/yr) — ${pct}% of expenses`;
+}).join('\n')}`);
+  } else {
+    // fallback to summary if no line items
+    const totalMonthlyExp = liveData?.expenses
+      ? (liveData.expenses as any[]).reduce((s: number, e: any) => {
+          const v = parseFloat(String(e['Monthly Cost'] ?? 0).replace(/[^0-9.-]/g,''));
+          return s + (isNaN(v) ? 0 : v);
+        }, 0)
+      : 0;
+    if (totalMonthlyExp > 0) {
+      sections.push(`OPERATING EXPENSES: Monthly total $${totalMonthlyExp.toLocaleString('en-AU', {minimumFractionDigits:2})} | Annualised $${(totalMonthlyExp * 12).toLocaleString('en-AU', {minimumFractionDigits:0})} (line items not available in current feed)`);
     }
-  } catch { /* skip */ }
+  }
 
   try {
     if (investorMetrics) {
