@@ -213,7 +213,7 @@ const GoalsTargets = () => {
             }, 0);
           const im = investorMetrics as any;
           const monthlyRevenue = im?.revenueExGST ? im.revenueExGST / 12 : 0;
-          const monthlyExpenses = im?.ytdTotalExpenses ? im.ytdTotalExpenses / 12 : 0;
+          const monthlyExpenses = activeMonthlyExpenses;
           const currentSurplus = monthlyRevenue - monthlyExpenses;
           const surplusWithAllGoals = currentSurplus - totalMonthlyGoalCost;
           const grossMarginPct = im?.grossMarginPct ?? 55;
