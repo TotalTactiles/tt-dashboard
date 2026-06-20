@@ -269,7 +269,7 @@ const DealFlow = () => {
                     />
                   </span>
                 </div>
-                <div className="text-[11px] text-muted-foreground mt-1">Won &amp; completed ÷ decided deals</div>
+                <div className="text-[11px] text-muted-foreground mt-1">YLW + GRN ÷ decided deals</div>
               </div>
               <div>
                 <div className="text-fluid-xs text-muted-foreground">Pipeline CR</div>
@@ -287,19 +287,19 @@ const DealFlow = () => {
               {/* Other stats */}
               <div>
                 <div className="text-fluid-xs text-muted-foreground">Total Value Won</div>
-                <div className="font-mono text-fluid-2xl font-semibold">{fmt(totalValueWon)}</div>
+                <div className="font-mono text-fluid-2xl font-semibold">{fmt(pipelineWonValue)}</div>
               </div>
               <div>
                 <div className="text-fluid-xs text-muted-foreground">Avg Won Deal</div>
-                <div className="font-mono text-fluid-base">{fmt(avgWon)}</div>
+                <div className="font-mono text-fluid-base">{fmt(avgWonDeal)}</div>
               </div>
               <div>
                 <div className="text-fluid-xs text-muted-foreground">Avg Lost Deal</div>
-                <div className="font-mono text-fluid-base">{fmt(avgLost)}</div>
+                <div className="font-mono text-fluid-base">{fmt(avgLostDeal)}</div>
               </div>
               <div className="col-span-2 pt-2 border-t border-border/40">
                 <div className="text-fluid-xs text-muted-foreground">Total Value Lost</div>
-                <div className="font-mono text-fluid-base text-destructive">{fmt(lostValue)}</div>
+                <div className="font-mono text-fluid-base text-destructive">{fmt(ytdLostValue)}</div>
               </div>
             </div>
           </div>
