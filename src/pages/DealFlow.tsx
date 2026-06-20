@@ -151,6 +151,17 @@ const DealFlow = () => {
       .sort((a: any, b: any) => b.daysOld - a.daysOld);
   }, [jobs]);
 
+  const filteredStaleDeals = useMemo(() => {
+    let list = staleDeals;
+    if (staleStatus !== "all") {
+      list = list.filter((j: any) => j.status === staleStatus);
+    }
+    if (staleSort === "newest") {
+      list = [...list].sort((a: any, b: any) => a.daysOld - b.daysOld);
+    }
+    return list;
+  }, [staleDeals, staleSort, staleStatus]);
+
   const maxStageCount = Math.max(1, ...stageStats.map(s => s.count));
 
   return (
