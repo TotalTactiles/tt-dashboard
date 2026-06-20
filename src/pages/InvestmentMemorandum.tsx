@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Send, RefreshCw, BrainCircuit } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
@@ -22,12 +22,17 @@ You are not RED. You do not handle operations, Zoho, automation, or project mana
 
 Data currently available to you includes: quoted jobs pipeline, revenue and COGS by project, cashflow by month, business expenses, investor metrics, labour costs, and project KPIs. Bank transaction data is not yet live — if actual vs forecast reconciliation is needed, ask the user to provide bank figures directly.
 
-Australian accounting standards apply. All currency is AUD. GST is 10%.`;
+Australian accounting standards apply. All currency is AUD. GST is 10%.
+
+When you want to offer the user options, end your response with a new line starting with OPTIONS: followed by the choices comma-separated.
+Example: OPTIONS: Yes, No, Show me the breakdown
+Only use OPTIONS when there are clear discrete choices. Never use OPTIONS for open-ended questions.`;
 
 interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  buttons?: string[];
 }
 
 function buildDataContext(liveData: any, investorMetrics: any, accountingData?: any): string {
@@ -144,12 +149,18 @@ async function callAI(system: string, messages: { role: string; content: string 
   return text;
 }
 
+const WELCOME_MESSAGE: Message = {
+  role: "assistant",
+  content: "Welcome. I have access to your live financial data. How would you like to proceed?",
+  timestamp: new Date(),
+  buttons: ["Financial Review", "Let's Talk"],
+};
+
 export default function ConsultingPage() {
   const { liveData, investorMetrics, hasLiveData } = useDashboardData() as any;
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [openingLoading, setOpeningLoading] = useState(false);
   const [accountingData, setAccountingData] = useState<any>(null);
   const [accountingDataLoading, setAccountingDataLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -158,21 +169,21 @@ export default function ConsultingPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  async function fetchAccountingData() {
-    setAccountingDataLoading(true);
-    try {
-      const res = await fetch(ACCOUNTING_DATA_WEBHOOK);
-      const data = await res.json();
-      setAccountingData(data);
-    } catch (e) {
-      // silently fail — dashboard liveData will be used as fallback
-    } finally {
-      setAccountingDataLoading(false);
-    }
-  }
-
   useEffect(() => {
-    fetchAccountingData();
+    let cancelled = false;
+    (async () => {
+      setAccountingDataLoading(true);
+      try {
+        const res = await fetch(ACCOUNTING_DATA_WEBHOOK);
+        const data = await res.json();
+        if (!cancelled) setAccountingData(data);
+      } catch {
+        // silently fail — dashboard liveData will be used as fallback
+      } finally {
+        if (!cancelled) setAccountingDataLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   function stripMarkdown(text: string): string {
@@ -185,45 +196,30 @@ export default function ConsultingPage() {
       .trim();
   }
 
-  const generateOpeningObservation = useCallback(async () => {
-    const dataContext = buildDataContext(liveData, investorMetrics, accountingData);
-    setOpeningLoading(true);
-    try {
-      const text = await callAI(SYSTEM_PROMPT + dataContext, [
-        { role: "user", content: "Review the live business data and provide your top 2–3 most material financial observations for management. Be specific with numbers. Lead with the most critical item." },
-      ]);
-      if (!text || text.trim().length === 0 || text === "No response received.") {
-        setMessages([{ role: "assistant", content: "Live data connected. Ready for your questions.", timestamp: new Date() }]);
-        return;
-      }
-      setMessages([{ role: "assistant", content: stripMarkdown(text), timestamp: new Date() }]);
-    } catch {
-      setMessages([{ role: "assistant", content: "Live data loaded. Ready for your questions.", timestamp: new Date() }]);
-    } finally {
-      setOpeningLoading(false);
+  function parseResponseAndButtons(raw: string): { content: string; buttons?: string[] } {
+    const optionsMatch = raw.match(/\nOPTIONS:\s*(.+)$/);
+    if (optionsMatch) {
+      const buttons = optionsMatch[1].split(",").map((s) => s.trim()).filter(Boolean);
+      const content = raw.replace(/\nOPTIONS:\s*.+$/, "").trim();
+      return { content: stripMarkdown(content), buttons };
     }
-  }, [liveData, investorMetrics, accountingData]);
+    return { content: stripMarkdown(raw) };
+  }
 
-  useEffect(() => {
-    if (!hasLiveData || messages.length > 0) return;
-    const timer = setTimeout(() => { generateOpeningObservation(); }, 800);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasLiveData]);
-
-  async function sendMessage() {
-    const trimmed = input.trim();
+  async function sendMessage(overrideText?: string) {
+    const trimmed = (overrideText ?? input).trim();
     if (!trimmed || loading) return;
+    if (!overrideText) setInput("");
     const userMessage: Message = { role: "user", content: trimmed, timestamp: new Date() };
     const updated = [...messages, userMessage];
     setMessages(updated);
-    setInput("");
     setLoading(true);
     const dataContext = buildDataContext(liveData, investorMetrics, accountingData);
     const apiMessages = updated.slice(-20).map((m) => ({ role: m.role, content: m.content }));
     try {
       const text = await callAI(SYSTEM_PROMPT + dataContext, apiMessages);
-      setMessages((prev) => [...prev, { role: "assistant", content: stripMarkdown(text), timestamp: new Date() }]);
+      const parsed = parseResponseAndButtons(text);
+      setMessages((prev) => [...prev, { role: "assistant", content: parsed.content, buttons: parsed.buttons, timestamp: new Date() }]);
     } catch {
       setMessages((prev) => [...prev, { role: "assistant", content: "Request failed. Check your connection.", timestamp: new Date() }]);
     } finally {
@@ -239,8 +235,7 @@ export default function ConsultingPage() {
   }
 
   function clearSession() {
-    setMessages([]);
-    if (hasLiveData) setTimeout(generateOpeningObservation, 300);
+    setMessages([{ ...WELCOME_MESSAGE, timestamp: new Date() }]);
   }
 
   const formatTime = (d: Date) => d.toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" });
@@ -275,12 +270,6 @@ export default function ConsultingPage() {
 
         {/* Chat window */}
         <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-          {messages.length === 0 && !loading && (
-            <div className="text-center text-sm text-muted-foreground py-12">
-              {hasLiveData ? "Analysing your data…" : "Waiting for live data connection…"}
-            </div>
-          )}
-
           {messages.map((msg, i) => (
             <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
               {msg.role === "assistant" && (
@@ -290,6 +279,20 @@ export default function ConsultingPage() {
               )}
               <div className={`max-w-[80%] rounded-lg px-3.5 py-2.5 text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted/50 border border-border/40 text-foreground"}`}>
                 <div className="whitespace-pre-wrap leading-relaxed">{msg.content}</div>
+                {msg.buttons && i === messages.length - 1 && (
+                  <div className="flex gap-2 mt-3 flex-wrap">
+                    {msg.buttons.map((btn) => (
+                      <button
+                        key={btn}
+                        onClick={() => sendMessage(btn)}
+                        disabled={loading}
+                        className="px-4 py-1.5 rounded-lg text-sm font-medium border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-40"
+                      >
+                        {btn}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className={`text-[10px] mt-1.5 font-mono ${msg.role === "user" ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                   {formatTime(msg.timestamp)}
                 </div>
@@ -326,7 +329,7 @@ export default function ConsultingPage() {
             disabled={loading}
           />
           <Button
-            onClick={sendMessage}
+            onClick={() => sendMessage()}
             disabled={loading || !input.trim()}
             size="icon"
             className="h-[52px] w-[52px] flex-shrink-0"
