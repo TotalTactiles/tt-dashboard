@@ -48,6 +48,8 @@ const item = {
 const DealFlow = () => {
   const { quotedJobs } = useDashboardData();
   const jobs = quotedJobs ?? [];
+  const [staleSort, setStaleSort] = useState<"oldest" | "newest">("oldest");
+  const [staleStatus, setStaleStatus] = useState<"all" | "pending" | "won">("all");
 
   const today = new Date();
 
