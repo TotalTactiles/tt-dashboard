@@ -178,6 +178,9 @@ const DealFlow = () => {
           <p className="text-fluid-sm text-muted-foreground mt-1">
             Commercial intelligence — pipeline, win/loss, velocity &amp; cash conversion
           </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {ytdJobs.length} deals · YTD {currentYear}
+          </p>
         </motion.div>
 
         {/* Section 1: Funnel */}
