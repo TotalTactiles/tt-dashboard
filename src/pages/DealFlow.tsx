@@ -83,19 +83,12 @@ const DealFlow = () => {
   const wonValue = wonItems.reduce((a: number, b: any) => a + (Number(b.value) || 0), 0);
 
   // Win/Loss
-  const currentYear = new Date().getFullYear();
-  const ytdJobs = jobs.filter((j: any) => {
-    if (j.status === "lost") return true;
-    const d = parseDealDate(j.dateQuoted);
-    if (!d) return false;
-    return d.getFullYear() === currentYear;
-  });
 
-  const pipelineWonJobs = ytdJobs.filter((j: any) => isPipelineWin(j));
+  const pipelineWonJobs = jobs.filter((j: any) => isPipelineWin(j));
   const pipelineWonCount = pipelineWonJobs.length;
   const pipelineWonValue = pipelineWonJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
 
-  const lostJobs = ytdJobs.filter((j: any) => isLost(j.status));
+  const lostJobs = jobs.filter((j: any) => isLost(j.status));
   const lostCount = lostJobs.length;
   const ytdLostValue = lostJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
 
@@ -104,19 +97,19 @@ const DealFlow = () => {
     ? (pipelineWonCount / decidedCount) * 100
     : 0;
 
-  const pipelineCR = ytdJobs.length > 0
-    ? (pipelineWonCount / ytdJobs.length) * 100
+  const pipelineCR = jobs.length > 0
+    ? (pipelineWonCount / jobs.length) * 100
     : 0;
 
   const avgWonDeal = pipelineWonCount > 0 ? pipelineWonValue / pipelineWonCount : 0;
   const avgLostDeal = lostCount > 0 ? ytdLostValue / lostCount : 0;
 
-  const pendingCount = ytdJobs.filter((j: any) => isActive(j.status)).length;
-  const totalCount = ytdJobs.length;
+  const pendingCount = jobs.filter((j: any) => isActive(j.status)).length;
+  const totalCount = jobs.length;
   const pendingPct = totalCount > 0 ? ((pendingCount / totalCount) * 100).toFixed(0) : "0";
 
   // Avg days from quote to won — for context explanation
-  const wonJobsForAvg = ytdJobs.filter((j: any) => isPipelineWin(j));
+  const wonJobsForAvg = jobs.filter((j: any) => isPipelineWin(j));
   const avgDaysToClose = wonJobsForAvg.reduce((sum: number, j: any) => {
     const d = parseDealDate(j.dateQuoted);
     if (!d) return sum;
@@ -195,7 +188,7 @@ const DealFlow = () => {
             Commercial intelligence — pipeline, win/loss, velocity &amp; cash conversion
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            {ytdJobs.length} deals · YTD {currentYear}
+            {jobs.length} active deals
           </p>
         </motion.div>
 
@@ -205,7 +198,7 @@ const DealFlow = () => {
           <div className="flex items-baseline justify-between mb-4">
             <h2 className="text-fluid-base font-semibold">Pipeline Funnel</h2>
             <div className="text-fluid-xs text-muted-foreground">
-              {ytdJobs.length} total deals
+              {jobs.length} total deals
             </div>
           </div>
 
@@ -285,7 +278,7 @@ const DealFlow = () => {
                     />
                   </span>
                 </div>
-                <div className="text-[11px] text-muted-foreground mt-1">Won ÷ all quoted (YTD)</div>
+                <div className="text-[11px] text-muted-foreground mt-1">Won ÷ all quoted</div>
               </div>
               {/* Other stats */}
               <div>
