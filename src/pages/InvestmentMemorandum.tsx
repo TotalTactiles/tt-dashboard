@@ -95,24 +95,18 @@ Projects: ${revenueItems.map((r: any) => `${r._label_company ?? ""} / ${r._label
 }
 
 async function callAI(system: string, messages: { role: string; content: string }[]): Promise<string> {
-  const body = {
-    model: "claude-sonnet-4-6",
-    max_tokens: 1000,
-    system,
-    messages,
-  };
   const response = await fetch(WEBHOOK_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ system, messages }),
   });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const data = await response.json();
-  // Handle Anthropic shape, n8n wrap, or plain text
-  const fromAnthropic = data?.content?.find?.((b: any) => b.type === "text")?.text;
-  const fromN8nWrap = data?.data?.content?.find?.((b: any) => b.type === "text")?.text;
-  const fromOutput = data?.output ?? data?.text ?? data?.response ?? data?.message;
-  return fromAnthropic ?? fromN8nWrap ?? (typeof fromOutput === "string" ? fromOutput : JSON.stringify(data).slice(0, 500));
+  const text = data?.content?.find((b: any) => b.type === "text")?.text
+    ?? data?.text
+    ?? data?.reply
+    ?? "No response received.";
+  return text;
 }
 
 export default function ConsultingPage() {
