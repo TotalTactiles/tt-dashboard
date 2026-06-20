@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, RefreshCw, BrainCircuit, Paperclip, FileDown } from "lucide-react";
+import { Send, RefreshCw, BrainCircuit, Paperclip } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -246,6 +246,8 @@ export default function ConsultingPage() {
   } | null>(null);
   const [reportMode, setReportMode] = useState(false);
   const [reportData, setReportData] = useState<Record<string, any>>({});
+  const [showCommandMenu, setShowCommandMenu] = useState(false);
+  const [commandFilter, setCommandFilter] = useState("");
 
   function startReportFlow() {
     setReportMode(true);
@@ -670,15 +672,43 @@ export default function ConsultingPage() {
     }
   }
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  }
-
   function clearSession() {
     setMessages([{ ...WELCOME_MESSAGE, timestamp: new Date() }]);
+  }
+
+  const COMMANDS = [
+    { id: "report-monthly", label: "Generate Monthly Management Report", description: "P&L, Executive Summary, Pipeline — downloadable PDF", icon: "📊" },
+    { id: "health-check", label: "Full Financial Health Check", description: "Gross margin, cashflow, pipeline coverage, top risks", icon: "🏥" },
+    { id: "breakeven", label: "Break-Even Analysis", description: "Monthly break-even revenue based on current cost structure", icon: "⚖️" },
+    { id: "pipeline-review", label: "Pipeline Review", description: "Ranked open quotes with conversion probability assessment", icon: "🔍" },
+    { id: "cashflow-forecast", label: "Cashflow Forecast", description: "Forward cashflow based on pipeline and expense run rate", icon: "📈" },
+    { id: "expense-review", label: "Expense Review", description: "Cost structure breakdown and reduction opportunities", icon: "💸" },
+    { id: "margin-analysis", label: "Project Margin Analysis", description: "Best and worst performing projects by gross margin", icon: "📉" },
+    { id: "tax-position", label: "Tax Position Summary", description: "GST, income tax and ATO obligations overview", icon: "🧾" },
+  ];
+
+  function selectCommand(cmd: typeof COMMANDS[0]) {
+    setShowCommandMenu(false);
+    setCommandFilter("");
+    setInput("");
+
+    if (cmd.id === "report-monthly") {
+      startReportFlow();
+      return;
+    }
+
+    const prompts: Record<string, string> = {
+      "health-check": "Give me a full financial health check of the business. I want gross margin, net margin, cashflow position, pipeline coverage, cost structure breakdown, and your top 3 risks you can see in the numbers right now.",
+      "breakeven": "What is our current gross margin percentage and based on our expense structure, what is our monthly break-even revenue requirement? Show your working.",
+      "pipeline-review": "Review our full pipeline. Rank all open quotes by value, identify which are most likely to convert based on stage and timing, and flag any that appear stalled or at risk.",
+      "cashflow-forecast": "Based on our current pipeline, expected invoice dates, and monthly expense run rate, give me a forward cashflow forecast for the next 3 months. Flag any months where we may face a cash shortfall.",
+      "expense-review": "Give me a full breakdown of our operating expense structure. Identify our top 5 cost categories, flag any that appear unusually high for a business of our revenue size, and identify any reduction opportunities.",
+      "margin-analysis": "Analyse all our current projects by gross margin. Show me the top 5 best performers and bottom 5 worst performers with their COGS breakdown. Flag any loss-making projects.",
+      "tax-position": "Summarise our current tax position. Based on our revenue and expense data, estimate our GST liability, income tax position, and flag any ATO obligations we should be aware of. Search for current ATO rates if needed.",
+    };
+
+    const promptText = prompts[cmd.id] ?? cmd.label;
+    sendMessage(promptText);
   }
 
   const formatTime = (d: Date) => d.toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" });
@@ -706,13 +736,6 @@ export default function ConsultingPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => startReportFlow()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border border-border bg-muted/40 hover:bg-muted/70 text-foreground transition-colors"
-            >
-              <FileDown className="w-3.5 h-3.5" />
-              Generate Report
-            </button>
             <Button variant="outline" size="sm" onClick={clearSession} disabled={loading}>
               <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
               New session
@@ -784,6 +807,54 @@ export default function ConsultingPage() {
           </div>
         )}
 
+        {showCommandMenu && (
+          <div className="rounded-xl border border-border bg-background shadow-lg overflow-hidden">
+            <div className="px-3 py-2 border-b border-border bg-muted/30">
+              <p className="text-xs text-muted-foreground">
+                Commands {commandFilter && `— filtering: "${commandFilter}"`}
+              </p>
+            </div>
+            <div className="max-h-[280px] overflow-y-auto">
+              {COMMANDS
+                .filter(cmd =>
+                  !commandFilter ||
+                  cmd.label.toLowerCase().includes(commandFilter) ||
+                  cmd.description.toLowerCase().includes(commandFilter)
+                )
+                .map((cmd) => (
+                  <button
+                    key={cmd.id}
+                    onClick={() => selectCommand(cmd)}
+                    className="w-full flex items-start gap-3 px-4 py-3 hover:bg-muted/50
+                               transition-colors text-left border-b border-border/40
+                               last:border-0"
+                  >
+                    <span className="text-lg flex-shrink-0 mt-0.5">{cmd.icon}</span>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{cmd.label}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{cmd.description}</p>
+                    </div>
+                  </button>
+                ))
+              }
+              {COMMANDS.filter(cmd =>
+                !commandFilter ||
+                cmd.label.toLowerCase().includes(commandFilter) ||
+                cmd.description.toLowerCase().includes(commandFilter)
+              ).length === 0 && (
+                <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                  No commands match "{commandFilter}"
+                </div>
+              )}
+            </div>
+            <div className="px-3 py-2 border-t border-border bg-muted/30">
+              <p className="text-xs text-muted-foreground">
+                ↑↓ to navigate · Enter to select · Esc to close
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Input */}
         <div className="flex gap-2 items-end">
           <input
@@ -808,8 +879,29 @@ export default function ConsultingPage() {
           </button>
           <Textarea
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onChange={(e) => {
+              const val = e.target.value;
+              setInput(val);
+
+              if (val.startsWith("/")) {
+                setShowCommandMenu(true);
+                setCommandFilter(val.slice(1).toLowerCase());
+              } else {
+                setShowCommandMenu(false);
+                setCommandFilter("");
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape" && showCommandMenu) {
+                setShowCommandMenu(false);
+                setInput("");
+                return;
+              }
+              if (e.key === "Enter" && !e.shiftKey && !showCommandMenu) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
             placeholder="Ask a financial or accounting question…"
             className="resize-none min-h-[52px] max-h-[160px] text-sm bg-background/60"
             rows={2}
