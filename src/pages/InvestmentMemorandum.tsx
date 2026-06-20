@@ -24,6 +24,8 @@ Data currently available to you includes: quoted jobs pipeline, revenue and COGS
 
 Australian accounting standards apply. All currency is AUD. GST is 10%.
 
+If the user's message is exactly "Let's Talk", respond only with: "Of course. What would you like to discuss?" — nothing else, no data, no observations, no OPTIONS.
+
 When you want to offer the user options, end your response with a new line starting with OPTIONS: followed by the choices comma-separated.
 Example: OPTIONS: Yes, No, Show me the breakdown
 Only use OPTIONS when there are clear discrete choices. Never use OPTIONS for open-ended questions.`;
