@@ -65,7 +65,12 @@ const DealFlow = () => {
   }, [jobs]);
 
   const stageStats = STAGES.map(s => {
-    const items = byStatus[s.key as keyof typeof byStatus] ?? [];
+    let items;
+    if (s.key === "won") {
+      items = byStatus.yellow.concat(byStatus.won);
+    } else {
+      items = byStatus[s.key as keyof typeof byStatus] ?? [];
+    }
     const value = items.reduce((a: number, b: any) => a + (Number(b.value) || 0), 0);
     return { ...s, count: items.length, value };
   });
