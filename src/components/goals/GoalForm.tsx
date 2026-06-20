@@ -9,8 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Switch } from "@/components/ui/switch";
-import { CalendarIcon, Info } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -50,9 +49,9 @@ export default function GoalForm({ open, onOpenChange, onSubmit, initial }: Goal
   const [lumpSumDate, setLumpSumDate] = useState<Date | undefined>();
   const [category, setCategory] = useState("Other");
   const [categorySuggested, setCategorySuggested] = useState(false);
-  const [startDate, setStartDate] = useState<Date | undefined>(new Date());
-  const [endDate, setEndDate] = useState<Date | undefined>();
-  const [merge, setMerge] = useState(false);
+  const [targetYear, setTargetYear] = useState<number>(
+    initial?.targetYear ?? new Date().getFullYear()
+  );
 
   useEffect(() => {
     if (initial) {
@@ -65,9 +64,10 @@ export default function GoalForm({ open, onOpenChange, onSubmit, initial }: Goal
       setLumpSumDate(initial.lumpSumDate ? new Date(initial.lumpSumDate) : undefined);
       setCategory(initial.category ?? "Other");
       setCategorySuggested(false);
-      setStartDate(initial.startDate ? new Date(initial.startDate) : new Date());
-      setEndDate(initial.endDate ? new Date(initial.endDate) : undefined);
-      setMerge(initial.merge ?? false);
+      setTargetYear(
+        initial.targetYear ??
+          (initial.endDate ? new Date(initial.endDate).getFullYear() : new Date().getFullYear())
+      );
     } else {
       setName("");
       setDescription("");
@@ -78,9 +78,7 @@ export default function GoalForm({ open, onOpenChange, onSubmit, initial }: Goal
       setLumpSumDate(undefined);
       setCategory("Other");
       setCategorySuggested(false);
-      setStartDate(new Date());
-      setEndDate(undefined);
-      setMerge(false);
+      setTargetYear(new Date().getFullYear());
     }
   }, [initial, open]);
 
@@ -104,6 +102,8 @@ export default function GoalForm({ open, onOpenChange, onSubmit, initial }: Goal
 
   const handleSubmit = () => {
     if (!name || !totalAmount || !goalType) return;
+    const startDate = `${targetYear}-01-01`;
+    const endDate = `${targetYear}-12-31`;
     onSubmit({
       name,
       description,
@@ -111,13 +111,14 @@ export default function GoalForm({ open, onOpenChange, onSubmit, initial }: Goal
       currentValue: 0,
       unit: "$",
       category,
-      startDate: (startDate ?? new Date()).toISOString(),
-      endDate: (endDate ?? new Date()).toISOString(),
+      startDate: new Date(startDate).toISOString(),
+      endDate: new Date(endDate).toISOString(),
       goalType: goalType as "expenditure" | "revenue",
       amountStructure: (amountStructure || "lump_sum") as "lump_sum" | "recurring",
       period: amountStructure === "recurring" ? period : undefined,
       lumpSumDate: amountStructure === "lump_sum" && lumpSumDate ? lumpSumDate.toISOString() : undefined,
-      merge,
+      merge: true,
+      targetYear,
     });
     onOpenChange(false);
   };
@@ -260,53 +261,22 @@ export default function GoalForm({ open, onOpenChange, onSubmit, initial }: Goal
             </div>
           )}
 
-          {/* Date range */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Start Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full justify-start text-left text-xs font-normal", !startDate && "text-muted-foreground")}>
-                    <CalendarIcon className="mr-2 h-3 w-3" />
-                    {startDate ? format(startDate, "PPP") : "Pick date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus className="p-3 pointer-events-auto" />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">End Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full justify-start text-left text-xs font-normal", !endDate && "text-muted-foreground")}>
-                    <CalendarIcon className="mr-2 h-3 w-3" />
-                    {endDate ? format(endDate, "PPP") : "Pick date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus className="p-3 pointer-events-auto" />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-
-          {/* Merge toggle */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs">Merge with Business Data</Label>
-              <Switch checked={merge} onCheckedChange={setMerge} />
-            </div>
-            {merge && (
-              <div className="flex gap-2 p-2.5 rounded-lg bg-primary/5 border border-primary/15">
-                <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-                <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  This goal will be reflected in cashflow and revenue charts.{" "}
-                  {goalType === "expenditure" ? "Expenditure goals reduce cashflow." : "Revenue goals increase projected income."}
-                </p>
-              </div>
-            )}
+          {/* Target Year */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Target Year</Label>
+            <Select
+              value={String(targetYear)}
+              onValueChange={(v) => setTargetYear(Number(v))}
+            >
+              <SelectTrigger className="text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[2025, 2026, 2027, 2028].map((y) => (
+                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <Button onClick={handleSubmit} className="w-full" disabled={!name || !totalAmount || !goalType}>
