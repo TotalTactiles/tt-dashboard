@@ -284,7 +284,7 @@ const DealFlow = () => {
                         <div className="text-fluid-sm font-medium truncate">{d.jobName}</div>
                         <div className="text-fluid-xs text-muted-foreground truncate">{d.company}</div>
                       </div>
-                      <span className={`text-[10px] px-2 py-0.5 rounded border ${STATUS_PILL[d.status] ?? STATUS_PILL["Quote Sent"]}`}>
+                      <span className={`text-[10px] px-2 py-0.5 rounded border ${statusPillFor(d.status)}`}>
                         {d.status}
                       </span>
                       <span className={`font-mono text-[10px] px-2 py-0.5 rounded border ${sev}`}>
