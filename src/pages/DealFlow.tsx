@@ -196,6 +196,22 @@ const DealFlow = () => {
           </p>
         </motion.div>
 
+        {/* TEMP FULL DEBUG */}
+        <div className="chart-container mb-4 font-mono text-xs space-y-1">
+          <p className="text-chart-green font-semibold">ytdJobs breakdown:</p>
+          <p>Total ytdJobs: {ytdJobs.length}</p>
+          <p>status==="won": {ytdJobs.filter(j => j.status === "won").length}</p>
+          <p>status==="yellow": {ytdJobs.filter(j => j.status === "yellow").length}</p>
+          <p>status==="pending": {ytdJobs.filter(j => j.status === "pending").length}</p>
+          <p>status==="lost": {ytdJobs.filter(j => j.status === "lost").length}</p>
+          <p>status==="completed": {ytdJobs.filter(j => j.status === "completed").length}</p>
+          <p>other: {ytdJobs.filter(j => !["won","yellow","pending","lost","completed"].includes(j.status)).length}</p>
+          <p className="text-chart-orange mt-2">Unique statuses: {[...new Set(ytdJobs.map(j => j.status))].join(" | ")}</p>
+          <p>isPipelineWin count: {ytdJobs.filter(j => isPipelineWin(j.status)).length}</p>
+          <p>isLost count: {ytdJobs.filter(j => isLost(j.status)).length}</p>
+          <p>Won value: ${ytdJobs.filter(j => isPipelineWin(j.status)).reduce((s,j) => s + j.value, 0).toLocaleString()}</p>
+          <p>Lost value: ${ytdJobs.filter(j => isLost(j.status)).reduce((s,j) => s + j.value, 0).toLocaleString()}</p>
+        </div>
 
         {/* Section 1: Funnel */}
         <motion.section variants={item} className="chart-container p-5">
