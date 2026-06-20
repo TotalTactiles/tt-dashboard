@@ -118,7 +118,7 @@ const DealFlow = () => {
   // Stale deals
   const staleDeals = useMemo(() => {
     return jobs
-      .filter((j: any) => j.status !== "Completed" && j.status !== "Lost/Dead")
+      .filter((j: any) => !isStage(j.status, "Completed") && !isStage(j.status, "Lost/Dead"))
       .map((j: any) => {
         const d = parseDealDate(j.dateQuoted);
         if (!d) return null;
