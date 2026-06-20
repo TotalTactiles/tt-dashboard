@@ -100,7 +100,7 @@ const DealFlow = () => {
   // Velocity — avg days per active stage
   const ACTIVE = ["Quote Sent", "Negotiation/Review", "Verbal Confirmation (YLW)", "PO Received (GRN)"];
   const velocityData = ACTIVE.map(stage => {
-    const items = byStage[stage] ?? [];
+    const items = byStage[norm(stage)] ?? [];
     const days = items
       .map((j: any) => {
         const d = parseDealDate(j.dateQuoted);
