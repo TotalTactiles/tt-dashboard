@@ -611,6 +611,15 @@ export default function ConsultingPage() {
   async function sendMessage(overrideText?: string) {
     const trimmed = (overrideText ?? input).trim();
     if (!trimmed || loading) return;
+    if (!overrideText) setInput("");
+    if (/^generate management report/i.test(trimmed) && !reportMode) {
+      startReportFlow();
+      return;
+    }
+    if (reportMode && trimmed !== "Let's Talk" && trimmed !== "Financial Review") {
+      await handleReportFlow(trimmed);
+      return;
+    }
     if (trimmed === "Let's Talk") {
       setMessages(prev => [...prev,
         { role: "user", content: trimmed, timestamp: new Date() },
