@@ -223,7 +223,7 @@ export default function ConsultingPage() {
     const apiMessages = updated.slice(-20).map((m) => ({ role: m.role, content: m.content }));
     try {
       const text = await callAI(SYSTEM_PROMPT + dataContext, apiMessages);
-      setMessages((prev) => [...prev, { role: "assistant", content: text, timestamp: new Date() }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: stripMarkdown(text), timestamp: new Date() }]);
     } catch {
       setMessages((prev) => [...prev, { role: "assistant", content: "Request failed. Check your connection.", timestamp: new Date() }]);
     } finally {
