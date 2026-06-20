@@ -84,7 +84,12 @@ ${zoho.projects.map((p: any) => `• ${p.name ?? p.id} | Status: ${p.status?.nam
 - Total Revenue (incl GST): $${totalRev.toLocaleString("en-AU", { minimumFractionDigits: 0 })}
 - Total COGS: $${totalCOGS.toLocaleString("en-AU", { minimumFractionDigits: 0 })}
 - Gross Profit: $${(totalRev / 1.1 - totalCOGS).toLocaleString("en-AU", { minimumFractionDigits: 0 })}
-Projects: ${revenueItems.map((r: any) => `${r._label_company ?? ""} / ${r._label_project ?? ""} — $${(parseFloat(r._label_value) || 0).toLocaleString("en-AU")} (Stage: ${r._label_projectStage ?? "?"}, Labour: $${r._label_labourCost ?? 0}, Tactile: $${r._label_tactileCost ?? 0}, Other: $${r._label_otherCost ?? 0})`).join("; ")}`);
+${revenueItems.map((r: any) => {
+  const val = parseFloat(r._label_value) || 0;
+  const cogs = parseFloat(r._label_totalCost) || 0;
+  const gp = val / 1.1 - cogs;
+  return `• ${r._label_company ?? "?"} / ${r._label_project ?? "?"} — Revenue: $${val.toLocaleString("en-AU")} | COGS: $${cogs.toLocaleString("en-AU")} | GP: $${gp.toLocaleString("en-AU")} (Stage: ${r._label_projectStage ?? "?"}, Labour: $${r._label_labourCost ?? 0}, Tactile: $${r._label_tactileCost ?? 0}, Other: $${r._label_otherCost ?? 0})`;
+}).join("\n")}`);
     }
   } catch { /* skip */ }
 
