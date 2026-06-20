@@ -38,7 +38,7 @@ export default function GoalCard({ goal, onEdit, onDelete, isAuto, monthlyExpens
   const im = investorMetrics as any;
   const grossMarginPct = im?.grossMarginPct ?? 55;
   const monthlyRevenue = im?.revenueExGST ? im.revenueExGST / 12 : 0;
-  const monthlyExpenses = im?.ytdTotalExpenses ? im.ytdTotalExpenses / 12 : 0;
+  const monthlyExpenses = monthlyExpensesProp ?? (im?.ytdTotalExpenses ? im.ytdTotalExpenses / 12 : 0);
 
   const goalMonthly = (() => {
     if (goal.amountStructure === "recurring") {
