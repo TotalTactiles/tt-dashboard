@@ -160,7 +160,7 @@ const DealFlow = () => {
             <div className="flex flex-col md:flex-row md:items-stretch gap-2">
               {stageStats.map((s, i) => {
                 const next = stageStats[i + 1];
-                const dropOff = next && s.count > 0 ? Math.max(0, ((s.count - next.count) / s.count) * 100) : null;
+                const dropOff = next ? (s.count > 0 ? Math.max(0, ((s.count - next.count) / s.count) * 100) : "—") : null;
                 const widthPct = 40 + (s.count / maxStageCount) * 60;
                 return (
                   <div key={s.key} className="flex-1 flex flex-col md:flex-row md:items-center gap-2">
