@@ -175,7 +175,13 @@ const DealFlow = () => {
                     {next && (
                       <div className="hidden md:flex flex-col items-center text-muted-foreground shrink-0 px-1">
                         <ChevronRight className="w-4 h-4" />
-                        {dropOff !== null && dropOff > 0 && (
+                        {dropOff === "—" && (
+                          <div className="text-[10px] font-mono text-muted-foreground flex items-center gap-0.5">
+                            <ArrowDown className="w-3 h-3" />
+                            —
+                          </div>
+                        )}
+                        {typeof dropOff === "number" && dropOff > 0 && (
                           <div className="text-[10px] font-mono text-destructive flex items-center gap-0.5">
                             <ArrowDown className="w-3 h-3" />
                             {dropOff.toFixed(0)}%
