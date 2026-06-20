@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, RefreshCw, BrainCircuit } from "lucide-react";
+import { Send, RefreshCw, BrainCircuit, Paperclip } from "lucide-react";
+import * as XLSX from "xlsx";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { Button } from "@/components/ui/button";
