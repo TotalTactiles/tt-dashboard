@@ -244,6 +244,295 @@ export default function ConsultingPage() {
     content: string;
     size: string;
   } | null>(null);
+  const [reportMode, setReportMode] = useState(false);
+  const [reportData, setReportData] = useState<Record<string, any>>({});
+
+  function startReportFlow() {
+    setReportMode(true);
+    setReportData({});
+    setMessages(prev => [...prev, {
+      role: "assistant",
+      content: "I'll generate a Monthly Management Report in the Total Tactiles Pty Ltd format.\n\nWhich period should the report cover?",
+      timestamp: new Date(),
+      buttons: ["April 2026", "March 2026", "YTD 2026", "Custom period"]
+    }]);
+  }
+
+  async function handleReportFlow(userText: string) {
+    if (!reportData.period) {
+      const period = userText;
+      setReportData(prev => ({ ...prev, period }));
+      setMessages(prev => [...prev,
+        { role: "user", content: userText, timestamp: new Date() },
+        {
+          role: "assistant",
+          content: `${period} selected.\n\nI need your Profit & Loss data from Xero for this period.\n\nIn Xero: Reports → Profit & Loss → set date range to ${period} → Export as PDF → attach here.\n\nAlternatively if you have it already, attach it now.`,
+          timestamp: new Date(),
+          buttons: ["I'll use dashboard data only", "Skip — generate with available data"]
+        }
+      ]);
+      return;
+    }
+    if (!reportData.plProvided) {
+      setReportData(prev => ({ ...prev, plProvided: true, plNote: userText }));
+      setMessages(prev => [...prev,
+        { role: "user", content: userText, timestamp: new Date() },
+        {
+          role: "assistant",
+          content: `Got it.\n\nDo you have an Aged Receivables report from Xero?\n\nIn Xero: Reports → Aged Receivables → set date to end of ${reportData.period} → Export as PDF → attach here.`,
+          timestamp: new Date(),
+          buttons: ["Skip Aged Receivables", "I'll attach it now"]
+        }
+      ]);
+      return;
+    }
+    if (!reportData.arProvided) {
+      setReportData(prev => ({ ...prev, arProvided: true, arNote: userText }));
+      setMessages(prev => [...prev,
+        { role: "user", content: userText, timestamp: new Date() },
+        {
+          role: "assistant",
+          content: `Generating your Management Report for ${reportData.period}...`,
+          timestamp: new Date()
+        }
+      ]);
+      setTimeout(() => generateManagementReport(), 500);
+      return;
+    }
+  }
+
+  function generateManagementReport() {
+    const period = reportData.period ?? "Current Period";
+    const d = accountingData ?? {};
+    const sheets = d.sheets ?? {};
+    const summary = d.summary ?? {};
+    const revenue = sheets.revenue ?? liveData?.revenue ?? [];
+    const expenses = sheets.expenses ?? liveData?.expenses ?? [];
+    const quotes = sheets.quotes ?? liveData?.quotes ?? [];
+
+    const totalIncome = summary.totalRevIncGST ??
+      revenue.reduce((s: number, r: any) => {
+        const v = parseFloat(String(r['Contract Value'] ?? r['Contract Value ($)'] ?? 0).replace(/[^0-9.-]/g,''));
+        return s + (isNaN(v) ? 0 : v);
+      }, 0);
+    const totalIncomeExGST = Math.round(totalIncome / 1.1 * 100) / 100;
+    const totalCOGS = summary.totalCOGS ?? 0;
+    const grossProfit = summary.grossProfit ?? (totalIncomeExGST - totalCOGS);
+    const grossMarginPct = totalIncomeExGST > 0 ? Math.round(grossProfit / totalIncomeExGST * 100) : 0;
+    const totalMonthlyExp = expenses.reduce((s: number, e: any) => {
+      const sub = String(e['Sub-Category'] ?? '').toUpperCase();
+      if (sub === 'TOTAL' || sub === 'GRAND TOTAL') return s;
+      const v = parseFloat(String(e['Monthly Cost'] ?? 0).replace(/[^0-9.-]/g,''));
+      return s + (isNaN(v) ? 0 : v);
+    }, 0);
+    const netProfit = grossProfit - totalMonthlyExp;
+    const netMarginPct = totalIncomeExGST > 0 ? Math.round(netProfit / totalIncomeExGST * 100) : 0;
+    const wonQuotes = quotes.filter((q: any) => {
+      const s = String(q['Current Status'] ?? q['Status'] ?? '').toLowerCase();
+      return s.includes('won') || s.includes('awarded');
+    });
+    const invoiceCount = wonQuotes.length;
+    const avgInvoiceValue = invoiceCount > 0 ? Math.round(totalIncomeExGST / invoiceCount) : 0;
+
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const GREEN: [number, number, number] = [31, 115, 71];
+    const DARK: [number, number, number] = [40, 40, 40];
+    const LIGHT_GREEN: [number, number, number] = [232, 245, 238];
+    const pageW = 210;
+    const margin = 15;
+
+    doc.setFillColor(...GREEN);
+    doc.rect(0, 0, pageW, 45, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Management Report', margin, 20);
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Total Tactiles Pty Ltd', margin, 30);
+    doc.text('ABN 69 682 573 333', margin, 37);
+    doc.setTextColor(...DARK);
+    doc.setFontSize(11);
+    doc.text(`For the period: ${period}`, margin, 55);
+    doc.setFontSize(9);
+    doc.setTextColor(120, 120, 120);
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-AU')}`, margin, 62);
+    doc.setTextColor(...GREEN);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Contents', margin, 85);
+    doc.setDrawColor(...GREEN);
+    doc.setLineWidth(0.5);
+    doc.line(margin, 88, pageW - margin, 88);
+    const contents: [string, string][] = [
+      ['3', 'Executive Summary'],
+      ['4', 'Profit and Loss'],
+      ['6', 'Pipeline Summary'],
+    ];
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(...DARK);
+    contents.forEach(([pg, title], i) => {
+      doc.text(pg, margin + 5, 98 + i * 10);
+      doc.text(title, margin + 15, 98 + i * 10);
+    });
+
+    doc.addPage();
+    doc.setFillColor(...GREEN);
+    doc.rect(0, 0, pageW, 30, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Executive Summary', margin, 15);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Tactiles Pty Ltd  |  ${period}`, margin, 23);
+    const fmt = (n: number) => n < 0
+      ? `(${Math.abs(n).toLocaleString('en-AU', {minimumFractionDigits: 0})})`
+      : n.toLocaleString('en-AU', {minimumFractionDigits: 0});
+    autoTable(doc, {
+      startY: 38,
+      margin: { left: margin, right: margin },
+      head: [['', period, 'YEAR TO DATE']],
+      body: [
+        [{ content: 'Profitability', styles: { fontStyle: 'bold', fillColor: LIGHT_GREEN, textColor: GREEN } }, '', ''],
+        ['Income', `$${fmt(totalIncomeExGST)}`, `$${fmt(totalIncomeExGST)}`],
+        ['Direct Costs (COGS)', `$${fmt(totalCOGS)}`, `$${fmt(totalCOGS)}`],
+        ['Gross Profit', `$${fmt(grossProfit)}`, `$${fmt(grossProfit)}`],
+        ['Operating Expenses', `$${fmt(totalMonthlyExp)}`, `$${fmt(totalMonthlyExp * 4)}`],
+        ['Net Profit / (Loss)', `$${fmt(netProfit)}`, `$${fmt(netProfit)}`],
+        [{ content: 'Performance', styles: { fontStyle: 'bold', fillColor: LIGHT_GREEN, textColor: GREEN } }, '', ''],
+        ['Gross Profit Margin %', `${grossMarginPct}%`, `${grossMarginPct}%`],
+        ['Net Profit Margin %', `${netMarginPct}%`, `${netMarginPct}%`],
+        [{ content: 'Sales', styles: { fontStyle: 'bold', fillColor: LIGHT_GREEN, textColor: GREEN } }, '', ''],
+        ['Number of Invoices', String(invoiceCount), String(invoiceCount)],
+        ['Average Invoice Value', `$${fmt(avgInvoiceValue)}`, `$${fmt(avgInvoiceValue)}`],
+      ] as any,
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: GREEN, textColor: [255,255,255], fontStyle: 'bold' },
+      columnStyles: { 0: { cellWidth: 90 }, 1: { halign: 'right' }, 2: { halign: 'right' } },
+      alternateRowStyles: { fillColor: [250, 250, 250] },
+    });
+
+    doc.addPage();
+    doc.setFillColor(...GREEN);
+    doc.rect(0, 0, pageW, 30, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Profit and Loss', margin, 15);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Tactiles Pty Ltd  |  ${period}`, margin, 23);
+
+    const expRows: any[][] = [];
+    expenses.forEach((e: any) => {
+      const sub = String(e['Sub-Category'] ?? e['Name'] ?? '').trim();
+      const monthly = parseFloat(String(e['Monthly Cost'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
+      if (sub && sub.toUpperCase() !== 'TOTAL' && sub.toUpperCase() !== 'GRAND TOTAL' && monthly > 0) {
+        expRows.push([sub, `$${fmt(monthly)}`, `$${fmt(monthly * 12)}`]);
+      }
+    });
+
+    autoTable(doc, {
+      startY: 38,
+      margin: { left: margin, right: margin },
+      head: [['', period, 'ANNUALISED']],
+      body: [
+        [{ content: 'Trading Income', styles: { fontStyle: 'bold', fillColor: LIGHT_GREEN, textColor: GREEN } }, '', ''],
+        ['Sales', `$${fmt(totalIncomeExGST)}`, ''],
+        [{ content: 'Total Trading Income', styles: { fontStyle: 'bold' } }, `$${fmt(totalIncomeExGST)}`, ''],
+        [{ content: 'Cost of Sales', styles: { fontStyle: 'bold', fillColor: LIGHT_GREEN, textColor: GREEN } }, '', ''],
+        ['Total Cost of Sales', `$${fmt(totalCOGS)}`, ''],
+        [{ content: 'Gross Profit', styles: { fontStyle: 'bold' } }, `$${fmt(grossProfit)}`, ''],
+        [{ content: `Gross Profit %`, styles: { fontStyle: 'bold' } }, `${grossMarginPct}%`, ''],
+        [{ content: 'Operating Expenses', styles: { fontStyle: 'bold', fillColor: LIGHT_GREEN, textColor: GREEN } }, '', ''],
+        ...expRows,
+        [{ content: 'Total Operating Expenses', styles: { fontStyle: 'bold' } }, `$${fmt(totalMonthlyExp)}`, `$${fmt(totalMonthlyExp * 12)}`],
+        [{ content: 'Net Profit / (Loss)', styles: { fontStyle: 'bold', fontSize: 10 } }, `$${fmt(netProfit)}`, ''],
+        [{ content: `Net Profit %`, styles: { fontStyle: 'bold' } }, `${netMarginPct}%`, ''],
+      ] as any,
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: GREEN, textColor: [255,255,255], fontStyle: 'bold' },
+      columnStyles: { 0: { cellWidth: 100 }, 1: { halign: 'right' }, 2: { halign: 'right' } },
+      alternateRowStyles: { fillColor: [250, 250, 250] },
+    });
+
+    doc.addPage();
+    doc.setFillColor(...GREEN);
+    doc.rect(0, 0, pageW, 30, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Pipeline Summary', margin, 15);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Tactiles Pty Ltd  |  ${period}`, margin, 23);
+
+    const pipelineRows = quotes
+      .filter((q: any) => {
+        const s = String(q['Current Status'] ?? q['Status'] ?? '').toLowerCase();
+        return !s.includes('lost') && !s.includes('dead');
+      })
+      .sort((a: any, b: any) => {
+        const av = parseFloat(String(a['Contract Value ($)'] ?? a['Contract Value'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
+        const bv = parseFloat(String(b['Contract Value ($)'] ?? b['Contract Value'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
+        return bv - av;
+      })
+      .slice(0, 20)
+      .map((q: any) => {
+        const val = parseFloat(String(q['Contract Value ($)'] ?? q['Contract Value'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
+        return [
+          String(q['Company Name'] ?? q['_company'] ?? ''),
+          String(q['Project Name'] ?? q['_project'] ?? '').substring(0, 35),
+          `$${fmt(val)}`,
+          String(q['Current Status'] ?? q['Status'] ?? ''),
+          String(q['Estimated Job Date'] ?? q['Date Quoted'] ?? ''),
+        ];
+      });
+
+    autoTable(doc, {
+      startY: 38,
+      margin: { left: margin, right: margin },
+      head: [['Company', 'Project', 'Value', 'Stage', 'Date']],
+      body: pipelineRows,
+      styles: { fontSize: 8, cellPadding: 2.5 },
+      headStyles: { fillColor: GREEN, textColor: [255,255,255], fontStyle: 'bold' },
+      columnStyles: {
+        0: { cellWidth: 38 },
+        1: { cellWidth: 60 },
+        2: { halign: 'right', cellWidth: 28 },
+        3: { cellWidth: 28 },
+        4: { cellWidth: 26 }
+      },
+      alternateRowStyles: { fillColor: [250, 250, 250] },
+    });
+
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(
+        `Management Report  |  Total Tactiles Pty Ltd  |  Page ${i} of ${pageCount}`,
+        margin, 290
+      );
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, 287, pageW - margin, 287);
+    }
+
+    const filename = `TT_Management_Report_${period.replace(/\s/g,'_')}.pdf`;
+    doc.save(filename);
+
+    setReportMode(false);
+    setReportData({});
+    setMessages(prev => [...prev, {
+      role: "assistant",
+      content: `Management Report for ${period} has been downloaded as ${filename}.\n\nWould you like me to provide a written analysis of the key figures in this report?`,
+      timestamp: new Date(),
+      buttons: ["Yes, analyse the report", "No thanks"]
+    }]);
+  }
 
   async function handleFileAttach(file: File) {
     const ext = file.name.split('.').pop()?.toLowerCase();
