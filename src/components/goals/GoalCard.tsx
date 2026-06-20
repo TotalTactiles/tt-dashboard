@@ -214,7 +214,15 @@ export default function GoalCard({ goal, onEdit, onDelete, isAuto }: GoalCardPro
       </div>
 
       {/* Cashflow impact alert */}
-      {isExpenditure && goalMonthly > 0 && (monthlyRevenue > 0 || monthlyExpenses > 0) && (
+      {isExpenditure && goal.amountStructure === "lump_sum" && goal.targetValue > 0 ? (
+        <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-400" />
+          <div className="text-[11px] leading-snug text-amber-200">
+            Adding this as a one-time expense reduces monthly surplus by{" "}
+            <span className="font-mono font-semibold">{fmt(goal.targetValue)}</span> in the month it is spent
+          </div>
+        </div>
+      ) : isExpenditure && goalMonthly > 0 && (monthlyRevenue > 0 || monthlyExpenses > 0) ? (
         <div
           className={`flex items-start gap-2 rounded-md border p-2 ${
             isCashflowNegative
@@ -243,7 +251,7 @@ export default function GoalCard({ goal, onEdit, onDelete, isAuto }: GoalCardPro
             )}
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Analysis toggle */}
       <button
@@ -260,7 +268,53 @@ export default function GoalCard({ goal, onEdit, onDelete, isAuto }: GoalCardPro
       {/* Detailed analysis panel */}
       {showAnalysis && (
         <div className="space-y-3 rounded-md border border-border/60 bg-muted/10 p-3">
-          {isExpenditure ? (
+          {isExpenditure && goal.amountStructure === "lump_sum" ? (
+            (() => {
+              const monthlySurplus = currentMonthlySurplus;
+              const monthsToSave = monthlySurplus > 0
+                ? Math.ceil(goal.targetValue / monthlySurplus)
+                : null;
+              const affordableDate = monthsToSave !== null
+                ? (() => {
+                    const d = new Date();
+                    d.setMonth(d.getMonth() + monthsToSave);
+                    return d.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+                  })()
+                : null;
+              const revenueFor1Month = grossMarginPct > 0 ? goal.targetValue / (grossMarginPct / 100) : 0;
+              return (
+                <div className="space-y-1.5">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    Savings timeline
+                  </div>
+                  <div className="space-y-1 text-xs font-mono">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Current monthly surplus</span>
+                      <span className={`font-semibold ${monthlySurplus >= 0 ? "text-foreground" : "text-red-400"}`}>
+                        {fmt(monthlySurplus)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Months to save from surplus</span>
+                      <span className="text-foreground font-semibold">
+                        {monthsToSave !== null ? `${monthsToSave} mo` : "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Target month to achieve</span>
+                      <span className="text-foreground font-semibold">
+                        {affordableDate ?? "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Revenue to fund in single month</span>
+                      <span className="text-foreground font-semibold">{fmt(revenueFor1Month)}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()
+          ) : isExpenditure ? (
             <>
               <div className="space-y-1.5">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
@@ -382,12 +436,9 @@ export default function GoalCard({ goal, onEdit, onDelete, isAuto }: GoalCardPro
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono">
           <CalendarDays className="h-3 w-3" />
-          <span>
-            {format(parseISO(goal.startDate), "MMM d")} —{" "}
-            {format(parseISO(goal.endDate), "MMM d")}
-          </span>
-          {!isComplete && daysLeft >= 0 && (
-            <span className="text-primary">· {daysLeft}d left</span>
+          <span>Target: {goal.targetYear ?? (goal.endDate ? new Date(goal.endDate).getFullYear() : new Date().getFullYear())}</span>
+          {goal.amountStructure === "recurring" && !isComplete && daysLeft >= 0 && (
+            <span className="text-primary">· {daysLeft}d left in year</span>
           )}
           {isOverdue && !isComplete && (
             <span className="text-destructive">· Overdue</span>
