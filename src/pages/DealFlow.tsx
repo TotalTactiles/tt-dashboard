@@ -15,10 +15,12 @@ function parseDealDate(raw: string): Date | null {
 }
 
 const isWon = (s: string) => s === "won";
-const isPending = (s: string) => s === "pending";
 const isYellow = (s: string) => s === "yellow";
 const isLost = (s: string) => s === "lost";
-const isActive = (s: string) => s === "pending" || s === "yellow" || s === "won";
+const isPending = (s: string) => s === "pending";
+const isCompleted = (s: string) => s === "completed";
+const isPipelineWin = (s: string) => isWon(s) || isYellow(s);
+const isActive = (s: string) => isPending(s) || isYellow(s) || isWon(s);
 
 const fmt = (n: number) =>
   "$" + Math.round(n).toLocaleString("en-AU");
@@ -26,7 +28,7 @@ const fmt = (n: number) =>
 const STAGES: { key: string; label: string; colorVar: string }[] = [
   { key: "pending", label: "Active (Pending)", colorVar: "hsl(var(--muted-foreground))" },
   { key: "yellow", label: "Verbal (YLW)", colorVar: "hsl(var(--chart-orange))" },
-  { key: "won", label: "Won", colorVar: "hsl(var(--chart-green))" },
+  { key: "won", label: "YLW + GRN", colorVar: "hsl(var(--chart-green))" },
 ];
 
 const STATUS_PILL: Record<string, string> = {
@@ -63,7 +65,12 @@ const DealFlow = () => {
   }, [jobs]);
 
   const stageStats = STAGES.map(s => {
-    const items = byStatus[s.key as keyof typeof byStatus] ?? [];
+    let items;
+    if (s.key === "won") {
+      items = byStatus.yellow.concat(byStatus.won);
+    } else {
+      items = byStatus[s.key as keyof typeof byStatus] ?? [];
+    }
     const value = items.reduce((a: number, b: any) => a + (Number(b.value) || 0), 0);
     return { ...s, count: items.length, value };
   });
@@ -80,27 +87,33 @@ const DealFlow = () => {
     if (!d) return false;
     return d.getFullYear() === currentYear;
   });
-  const wonCount = ytdJobs.filter((j: any) => isWon(j.status)).length;
-  const lostCount = ytdJobs.filter((j: any) => isLost(j.status)).length;
-  const completedCount = ytdJobs.filter((j: any) => j.status === "completed").length;
+
+  const pipelineWonJobs = ytdJobs.filter((j: any) => isPipelineWin(j.status));
+  const pipelineWonCount = pipelineWonJobs.length;
+  const pipelineWonValue = pipelineWonJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
+
+  const lostJobs = ytdJobs.filter((j: any) => isLost(j.status));
+  const lostCount = lostJobs.length;
+  const ytdLostValue = lostJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
+
+  const decidedCount = pipelineWonCount + lostCount;
+  const winRate = decidedCount > 0
+    ? (pipelineWonCount / decidedCount) * 100
+    : 0;
+
+  const pipelineCR = ytdJobs.length > 0
+    ? (pipelineWonCount / ytdJobs.length) * 100
+    : 0;
+
+  const avgWonDeal = pipelineWonCount > 0 ? pipelineWonValue / pipelineWonCount : 0;
+  const avgLostDeal = lostCount > 0 ? ytdLostValue / lostCount : 0;
+
   const pendingCount = ytdJobs.filter((j: any) => isActive(j.status)).length;
   const totalCount = ytdJobs.length;
   const pendingPct = totalCount > 0 ? ((pendingCount / totalCount) * 100).toFixed(0) : "0";
 
-  const winRate = (wonCount + lostCount + completedCount) > 0
-    ? ((wonCount + completedCount) / (wonCount + lostCount + completedCount)) * 100
-    : 0;
-
-  const pipelineCR = totalCount > 0
-    ? ((wonCount + completedCount) / totalCount) * 100
-    : 0;
-
-  const avgWon = wonItems.length > 0 ? wonValue / wonItems.length : 0;
-  const avgLost = lostItems.length > 0 ? lostValue / lostItems.length : 0;
-  const totalValueWon = wonValue;
-
   // Avg days from quote to won — for context explanation
-  const wonJobsForAvg = ytdJobs.filter((j: any) => isWon(j.status) || j.status === "completed");
+  const wonJobsForAvg = ytdJobs.filter((j: any) => isPipelineWin(j.status));
   const avgDaysToClose = wonJobsForAvg.reduce((sum: number, j: any) => {
     const d = parseDealDate(j.dateQuoted);
     if (!d) return sum;
@@ -249,14 +262,14 @@ const DealFlow = () => {
                 <div className="text-fluid-xs text-muted-foreground">Win Rate</div>
                 <div className="font-mono text-fluid-2xl font-semibold text-chart-green">
                   {winRate.toFixed(1)}%
-                  <span title="Win Rate = (Won + Completed) ÷ (Won + Lost + Completed). Measures how often TT wins when a deal reaches a decision, excluding still-active pipeline.">
+                  <span title="Win Rate = (YLW + GRN) ÷ (YLW + GRN + Lost). Measures how often TT wins when a deal reaches a decision, excluding still-active pipeline.">
                     <Info
                       className="text-muted-foreground hover:text-foreground cursor-help transition-colors inline-block ml-1.5 align-middle"
                       size={14}
                     />
                   </span>
                 </div>
-                <div className="text-[11px] text-muted-foreground mt-1">Won &amp; completed ÷ decided deals</div>
+                <div className="text-[11px] text-muted-foreground mt-1">YLW + GRN ÷ decided deals</div>
               </div>
               <div>
                 <div className="text-fluid-xs text-muted-foreground">Pipeline CR</div>
@@ -274,19 +287,19 @@ const DealFlow = () => {
               {/* Other stats */}
               <div>
                 <div className="text-fluid-xs text-muted-foreground">Total Value Won</div>
-                <div className="font-mono text-fluid-2xl font-semibold">{fmt(totalValueWon)}</div>
+                <div className="font-mono text-fluid-2xl font-semibold">{fmt(pipelineWonValue)}</div>
               </div>
               <div>
                 <div className="text-fluid-xs text-muted-foreground">Avg Won Deal</div>
-                <div className="font-mono text-fluid-base">{fmt(avgWon)}</div>
+                <div className="font-mono text-fluid-base">{fmt(avgWonDeal)}</div>
               </div>
               <div>
                 <div className="text-fluid-xs text-muted-foreground">Avg Lost Deal</div>
-                <div className="font-mono text-fluid-base">{fmt(avgLost)}</div>
+                <div className="font-mono text-fluid-base">{fmt(avgLostDeal)}</div>
               </div>
               <div className="col-span-2 pt-2 border-t border-border/40">
                 <div className="text-fluid-xs text-muted-foreground">Total Value Lost</div>
-                <div className="font-mono text-fluid-base text-destructive">{fmt(lostValue)}</div>
+                <div className="font-mono text-fluid-base text-destructive">{fmt(ytdLostValue)}</div>
               </div>
             </div>
           </div>
