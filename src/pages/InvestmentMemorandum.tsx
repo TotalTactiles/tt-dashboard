@@ -727,7 +727,7 @@ export default function ConsultingPage() {
                     {msg.buttons.map((btn) => (
                       <button
                         key={btn}
-                        onClick={() => sendMessage(btn)}
+                        onClick={() => { if (reportMode) { handleReportFlow(btn); } else { sendMessage(btn); } }}
                         disabled={loading}
                         className="px-4 py-1.5 rounded-lg text-sm font-medium border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-40"
                       >
