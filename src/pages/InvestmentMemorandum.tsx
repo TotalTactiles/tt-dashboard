@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, RefreshCw, BrainCircuit } from "lucide-react";
+import { Send, RefreshCw, BrainCircuit, Paperclip } from "lucide-react";
+import * as XLSX from "xlsx";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,38 @@ If the user's message is exactly "Let's Talk", respond only with: "Of course. Wh
 
 When you want to offer the user options, end your response with a new line starting with OPTIONS: followed by the choices comma-separated.
 Example: OPTIONS: Yes, No, Show me the breakdown
-Only use OPTIONS when there are clear discrete choices. Never use OPTIONS for open-ended questions.`;
+Only use OPTIONS when there are clear discrete choices. Never use OPTIONS for open-ended questions.
+
+ACCOUNTING SOFTWARE CONTEXT:
+The business uses Xero as its accounting platform and Google Sheets 
+(TT Business 2026) as its operational financial model.
+
+XERO — you know Xero deeply. When you need data not in your live feed, 
+tell the user exactly what to export and how. Always be specific — 
+report name, date range, export format. Maximum 3 lines of instructions.
+Key Xero exports:
+- P&L: Reports → Profit & Loss → set date range → Export PDF or Excel
+- Expense detail: Reports → Account Transactions → filter Expense accounts → Export Excel
+- Balance Sheet: Reports → Balance Sheet → Export PDF
+- Aged Receivables: Reports → Aged Receivables → Export PDF
+- Cash Summary: Reports → Cash Summary → set period → Export PDF
+- Bank Reconciliation: Reports → Bank Reconciliation Summary → Export
+- GST Return: Reports → Tax → GST Return → Export
+
+GOOGLE SHEETS — TT Business 2026:
+Tabs: QUOTES, REVENUE, CASHFLOW, EXPENSES (EXP SMMRY), STOCK & INVENTORY, qtsSmmry.
+You have live access to most of this data already. Only ask for a Sheets 
+export when your live data is incomplete or figures don't match.
+Export instruction: "Open TT Business 2026 → [TAB NAME] tab → 
+File → Download → Microsoft Excel (.xlsx) → attach here"
+
+WHEN DATA IS MISSING — always tell the user:
+1. Exactly what data you need and why
+2. Where to get it (Xero report name or Sheets tab name)
+3. How to export it in 1-2 sentences max
+4. What format to attach (PDF for review, Excel for data)
+Never ask users to paste large datasets — always guide them to 
+export and attach as a file instead.`;
 
 interface Message {
   role: "user" | "assistant";
@@ -203,6 +235,46 @@ export default function ConsultingPage() {
   const [accountingData, setAccountingData] = useState<any>(null);
   const [accountingDataLoading, setAccountingDataLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [attachedFile, setAttachedFile] = useState<{
+    name: string;
+    type: "pdf" | "excel" | "csv";
+    content: string;
+    size: string;
+  } | null>(null);
+
+  async function handleFileAttach(file: File) {
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+    if (ext === 'pdf') {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        setAttachedFile({ name: file.name, type: "pdf", content: base64, size: `${sizeMB}MB` });
+      };
+      reader.readAsDataURL(file);
+    } else if (['xlsx', 'xls'].includes(ext ?? '')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const csvParts: string[] = [];
+        workbook.SheetNames.forEach(sheetName => {
+          const sheet = workbook.Sheets[sheetName];
+          const csv = XLSX.utils.sheet_to_csv(sheet);
+          if (csv.trim()) csvParts.push(`Sheet: ${sheetName}\n${csv}`);
+        });
+        setAttachedFile({ name: file.name, type: "excel", content: csvParts.join('\n\n'), size: `${sizeMB}MB` });
+      };
+      reader.readAsArrayBuffer(file);
+    } else if (ext === 'csv') {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setAttachedFile({ name: file.name, type: "csv", content: reader.result as string, size: `${sizeMB}MB` });
+      };
+      reader.readAsText(file);
+    }
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -262,11 +334,37 @@ export default function ConsultingPage() {
     setMessages(updated);
     setLoading(true);
     const dataContext = buildDataContext(liveData, investorMetrics, accountingData);
-    const apiMessages = updated.slice(-20).map((m) => ({ role: m.role, content: m.content }));
+    const apiMessages = updated.slice(-20).map((m, idx, arr) => {
+      if (m.role === "user" && idx === arr.length - 1 && attachedFile) {
+        if (attachedFile.type === "pdf") {
+          return {
+            role: "user",
+            content: [
+              {
+                type: "document",
+                source: {
+                  type: "base64",
+                  media_type: "application/pdf",
+                  data: attachedFile.content
+                }
+              },
+              { type: "text", text: m.content }
+            ]
+          };
+        } else {
+          return {
+            role: "user",
+            content: `[Attached file: ${attachedFile.name}]\n\n${attachedFile.content}\n\n---\n${m.content}`
+          };
+        }
+      }
+      return { role: m.role, content: m.content };
+    });
     try {
-      const text = await callAI(SYSTEM_PROMPT + dataContext, apiMessages);
+      const text = await callAI(SYSTEM_PROMPT + dataContext, apiMessages as any);
       const parsed = parseResponseAndButtons(text);
       setMessages((prev) => [...prev, { role: "assistant", content: parsed.content, buttons: parsed.buttons, timestamp: new Date() }]);
+      setAttachedFile(null);
     } catch {
       setMessages((prev) => [...prev, { role: "assistant", content: "Request failed. Check your connection.", timestamp: new Date() }]);
     } finally {
@@ -364,8 +462,43 @@ export default function ConsultingPage() {
           <div ref={bottomRef} />
         </div>
 
+        {/* Attachment chip */}
+        {attachedFile && (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-xs text-primary w-fit max-w-full">
+            <span className="truncate max-w-[260px]">
+              📎 {attachedFile.name} ({attachedFile.size})
+            </span>
+            <button
+              onClick={() => setAttachedFile(null)}
+              className="text-primary/60 hover:text-primary flex-shrink-0"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* Input */}
         <div className="flex gap-2 items-end">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.xlsx,.xls,.csv"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFileAttach(file);
+              e.target.value = '';
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={loading}
+            className="h-[52px] w-[42px] flex-shrink-0 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+            title="Attach PDF, Excel or CSV"
+          >
+            <Paperclip className="w-4 h-4" />
+          </button>
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -377,7 +510,7 @@ export default function ConsultingPage() {
           />
           <Button
             onClick={() => sendMessage()}
-            disabled={loading || !input.trim()}
+            disabled={loading || (!input.trim() && !attachedFile)}
             size="icon"
             className="h-[52px] w-[52px] flex-shrink-0"
           >
