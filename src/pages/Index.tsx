@@ -815,9 +815,8 @@ const DashboardContent = () => {
         
 
           {/* Charts */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
+          <div className="grid grid-cols-1 gap-3 md:gap-4 mb-4 md:mb-6">
             <PortfolioChart adjustedData={adjustedData} adjustments={adjustments} />
-            <SectorAllocationChart />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
@@ -843,7 +842,14 @@ const DashboardContent = () => {
               onAllToggle={handleTableAllToggle}
               invoiceFilter={invoiceFilter}
             />
-            <ExpenseBreakdown goals={goals} activeGoalIds={activeGoalIds} />
+            <div style={{ display: "flex", gap: "24px", alignItems: "flex-start", flexWrap: "wrap" }}>
+              <div style={{ flex: "1 1 55%", minWidth: 0 }}>
+                <ExpenseBreakdown goals={goals} activeGoalIds={activeGoalIds} />
+              </div>
+              <div style={{ flex: "1 1 calc(45% - 24px)", minWidth: 0 }}>
+                <SectorAllocationChart />
+              </div>
+            </div>
           </div>
         </>
       }
