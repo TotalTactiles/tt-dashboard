@@ -83,13 +83,6 @@ const DealFlow = () => {
   const wonValue = wonItems.reduce((a: number, b: any) => a + (Number(b.value) || 0), 0);
 
   // Win/Loss
-  const currentYear = new Date().getFullYear();
-  const ytdJobs = jobs.filter((j: any) => {
-    if (j.status === "lost") return true;
-    const d = parseDealDate(j.dateQuoted);
-    if (!d) return false;
-    return d.getFullYear() === currentYear;
-  });
 
   const pipelineWonJobs = ytdJobs.filter((j: any) => isPipelineWin(j));
   const pipelineWonCount = pipelineWonJobs.length;
