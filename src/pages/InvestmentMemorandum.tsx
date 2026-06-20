@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, RefreshCw, BrainCircuit, Paperclip } from "lucide-react";
+import { Send, RefreshCw, BrainCircuit, Paperclip, FileDown } from "lucide-react";
 import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { Button } from "@/components/ui/button";
