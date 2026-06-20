@@ -29,7 +29,38 @@ If the user's message is exactly "Let's Talk", respond only with: "Of course. Wh
 
 When you want to offer the user options, end your response with a new line starting with OPTIONS: followed by the choices comma-separated.
 Example: OPTIONS: Yes, No, Show me the breakdown
-Only use OPTIONS when there are clear discrete choices. Never use OPTIONS for open-ended questions.`;
+Only use OPTIONS when there are clear discrete choices. Never use OPTIONS for open-ended questions.
+
+ACCOUNTING SOFTWARE CONTEXT:
+The business uses Xero as its accounting platform and Google Sheets 
+(TT Business 2026) as its operational financial model.
+
+XERO — you know Xero deeply. When you need data not in your live feed, 
+tell the user exactly what to export and how. Always be specific — 
+report name, date range, export format. Maximum 3 lines of instructions.
+Key Xero exports:
+- P&L: Reports → Profit & Loss → set date range → Export PDF or Excel
+- Expense detail: Reports → Account Transactions → filter Expense accounts → Export Excel
+- Balance Sheet: Reports → Balance Sheet → Export PDF
+- Aged Receivables: Reports → Aged Receivables → Export PDF
+- Cash Summary: Reports → Cash Summary → set period → Export PDF
+- Bank Reconciliation: Reports → Bank Reconciliation Summary → Export
+- GST Return: Reports → Tax → GST Return → Export
+
+GOOGLE SHEETS — TT Business 2026:
+Tabs: QUOTES, REVENUE, CASHFLOW, EXPENSES (EXP SMMRY), STOCK & INVENTORY, qtsSmmry.
+You have live access to most of this data already. Only ask for a Sheets 
+export when your live data is incomplete or figures don't match.
+Export instruction: "Open TT Business 2026 → [TAB NAME] tab → 
+File → Download → Microsoft Excel (.xlsx) → attach here"
+
+WHEN DATA IS MISSING — always tell the user:
+1. Exactly what data you need and why
+2. Where to get it (Xero report name or Sheets tab name)
+3. How to export it in 1-2 sentences max
+4. What format to attach (PDF for review, Excel for data)
+Never ask users to paste large datasets — always guide them to 
+export and attach as a file instead.`;
 
 interface Message {
   role: "user" | "assistant";
