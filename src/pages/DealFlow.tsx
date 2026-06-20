@@ -74,7 +74,12 @@ const DealFlow = () => {
   const wonValue = wonItems.reduce((a: number, b: any) => a + (Number(b.value) || 0), 0);
 
   // Win/Loss
-  const ytdJobs = jobs;
+  const currentYear = new Date().getFullYear();
+  const ytdJobs = jobs.filter((j: any) => {
+    const d = parseDealDate(j.dateQuoted);
+    if (!d) return false;
+    return d.getFullYear() === currentYear;
+  });
   const wonCount = ytdJobs.filter((j: any) => isWon(j.status)).length;
   const lostCount = ytdJobs.filter((j: any) => isLost(j.status)).length;
   const completedCount = ytdJobs.filter((j: any) => j.status === "completed").length;
@@ -172,6 +177,9 @@ const DealFlow = () => {
           <h1 className="text-fluid-2xl font-semibold tracking-tight">Deal Flow</h1>
           <p className="text-fluid-sm text-muted-foreground mt-1">
             Commercial intelligence — pipeline, win/loss, velocity &amp; cash conversion
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {ytdJobs.length} deals · YTD {currentYear}
           </p>
         </motion.div>
 
