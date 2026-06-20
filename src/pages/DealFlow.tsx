@@ -65,7 +65,7 @@ const DealFlow = () => {
   }, [jobs]);
 
   const stageStats = STAGES.map(s => {
-    const items = byStage[s.key] ?? [];
+    const items = byStage[norm(s.key)] ?? [];
     const value = items.reduce((a, b) => a + (Number(b.value) || 0), 0);
     return { ...s, count: items.length, value };
   });
