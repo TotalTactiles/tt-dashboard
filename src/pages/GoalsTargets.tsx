@@ -115,7 +115,7 @@ const GoalsTargets = () => {
           </Button>
         </div>
 
-        <GoalProgressChart goals={filteredGoals} />
+        <GoalProgressChart goals={filteredGoals} monthlyExpenses={activeMonthlyExpenses} />
 
         <div className="stat-card p-3">
           <div className="flex items-center justify-between">
