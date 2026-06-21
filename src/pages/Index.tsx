@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { RefreshCw } from "lucide-react";
 import {
   ComposedChart, Bar, Line, ReferenceLine, XAxis, YAxis,
@@ -37,6 +37,8 @@ const TOOLTIP_STYLE = {
   borderRadius: "8px",
   fontSize: "12px",
 } as const;
+
+const CACHE_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
 
 const GpTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
@@ -113,17 +115,13 @@ function RevGpNetDebtChart({
 
 function MonthlyGpVsTargetChart({
   incomeOutgoingsData,
+  gpTarget,
+  onGpTargetChange,
 }: {
   incomeOutgoingsData: Array<{ month: string; income: number; outgoings: number }>;
+  gpTarget: number;
+  onGpTargetChange: (v: number) => void;
 }) {
-  const [gpTarget, setGpTarget] = useState<number>(() => {
-    try {
-      const raw = localStorage.getItem("tt_gp_monthly_target");
-      if (raw) return Number(raw) || 30000;
-    } catch {}
-    return 30000;
-  });
-
   const data = useMemo(
     () => incomeOutgoingsData.map((r) => ({
       month: r.month,
@@ -134,8 +132,7 @@ function MonthlyGpVsTargetChart({
 
   const handleTargetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = Number(e.target.value) || 0;
-    setGpTarget(v);
-    try { localStorage.setItem("tt_gp_monthly_target", String(v)); } catch {}
+    onGpTargetChange(v);
   };
 
   return (
@@ -277,6 +274,36 @@ const DashboardContent = () => {
       return next;
     });
   };
+
+  // ── GP target — synced via webhook cache ─────────────────────────
+  const [gpTarget, setGpTarget] = useState(30000);
+  const isFirstLoad = useRef(true);
+
+  useEffect(() => {
+    fetch(CACHE_WEBHOOK)
+      .then((r) => r.json())
+      .then((rows: any[]) => {
+        const row = rows.find((r) => r.key === "gp_monthly_target");
+        if (row) setGpTarget(parseFloat(row.value) || 30000);
+      })
+      .catch(() => {
+        const saved = localStorage.getItem("tt_gp_monthly_target");
+        if (saved) setGpTarget(parseFloat(saved) || 30000);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (isFirstLoad.current) {
+      isFirstLoad.current = false;
+      return;
+    }
+    fetch(CACHE_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "gp_monthly_target", value: String(gpTarget) }),
+    }).catch(() => {});
+    localStorage.setItem("tt_gp_monthly_target", String(gpTarget));
+  }, [gpTarget]);
 
   // ── Compute date windows from real current date ──────────────────
   const investorDateWindows = useMemo(() => {
@@ -1000,7 +1027,7 @@ const DashboardContent = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
             <RevGpNetDebtChart incomeOutgoingsData={incomeOutgoingsData} forecastChartData={forecastChartData} />
-            <MonthlyGpVsTargetChart incomeOutgoingsData={incomeOutgoingsData} />
+            <MonthlyGpVsTargetChart incomeOutgoingsData={incomeOutgoingsData} gpTarget={gpTarget} onGpTargetChange={setGpTarget} />
           </div>
 
           <div className="mb-4 md:mb-6">
