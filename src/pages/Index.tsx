@@ -160,8 +160,8 @@ function MonthlyGpVsTargetChart({
           <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
           <XAxis dataKey="month" tick={{ fill: "#6b7280", fontSize: 11 }} />
           <YAxis tickFormatter={fmtKAxis} tick={{ fill: "#6b7280", fontSize: 11 }} />
-          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => fmtAUD(v as number)} />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Tooltip content={<GpTooltip />} />
+          <Legend wrapperStyle={{ color: "#e2e8f0", fontSize: "12px", paddingTop: "8px" }} />
           <ReferenceLine
             y={gpTarget}
             stroke="#f59e0b"
