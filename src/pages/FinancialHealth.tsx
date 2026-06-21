@@ -228,22 +228,22 @@ const FinancialHealth = () => {
             </Button>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+          <div className="w-full overflow-x-auto">
+            <table className="w-full min-w-[900px] text-sm">
               <thead>
                 <tr className="text-left text-muted-foreground border-b border-border">
-                  <th className="py-2 px-2 font-medium w-6"></th>
-                  <th className="py-2 px-2 font-medium">Facility</th>
-                  <th className="py-2 px-2 font-medium">Lender</th>
-                  <th className="py-2 px-2 font-medium">Type</th>
-                  <th className="py-2 px-2 font-medium text-right">Original</th>
-                  <th className="py-2 px-2 font-medium text-right">Balance</th>
-                  <th className="py-2 px-2 font-medium text-right">Rate %</th>
-                  <th className="py-2 px-2 font-medium text-right">Monthly</th>
-                  <th className="py-2 px-2 font-medium">Start</th>
-                  <th className="py-2 px-2 font-medium">Maturity</th>
-                  <th className="py-2 px-2 font-medium">Purpose</th>
-                  <th className="py-2 px-2 font-medium text-right">Actions</th>
+                  <th className="py-2 px-2 font-medium w-8 shrink-0 whitespace-nowrap"></th>
+                  <th className="py-2 px-2 font-medium text-left whitespace-nowrap">Facility</th>
+                  <th className="py-2 px-2 font-medium text-left whitespace-nowrap">Lender</th>
+                  <th className="py-2 px-2 font-medium text-left whitespace-nowrap">Type</th>
+                  <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Original</th>
+                  <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Balance</th>
+                  <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Rate %</th>
+                  <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Monthly</th>
+                  <th className="py-2 px-2 font-medium text-left whitespace-nowrap">Start</th>
+                  <th className="py-2 px-2 font-medium text-left whitespace-nowrap">Maturity</th>
+                  <th className="py-2 px-2 font-medium text-left whitespace-nowrap">Purpose</th>
+                  <th className="py-2 px-2 font-medium text-right w-[80px] shrink-0 whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="font-mono">
@@ -273,20 +273,20 @@ const FinancialHealth = () => {
                       onDragEnd={() => { setDragOverIndex(null); dragIndexRef.current = null; }}
                       className={`border-b border-border/40 hover:bg-muted/20 ${dragOverIndex === index ? "opacity-50" : ""}`}
                     >
-                      <td className="py-1.5 px-2">
+                      <td className="py-1.5 px-2 w-8 shrink-0 whitespace-nowrap">
                         <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
                       </td>
-                      <td className="py-1.5 px-2">
+                      <td className="py-1.5 px-2 text-left whitespace-nowrap">
                         {isEditing ? (
                           <Input value={row.name} onChange={(e) => updateDraft("name", e.target.value)} className="h-7 text-xs" />
                         ) : row.name}
                       </td>
-                      <td className="py-1.5 px-2">
+                      <td className="py-1.5 px-2 text-left whitespace-nowrap">
                         {isEditing ? (
                           <Input value={row.lender} onChange={(e) => updateDraft("lender", e.target.value)} className="h-7 text-xs" />
                         ) : row.lender || "—"}
                       </td>
-                      <td className="py-1.5 px-2">
+                      <td className="py-1.5 px-2 text-left whitespace-nowrap">
                         {isEditing ? (
                           <Select value={row.type} onValueChange={(v) => updateDraft("type", v as DebtType)}>
                             <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
@@ -296,37 +296,37 @@ const FinancialHealth = () => {
                           </Select>
                         ) : row.type}
                       </td>
-                      <td className="py-1.5 px-2 text-right">
+                      <td className="py-1.5 px-2 text-right whitespace-nowrap">
                         {isEditing ? (
                           <Input type="number" value={row.originalPrincipal} onChange={(e) => updateDraft("originalPrincipal", Number(e.target.value))} className="h-7 text-xs text-right" />
                         ) : fmtCurrency(row.originalPrincipal)}
                       </td>
-                      <td className="py-1.5 px-2 text-right">
+                      <td className="py-1.5 px-2 text-right whitespace-nowrap">
                         {isEditing ? (
                           <Input type="number" value={row.balance} onChange={(e) => updateDraft("balance", Number(e.target.value))} className="h-7 text-xs text-right" />
                         ) : fmtCurrency(row.balance)}
                       </td>
-                      <td className="py-1.5 px-2 text-right">
+                      <td className="py-1.5 px-2 text-right whitespace-nowrap">
                         {isEditing ? (
                           <Input type="number" step="0.01" value={row.rate} onChange={(e) => updateDraft("rate", Number(e.target.value))} className="h-7 text-xs text-right" />
                         ) : `${(row.rate || 0).toFixed(2)}%`}
                       </td>
-                      <td className="py-1.5 px-2 text-right">
+                      <td className="py-1.5 px-2 text-right whitespace-nowrap">
                         {isEditing ? (
                           <Input type="number" value={row.monthlyRepayment} onChange={(e) => updateDraft("monthlyRepayment", Number(e.target.value))} className="h-7 text-xs text-right" />
                         ) : fmtCurrency(row.monthlyRepayment)}
                       </td>
-                      <td className="py-1.5 px-2">
+                      <td className="py-1.5 px-2 text-left whitespace-nowrap">
                         {isEditing ? (
                           <Input type="date" value={row.startDate} onChange={(e) => updateDraft("startDate", e.target.value)} className="h-7 text-xs" />
                         ) : row.startDate || "—"}
                       </td>
-                      <td className="py-1.5 px-2">
+                      <td className="py-1.5 px-2 text-left whitespace-nowrap">
                         {isEditing ? (
                           <Input type="date" value={row.maturityDate} onChange={(e) => updateDraft("maturityDate", e.target.value)} className="h-7 text-xs" />
                         ) : row.maturityDate || "—"}
                       </td>
-                      <td className="py-1.5 px-2">
+                      <td className="py-1.5 px-2 text-left whitespace-nowrap">
                         {isEditing ? (
                           <Select value={row.purpose} onValueChange={(v) => updateDraft("purpose", v as DebtPurpose)}>
                             <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
@@ -336,7 +336,7 @@ const FinancialHealth = () => {
                           </Select>
                         ) : row.purpose}
                       </td>
-                      <td className="py-1.5 px-2">
+                      <td className="py-1.5 px-2 w-[80px] shrink-0 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-1">
                           {isEditing ? (
                             <>
@@ -361,24 +361,27 @@ const FinancialHealth = () => {
                   );
                 })}
                 {debts.length === 0 && (
-                  <tr><td colSpan={12} className="py-6 text-center text-muted-foreground">No facilities. Click "Add Facility" to start.</td></tr>
+                  <tr><td colSpan={12} className="py-6 text-center text-muted-foreground whitespace-nowrap">No facilities. Click "Add Facility" to start.</td></tr>
                 )}
               </tbody>
               {debts.length > 0 && (
                 <tfoot>
                   <tr className="border-t border-border font-mono text-foreground bg-muted/10">
-                    <td className="py-2 px-2 font-semibold" colSpan={4}>Totals</td>
-                    <td className="py-2 px-2 text-right font-semibold">{fmtCurrency(totals.totalPrincipal)}</td>
-                    <td className="py-2 px-2 text-right font-semibold">{fmtCurrency(totals.totalBalance)}</td>
-                    <td className="py-2 px-2 text-right font-semibold">{totals.blendedRate.toFixed(2)}%</td>
-                    <td className="py-2 px-2 text-right font-semibold">{fmtCurrency(totals.totalMonthly)}</td>
-                    <td colSpan={4}></td>
+                    <td className="py-2 px-2 font-semibold whitespace-nowrap w-8 shrink-0"></td>
+                    <td className="py-2 px-2 font-semibold text-left whitespace-nowrap" colSpan={3}>Totals</td>
+                    <td className="py-2 px-2 text-right font-semibold whitespace-nowrap">{fmtCurrency(totals.totalPrincipal)}</td>
+                    <td className="py-2 px-2 text-right font-semibold whitespace-nowrap">{fmtCurrency(totals.totalBalance)}</td>
+                    <td className="py-2 px-2 text-right font-semibold whitespace-nowrap">{totals.blendedRate.toFixed(2)}%</td>
+                    <td className="py-2 px-2 text-right font-semibold whitespace-nowrap">{fmtCurrency(totals.totalMonthly)}</td>
+                    <td colSpan={3} className="whitespace-nowrap"></td>
+                    <td className="w-[80px] shrink-0 whitespace-nowrap"></td>
                   </tr>
                 </tfoot>
               )}
             </table>
           </div>
         </div>
+
 
         {/* SECTION 2: Health Scorecard */}
         <div className="chart-container">
