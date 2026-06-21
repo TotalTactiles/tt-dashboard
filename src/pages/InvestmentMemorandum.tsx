@@ -649,7 +649,8 @@ export default function ConsultingPage() {
       setAccountingDataLoading(true);
       try {
         const res = await fetch(ACCOUNTING_DATA_WEBHOOK);
-        const data = await res.json();
+        const raw = await res.json();
+        const data = Array.isArray(raw) ? raw[0] : raw;
         if (!cancelled) setAccountingData(data);
         console.log('[ACCOUNTANT DEBUG] accountingData keys:', Object.keys(data ?? {}));
         console.log('[ACCOUNTANT DEBUG] sheets keys:', Object.keys(data?.sheets ?? {}));
