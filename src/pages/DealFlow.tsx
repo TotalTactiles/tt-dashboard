@@ -180,7 +180,12 @@ const DealFlow = () => {
         const d = parseDealDate(j.dateQuoted);
         if (!d) return null;
         const days = Math.floor((today.getTime() - d.getTime()) / 86400000);
-        return { ...j, daysOld: days };
+        return {
+          ...j,
+          daysOld: days,
+          projectName: j["Project Name"] ?? j._project ?? "",
+          companyName: j["Company Name"] ?? j._company ?? "",
+        };
       })
       .filter((j: any) => j && j.daysOld > 21)
       .sort((a: any, b: any) => b.daysOld - a.daysOld);
