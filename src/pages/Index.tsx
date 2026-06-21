@@ -115,17 +115,13 @@ function RevGpNetDebtChart({
 
 function MonthlyGpVsTargetChart({
   incomeOutgoingsData,
+  gpTarget,
+  onGpTargetChange,
 }: {
   incomeOutgoingsData: Array<{ month: string; income: number; outgoings: number }>;
+  gpTarget: number;
+  onGpTargetChange: (v: number) => void;
 }) {
-  const [gpTarget, setGpTarget] = useState<number>(() => {
-    try {
-      const raw = localStorage.getItem("tt_gp_monthly_target");
-      if (raw) return Number(raw) || 30000;
-    } catch {}
-    return 30000;
-  });
-
   const data = useMemo(
     () => incomeOutgoingsData.map((r) => ({
       month: r.month,
@@ -136,8 +132,7 @@ function MonthlyGpVsTargetChart({
 
   const handleTargetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = Number(e.target.value) || 0;
-    setGpTarget(v);
-    try { localStorage.setItem("tt_gp_monthly_target", String(v)); } catch {}
+    onGpTargetChange(v);
   };
 
   return (
