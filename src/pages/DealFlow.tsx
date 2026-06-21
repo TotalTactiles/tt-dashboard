@@ -72,7 +72,7 @@ const DealFlow = () => {
   const stageStats = STAGES.map(s => {
     let items;
     if (s.key === "won") {
-      items = jobs.filter((j: any) => isPipelineWin(j));
+      items = jobs.filter((j: any) => j.status === "won" && !String(j.rawStatus ?? "").toLowerCase().includes("completed"));
     } else {
       items = byStatus[s.key as keyof typeof byStatus] ?? [];
     }
