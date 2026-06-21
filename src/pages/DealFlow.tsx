@@ -181,7 +181,11 @@ const DealFlow = () => {
         return !["Completed", "Lost/Dead", "PO Received (GRN)"].includes(status);
       })
       .map((j: any) => {
-        const d = parseDealDate(j["Date Created"] ?? j["Last Updated"] ?? "");
+        const zohoMatch = (quotedJobs ?? []).find((q: any) =>
+          q["Job/Lead ID (Zoho)"] === j["Job/Lead ID (Zoho)"] ||
+          q.zohoId === j["Job/Lead ID (Zoho)"]
+        );
+        const d = parseDealDate(zohoMatch?.dateQuoted ?? j["Date Created"] ?? j["Estimated Job Date"] ?? "");
         if (!d) return null;
         const days = Math.floor((today.getTime() - d.getTime()) / 86400000);
         return {
