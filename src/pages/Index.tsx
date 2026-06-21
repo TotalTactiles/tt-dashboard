@@ -101,6 +101,120 @@ const GpBarTooltip = ({ active, payload, label }: any) => {
   );
 };
 
+function WinLossSummaryCard({
+  quotedJobs,
+  index,
+  view,
+  onViewChange,
+}: {
+  quotedJobs: Array<{ status: string; value: number }>;
+  index: number;
+  view: "won" | "lost";
+  onViewChange: (v: "won" | "lost") => void;
+}) {
+  const wonJobs = quotedJobs.filter((j) => j.status === "won");
+  const lostJobs = quotedJobs.filter((j) => j.status === "lost");
+  const totalJobs = quotedJobs.length;
+
+  const wonTotal = wonJobs.reduce((s, j) => s + (j.value || 0), 0);
+  const lostTotal = lostJobs.reduce((s, j) => s + (j.value || 0), 0);
+
+  const wonCount = wonJobs.length;
+  const lostCount = lostJobs.length;
+
+  const avgWon = wonCount > 0 ? wonTotal / wonCount : 0;
+  const avgLost = lostCount > 0 ? lostTotal / lostCount : 0;
+
+  const isWon = view === "won";
+  const totalValue = isWon ? wonTotal : lostTotal;
+  const avgValue = isWon ? avgWon : avgLost;
+  const count = isWon ? wonCount : lostCount;
+  const totalLabel = isWon ? "TOTAL VALUE WON" : "TOTAL VALUE LOST";
+  const avgLabel = isWon ? "AVG WON DEAL" : "AVG LOST DEAL";
+  const valueColor = isWon ? "text-chart-green" : "text-red-400";
+  const barColor = isWon ? "bg-chart-green" : "bg-red-400";
+  const barWidth = totalJobs > 0 ? `${(count / totalJobs) * 100}%` : "0%";
+  const countLabel = isWon ? `${count} won jobs` : `${count} lost jobs`;
+
+  const fmtCompact = (n: number) => {
+    const abs = Math.abs(n);
+    if (abs >= 1_000_000) return `$${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `$${(abs / 1_000).toFixed(1)}K`;
+    return `$${Math.round(abs).toLocaleString()}`;
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+      className="stat-card relative overflow-hidden flex flex-col gap-0.5"
+      style={{ minHeight: "100px", containerType: 'inline-size' }}
+    >
+      {/* Header row */}
+      <div className="flex items-center justify-between gap-1" style={{ minWidth: 0 }}>
+        <p
+          className="font-mono text-muted-foreground font-medium"
+          style={{
+            fontSize: 'clamp(0.5rem, 1.8cqi, 0.65rem)',
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            minWidth: 0,
+            maxWidth: '100%',
+          }}
+        >
+          WIN / LOSS SUMMARY
+        </p>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onViewChange("won")}
+            className={`text-xs px-2 py-0.5 rounded-full font-medium cursor-pointer ${view === "won" ? "bg-chart-green text-black" : "bg-white/10 text-muted-foreground hover:bg-white/20"}`}
+          >
+            Won
+          </button>
+          <button
+            onClick={() => onViewChange("lost")}
+            className={`text-xs px-2 py-0.5 rounded-full font-medium cursor-pointer ${view === "lost" ? "bg-chart-green text-black" : "bg-white/10 text-muted-foreground hover:bg-white/20"}`}
+          >
+            Lost
+          </button>
+        </div>
+      </div>
+
+      {/* Top metric */}
+      <div className="mt-1">
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">{totalLabel}</p>
+        <p className={`text-2xl font-bold font-mono ${valueColor}`}>{fmtCompact(totalValue)}</p>
+      </div>
+
+      {/* Divider */}
+      <div className="h-px bg-white/10 my-1" />
+
+      {/* Bottom metric */}
+      <div>
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">{avgLabel}</p>
+        <p className="text-lg font-mono font-semibold text-foreground">{fmtCompact(avgValue)}</p>
+      </div>
+
+      {/* Count text */}
+      <p className="text-[10px] text-muted-foreground font-mono mt-auto">{countLabel}</p>
+
+      {/* Progress bar */}
+      <div className="mt-1.5 h-[3px] bg-secondary rounded-full overflow-hidden">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: barWidth }}
+          transition={{ duration: 1, delay: 0.5 + index * 0.1 }}
+          className={`h-full rounded-full ${barColor}`}
+        />
+      </div>
+    </motion.div>
+  );
+}
+
 function RevGpNetDebtChart({
   incomeOutgoingsData,
   forecastChartData,
