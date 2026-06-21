@@ -51,15 +51,15 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
-        <div className={`p-4 ${collapsed ? "px-2" : ""}`}>
+        <div className={`p-4 sidebar-dot-pattern ${collapsed ? "px-2" : ""}`}>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-mono font-bold text-sm">TT</span>
+            <div className="w-8 h-8 rounded-sm bg-primary flex items-center justify-center">
+              <span className="text-primary-foreground font-mono font-bold text-sm tracking-tight">TT</span>
             </div>
             {!collapsed &&
             <div>
-                <p className="text-sm font-semibold text-foreground">Total Tactiles</p>
-                <p className="text-[10px] text-muted-foreground font-mono">Operations Dashboard</p>
+                <p className="text-sm font-mono font-bold tracking-wider text-foreground uppercase">Total Tactiles</p>
+                <p className="text-[9px] text-muted-foreground font-mono tracking-widest uppercase">Ops Dashboard</p>
               </div>
             }
           </div>
@@ -93,8 +93,8 @@ export function AppSidebar() {
             <div className="stat-card !p-3">
               <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">Live Feed</p>
               <div className="flex items-center gap-2 mt-1">
-                <span className="pulse-dot bg-chart-green" />
-                <span className="text-xs text-muted-foreground">3 sources connected</span>
+                <span className="pulse-dot bg-primary" />
+                <span className="text-xs text-muted-foreground">Live · Syncing</span>
               </div>
             </div>
           </div>
