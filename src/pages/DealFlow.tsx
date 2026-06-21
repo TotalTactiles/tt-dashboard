@@ -95,6 +95,21 @@ const DealFlow = () => {
   const pipelineWonCount = pipelineWonJobs.length;
   const pipelineWonValue = pipelineWonJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
 
+  const wonAndCompleted = (liveData?.quotes ?? []).filter((j: any) =>
+    j["Current Status"] === "PO Received (GRN)" ||
+    j["Current Status"] === "Completed"
+  );
+
+  const avgWonDeal = wonAndCompleted.length > 0
+    ? wonAndCompleted.reduce((s: number, j: any) =>
+        s + (parseFloat(String(j["Contract Value ($)"] ?? j._value ?? "0").replace(/[^0-9.-]/g, "")) || 0), 0
+      ) / wonAndCompleted.length
+    : 0;
+
+  const totalValueWon = wonAndCompleted.reduce((s: number, j: any) =>
+    s + (parseFloat(String(j["Contract Value ($)"] ?? j._value ?? "0").replace(/[^0-9.-]/g, "")) || 0), 0
+  );
+
   const lostJobs = jobs.filter((j: any) => isLost(j.status));
   const lostCount = lostJobs.length;
   const ytdLostValue = lostJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
@@ -108,7 +123,6 @@ const DealFlow = () => {
     ? (pipelineWonCount / jobs.length) * 100
     : 0;
 
-  const avgWonDeal = pipelineWonCount > 0 ? pipelineWonValue / pipelineWonCount : 0;
   const avgLostDeal = lostCount > 0 ? ytdLostValue / lostCount : 0;
 
   const pendingCount = jobs.filter((j: any) => isActive(j.status)).length;
