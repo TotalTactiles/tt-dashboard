@@ -699,4 +699,150 @@ const ChartsSection = ({
   );
 };
 
+// ---------- Scorecard Detail Panel ----------
+
+interface ScorecardDetailPanelProps {
+  activeTile: string | null;
+  onClose: () => void;
+  metrics: { name: string; value: string; rag: "green" | "amber" | "red" | "none" }[];
+  grossProfitYTD: number;
+  annualInterestCost: number;
+  totalMonthlyRepayment: number;
+  totalDebt: number;
+  revenueExGST: number;
+  recentSurplus: number;
+}
+
+const Pill = ({ label, value }: { label: string; value: string }) => (
+  <div className="bg-white/5 rounded-lg px-3 py-2">
+    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
+    <p className="text-sm font-mono font-semibold text-foreground">{value}</p>
+  </div>
+);
+
+const ScorecardDetailPanel = ({
+  activeTile, onClose, metrics,
+  grossProfitYTD, annualInterestCost, totalMonthlyRepayment,
+  totalDebt, revenueExGST, recentSurplus,
+}: ScorecardDetailPanelProps) => {
+  const fmt = (n: number) => `$${(n || 0).toLocaleString("en-AU", { maximumFractionDigits: 0 })}`;
+  const annualRepay = totalMonthlyRepayment * 12;
+  const metric = metrics.find((m) => m.name === activeTile);
+
+  const buildContent = () => {
+    switch (activeTile) {
+      case "Interest Coverage":
+        return {
+          title: "Interest Coverage Ratio — What It Means",
+          formula: "Gross Profit YTD ÷ Annual Interest Cost",
+          explanation: "Measures how many times over your gross profit can cover your annual interest bill. For every $1 of interest you owe, the business generates this much gross profit. Lenders want to see above 2.5x.",
+          pills: [
+            { label: "GP YTD", value: fmt(grossProfitYTD) },
+            { label: "Annual Interest", value: fmt(annualInterestCost) },
+            { label: "Ratio", value: metric?.value || "--" },
+          ],
+          verdict: "✓ Strong. No serviceability concern on interest alone.",
+          verdictColor: "text-chart-green",
+        };
+      case "Debt Service Coverage":
+        return {
+          title: "Debt Service Coverage Ratio (DSCR) — What It Means",
+          formula: "Gross Profit YTD ÷ Total Annual Repayments",
+          explanation: "Unlike interest coverage, DSCR includes the full repayment — principal + interest. Banks use this to determine if they'll lend more. Above 1.5x is acceptable; above 2x is comfortable; above 3x is strong.",
+          pills: [
+            { label: "GP YTD", value: fmt(grossProfitYTD) },
+            { label: "Annual Repayments", value: fmt(annualRepay) },
+            { label: "Ratio", value: metric?.value || "--" },
+          ],
+          verdict: "✓ Strong. You'd likely qualify for additional lending on these numbers.",
+          verdictColor: "text-chart-green",
+        };
+      case "Debt-to-Revenue":
+        return {
+          title: "Debt-to-Revenue — What It Means",
+          formula: "Total Debt ÷ Revenue YTD (ex GST) × 100",
+          explanation: "Shows how much debt the business is carrying relative to what it earns. The 40% benchmark is conservative and designed for stable businesses — contracting businesses with secured assets commonly run 50–80%.",
+          pills: [
+            { label: "Total Debt", value: fmt(totalDebt) },
+            { label: "Revenue ex GST", value: fmt(revenueExGST) },
+            { label: "Ratio", value: metric?.value || "--" },
+          ],
+          verdict: "⚠ Above benchmark but not a concern at this stage of growth. Watch as revenue scales.",
+          verdictColor: "text-yellow-500",
+        };
+      case "Debt-to-Gross-Profit":
+        return {
+          title: "Debt-to-Gross-Profit — What It Means",
+          formula: "Total Debt ÷ Gross Profit YTD × 100",
+          explanation: "How many years of gross profit would it take to pay off all debt entirely — assuming zero other expenses. This is a medium-term sustainability indicator.",
+          pills: [
+            { label: "Total Debt", value: fmt(totalDebt) },
+            { label: "GP YTD", value: fmt(grossProfitYTD) },
+            { label: "Ratio", value: metric?.value || "--" },
+          ],
+          verdict: "⚠ Manageable. Target is to get this below 75% as GP grows.",
+          verdictColor: "text-yellow-500",
+        };
+      case "Cash Cover":
+        return {
+          title: "Cash Cover — What It Means",
+          formula: "Current Month Anticipated Surplus ÷ Monthly Repayments",
+          explanation: "How many months of debt repayments are covered by this month's anticipated cash surplus alone. This is the most important day-to-day solvency indicator.",
+          pills: [
+            { label: "Current Surplus", value: fmt(recentSurplus) },
+            { label: "Monthly Repayments", value: fmt(totalMonthlyRepayment) },
+            { label: "Months Cover", value: metric?.value || "--" },
+          ],
+          verdict: "✓ Exceptional. The business has significant buffer above its debt commitments.",
+          verdictColor: "text-chart-green",
+        };
+      case "Repayment Burden":
+        return {
+          title: "Repayment Burden — What It Means",
+          formula: "(Monthly Repayments × 12) ÷ Gross Profit YTD × 100",
+          explanation: "What percentage of annual gross profit is consumed by debt repayments — before any operating expenses or drawings. The 20% benchmark is a guide.",
+          pills: [
+            { label: "Annual Repayments", value: fmt(annualRepay) },
+            { label: "GP YTD", value: fmt(grossProfitYTD) },
+            { label: "Burden %", value: metric?.value || "--" },
+          ],
+          verdict: "⚠ Just above benchmark. Consider whether new debt facilities would push this above 35%.",
+          verdictColor: "text-yellow-500",
+        };
+      default:
+        return null;
+    }
+  };
+
+  const content = buildContent();
+
+  return (
+    <div
+      className={`transition-all duration-300 overflow-hidden ${activeTile && content ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"}`}
+    >
+      {content && (
+        <div className="bg-white/[0.03] border border-white/10 rounded-xl p-5 mt-3 relative">
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 p-1 rounded hover:bg-white/10 text-muted-foreground"
+            aria-label="Close"
+          >
+            <X className="w-4 h-4" />
+          </button>
+          <p className="text-sm font-semibold text-foreground mb-1 pr-8">{content.title}</p>
+          <p className="font-mono text-xs bg-white/5 px-3 py-1.5 rounded inline-block mb-3 text-chart-green">
+            {content.formula}
+          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed mb-3">{content.explanation}</p>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {content.pills.map((p) => <Pill key={p.label} label={p.label} value={p.value} />)}
+          </div>
+          <p className={`text-sm font-medium ${content.verdictColor}`}>{content.verdict}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default FinancialHealth;
+
