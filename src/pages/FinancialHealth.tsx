@@ -56,6 +56,7 @@ const FinancialHealth = () => {
   const [draft, setDraft] = useState<DebtFacility | null>(null);
   const dragIndexRef = useRef<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [activeTile, setActiveTile] = useState<string | null>(null);
 
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(debts)); } catch {}
