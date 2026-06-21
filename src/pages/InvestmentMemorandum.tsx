@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, RefreshCw, BrainCircuit, Paperclip } from "lucide-react";
+import { Send, RefreshCw, BrainCircuit, Paperclip, Crown } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -336,11 +336,42 @@ ${expItems.map((r: any) => {
     : "\n\n(No live data currently available — answer based on user-provided information only)";
 }
 
-async function callAI(system: string, messages: { role: string; content: string }[]): Promise<string> {
+type AdvisorMode = "accountant" | "financier" | "consigliere";
+
+function readDebtRegister(): any[] {
+  try {
+    const raw = localStorage.getItem("tt_debt_register");
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch { return []; }
+}
+
+function computeDebtTotals(register: any[]) {
+  let totalDebt = 0;
+  let totalMonthlyRepayment = 0;
+  let weighted = 0;
+  for (const d of register) {
+    const bal = parseFloat(String(d?.balanceOutstanding ?? d?.balance ?? 0)) || 0;
+    const repay = parseFloat(String(d?.monthlyRepayment ?? d?.repayment ?? 0)) || 0;
+    const rate = parseFloat(String(d?.interestRate ?? d?.rate ?? 0)) || 0;
+    totalDebt += bal;
+    totalMonthlyRepayment += repay;
+    weighted += bal * rate;
+  }
+  const blendedRate = totalDebt > 0 ? weighted / totalDebt : 0;
+  return { totalDebt, totalMonthlyRepayment, blendedRate };
+}
+
+async function callAI(
+  system: string,
+  messages: { role: string; content: string }[],
+  extra: { message: string; mode: AdvisorMode; context: Record<string, any> }
+): Promise<string> {
   const response = await fetch(WEBHOOK_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ system, messages }),
+    body: JSON.stringify({ system, messages, ...extra }),
   });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const data = await response.json();
@@ -351,16 +382,28 @@ async function callAI(system: string, messages: { role: string; content: string 
   return text;
 }
 
-const WELCOME_MESSAGE: Message = {
-  role: "assistant",
-  content: "Welcome. I have access to your live financial data. How would you like to proceed?",
-  timestamp: new Date(),
-  buttons: ["Financial Review", "Let's Talk"],
+const WELCOME_BY_MODE: Record<AdvisorMode, string> = {
+  accountant: "G'day. Accountant mode — I'm focused on your numbers. Tax obligations, cashflow health, expense analysis, ATO compliance, and financial reporting. What do you need?",
+  financier: "Financier mode. I have your debt register and cashflow data loaded. Ask me about refinancing, debt capacity, equity position, stress testing, or capital strategy.",
+  consigliere: "The Consigliere is ready. I see everything — your books, your debt, your pipeline, your cashflow. Ask me anything. I'll give you the answer your accountant and banker would give if they were the same person.",
 };
+
+function welcomeFor(mode: AdvisorMode): Message {
+  const isAccountant = mode === "accountant";
+  return {
+    role: "assistant",
+    content: WELCOME_BY_MODE[mode],
+    timestamp: new Date(),
+    buttons: isAccountant ? ["Financial Review", "Let's Talk"] : undefined,
+  };
+}
+
+const WELCOME_MESSAGE: Message = welcomeFor("consigliere");
 
 export default function ConsultingPage() {
   const { liveData, investorMetrics, hasLiveData } = useDashboardData() as any;
-  const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
+  const [advisorMode, setAdvisorMode] = useState<AdvisorMode>("consigliere");
+  const [messages, setMessages] = useState<Message[]>([welcomeFor("consigliere")]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [accountingData, setAccountingData] = useState<any>(null);
@@ -875,7 +918,21 @@ export default function ConsultingPage() {
       return { role: m.role, content: m.content };
     });
     try {
-      const text = await callAI(SYSTEM_PROMPT + dataContext, apiMessages as any);
+      const debtRegister = readDebtRegister();
+      const debtTotals = computeDebtTotals(debtRegister);
+      const text = await callAI(SYSTEM_PROMPT + dataContext, apiMessages as any, {
+        message: trimmed,
+        mode: advisorMode,
+        context: {
+          source: "consigliere",
+          mode: advisorMode,
+          debtRegister,
+          debtTotals,
+          liveData,
+          investorMetrics,
+          accountingData,
+        },
+      });
       const parsed = parseResponseAndButtons(text);
       setMessages((prev) => [...prev, { role: "assistant", content: parsed.content, buttons: parsed.buttons, timestamp: new Date() }]);
       setAttachedFile(null);
@@ -887,10 +944,21 @@ export default function ConsultingPage() {
   }
 
   function clearSession() {
-    setMessages([{ ...WELCOME_MESSAGE, timestamp: new Date() }]);
+    setMessages([welcomeFor(advisorMode)]);
   }
 
-  const COMMANDS = [
+  function changeMode(next: AdvisorMode) {
+    if (next === advisorMode) return;
+    setAdvisorMode(next);
+    setMessages([welcomeFor(next)]);
+    setReportMode(false);
+    setReportData({});
+    setInput("");
+    setShowCommandMenu(false);
+    setCommandFilter("");
+  }
+
+  const ACCOUNTANT_COMMANDS = [
     { id: "report-monthly", label: "Generate Monthly Management Report", description: "P&L, Executive Summary, Pipeline — downloadable PDF", icon: "📊" },
     { id: "health-check", label: "Full Financial Health Check", description: "Gross margin, cashflow, pipeline coverage, top risks", icon: "🏥" },
     { id: "breakeven", label: "Break-Even Analysis", description: "Monthly break-even revenue based on current cost structure", icon: "⚖️" },
@@ -900,6 +968,27 @@ export default function ConsultingPage() {
     { id: "margin-analysis", label: "Project Margin Analysis", description: "Best and worst performing projects by gross margin", icon: "📉" },
     { id: "tax-position", label: "Tax Position Summary", description: "GST, income tax and ATO obligations overview", icon: "🧾" },
   ];
+
+  const FINANCIER_COMMANDS = [
+    { id: "fin-debt-capacity", label: "Debt Capacity", description: "How much additional debt the business can responsibly carry", icon: "📊" },
+    { id: "fin-refinance", label: "Refinance Analysis", description: "Rate, balance and remaining term across current facilities", icon: "🔄" },
+    { id: "fin-paydown", label: "Pay-Down Priority", description: "Which facility to prioritise paying down and why", icon: "💰" },
+    { id: "fin-stress", label: "Stress Test", description: "Debt serviceability if revenue drops 20%", icon: "⚠️" },
+    { id: "fin-equity", label: "Equity Position", description: "Net equity and debt-to-equity implications", icon: "📈" },
+  ];
+
+  const CONSIGLIERE_COMMANDS = [
+    { id: "con-full-position", label: "Full Position", description: "Complete picture — revenue, debt, cashflow, focus areas", icon: "🎯" },
+    { id: "con-biggest-risk", label: "Biggest Risk", description: "Single biggest financial risk and what to do about it", icon: "⚡" },
+    { id: "con-growth", label: "Growth Capacity", description: "Can we take on more work and more debt? What's the ceiling?", icon: "📊" },
+    { id: "con-lender", label: "Lender View", description: "What a bank would think of our numbers today", icon: "🏦" },
+    { id: "con-real-profit", label: "Real Profit", description: "After all costs, debt, tax and drawings — what we actually keep", icon: "🧮" },
+  ];
+
+  const COMMANDS =
+    advisorMode === "accountant" ? ACCOUNTANT_COMMANDS
+    : advisorMode === "financier" ? FINANCIER_COMMANDS
+    : CONSIGLIERE_COMMANDS;
 
   function selectCommand(cmd: typeof COMMANDS[0]) {
     setShowCommandMenu(false);
@@ -919,6 +1008,16 @@ export default function ConsultingPage() {
       "expense-review": "Give me a full breakdown of our operating expense structure. Identify our top 5 cost categories, flag any that appear unusually high for a business of our revenue size, and identify any reduction opportunities.",
       "margin-analysis": "Analyse all our current projects by gross margin. Show me the top 5 best performers and bottom 5 worst performers with their COGS breakdown. Flag any loss-making projects.",
       "tax-position": "Summarise our current tax position. Based on our revenue and expense data, estimate our GST liability, income tax position, and flag any ATO obligations we should be aware of. Search for current ATO rates if needed.",
+      "fin-debt-capacity": "How much additional debt could the business responsibly take on given current cashflow and GP?",
+      "fin-refinance": "Should we consider refinancing any current facilities? Analyse rate, balance and remaining term.",
+      "fin-paydown": "Which debt facility should we prioritise paying down first and why?",
+      "fin-stress": "What happens to our debt serviceability if revenue drops 20%? Can we still meet repayments?",
+      "fin-equity": "Estimate our net equity position and what the debt-to-equity ratio implies for business health.",
+      "con-full-position": "Give me a complete picture of where the business stands right now — revenue, debt, cashflow, and what I should be focused on.",
+      "con-biggest-risk": "What is the single biggest financial risk to this business right now and what should we do about it?",
+      "con-growth": "Can this business take on more work and more debt right now? What's the ceiling?",
+      "con-lender": "If a bank was looking at our numbers today, what would they think? Would they lend to us?",
+      "con-real-profit": "After all costs, debt, tax and drawings, what is the business actually making and keeping?",
     };
 
     const promptText = prompts[cmd.id] ?? cmd.label;
@@ -934,18 +1033,12 @@ export default function ConsultingPage() {
         <div className="flex items-center justify-between border-b border-border/40 pb-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-              <BrainCircuit className="w-5 h-5 text-primary" />
+              <Crown className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-foreground">Accounting Consultant</h1>
+              <h1 className="text-lg font-semibold text-foreground">The Consigliere</h1>
               <p className="text-xs text-muted-foreground font-mono">
-                {accountingDataLoading
-                  ? "Loading full financial data…"
-                  : accountingData
-                    ? "Full data connected · AUD · GST 10%"
-                    : hasLiveData
-                      ? "Live data connected · AUD · GST 10%"
-                      : "Connecting to live data…"}
+                Your strategic advisor. Deloitte-level accounting. JP Morgan-level finance. One mind.
               </p>
             </div>
           </div>
@@ -956,6 +1049,32 @@ export default function ConsultingPage() {
             </Button>
           </div>
         </div>
+
+        {/* Mode selector */}
+        <div className="inline-flex bg-white/5 rounded-xl p-1 border border-white/10 w-fit">
+          {([
+            { id: "accountant", label: "📊 Accountant" },
+            { id: "financier", label: "💼 Financier" },
+            { id: "consigliere", label: "🤝 Consigliere" },
+          ] as { id: AdvisorMode; label: string }[]).map((m) => {
+            const active = advisorMode === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => changeMode(m.id)}
+                disabled={loading}
+                className={
+                  active
+                    ? "px-4 py-1.5 rounded-lg text-sm font-medium bg-chart-green text-black"
+                    : "px-4 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground transition-all"
+                }
+              >
+                {m.label}
+              </button>
+            );
+          })}
+        </div>
+
 
         {/* Chat window */}
         <div className="flex-1 overflow-y-auto space-y-4 pr-2">

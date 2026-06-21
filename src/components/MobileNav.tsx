@@ -1,4 +1,4 @@
-import { LayoutDashboard, CalendarDays, Target, Settings, FunctionSquare, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, CalendarDays, Target, Settings, FunctionSquare, ShieldCheck, Crown } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -6,6 +6,7 @@ const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Calendar", url: "/calendar", icon: CalendarDays },
   { title: "Goals", url: "/goals", icon: Target },
+  { title: "Consigliere", url: "/consulting", icon: Crown },
   { title: "Formulas", url: "/formulas", icon: FunctionSquare },
   { title: "Health", url: "/financial-health", icon: ShieldCheck },
   { title: "Settings", url: "/settings", icon: Settings },

@@ -7,6 +7,7 @@ import {
   Target,
   FunctionSquare,
   BrainCircuit,
+  Crown,
   ShieldCheck } from
 "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -29,7 +30,7 @@ const navItems = [
   { title: "Deal Flow", url: "/deals", icon: Activity },
   { title: "Employee Centre", url: "/employees", icon: HardHat },
   { title: "Goals & Targets", url: "/goals", icon: Target },
-  { title: "Consulting", url: "/consulting", icon: BrainCircuit },
+  { title: "Consigliere", url: "/consulting", icon: Crown },
   { title: "Formulas", url: "/formulas", icon: FunctionSquare },
   { title: "Financial Health", url: "/financial-health", icon: ShieldCheck },
   { title: "Settings", url: "/settings", icon: Settings }
