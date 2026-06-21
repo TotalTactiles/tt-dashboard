@@ -57,7 +57,7 @@ const DealFlow = () => {
   const jobs = quotedJobs ?? [];
   const quotesRaw = (liveData?.quotes as any[]) ?? [];
   const [staleSort, setStaleSort] = useState<"oldest" | "newest">("oldest");
-  const [staleStatus, setStaleStatus] = useState<"all" | "pending" | "won">("all");
+  const [staleStatus, setStaleStatus] = useState<"all" | "pending" | "won" | "lost">("all");
 
   const today = new Date();
 
@@ -176,10 +176,7 @@ const DealFlow = () => {
   // Stale deals
   const staleDeals = useMemo(() => {
     return quotesRaw
-      .filter((j: any) => {
-        const status = j["Current Status"] ?? "";
-        return !["Completed", "Lost/Dead", "PO Received (GRN)"].includes(status);
-      })
+      .filter((j: any) => !!(j["Current Status"]))
       .map((j: any) => {
         const zohoMatch = (quotedJobs ?? []).find((q: any) =>
           q["Job/Lead ID (Zoho)"] === j["Job/Lead ID (Zoho)"] ||
@@ -187,18 +184,23 @@ const DealFlow = () => {
         );
         const d = parseDealDate(zohoMatch?.dateQuoted ?? j["Date Created"] ?? j["Estimated Job Date"] ?? "");
         if (!d) return null;
-        const days = Math.floor((today.getTime() - d.getTime()) / 86400000);
+        const closeDate = j["Last Updated"]
+          ? parseDealDate(j["Last Updated"])
+          : null;
+        const endDate = closeDate ?? today;
+        const days = Math.floor((endDate.getTime() - d.getTime()) / 86400000);
         return {
           ...j,
           daysOld: days,
           projectName: j["Project Name"] ?? j._project ?? "",
           companyName: j["Company Name"] ?? j._company ?? "",
-          status: j["Current Status"] === "PO Received (GRN)" ? "won"
+          status: j["Current Status"] === "PO Received (GRN)" || j["Current Status"] === "Completed" ? "won"
+            : j["Current Status"] === "Lost/Dead" ? "lost"
             : j["Current Status"] === "Verbal Confirmation (YLW)" ? "yellow"
             : "pending",
         };
       })
-      .filter((j: any) => j && j.daysOld > 21)
+      .filter((j: any) => j && j.daysOld > 0)
       .sort((a: any, b: any) => b.daysOld - a.daysOld);
   }, [quotesRaw]);
 
@@ -389,7 +391,7 @@ const DealFlow = () => {
 
           <div className="chart-container p-5">
             <h2 className="text-fluid-base font-semibold mb-1">Stale Deals</h2>
-            <p className="text-fluid-xs text-muted-foreground mb-4">Open deals quoted &gt; 21 days ago</p>
+            <p className="text-fluid-xs text-muted-foreground mb-4">Days from quote to close — all deals</p>
 
             {/* Filter controls */}
             <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -417,14 +419,17 @@ const DealFlow = () => {
                   { key: "all", label: "All" },
                   { key: "pending", label: "Pending" },
                   { key: "won", label: "Won" },
+                  { key: "lost", label: "Lost" },
                 ].map((opt) => (
                   <button
                     key={opt.key}
-                    onClick={() => setStaleStatus(opt.key as "all" | "pending" | "won")}
+                    onClick={() => setStaleStatus(opt.key as "all" | "pending" | "won" | "lost")}
                     className={`text-[11px] px-2 py-1 rounded-full border transition-colors font-mono ${
                       staleStatus === opt.key
                         ? opt.key === "pending"
                           ? "bg-chart-orange/20 text-chart-orange border-chart-orange/40"
+                          : opt.key === "lost"
+                          ? "bg-red-500/25 text-red-400 border-red-500/40"
                           : "bg-chart-green/20 text-chart-green border-chart-green/40"
                         : "border-border text-muted-foreground hover:bg-secondary/50"
                     }`}
