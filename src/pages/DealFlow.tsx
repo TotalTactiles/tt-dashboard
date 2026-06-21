@@ -4,6 +4,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { useDashboardData, QuotedJob } from "@/contexts/DashboardDataContext";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { ArrowDown, AlertTriangle, CheckCircle2, ChevronRight, Info } from "lucide-react";
+import { formatMetricValue } from "@/lib/formatMetricValue";
 
 function parseDealDate(raw: string): Date | null {
   if (!raw) return null;
