@@ -329,7 +329,7 @@ const DealFlow = () => {
               </div>
               <div>
                 <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Avg Lost Deal</div>
-                <div className="text-[22px] font-bold text-[#ef4444]">{fmt(avgLostDeal)}</div>
+                <div className="text-[22px] font-bold text-white">{fmt(avgLostDeal)}</div>
               </div>
             </div>
           </div>
