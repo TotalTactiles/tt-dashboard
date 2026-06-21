@@ -675,19 +675,31 @@ const DashboardContent = () => {
                   index={11}
                   momContext={scopeLabel}
                 />
-                <StatCard
-                  label="Avg Contract Value"
-                  value={fmtVal(sd.avgWon)}
-                  change={`${sd.wonCount} jobs won`}
-                  positive={true}
-                  index={14}
-                  altValue={fmtVal(sd.avgQuoted)}
-                  altChange={`${sd.totalCount} jobs quoted`}
-                  altPositive={true}
-                  toggleLabelBase="Won"
-                  toggleLabelAlt="Quoted"
-                  greenAltPill={true}
-                />
+                {(() => {
+                  const allJobs = (liveData?.quotedJobs ?? []) as any[];
+                  const wonJobs = allJobs.filter((j: any) => j.status === "won");
+                  const avgContractWon = wonJobs.length > 0
+                    ? wonJobs.reduce((s: number, j: any) => s + (parseFloat(j.value) || 0), 0) / wonJobs.length
+                    : 0;
+                  const avgContractQuoted = allJobs.length > 0
+                    ? allJobs.reduce((s: number, j: any) => s + (parseFloat(j.value) || 0), 0) / allJobs.length
+                    : 0;
+                  return (
+                    <StatCard
+                      label="Avg Contract Value"
+                      value={fmtAUD(avgContractWon)}
+                      change={`${wonJobs.length} jobs won`}
+                      positive={true}
+                      index={14}
+                      altValue={fmtAUD(avgContractQuoted)}
+                      altChange={`${allJobs.length} jobs quoted`}
+                      altPositive={true}
+                      toggleLabelBase="Won"
+                      toggleLabelAlt="Quoted"
+                      greenAltPill={true}
+                    />
+                  );
+                })()}
                 {(() => {
                   const netProfit = sd.netProfit;
                   const wonCount = sd.wonCount;
