@@ -128,32 +128,75 @@ ${revenueItems.map((r: any) => {
   } catch { /* skip */ }
 
   // Full quotes detail
-  if (sheets?.quotes?.length > 0 || accountingData?.sheets?.quotes?.length > 0) {
-    const quotes = sheets?.quotes ?? accountingData?.sheets?.quotes ?? [];
-    const sorted = [...quotes].sort((a: any, b: any) => {
-      const aVal = parseFloat(String(a['Contract Value ($)'] ?? a['Contract Value'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
-      const bVal = parseFloat(String(b['Contract Value ($)'] ?? b['Contract Value'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
-      return bVal - aVal;
+  const quotesRaw: any[] = accountingData?.sheets?.quotes ?? [];
+  if (quotesRaw.length > 0) {
+    const sorted = [...quotesRaw].sort((a: any, b: any) => {
+      const av = parseFloat(String(
+        a['Contract Value ($)'] ?? a['Contract Value'] ??
+        a['Stage Value ($)'] ?? 0
+      ).replace(/[^0-9.-]/g, '')) || 0;
+      const bv = parseFloat(String(
+        b['Contract Value ($)'] ?? b['Contract Value'] ??
+        b['Stage Value ($)'] ?? 0
+      ).replace(/[^0-9.-]/g, '')) || 0;
+      return bv - av;
     });
-    sections.push(`QUOTES — ALL DEALS (${quotes.length} total, sorted by value desc):
-${sorted.map((q: any) => {
-  const val = parseFloat(String(q['Contract Value ($)'] ?? q['Contract Value'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
-  const stage = q['Current Status'] ?? q['Stage'] ?? q['Status'] ?? '?';
-  const company = q['Company Name'] ?? q['_company'] ?? '?';
-  const project = q['Project Name'] ?? q['_project'] ?? '?';
-  const date = q['Estimated Job Date'] ?? q['Date Quoted'] ?? '?';
-  return `• ${company} / ${project} — $${val.toLocaleString('en-AU')} | Stage: ${stage} | Date: ${date}`;
-}).join('\n')}`);
+    const won = sorted.filter((q: any) => {
+      const s = String(q['Current Status'] ?? q['Status'] ?? '').toLowerCase();
+      return s.includes('won') || s.includes('awarded') || s.includes('completed');
+    });
+    const active = sorted.filter((q: any) => {
+      const s = String(q['Current Status'] ?? q['Status'] ?? '').toLowerCase();
+      return !s.includes('lost') && !s.includes('dead') &&
+             !s.includes('won') && !s.includes('completed');
+    });
+    const lost = sorted.filter((q: any) => {
+      const s = String(q['Current Status'] ?? q['Status'] ?? '').toLowerCase();
+      return s.includes('lost') || s.includes('dead');
+    });
+    const totalPipeline = active.reduce((s: number, q: any) => {
+      const v = parseFloat(String(
+        q['Contract Value ($)'] ?? q['Contract Value'] ??
+        q['Stage Value ($)'] ?? 0
+      ).replace(/[^0-9.-]/g, '')) || 0;
+      return s + v;
+    }, 0);
+    const formatQuote = (q: any) => {
+      const val = parseFloat(String(
+        q['Contract Value ($)'] ?? q['Contract Value'] ??
+        q['Stage Value ($)'] ?? 0
+      ).replace(/[^0-9.-]/g, '')) || 0;
+      const company = String(
+        q['Company Name'] ?? q['_company'] ?? ''
+      ).trim();
+      const project = String(
+        q['Project Name'] ?? q['_project'] ?? ''
+      ).trim();
+      const status = String(
+        q['Current Status'] ?? q['Stage'] ?? ''
+      ).trim();
+      const date = String(
+        q['Estimated Job Date'] ?? q['Date Quoted'] ?? ''
+      ).trim();
+      return `• ${company} / ${project} — $${val.toLocaleString('en-AU')} | ${status} | ${date}`;
+    };
+    sections.push(`QUOTES PIPELINE (${quotesRaw.length} total):
+Won/Completed: ${won.length} deals
+Active pipeline: ${active.length} deals, total value: $${totalPipeline.toLocaleString('en-AU')}
+Lost/Dead: ${lost.length} deals
+TOP 30 ACTIVE QUOTES (by value):
+${active.slice(0, 30).map(formatQuote).join('\n')}
+RECENT WON DEALS (last 15):
+${won.slice(0, 15).map(formatQuote).join('\n')}`);
   }
 
   // Full raw cashflow tab — all rows and month columns
   const cfRaw: any[] = accountingData?.sheets?.cashflow ?? [];
   if (cfRaw.length > 0) {
-    // Get month column names from first row (exclude row_number and col_1)
     const firstRow = cfRaw[0];
-    const monthCols = Object.keys(firstRow).filter(k => k !== 'row_number' && k !== 'col_1');
-
-    // Format each row as: ROW LABEL | Dec 2025: val | Jan 2026: val | ...
+    const monthCols = Object.keys(firstRow).filter(k =>
+      k !== 'row_number' && k !== 'col_1' && !k.startsWith('_')
+    );
     const rowLines = cfRaw
       .filter(r => r.col_1 && String(r.col_1).trim())
       .map(r => {
@@ -163,60 +206,57 @@ ${sorted.map((q: any) => {
             const v = r[m];
             if (v === '' || v === null || v === undefined) return null;
             const num = parseFloat(String(v));
-            if (isNaN(num)) return null;
-            return `${m}: $${num.toLocaleString('en-AU', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+            if (isNaN(num) || num === 0) return null;
+            return `${m}: $${num.toLocaleString('en-AU', { maximumFractionDigits: 0 })}`;
           })
           .filter(Boolean)
           .join(' | ');
-        return values ? `${label}: ${values}` : `${label}: (no data)`;
-      });
-
-    sections.push(`CASHFLOW TAB — FULL DATA (${cfRaw.length} rows, months: ${monthCols.join(', ')}):
+        return values ? `${label}: ${values}` : null;
+      })
+      .filter(Boolean);
+    sections.push(`CASHFLOW TAB — ALL ROWS (months: ${monthCols.join(', ')}):
 ${rowLines.join('\n')}`);
   } else {
     // Fallback to dashboard cashflow summary
     const cfSummary = accountingData?.sheets?.cashflowSummary ?? [];
     if (cfSummary.length > 0) {
       sections.push(`CASHFLOW SUMMARY (${cfSummary.length} months):
-${cfSummary.map((m: any) => 
+${cfSummary.map((m: any) =>
   `${m.month ?? m.Month}: Income $${m.income ?? m.totalIncome ?? 0} | Outgoings $${m.outgoings ?? m.totalOutgoings ?? 0} | Closing $${m.closing ?? m.closingBalance ?? 0}`
 ).join('\n')}`);
     }
   }
 
   // Full expense line items
-  const expSheet = accountingData?.sheets?.expenses ?? [];
-  const expItems = expSheet.filter((r: any) => {
-    const sub = String(r['Sub-Category'] ?? r['Name'] ?? r['Item'] ?? '').trim();
+  const expRaw: any[] = accountingData?.sheets?.expenses ?? [];
+  const expItems = expRaw.filter((r: any) => {
+    const sub = String(r['Sub-Category'] ?? r['Name'] ?? '').trim();
     const cat = String(r['Category'] ?? '').trim().toUpperCase();
-    return sub && sub.toUpperCase() !== 'TOTAL' && sub.toUpperCase() !== 'ALL'
-      && cat !== 'GRAND TOTAL' && sub.toUpperCase() !== 'GRAND TOTAL';
+    return sub &&
+      sub.toUpperCase() !== 'TOTAL' &&
+      sub.toUpperCase() !== 'GRAND TOTAL' &&
+      cat !== 'GRAND TOTAL';
   });
   if (expItems.length > 0) {
     const totalMonthly = expItems.reduce((s: number, r: any) => {
-      const v = parseFloat(String(r['Monthly Cost'] ?? r['Monthly'] ?? 0).replace(/[^0-9.-]/g,''));
+      const v = parseFloat(String(r['Monthly Cost'] ?? r['Monthly'] ?? 0)
+        .replace(/[^0-9.-]/g, ''));
       return s + (isNaN(v) ? 0 : v);
     }, 0);
-    sections.push(`OPERATING EXPENSES — LINE ITEMS (${expItems.length} items, total monthly: $${totalMonthly.toLocaleString('en-AU', {minimumFractionDigits:2})}):
+    sections.push(`OPERATING EXPENSES — LINE ITEMS (${expItems.length} items):
+Total monthly: $${totalMonthly.toLocaleString('en-AU', { maximumFractionDigits: 0 })}
 ${expItems.map((r: any) => {
   const cat = String(r['Category'] ?? 'Uncategorised').trim();
-  const sub = String(r['Sub-Category'] ?? r['Name'] ?? r['Item'] ?? '').trim();
-  const monthly = parseFloat(String(r['Monthly Cost'] ?? r['Monthly'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
-  const yearly = parseFloat(String(r['Yearly Cost'] ?? r['Yearly'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
-  const pct = totalMonthly > 0 ? ((monthly / totalMonthly) * 100).toFixed(1) : '0.0';
-  return `• [${cat}] ${sub} — $${monthly.toLocaleString('en-AU', {minimumFractionDigits:2})}/mo ($${yearly.toLocaleString('en-AU', {minimumFractionDigits:0})}/yr) — ${pct}% of expenses`;
+  const sub = String(r['Sub-Category'] ?? r['Name'] ?? '').trim();
+  const monthly = parseFloat(String(r['Monthly Cost'] ?? 0)
+    .replace(/[^0-9.-]/g, '')) || 0;
+  const yearly = parseFloat(String(r['Yearly Cost'] ?? 0)
+    .replace(/[^0-9.-]/g, '')) || 0;
+  const pct = totalMonthly > 0
+    ? ((monthly / totalMonthly) * 100).toFixed(1)
+    : '0.0';
+  return `[${cat}] ${sub}: $${monthly.toLocaleString('en-AU', { maximumFractionDigits: 0 })}/mo | $${yearly.toLocaleString('en-AU', { maximumFractionDigits: 0 })}/yr | ${pct}% of expenses`;
 }).join('\n')}`);
-  } else {
-    // fallback to summary if no line items
-    const totalMonthlyExp = liveData?.expenses
-      ? (liveData.expenses as any[]).reduce((s: number, e: any) => {
-          const v = parseFloat(String(e['Monthly Cost'] ?? 0).replace(/[^0-9.-]/g,''));
-          return s + (isNaN(v) ? 0 : v);
-        }, 0)
-      : 0;
-    if (totalMonthlyExp > 0) {
-      sections.push(`OPERATING EXPENSES: Monthly total $${totalMonthlyExp.toLocaleString('en-AU', {minimumFractionDigits:2})} | Annualised $${(totalMonthlyExp * 12).toLocaleString('en-AU', {minimumFractionDigits:0})} (line items not available in current feed)`);
-    }
   }
 
   try {
