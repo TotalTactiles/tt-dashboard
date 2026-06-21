@@ -676,22 +676,28 @@ const DashboardContent = () => {
                   momContext={scopeLabel}
                 />
                 {(() => {
-                  const allJobs = liveData?.quotedJobs ?? [];
-                  
-                  // Match Deal Flow exactly — won = "won" status only (not completed)
-                  const wonJobs = allJobs.filter((j: any) => j.status === "won");
-                  const completedJobs = allJobs.filter((j: any) => j.status === "completed");
+                  const allJobs = (liveData?.quotedJobs ?? []) as any[];
+
+                  const getVal = (j: any): number => {
+                    // Field has a literal newline in the key from Google Sheets column header
+                    const raw = j["Contract\nValue ($)"] ?? j["Contract Value ($)"] ?? j.contractValue ?? j.amount ?? j.Amount ?? "";
+                    return parseFloat(String(raw).replace(/[^0-9.-]/g, "")) || 0;
+                  };
+
+                  const wonJobs = allJobs.filter(j =>
+                    j["Current Status"] === "PO Received (GRN)" || j.status === "won"
+                  );
+                  const completedJobs = allJobs.filter(j =>
+                    j["Current Status"] === "Completed" || j.status === "completed"
+                  );
                   const wonAndCompleted = [...wonJobs, ...completedJobs];
 
-                  const getVal = (j: any): number =>
-                    parseFloat(j.amount ?? j.Amount ?? j.contractValue ?? j.Contract_Value ?? j.value ?? "0") || 0;
-
                   const avgWon = wonAndCompleted.length > 0
-                    ? wonAndCompleted.reduce((s: number, j: any) => s + getVal(j), 0) / wonAndCompleted.length
+                    ? wonAndCompleted.reduce((s, j) => s + getVal(j), 0) / wonAndCompleted.length
                     : 0;
 
                   const avgQuoted = allJobs.length > 0
-                    ? allJobs.reduce((s: number, j: any) => s + getVal(j), 0) / allJobs.length
+                    ? allJobs.reduce((s, j) => s + getVal(j), 0) / allJobs.length
                     : 0;
 
                   return (
