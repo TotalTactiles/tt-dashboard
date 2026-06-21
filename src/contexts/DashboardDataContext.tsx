@@ -996,10 +996,16 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     const kpiStats: KPIStat[] = [
       {
-        label: "Total Quoted",
+        label: "Quotes",
         value: noData ? "--" : fmtAUD(parseNum(qs?.totalQuoted?.value ?? 0)),
         change: noData ? "--" : `${totalQuotedCount} jobs`,
         positive: true, noData,
+        altValue: noData ? "--" : fmtAUD(parseNum(qs?.remaining?.value ?? 0)),
+        altChange: noData ? "--" : `${parseNum(qs?.remaining?.count ?? 0)} active jobs`,
+        altPositive: true,
+        toggleLabelBase: "Total",
+        toggleLabelAlt: "Active",
+        greenAltPill: false,
         momDelta: noData ? undefined : (hasPrevMon ? fmtDelta(curMon.totalVal, prevMon.totalVal, "currency") : noMomText),
         momContext: noData ? undefined : (curMon.totalCount > 0 ? `+${curMon.totalCount} jobs this month` : undefined),
       },
@@ -1015,27 +1021,25 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         momDelta: noData ? undefined : (hasPrevMon ? fmtDelta(curMon.wonVal, prevMon.wonVal, "currency") : noMomText),
         momContext: noData ? undefined : (curMon.wonCount > 0 ? `+${curMon.wonCount} jobs this month` : undefined),
       },
-      (() => {
-        // Quoted Remaining = ALL active jobs (Quote Sent + Negotiation + YLW + GRN)
-        // This matches GRAND TOTAL (Active) in QTS SMMRY — excludes Lost/Dead and Completed only
-        // No toggle needed — YLW/GRN split is handled by the Total Won card
-        const activeJobs = quotedJobs.filter(j => j.status === "pending" || j.status === "yellow" || j.status === "won");
-        const activeVal = activeJobs.reduce((s, j) => s + j.value, 0);
-        const activeCount = activeJobs.length;
-
-        const prevActiveVal = quotedJobs
-          .filter(j => (j.status === "pending" || j.status === "yellow" || j.status === "won") && dateToMonKeyLocal(j.dateQuoted) === prevMonKey)
-          .reduce((s, j) => s + j.value, 0);
-
-        return {
-          label: "Quoted Remaining",
-          value: noData ? "--" : fmtAUD(activeVal),
-          change: noData ? "--" : `${activeCount} jobs`,
-          positive: true, noData,
-          momDelta: noData ? undefined : (hasPrevMon ? fmtDelta(activeVal, prevActiveVal, "currency") : noMomText),
-          momContext: noData ? undefined : "Active pipeline (excl. lost & completed)",
-        };
-      })(),
+      {
+        label: "Avg Days to Close",
+        value: noData ? "--" : (() => {
+          const wonJobs = quotedJobs.filter(j => j.status === "won" && (j as any).dateCreated && (j as any).closingDate);
+          if (wonJobs.length === 0) return "N/A";
+          const totalDays = wonJobs.reduce((sum, j) => {
+            const created = new Date((j as any).dateCreated);
+            const closed = new Date((j as any).closingDate);
+            const days = Math.round((closed.getTime() - created.getTime()) / 86400000);
+            return sum + (days > 0 ? days : 0);
+          }, 0);
+          return `${Math.round(totalDays / wonJobs.length)}d`;
+        })(),
+        change: noData ? "--" : `across ${quotedJobs.filter(j => j.status === "won").length} won jobs`,
+        positive: true,
+        noData,
+        momDelta: undefined,
+        momContext: "Quote to close cycle",
+      },
       {
         label: "Net Revenue",
         value: noData ? "--" : fmtAUD(netRevenue),
