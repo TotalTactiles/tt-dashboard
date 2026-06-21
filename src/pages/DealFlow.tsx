@@ -54,7 +54,8 @@ const item = {
 
 const DealFlow = () => {
   const { quotedJobs, liveData } = useDashboardData();
-  const jobs = (liveData?.quotes as any[]) ?? quotedJobs ?? [];
+  const jobs = quotedJobs ?? [];
+  const quotesRaw = (liveData?.quotes as any[]) ?? [];
   const [staleSort, setStaleSort] = useState<"oldest" | "newest">("oldest");
   const [staleStatus, setStaleStatus] = useState<"all" | "pending" | "won">("all");
 
@@ -174,23 +175,28 @@ const DealFlow = () => {
 
   // Stale deals
   const staleDeals = useMemo(() => {
-    return jobs
-      .filter((j: any) => isActive(j.status ?? j["Current Status"]))
+    return quotesRaw
+      .filter((j: any) => {
+        const status = j["Current Status"] ?? "";
+        return !["Completed", "Lost/Dead", "PO Received (GRN)"].includes(status);
+      })
       .map((j: any) => {
-        const d = parseDealDate(j.dateQuoted ?? j["Date Created"] ?? j["Last Updated"] ?? "");
+        const d = parseDealDate(j["Date Created"] ?? j["Last Updated"] ?? "");
         if (!d) return null;
         const days = Math.floor((today.getTime() - d.getTime()) / 86400000);
         return {
           ...j,
           daysOld: days,
-          status: j.status ?? (j["Current Status"] === "PO Received (GRN)" ? "won" : j["Current Status"] === "Verbal Confirmation (YLW)" ? "yellow" : "pending"),
           projectName: j["Project Name"] ?? j._project ?? "",
           companyName: j["Company Name"] ?? j._company ?? "",
+          status: j["Current Status"] === "PO Received (GRN)" ? "won"
+            : j["Current Status"] === "Verbal Confirmation (YLW)" ? "yellow"
+            : "pending",
         };
       })
       .filter((j: any) => j && j.daysOld > 21)
       .sort((a: any, b: any) => b.daysOld - a.daysOld);
-  }, [jobs]);
+  }, [quotesRaw]);
 
   const filteredStaleDeals = useMemo(() => {
     let list = staleDeals;
