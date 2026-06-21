@@ -69,7 +69,7 @@ const DealFlow = () => {
   const stageStats = STAGES.map(s => {
     let items;
     if (s.key === "won") {
-      items = byStatus.yellow.concat(byStatus.won);
+      items = jobs.filter((j: any) => isPipelineWin(j));
     } else {
       items = byStatus[s.key as keyof typeof byStatus] ?? [];
     }
