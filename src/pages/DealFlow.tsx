@@ -200,13 +200,16 @@ const DealFlow = () => {
             : "pending",
         };
       })
-      .filter((j: any) => j && j.daysOld > 0)
+      .filter((j: any) => j !== null)
+      .map((j: any) => j.daysOld <= 0 ? { ...j, daysOld: 1 } : j)
       .sort((a: any, b: any) => b.daysOld - a.daysOld);
   }, [quotesRaw]);
 
   const filteredStaleDeals = useMemo(() => {
     let list = staleDeals;
-    if (staleStatus !== "all") {
+    if (staleStatus === "stale") {
+      list = list.filter((j: any) => j.status === "pending" && j.daysOld > 21);
+    } else if (staleStatus !== "all") {
       list = list.filter((j: any) => j.status === staleStatus);
     }
     if (staleSort === "newest") {
@@ -390,8 +393,8 @@ const DealFlow = () => {
           </div>
 
           <div className="chart-container p-5">
-            <h2 className="text-fluid-base font-semibold mb-1">Stale Deals</h2>
-            <p className="text-fluid-xs text-muted-foreground mb-4">Days from quote to close — all deals</p>
+            <h2 className="text-fluid-base font-semibold mb-1">Pipeline Velocity</h2>
+            <p className="text-fluid-xs text-muted-foreground mb-4">Quote-to-close duration across all deals</p>
 
             {/* Filter controls */}
             <div className="flex flex-wrap items-center gap-2 mb-3">
