@@ -137,8 +137,10 @@ function RevGpNetDebtChart({
           <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
           <XAxis dataKey="month" tick={{ fill: "#6b7280", fontSize: 11 }} />
           <YAxis tickFormatter={fmtKAxis} tick={{ fill: "#6b7280", fontSize: 11 }} />
-          <Tooltip content={<GpTooltip />} />
-          <Legend wrapperStyle={{ color: "#e2e8f0", fontSize: "12px", paddingTop: "8px" }} />
+          <Tooltip content={<GpBarTooltip />} />
+          <Legend wrapperStyle={{ color: "#e2e8f0", fontSize: "12px", paddingTop: "8px", fontFamily: "monospace" }} formatter={(value: string) => (
+            <span style={{ color: "#e2e8f0" }}>{value}</span>
+          )} />
           <ReferenceLine y={0} stroke="#ffffff20" strokeDasharray="3 3" />
           <Bar dataKey="revenue" fill="#22c55e" fillOpacity={0.7} name="Revenue" />
           <Bar dataKey="grossProfit" fill="#3b82f6" fillOpacity={0.7} name="Gross Profit" />
