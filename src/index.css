@@ -344,7 +344,52 @@
   .light .chart-tooltip {
     box-shadow: 0 4px 16px hsl(220 14% 10% / 0.12);
   }
+
+  /* ── Landscape mobile: icon rail ── */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .landscape-hide { display: none !important; }
+    .landscape-rail-show { display: flex !important; }
+    .landscape-main-offset { padding-left: 56px !important; }
+  }
+
+  /* ── TV / ultrawide (≥1920px) ── */
+  @media (min-width: 1920px) {
+    .dashboard-main-padding { padding: 2rem 2.5rem; }
+    .kpi-value { font-size: clamp(1.4rem, 1.8cqw, 2.4rem); }
+    .kpi-title { font-size: clamp(0.65rem, 0.9cqw, 0.85rem); }
+  }
+
+  /* ── Chart height responsive ── */
+  .chart-responsive {
+    height: clamp(180px, 28vh, 340px);
+  }
+
+  /* ── Tablet grid helpers ── */
+  @media (min-width: 768px) and (max-width: 1199px) {
+    .tablet-cols-2 { grid-template-columns: repeat(2, 1fr) !important; }
+    .tablet-cols-3 { grid-template-columns: repeat(3, 1fr) !important; }
+  }
+
+  /* ── Prevent x-overflow everywhere ── */
+  *, *::before, *::after { box-sizing: border-box; }
+  body { overflow-x: hidden; }
+  .dashboard-main-padding { overflow-x: hidden; }
+
+  /* ── Chatbox responsive ── */
+  .chat-container {
+    height: clamp(300px, 50vh, 600px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── Table wrapper always scrollable horizontally within its card ── */
+  .table-scroll-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+  }
 }
+
 
 @keyframes formula-pulse {
   0% { opacity: 1; transform: scale(1); }
