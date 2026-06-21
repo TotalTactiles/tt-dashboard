@@ -180,7 +180,12 @@ const DealFlow = () => {
         const d = parseDealDate(j.dateQuoted);
         if (!d) return null;
         const days = Math.floor((today.getTime() - d.getTime()) / 86400000);
-        return { ...j, daysOld: days };
+        return {
+          ...j,
+          daysOld: days,
+          projectName: j["Project Name"] ?? j._project ?? "",
+          companyName: j["Company Name"] ?? j._company ?? "",
+        };
       })
       .filter((j: any) => j && j.daysOld > 21)
       .sort((a: any, b: any) => b.daysOld - a.daysOld);
@@ -431,7 +436,7 @@ const DealFlow = () => {
                     <li key={d.id} className="flex items-center justify-between gap-3 p-2 rounded-md border border-border/40 bg-card/30">
                       <div className="min-w-0 flex-1">
                         <div className="text-fluid-sm font-medium truncate">{d.jobName}</div>
-                        <div className="text-fluid-xs text-muted-foreground truncate">{d["Project Name"] ?? d._project ?? d["Company Name"] ?? "Unnamed"}</div>
+                        <div className="text-fluid-xs text-muted-foreground truncate">{d.projectName || d.companyName || "Unnamed"}</div>
                       </div>
                       <span className={`text-[10px] px-2 py-0.5 rounded border ${STATUS_PILL[d.status] ?? STATUS_PILL.pending}`}>
                         {d.status}
