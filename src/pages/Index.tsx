@@ -60,6 +60,42 @@ const GpTooltip = ({ active, payload, label }: any) => {
       ))}
     </div>
   );
+const GpBarTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  const value = payload[0]?.value ?? 0;
+  const isPositive = value >= 0;
+  return (
+    <div style={{
+      backgroundColor: "#0f172a",
+      border: "1px solid rgba(255,255,255,0.3)",
+      borderRadius: "10px",
+      padding: "10px 16px",
+      boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+      minWidth: "160px"
+    }}>
+      <p style={{
+        color: "#94a3b8",
+        fontSize: "11px",
+        fontFamily: "monospace",
+        marginBottom: "6px",
+        marginTop: 0
+      }}>{label}</p>
+      <p style={{
+        color: isPositive ? "#22c55e" : "#ef4444",
+        fontSize: "15px",
+        fontWeight: 700,
+        margin: 0,
+        fontFamily: "monospace"
+      }}>
+        {value < 0 ? "-" : ""}${Math.abs(value / 1000).toFixed(1)}k
+      </p>
+      <p style={{
+        color: "#64748b",
+        fontSize: "10px",
+        margin: "4px 0 0 0"
+      }}>Gross Profit</p>
+    </div>
+  );
 };
 
 function RevGpNetDebtChart({
