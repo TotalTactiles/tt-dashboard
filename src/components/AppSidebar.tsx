@@ -6,7 +6,8 @@ import {
   HardHat,
   Target,
   FunctionSquare,
-  BrainCircuit } from
+  BrainCircuit,
+  ShieldCheck } from
 "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -30,6 +31,7 @@ const navItems = [
   { title: "Goals & Targets", url: "/goals", icon: Target },
   { title: "Consulting", url: "/consulting", icon: BrainCircuit },
   { title: "Formulas", url: "/formulas", icon: FunctionSquare },
+  { title: "Financial Health", url: "/financial-health", icon: ShieldCheck },
   { title: "Settings", url: "/settings", icon: Settings }
 ];
 

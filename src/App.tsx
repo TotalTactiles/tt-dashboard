@@ -18,6 +18,7 @@ const GoalsTargets = React.lazy(() => import("./pages/GoalsTargets"));
 const Formulas = React.lazy(() => import("./pages/Formulas"));
 const EmployeeTracking = React.lazy(() => import("./pages/EmployeeTracking"));
 const DealFlow = React.lazy(() => import("./pages/DealFlow"));
+const FinancialHealth = React.lazy(() => import("./pages/FinancialHealth"));
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,7 @@ const App = () => (
                 <Route path="/formulas" element={<Formulas />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/deals" element={<DealFlow />} />
+                <Route path="/financial-health" element={<FinancialHealth />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
