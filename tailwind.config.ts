@@ -18,6 +18,9 @@ export default {
         sans: ["Plus Jakarta Sans", "Inter", "sans-serif"],
       },
       colors: {
+        'tt-blue': '#3B82F6',
+        'tt-dark': '#0A0A0A',
+        'tt-charcoal': '#111113',
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
