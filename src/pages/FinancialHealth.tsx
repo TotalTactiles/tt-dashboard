@@ -391,19 +391,40 @@ const FinancialHealth = () => {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {metrics.map((m) => (
-              <div key={m.name} className={`chart-container relative border ${ragBorder(m.rag)}`}>
-                <div className="absolute top-3 right-3">{ragDot(m.rag)}</div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider">{m.name}</p>
-                <div className="flex items-center justify-center py-3">
-                  <span className="text-3xl font-bold text-foreground font-mono">{m.value}</span>
-                </div>
-                <p className="text-[10px] text-muted-foreground">{m.benchmark}</p>
-                {m.rag === "none" && <p className="text-[10px] text-muted-foreground mt-0.5">No data</p>}
-              </div>
-            ))}
+            {metrics.map((m) => {
+              const isActive = activeTile === m.name;
+              return (
+                <button
+                  key={m.name}
+                  type="button"
+                  onClick={() => setActiveTile((prev) => (prev === m.name ? null : m.name))}
+                  className={`chart-container relative border text-left transition-colors ${ragBorder(m.rag)} ${isActive ? "ring-2 ring-white/20" : "hover:bg-white/5"}`}
+                >
+                  <div className="absolute top-3 right-3">{ragDot(m.rag)}</div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">{m.name}</p>
+                  <div className="flex items-center justify-center py-3">
+                    <span className="text-3xl font-bold text-foreground font-mono">{m.value}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">{m.benchmark}</p>
+                  {m.rag === "none" && <p className="text-[10px] text-muted-foreground mt-0.5">No data</p>}
+                </button>
+              );
+            })}
           </div>
+
+          <ScorecardDetailPanel
+            activeTile={activeTile}
+            onClose={() => setActiveTile(null)}
+            metrics={metrics}
+            grossProfitYTD={grossProfitYTD}
+            annualInterestCost={annualInterestCost}
+            totalMonthlyRepayment={totalMonthlyRepayment}
+            totalDebt={totalDebt}
+            revenueExGST={revenueExGST}
+            recentSurplus={recentSurplus}
+          />
         </div>
+
 
         {/* SECTION 3: Charts */}
         <ChartsSection
