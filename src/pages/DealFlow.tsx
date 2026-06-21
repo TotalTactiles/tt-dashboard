@@ -180,7 +180,7 @@ const DealFlow = () => {
     return list;
   }, [staleDeals, staleSort, staleStatus]);
 
-  const maxStageCount = Math.max(1, ...stageStats.map(s => s.count));
+  const maxStageCount = Math.max(1, ...stageStats.map(s => s.count), completedCount);
 
   return (
     <DashboardLayout>
