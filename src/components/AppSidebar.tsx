@@ -1,16 +1,13 @@
 import {
   LayoutDashboard,
-  Settings,
   Activity,
+  HeartPulse,
   CalendarDays,
+  Users,
   Target,
-  FunctionSquare,
   BrainCircuit,
-  ShieldCheck,
-  TrendingUp,
-  Receipt,
-  Package,
-  Users } from
+  FunctionSquare,
+  Settings } from
 "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -29,16 +26,13 @@ import {
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Deal Flow", url: "/deals", icon: Activity },
-  { title: "Revenue & COGS", url: "/revenue", icon: TrendingUp },
-  { title: "Expenses", url: "/expenses", icon: Receipt },
-  { title: "Stock", url: "/stock", icon: Package },
+  { title: "Financial Health", url: "/financial-health", icon: HeartPulse },
   { title: "Calendar", url: "/calendar", icon: CalendarDays },
   { title: "Employee Centre", url: "/employees", icon: Users },
   { title: "Goals & Targets", url: "/goals", icon: Target },
   { title: "Consulting", url: "/consulting", icon: BrainCircuit },
   { title: "Formulas", url: "/formulas", icon: FunctionSquare },
-  { title: "Financial Health", url: "/financial-health", icon: ShieldCheck },
-  { title: "Settings", url: "/settings", icon: Settings }
+  { title: "Settings", url: "/settings", icon: Settings },
 ];
 
 
