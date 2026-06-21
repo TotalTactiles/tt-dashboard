@@ -11,9 +11,34 @@ import { Textarea } from "@/components/ui/textarea";
 const WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-accountant-ai";
 const ACCOUNTING_DATA_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-accounting-consultant";
 
-const SYSTEM_PROMPT = `You are a senior chartered accountant and financial analyst advising TT Business (Total Tactiles Pty Ltd), a Sydney-based commercial contracting company specialising in tactile paving, stair nosing, and linemarking installation.
+const SYSTEM_PROMPT = `You are The Consigliere — a single unified strategic advisor to
+Total Tactiles Pty Ltd (TT Business), a Sydney-based commercial
+contracting company specialising in tactile paving, stair nosing,
+and linemarking.
 
-Your role is strictly limited to accounting, finance, tax, cash flow, financial analysis, and strategy questions grounded in accounting principles. Do not answer questions outside this domain. If asked something off-topic, redirect the user to relevant financial dimensions of their question or decline.
+You operate with three integrated capabilities and deploy whichever
+is required based on the question asked — without announcing which
+mode you are in:
+
+ACCOUNTING: Chartered accountant precision. P&L analysis, gross margin,
+cashflow, tax position, COGS integrity, BAS, ATO obligations.
+Numbers are exact. Conclusions are specific.
+
+FINANCE: Corporate finance and capital thinking. Debt structure, loan
+covenants, working capital, ROI on goals and investments, funding
+strategy, runway analysis. You think like a JP Morgan analyst.
+
+STRATEGY: Business strategy grounded in financial reality. Pipeline
+coverage, pricing strategy, growth targets, goal feasibility,
+risk assessment. You think like a McKinsey partner who also does
+the books.
+
+You speak like Tom Hagen — measured, precise, loyal, no wasted words.
+You give the answer the principal needs, not the answer that's easiest
+to give. You never flatter. You never hedge without reason.
+You are scoped strictly to finance, accounting, and business strategy
+grounded in financial principles. Off-topic questions are redirected
+to their financial dimension or declined.
 
 You speak in facts only. No filler, no pleasantries beyond brief professional acknowledgement. Be direct, specific, and precise. Quantify everything you can. If a number is uncertain, say so and state what data would resolve it.
 
@@ -336,7 +361,7 @@ ${expItems.map((r: any) => {
     : "\n\n(No live data currently available — answer based on user-provided information only)";
 }
 
-type AdvisorMode = "accountant" | "financier" | "consigliere";
+
 
 function readDebtRegister(): any[] {
   try {
@@ -366,7 +391,7 @@ function computeDebtTotals(register: any[]) {
 async function callAI(
   system: string,
   messages: { role: string; content: string }[],
-  extra: { message: string; mode: AdvisorMode; context: Record<string, any> }
+  extra: { message: string; mode: string; context: Record<string, any> }
 ): Promise<string> {
   const response = await fetch(WEBHOOK_URL, {
     method: "POST",
@@ -382,28 +407,21 @@ async function callAI(
   return text;
 }
 
-const WELCOME_BY_MODE: Record<AdvisorMode, string> = {
-  accountant: "G'day. Accountant mode — I'm focused on your numbers. Tax obligations, cashflow health, expense analysis, ATO compliance, and financial reporting. What do you need?",
-  financier: "Financier mode. I have your debt register and cashflow data loaded. Ask me about refinancing, debt capacity, equity position, stress testing, or capital strategy.",
-  consigliere: "The Consigliere is ready. I see everything — your books, your debt, your pipeline, your cashflow. Ask me anything. I'll give you the answer your accountant and banker would give if they were the same person.",
-};
 
-function welcomeFor(mode: AdvisorMode): Message {
-  const isAccountant = mode === "accountant";
+function welcomeFor(): Message {
   return {
     role: "assistant",
-    content: WELCOME_BY_MODE[mode],
+    content: "The Consigliere is ready. I see everything — your books, your debt, your pipeline, your cashflow. Ask me anything. I'll give you the answer your accountant and banker would give if they were the same person.",
     timestamp: new Date(),
-    buttons: isAccountant ? ["Financial Review", "Let's Talk"] : undefined,
+    buttons: ["Financial Review", "Let's Talk"],
   };
 }
 
-const WELCOME_MESSAGE: Message = welcomeFor("consigliere");
+const WELCOME_MESSAGE: Message = welcomeFor();
 
 export default function ConsultingPage() {
   const { liveData, investorMetrics, hasLiveData } = useDashboardData() as any;
-  const [advisorMode, setAdvisorMode] = useState<AdvisorMode>("consigliere");
-  const [messages, setMessages] = useState<Message[]>([welcomeFor("consigliere")]);
+  const [messages, setMessages] = useState<Message[]>([welcomeFor()]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [accountingData, setAccountingData] = useState<any>(null);
@@ -922,10 +940,10 @@ export default function ConsultingPage() {
       const debtTotals = computeDebtTotals(debtRegister);
       const text = await callAI(SYSTEM_PROMPT + dataContext, apiMessages as any, {
         message: trimmed,
-        mode: advisorMode,
+        mode: "consigliere",
         context: {
           source: "consigliere",
-          mode: advisorMode,
+          mode: "consigliere",
           debtRegister,
           debtTotals,
           liveData,
@@ -944,19 +962,9 @@ export default function ConsultingPage() {
   }
 
   function clearSession() {
-    setMessages([welcomeFor(advisorMode)]);
+    setMessages([welcomeFor()]);
   }
 
-  function changeMode(next: AdvisorMode) {
-    if (next === advisorMode) return;
-    setAdvisorMode(next);
-    setMessages([welcomeFor(next)]);
-    setReportMode(false);
-    setReportData({});
-    setInput("");
-    setShowCommandMenu(false);
-    setCommandFilter("");
-  }
 
   const ACCOUNTANT_COMMANDS = [
     { id: "report-monthly", label: "Generate Monthly Management Report", description: "P&L, Executive Summary, Pipeline — downloadable PDF", icon: "📊" },
@@ -985,10 +993,11 @@ export default function ConsultingPage() {
     { id: "con-real-profit", label: "Real Profit", description: "After all costs, debt, tax and drawings — what we actually keep", icon: "🧮" },
   ];
 
-  const COMMANDS =
-    advisorMode === "accountant" ? ACCOUNTANT_COMMANDS
-    : advisorMode === "financier" ? FINANCIER_COMMANDS
-    : CONSIGLIERE_COMMANDS;
+  const COMMANDS = [
+    ...ACCOUNTANT_COMMANDS,
+    ...FINANCIER_COMMANDS,
+    ...CONSIGLIERE_COMMANDS,
+  ];
 
   function selectCommand(cmd: typeof COMMANDS[0]) {
     setShowCommandMenu(false);
@@ -1037,8 +1046,17 @@ export default function ConsultingPage() {
             </div>
             <div>
               <h1 className="text-lg font-semibold text-foreground">The Consigliere</h1>
-              <p className="text-xs text-muted-foreground font-mono">
-                Your strategic advisor. Deloitte-level accounting. JP Morgan-level finance. One mind.
+              <p className="text-[11px] text-muted-foreground italic">
+                Your books. Your pipeline. Your position. One mind.
+              </p>
+              <p className="text-[10px] text-muted-foreground/60">
+                {accountingDataLoading
+                  ? "Loading financial data..."
+                  : accountingData
+                    ? "Live data connected · AUD · GST 10%"
+                    : hasLiveData
+                      ? "Dashboard data connected · AUD · GST 10%"
+                      : "Connecting..."}
               </p>
             </div>
           </div>
@@ -1050,30 +1068,6 @@ export default function ConsultingPage() {
           </div>
         </div>
 
-        {/* Mode selector */}
-        <div className="inline-flex bg-white/5 rounded-xl p-1 border border-white/10 w-fit">
-          {([
-            { id: "accountant", label: "📊 Accountant" },
-            { id: "financier", label: "💼 Financier" },
-            { id: "consigliere", label: "🤝 Consigliere" },
-          ] as { id: AdvisorMode; label: string }[]).map((m) => {
-            const active = advisorMode === m.id;
-            return (
-              <button
-                key={m.id}
-                onClick={() => changeMode(m.id)}
-                disabled={loading}
-                className={
-                  active
-                    ? "px-4 py-1.5 rounded-lg text-sm font-medium bg-chart-green text-black"
-                    : "px-4 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground transition-all"
-                }
-              >
-                {m.label}
-              </button>
-            );
-          })}
-        </div>
 
 
         {/* Chat window */}
