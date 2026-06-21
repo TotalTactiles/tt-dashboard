@@ -62,7 +62,16 @@ WHEN DATA IS MISSING — always tell the user:
 3. How to export it in 1-2 sentences max
 4. What format to attach (PDF for review, Excel for data)
 Never ask users to paste large datasets — always guide them to 
-export and attach as a file instead.`;
+export and attach as a file instead.
+
+RESPONSE FORMATTING:
+When presenting comparative data with 2+ items and numeric values, 
+use a markdown table with | pipes. Example:
+| Line Item | Monthly Cost | % of Total |
+|-----------|-------------|------------|
+| Office & Misc | $14,279 | 41.9% |
+For simple lists or explanations, use plain paragraphs.
+Never use ## headers or ** bold. Tables render natively in this interface.`;
 
 interface Message {
   role: "user" | "assistant";
@@ -667,14 +676,92 @@ export default function ConsultingPage() {
     return () => { cancelled = true; };
   }, []);
 
-  function stripMarkdown(text: string): string {
-    return text
+  function renderMessageContent(text: string): React.ReactNode {
+    // Remove markdown headers and bold but keep content
+    const cleaned = text
       .replace(/^#{1,6}\s+/gm, '')
       .replace(/\*\*(.*?)\*\*/g, '$1')
       .replace(/\*(.*?)\*/g, '$1')
-      .replace(/^[-–—]{2,}\s*$/gm, '')
-      .replace(/^>\s+/gm, '')
-      .trim();
+      .replace(/^[-–—]{3,}\s*$/gm, '')
+      .replace(/^>\s+/gm, '');
+
+    // Split into segments — detect markdown table blocks
+    const segments: React.ReactNode[] = [];
+    const lines = cleaned.split('\n');
+    let i = 0;
+    let currentText: string[] = [];
+
+    const flushText = () => {
+      if (currentText.length > 0) {
+        const t = currentText.join('\n').trim();
+        if (t) segments.push(
+          <span key={segments.length} className="whitespace-pre-wrap">{t}</span>
+        );
+        currentText = [];
+      }
+    };
+
+    while (i < lines.length) {
+      const line = lines[i];
+      // Detect start of markdown table (line with | chars)
+      if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+        // Collect all table lines
+        const tableLines: string[] = [];
+        while (i < lines.length && lines[i].trim().startsWith('|')) {
+          tableLines.push(lines[i]);
+          i++;
+        }
+        // Parse table
+        const rows = tableLines
+          .filter(l => !l.match(/^\|[\s\-:|]+\|/)) // remove separator rows
+          .map(l =>
+            l.trim()
+              .replace(/^\|/, '')
+              .replace(/\|$/, '')
+              .split('|')
+              .map(cell => cell.trim())
+          )
+          .filter(row => row.some(cell => cell.length > 0));
+
+        if (rows.length > 0) {
+          flushText();
+          const headers = rows[0];
+          const body = rows.slice(1);
+          segments.push(
+            <div key={segments.length} className="overflow-x-auto my-2 rounded-lg border border-border/40">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-primary/10 border-b border-border/40">
+                    {headers.map((h, hi) => (
+                      <th key={hi} className="px-3 py-2 text-left font-semibold text-primary">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {body.map((row, ri) => (
+                    <tr key={ri} className={ri % 2 === 0 ? 'bg-muted/20' : 'bg-muted/10'}>
+                      {row.map((cell, ci) => (
+                        <td key={ci} className="px-3 py-2 text-foreground/90">
+                          {cell}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
+      } else {
+        currentText.push(line);
+        i++;
+      }
+    }
+    flushText();
+
+    return <>{segments}</>;
   }
 
   function parseResponseAndButtons(raw: string): { content: string; buttons?: string[] } {
@@ -682,9 +769,9 @@ export default function ConsultingPage() {
     if (optionsMatch) {
       const buttons = optionsMatch[1].split(",").map((s) => s.trim()).filter(Boolean);
       const content = raw.replace(/\nOPTIONS:\s*.+$/, "").trim();
-      return { content: stripMarkdown(content), buttons };
+      return { content, buttons };
     }
-    return { content: stripMarkdown(raw) };
+    return { content: raw };
   }
 
   async function sendMessage(overrideText?: string) {
@@ -830,7 +917,12 @@ export default function ConsultingPage() {
                 </div>
               )}
               <div className={`max-w-[80%] rounded-lg px-3.5 py-2.5 text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted/50 border border-border/40 text-foreground"}`}>
-                <div className="whitespace-pre-wrap leading-relaxed">{msg.content}</div>
+                <div className="whitespace-pre-wrap leading-relaxed">
+                  {msg.role === 'assistant'
+                    ? renderMessageContent(msg.content)
+                    : msg.content
+                  }
+                </div>
                 {msg.buttons && i === messages.length - 1 && (
                   <div className="flex gap-2 mt-3 flex-wrap">
                     {msg.buttons.map((btn) => (
