@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import { RefreshCw } from "lucide-react";
 import {
   ComposedChart, Bar, Line, ReferenceLine, XAxis, YAxis,
