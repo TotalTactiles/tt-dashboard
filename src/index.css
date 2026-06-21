@@ -7,17 +7,17 @@
 @layer base {
   /* ── DARK THEME (default) ── */
   :root {
-    --background: 220 20% 6%;
+    --background: 0 0% 5%;
     --foreground: 210 20% 92%;
 
-    --card: 220 18% 10%;
-    --card-foreground: 210 20% 92%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 95%;
 
     --popover: 220 18% 12%;
     --popover-foreground: 210 20% 92%;
 
-    --primary: 160 70% 45%;
-    --primary-foreground: 220 20% 6%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 220 16% 16%;
     --secondary-foreground: 210 20% 80%;
@@ -25,21 +25,21 @@
     --muted: 220 14% 14%;
     --muted-foreground: 215 14% 55%;
 
-    --accent: 200 80% 50%;
-    --accent-foreground: 220 20% 6%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 55%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 220 14% 18%;
+    --border: 0 0% 14%;
     --input: 220 14% 18%;
-    --ring: 160 70% 45%;
+    --ring: 217 91% 60%;
 
     --radius: 0.5rem;
 
-    --chart-green: 160 70% 45%;
-    --chart-red: 0 72% 55%;
-    --chart-blue: 200 80% 50%;
+    --chart-green: 142 71% 45%;
+    --chart-red: 0 72% 51%;
+    --chart-blue: 217 91% 60%;
     --chart-amber: 38 92% 55%;
     --chart-purple: 270 60% 55%;
     --chart-orange: 25 95% 55%;
@@ -55,14 +55,14 @@
     --chart-ref-text: 215 12% 52%;
     --chart-dot-stroke: 220 18% 10%;
 
-    --sidebar-background: 220 20% 8%;
-    --sidebar-foreground: 210 20% 80%;
-    --sidebar-primary: 160 70% 45%;
-    --sidebar-primary-foreground: 220 20% 6%;
-    --sidebar-accent: 220 16% 14%;
+    --sidebar-background: 0 0% 4%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 91% 60% / 0.12;
     --sidebar-accent-foreground: 210 20% 92%;
-    --sidebar-border: 220 14% 16%;
-    --sidebar-ring: 160 70% 45%;
+    --sidebar-border: 0 0% 12%;
+    --sidebar-ring: 217 91% 60%;
 
     --font-display: 'JetBrains Mono', monospace;
     --font-body: 'Plus Jakarta Sans', 'Inter', sans-serif;
@@ -70,7 +70,7 @@
 
   /* ── LIGHT THEME ── */
   .light {
-    --background: 220 20% 97%;
+    --background: 0 0% 97%;
     --foreground: 220 20% 10%;
 
     --card: 0 0% 100%;
@@ -79,7 +79,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 20% 10%;
 
-    --primary: 160 70% 38%;
+    --primary: 217 91% 52%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 14% 93%;
@@ -88,19 +88,19 @@
     --muted: 220 14% 95%;
     --muted-foreground: 215 12% 42%;
 
-    --accent: 200 80% 45%;
+    --accent: 217 91% 52%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 14% 88%;
+    --border: 0 0% 88%;
     --input: 220 14% 88%;
-    --ring: 160 70% 38%;
+    --ring: 217 91% 52%;
 
-    --chart-green: 160 70% 36%;
+    --chart-green: 142 71% 38%;
     --chart-red: 0 72% 48%;
-    --chart-blue: 200 80% 44%;
+    --chart-blue: 217 91% 52%;
     --chart-amber: 38 92% 48%;
     --chart-purple: 270 60% 48%;
     --chart-orange: 25 95% 48%;
@@ -116,14 +116,14 @@
     --chart-ref-text: 215 12% 50%;
     --chart-dot-stroke: 0 0% 100%;
 
-    --sidebar-background: 220 14% 96%;
-    --sidebar-foreground: 220 16% 30%;
-    --sidebar-primary: 160 70% 38%;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 8%;
+    --sidebar-primary: 217 91% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 92%;
+    --sidebar-accent: 217 91% 52% / 0.10;
     --sidebar-accent-foreground: 220 20% 10%;
     --sidebar-border: 220 14% 90%;
-    --sidebar-ring: 160 70% 38%;
+    --sidebar-ring: 217 91% 52%;
   }
 }
 
