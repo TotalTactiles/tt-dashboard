@@ -69,7 +69,7 @@ const DealFlow = () => {
   const stageStats = STAGES.map(s => {
     let items;
     if (s.key === "won") {
-      items = byStatus.yellow.concat(byStatus.won);
+      items = jobs.filter((j: any) => isPipelineWin(j));
     } else {
       items = byStatus[s.key as keyof typeof byStatus] ?? [];
     }
@@ -81,6 +81,10 @@ const DealFlow = () => {
   const lostValue = lostItems.reduce((a: number, b: any) => a + (Number(b.value) || 0), 0);
   const wonItems = byStatus.won;
   const wonValue = wonItems.reduce((a: number, b: any) => a + (Number(b.value) || 0), 0);
+
+  const completedJobs = jobs.filter((j: any) => String(j.rawStatus ?? "").toUpperCase() === "COMPLETED");
+  const completedCount = completedJobs.length;
+  const completedValue = completedJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
 
   // Win/Loss
 
@@ -176,7 +180,7 @@ const DealFlow = () => {
     return list;
   }, [staleDeals, staleSort, staleStatus]);
 
-  const maxStageCount = Math.max(1, ...stageStats.map(s => s.count));
+  const maxStageCount = Math.max(1, ...stageStats.map(s => s.count), completedCount);
 
   return (
     <DashboardLayout>
@@ -238,6 +242,16 @@ const DealFlow = () => {
                   </div>
                 );
               })}
+              <div className="flex-1 flex flex-col md:flex-row md:items-center gap-2">
+                <div
+                  className="rounded-lg border border-border/40 bg-card/40 p-3 flex-1 min-w-0"
+                  style={{ borderLeft: "3px solid #22c55e", width: `${40 + (completedCount / maxStageCount) * 60}%` }}
+                >
+                  <div className="text-fluid-xs text-muted-foreground truncate">COMPLETED</div>
+                  <div className="font-mono text-fluid-lg font-semibold mt-1">{completedCount}</div>
+                  <div className="font-mono text-fluid-xs text-muted-foreground">{fmt(completedValue)}</div>
+                </div>
+              </div>
             </div>
 
             <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 md:w-48 self-start">
@@ -402,7 +416,7 @@ const DealFlow = () => {
                     <li key={d.id} className="flex items-center justify-between gap-3 p-2 rounded-md border border-border/40 bg-card/30">
                       <div className="min-w-0 flex-1">
                         <div className="text-fluid-sm font-medium truncate">{d.jobName}</div>
-                        <div className="text-fluid-xs text-muted-foreground truncate">{d.company}</div>
+                        <div className="text-fluid-xs text-muted-foreground truncate">{d.dealName ?? d.projectName ?? d.Deal_Name ?? d.name ?? d.company ?? "Unnamed"}</div>
                       </div>
                       <span className={`text-[10px] px-2 py-0.5 rounded border ${STATUS_PILL[d.status] ?? STATUS_PILL.pending}`}>
                         {d.status}
