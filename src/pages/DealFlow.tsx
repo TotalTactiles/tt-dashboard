@@ -54,7 +54,7 @@ const item = {
 
 const DealFlow = () => {
   const { quotedJobs, liveData } = useDashboardData();
-  const jobs = quotedJobs ?? [];
+  const jobs = (liveData?.quotes as any[]) ?? quotedJobs ?? [];
   const [staleSort, setStaleSort] = useState<"oldest" | "newest">("oldest");
   const [staleStatus, setStaleStatus] = useState<"all" | "pending" | "won">("all");
 
