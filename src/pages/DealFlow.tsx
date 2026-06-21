@@ -57,7 +57,7 @@ const DealFlow = () => {
   const jobs = quotedJobs ?? [];
   const quotesRaw = (liveData?.quotes as any[]) ?? [];
   const [staleSort, setStaleSort] = useState<"oldest" | "newest">("oldest");
-  const [staleStatus, setStaleStatus] = useState<"all" | "pending" | "won" | "lost">("all");
+  const [staleStatus, setStaleStatus] = useState<"all" | "pending" | "won" | "lost" | "stale">("all");
 
   const today = new Date();
 
