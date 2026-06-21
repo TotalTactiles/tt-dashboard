@@ -612,7 +612,7 @@ const ChartsSection = ({
     };
 
     const vinnyFacilities = debts.filter((d) => (d.name ?? "").toLowerCase().includes("vinny"));
-    const vinnyFallback = vinnyFacilities.reduce((sum, f) => sum + parseFloat(String(f.monthlyRepayment ?? f.monthly ?? 0)), 0);
+    const vinnyFallback = vinnyFacilities.reduce((sum, f) => sum + (Number(f.monthlyRepayment) || 0), 0);
 
     const rows = io.map((row) => {
       const month = String(row?.month ?? "");
