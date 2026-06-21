@@ -60,6 +60,8 @@ const GpTooltip = ({ active, payload, label }: any) => {
       ))}
     </div>
   );
+};
+
 const GpBarTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   const value = payload[0]?.value ?? 0;
