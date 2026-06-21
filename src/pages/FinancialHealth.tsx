@@ -593,52 +593,48 @@ const ChartsSection = ({
   };
 
   // ---- Earned vs Debt-Funded Revenue ----
-  const parseMonthLabel = (s: string): Date | null => {
-    if (!s) return null;
-    const d = new Date(`${s} 1`);
-    return isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), 1);
-  };
-  const earnedVsDebt = useMemo(() => {
-    const vinny = debts.filter((d) => (d.name || "").toLowerCase().includes("vinny"));
-    const facs = vinny
-      .map((f) => {
-        const start = f.startDate ? new Date(f.startDate) : null;
-        const end = f.maturityDate ? new Date(f.maturityDate) : null;
-        const principal = Number(f.originalPrincipal) || 0;
-        if (!start || !end || isNaN(start.getTime()) || isNaN(end.getTime()) || principal <= 0) return null;
-        const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
-        if (months <= 0) return null;
-        return {
-          start: new Date(start.getFullYear(), start.getMonth(), 1),
-          end: new Date(end.getFullYear(), end.getMonth(), 1),
-          monthly: principal / months,
-        };
-      })
-      .filter(Boolean) as { start: Date; end: Date; monthly: number }[];
+  const { liveData } = useDashboardData() as any;
+
+  const earnedVsDebtData = useMemo(() => {
+    const rawCashflow = liveData?.cashflow ?? [];
+    const findCashflowRow = (label: string) => {
+      const upper = label.toUpperCase();
+      return rawCashflow.find((r: any) => {
+        const rl = (r._label_rowLabel ?? r.col_1 ?? "").toString().toUpperCase();
+        return rl.includes(upper);
+      }) ?? null;
+    };
+    const loanRepaymentRow = findCashflowRow("BUSINESS LOAN REPAYMENT");
+
+    const parseNum = (v: any) => {
+      if (v === null || v === undefined || v === "") return 0;
+      return parseFloat(String(v).replace(/[$,]/g, "")) || 0;
+    };
+
+    const vinnyFacilities = debts.filter((d) => (d.name ?? "").toLowerCase().includes("vinny"));
+    const vinnyFallback = vinnyFacilities.reduce((sum, f) => sum + parseFloat(String(f.monthlyRepayment ?? f.monthly ?? 0)), 0);
 
     const rows = io.map((row) => {
       const month = String(row?.month ?? "");
       const earnedRevenue = Number(row?.income) || 0;
-      const md = parseMonthLabel(month);
-      let debtDrawdown = 0;
-      if (md) {
-        facs.forEach((f) => {
-          if (md >= f.start && md <= f.end) debtDrawdown += f.monthly;
-        });
-      }
+      const cashflowVal = loanRepaymentRow ? Math.abs(parseNum(loanRepaymentRow[month])) : 0;
+      const debtDrawdown = cashflowVal > 0 ? cashflowVal : vinnyFallback;
       return { month, earnedRevenue, debtDrawdown, netEarned: earnedRevenue - debtDrawdown };
     });
-    return { rows, hasVinny: facs.length > 0 };
-  }, [io, debts]);
+
+    const hasAnySource = loanRepaymentRow !== null || vinnyFacilities.length > 0;
+    return { rows, hasAnySource };
+  }, [io, debts, liveData]);
 
   const earnedStats = useMemo(() => {
-    const r = earnedVsDebt.rows;
+    const r = earnedVsDebtData.rows;
     const totalEarned = r.reduce((s, x) => s + x.earnedRevenue, 0);
     const totalDebt = r.reduce((s, x) => s + x.debtDrawdown, 0);
-    const avgNet = r.length ? r.reduce((s, x) => s + x.netEarned, 0) / r.length : 0;
+    const activeMonths = r.filter((x: any) => x.earnedRevenue > 0);
+    const avgNet = activeMonths.length ? activeMonths.reduce((s, x) => s + x.netEarned, 0) / activeMonths.length : 0;
     const debtPct = totalEarned > 0 ? (totalDebt / totalEarned) * 100 : 0;
     return { totalDebt, avgNet, debtPct };
-  }, [earnedVsDebt]);
+  }, [earnedVsDebtData]);
 
   const EarnedTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
