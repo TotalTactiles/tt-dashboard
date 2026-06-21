@@ -139,6 +139,10 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  h1, h2, h3 {
+    letter-spacing: 0.02em;
+  }
+
   .font-mono-display {
     font-family: var(--font-display);
   }
