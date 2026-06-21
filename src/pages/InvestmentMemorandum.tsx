@@ -336,11 +336,42 @@ ${expItems.map((r: any) => {
     : "\n\n(No live data currently available — answer based on user-provided information only)";
 }
 
-async function callAI(system: string, messages: { role: string; content: string }[]): Promise<string> {
+type AdvisorMode = "accountant" | "financier" | "consigliere";
+
+function readDebtRegister(): any[] {
+  try {
+    const raw = localStorage.getItem("tt_debt_register");
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch { return []; }
+}
+
+function computeDebtTotals(register: any[]) {
+  let totalDebt = 0;
+  let totalMonthlyRepayment = 0;
+  let weighted = 0;
+  for (const d of register) {
+    const bal = parseFloat(String(d?.balanceOutstanding ?? d?.balance ?? 0)) || 0;
+    const repay = parseFloat(String(d?.monthlyRepayment ?? d?.repayment ?? 0)) || 0;
+    const rate = parseFloat(String(d?.interestRate ?? d?.rate ?? 0)) || 0;
+    totalDebt += bal;
+    totalMonthlyRepayment += repay;
+    weighted += bal * rate;
+  }
+  const blendedRate = totalDebt > 0 ? weighted / totalDebt : 0;
+  return { totalDebt, totalMonthlyRepayment, blendedRate };
+}
+
+async function callAI(
+  system: string,
+  messages: { role: string; content: string }[],
+  extra: { message: string; mode: AdvisorMode; context: Record<string, any> }
+): Promise<string> {
   const response = await fetch(WEBHOOK_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ system, messages }),
+    body: JSON.stringify({ system, messages, ...extra }),
   });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const data = await response.json();
@@ -351,12 +382,23 @@ async function callAI(system: string, messages: { role: string; content: string 
   return text;
 }
 
-const WELCOME_MESSAGE: Message = {
-  role: "assistant",
-  content: "Welcome. I have access to your live financial data. How would you like to proceed?",
-  timestamp: new Date(),
-  buttons: ["Financial Review", "Let's Talk"],
+const WELCOME_BY_MODE: Record<AdvisorMode, string> = {
+  accountant: "G'day. Accountant mode — I'm focused on your numbers. Tax obligations, cashflow health, expense analysis, ATO compliance, and financial reporting. What do you need?",
+  financier: "Financier mode. I have your debt register and cashflow data loaded. Ask me about refinancing, debt capacity, equity position, stress testing, or capital strategy.",
+  consigliere: "The Consigliere is ready. I see everything — your books, your debt, your pipeline, your cashflow. Ask me anything. I'll give you the answer your accountant and banker would give if they were the same person.",
 };
+
+function welcomeFor(mode: AdvisorMode): Message {
+  const isAccountant = mode === "accountant";
+  return {
+    role: "assistant",
+    content: WELCOME_BY_MODE[mode],
+    timestamp: new Date(),
+    buttons: isAccountant ? ["Financial Review", "Let's Talk"] : undefined,
+  };
+}
+
+const WELCOME_MESSAGE: Message = welcomeFor("consigliere");
 
 export default function ConsultingPage() {
   const { liveData, investorMetrics, hasLiveData } = useDashboardData() as any;
