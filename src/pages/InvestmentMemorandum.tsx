@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, RefreshCw, BrainCircuit, Paperclip } from "lucide-react";
+import { Send, RefreshCw, BrainCircuit, Paperclip, Crown } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
