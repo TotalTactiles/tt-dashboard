@@ -651,6 +651,12 @@ export default function ConsultingPage() {
         const res = await fetch(ACCOUNTING_DATA_WEBHOOK);
         const data = await res.json();
         if (!cancelled) setAccountingData(data);
+        console.log('[ACCOUNTANT DEBUG] accountingData keys:', Object.keys(data ?? {}));
+        console.log('[ACCOUNTANT DEBUG] sheets keys:', Object.keys(data?.sheets ?? {}));
+        console.log('[ACCOUNTANT DEBUG] cashflow rows:', (data?.sheets?.cashflow ?? []).length);
+        console.log('[ACCOUNTANT DEBUG] expenses rows:', (data?.sheets?.expenses ?? []).length);
+        console.log('[ACCOUNTANT DEBUG] quotes rows:', (data?.sheets?.quotes ?? []).length);
+        console.log('[ACCOUNTANT DEBUG] full data sample:', JSON.stringify(data).slice(0, 500));
       } catch {
         // silently fail — dashboard liveData will be used as fallback
       } finally {
