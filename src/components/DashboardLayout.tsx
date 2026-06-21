@@ -42,10 +42,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
             {!isDesktop && (
               <div className="flex items-center gap-2 min-w-0">
-                <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shrink-0">
-                  <span className="text-primary-foreground font-mono font-bold text-[10px]">TT</span>
+                <div className="w-7 h-7 rounded-sm bg-primary flex items-center justify-center shrink-0">
+                  <span className="text-primary-foreground font-mono font-bold text-[10px] tracking-tight">TT</span>
                 </div>
-                <span className="text-sm font-semibold text-foreground truncate">
+                <span className="text-sm font-mono font-bold tracking-wider text-foreground truncate uppercase">
                   Total Tactiles
                 </span>
               </div>
@@ -53,8 +53,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
             <div className="flex items-center gap-2 ml-auto shrink-0">
               <ThemeToggle />
-              <span className="pulse-dot bg-chart-green" />
-              <span className="text-xs text-muted-foreground font-mono hidden sm:inline">Live</span>
+              <span className="pulse-dot bg-primary" />
+              <span className="text-xs text-primary font-mono hidden sm:inline">Live</span>
             </div>
           </header>
 
