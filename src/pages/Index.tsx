@@ -1,11 +1,14 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { RefreshCw } from "lucide-react";
+import {
+  ComposedChart, Bar, Line, ReferenceLine, XAxis, YAxis,
+  CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
+} from "recharts";
 import StatCard from "@/components/dashboard/StatCard";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 import PortfolioChart from "@/components/dashboard/PortfolioChart";
 import SectorAllocationChart from "@/components/dashboard/SectorAllocationChart";
 import DealPipeline from "@/components/dashboard/DealPipeline";
-import CashflowChart from "@/components/dashboard/CashflowChart";
 import FundPerformanceChart from "@/components/dashboard/FundPerformanceChart";
 import ForecastChart from "@/components/dashboard/ForecastChart";
 import ProjectExecutionKPIs from "@/components/dashboard/ProjectExecutionKPIs";
@@ -23,6 +26,137 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, Unplug, Loader2 } from "lucide-react";
 
 const fmtAUD = (n: number) => formatMetricValue(n, "currency");
+const fmtKAxis = (v: number) => {
+  if (Math.abs(v) >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(v) >= 1000) return `$${Math.round(v / 1000)}k`;
+  return `$${v}`;
+};
+const TOOLTIP_STYLE = {
+  backgroundColor: "#1a1a2e",
+  border: "1px solid #ffffff20",
+  borderRadius: "8px",
+  fontSize: "12px",
+} as const;
+
+function RevGpNetDebtChart({
+  incomeOutgoingsData,
+  forecastChartData,
+}: {
+  incomeOutgoingsData: Array<{ month: string; income: number; outgoings: number }>;
+  forecastChartData: Array<{ month: string; anticipatedSurplus?: number | null }>;
+}) {
+  const totalMonthlyRepayment = useMemo(() => {
+    try {
+      const raw = localStorage.getItem("tt_debt_register");
+      if (!raw) return 0;
+      const arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) return 0;
+      return arr.reduce((s: number, d: any) => s + (Number(d?.monthlyRepayment) || 0), 0);
+    } catch { return 0; }
+  }, []);
+
+  const data = useMemo(() => {
+    const fMap = new Map(forecastChartData.map((f) => [f.month, f.anticipatedSurplus ?? 0]));
+    return incomeOutgoingsData.map((r) => {
+      const revenue = r.income || 0;
+      const grossProfit = revenue - (r.outgoings || 0) * 0.45;
+      const anticipated = Number(fMap.get(r.month) ?? 0);
+      const netAfterDebt = anticipated - totalMonthlyRepayment;
+      return { month: r.month, revenue, grossProfit, netAfterDebt };
+    });
+  }, [incomeOutgoingsData, forecastChartData, totalMonthlyRepayment]);
+
+  return (
+    <div className="chart-container">
+      <div className="mb-3">
+        <h3 className="text-sm font-medium text-foreground">Revenue → Gross Profit → Net After Debt</h3>
+        <p className="text-xs text-muted-foreground mt-0.5">Monthly view of what survives after COGS, OpEx and debt repayments</p>
+      </div>
+      <ResponsiveContainer width="100%" height={240}>
+        <ComposedChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
+          <XAxis dataKey="month" tick={{ fill: "#6b7280", fontSize: 11 }} />
+          <YAxis tickFormatter={fmtKAxis} tick={{ fill: "#6b7280", fontSize: 11 }} />
+          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => fmtAUD(v as number)} />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <ReferenceLine y={0} stroke="#ffffff20" strokeDasharray="3 3" />
+          <Bar dataKey="revenue" fill="#22c55e" fillOpacity={0.7} name="Revenue" />
+          <Bar dataKey="grossProfit" fill="#3b82f6" fillOpacity={0.7} name="Gross Profit" />
+          <Line type="monotone" dataKey="netAfterDebt" stroke="#f59e0b" strokeWidth={2} dot={false} name="Net After Debt" />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function MonthlyGpVsTargetChart({
+  incomeOutgoingsData,
+}: {
+  incomeOutgoingsData: Array<{ month: string; income: number; outgoings: number }>;
+}) {
+  const [gpTarget, setGpTarget] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem("tt_gp_monthly_target");
+      if (raw) return Number(raw) || 30000;
+    } catch {}
+    return 30000;
+  });
+
+  const data = useMemo(
+    () => incomeOutgoingsData.map((r) => ({
+      month: r.month,
+      grossProfit: (r.income || 0) - (r.outgoings || 0) * 0.45,
+    })),
+    [incomeOutgoingsData]
+  );
+
+  const handleTargetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = Number(e.target.value) || 0;
+    setGpTarget(v);
+    try { localStorage.setItem("tt_gp_monthly_target", String(v)); } catch {}
+  };
+
+  return (
+    <div className="chart-container">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <h3 className="text-sm font-medium text-foreground">Monthly Gross Profit $</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Actual GP dollars earned each month vs target</p>
+        </div>
+        <label className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
+          Monthly GP Target $
+          <input
+            type="number"
+            value={gpTarget}
+            onChange={handleTargetChange}
+            className="bg-white/5 border border-white/10 rounded px-2 py-1 text-sm w-32 text-right font-mono text-foreground"
+          />
+        </label>
+      </div>
+      <ResponsiveContainer width="100%" height={220}>
+        <ComposedChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
+          <XAxis dataKey="month" tick={{ fill: "#6b7280", fontSize: 11 }} />
+          <YAxis tickFormatter={fmtKAxis} tick={{ fill: "#6b7280", fontSize: 11 }} />
+          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => fmtAUD(v as number)} />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <ReferenceLine
+            y={gpTarget}
+            stroke="#f59e0b"
+            strokeDasharray="4 4"
+            label={{ value: "Target", position: "right", fill: "#f59e0b", fontSize: 11 }}
+          />
+          <Bar dataKey="grossProfit" name="Gross Profit">
+            {data.map((d, i) => (
+              <Cell key={i} fill={d.grossProfit >= gpTarget ? "#22c55e" : "#ef4444"} />
+            ))}
+          </Bar>
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 
 function timeAgo(ts: number | null): string {
   if (!ts) return "never";
@@ -44,7 +178,7 @@ function loadActiveGoalIds(allGoals: {id: string;merge?: boolean;}[]): Set<strin
 
 const DashboardContent = () => {
   const { goals, updateGoal } = useGoals();
-  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData, quotedJobs, investorMetrics, isOffline, lastCachedAt, revenueProjects, dataStore, liveData } = useDashboardData();
+  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData, forecastChartData, quotedJobs, investorMetrics, isOffline, lastCachedAt, revenueProjects, dataStore, liveData } = useDashboardData();
 
   // ── Shared period state — resets to current month on every mount/data change ──
   const periodOptions = useMemo(() => buildPeriodOptions(quotedJobs, revenueProjects), [quotedJobs, revenueProjects]);
@@ -843,8 +977,8 @@ const DashboardContent = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
-            <CashflowChart adjustedData={adjustedData} adjustments={adjustments} hasActiveGoals={hasActiveGoals} />
-            <FundPerformanceChart />
+            <RevGpNetDebtChart incomeOutgoingsData={incomeOutgoingsData} forecastChartData={forecastChartData} />
+            <MonthlyGpVsTargetChart incomeOutgoingsData={incomeOutgoingsData} />
           </div>
 
           <div className="mb-4 md:mb-6">
@@ -859,12 +993,14 @@ const DashboardContent = () => {
               showAll={showAllTables}
               onAllToggle={handleTableAllToggle}
             />
+            <FundPerformanceChart />
             <RevenueProjectsTable
               periodFilter={selectedPeriod}
               showAll={showAllTables}
               onAllToggle={handleTableAllToggle}
               invoiceFilter={invoiceFilter}
             />
+
             <div style={{ display: "flex", gap: "24px", alignItems: "flex-start", flexWrap: "wrap" }}>
               <div style={{ flex: "1 1 55%", minWidth: 0 }}>
                 <ExpenseBreakdown goals={goals} activeGoalIds={activeGoalIds} />
