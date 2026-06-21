@@ -419,14 +419,17 @@ const DealFlow = () => {
                   { key: "all", label: "All" },
                   { key: "pending", label: "Pending" },
                   { key: "won", label: "Won" },
+                  { key: "lost", label: "Lost" },
                 ].map((opt) => (
                   <button
                     key={opt.key}
-                    onClick={() => setStaleStatus(opt.key as "all" | "pending" | "won")}
+                    onClick={() => setStaleStatus(opt.key as "all" | "pending" | "won" | "lost")}
                     className={`text-[11px] px-2 py-1 rounded-full border transition-colors font-mono ${
                       staleStatus === opt.key
                         ? opt.key === "pending"
                           ? "bg-chart-orange/20 text-chart-orange border-chart-orange/40"
+                          : opt.key === "lost"
+                          ? "bg-red-500/25 text-red-400 border-red-500/40"
                           : "bg-chart-green/20 text-chart-green border-chart-green/40"
                         : "border-border text-muted-foreground hover:bg-secondary/50"
                     }`}
