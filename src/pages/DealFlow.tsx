@@ -242,6 +242,16 @@ const DealFlow = () => {
                   </div>
                 );
               })}
+              <div className="flex-1 flex flex-col md:flex-row md:items-center gap-2">
+                <div
+                  className="rounded-lg border border-border/40 bg-card/40 p-3 flex-1 min-w-0"
+                  style={{ borderLeft: "3px solid #22c55e", width: `${40 + (completedCount / maxStageCount) * 60}%` }}
+                >
+                  <div className="text-fluid-xs text-muted-foreground truncate">COMPLETED</div>
+                  <div className="font-mono text-fluid-lg font-semibold mt-1">{completedCount}</div>
+                  <div className="font-mono text-fluid-xs text-muted-foreground">{fmt(completedValue)}</div>
+                </div>
+              </div>
             </div>
 
             <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 md:w-48 self-start">
