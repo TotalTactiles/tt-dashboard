@@ -1,9 +1,9 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Check, X, Trash2 } from "lucide-react";
+import { Plus, Pencil, Check, X, Trash2, GripVertical } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import {
   BarChart, Bar, LineChart, Line, ComposedChart, PieChart, Pie, Cell,
@@ -54,6 +54,8 @@ const FinancialHealth = () => {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<DebtFacility | null>(null);
+  const dragIndexRef = useRef<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(debts)); } catch {}
@@ -229,6 +231,7 @@ const FinancialHealth = () => {
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-left text-muted-foreground border-b border-border">
+                  <th className="py-2 px-2 font-medium w-6"></th>
                   <th className="py-2 px-2 font-medium">Facility</th>
                   <th className="py-2 px-2 font-medium">Lender</th>
                   <th className="py-2 px-2 font-medium">Type</th>
@@ -243,11 +246,35 @@ const FinancialHealth = () => {
                 </tr>
               </thead>
               <tbody className="font-mono">
-                {debts.map((d) => {
+                {debts.map((d, index) => {
                   const isEditing = editingId === d.id && draft;
                   const row = isEditing ? (draft as DebtFacility) : d;
                   return (
-                    <tr key={d.id} className="border-b border-border/40 hover:bg-muted/20">
+                    <tr
+                      key={d.id}
+                      draggable={true}
+                      onDragStart={() => { dragIndexRef.current = index; }}
+                      onDragOver={(e) => { e.preventDefault(); setDragOverIndex(index); }}
+                      onDrop={() => {
+                        const dragIndex = dragIndexRef.current;
+                        if (dragIndex !== null && dragIndex !== index) {
+                          setDebts((prev) => {
+                            const next = [...prev];
+                            const temp = next[dragIndex];
+                            next[dragIndex] = next[index];
+                            next[index] = temp;
+                            return next;
+                          });
+                        }
+                        setDragOverIndex(null);
+                        dragIndexRef.current = null;
+                      }}
+                      onDragEnd={() => { setDragOverIndex(null); dragIndexRef.current = null; }}
+                      className={`border-b border-border/40 hover:bg-muted/20 ${dragOverIndex === index ? "opacity-50" : ""}`}
+                    >
+                      <td className="py-1.5 px-2">
+                        <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+                      </td>
                       <td className="py-1.5 px-2">
                         {isEditing ? (
                           <Input value={row.name} onChange={(e) => updateDraft("name", e.target.value)} className="h-7 text-xs" />
@@ -333,13 +360,13 @@ const FinancialHealth = () => {
                   );
                 })}
                 {debts.length === 0 && (
-                  <tr><td colSpan={11} className="py-6 text-center text-muted-foreground">No facilities. Click "Add Facility" to start.</td></tr>
+                  <tr><td colSpan={12} className="py-6 text-center text-muted-foreground">No facilities. Click "Add Facility" to start.</td></tr>
                 )}
               </tbody>
               {debts.length > 0 && (
                 <tfoot>
                   <tr className="border-t border-border font-mono text-foreground bg-muted/10">
-                    <td className="py-2 px-2 font-semibold" colSpan={3}>Totals</td>
+                    <td className="py-2 px-2 font-semibold" colSpan={4}>Totals</td>
                     <td className="py-2 px-2 text-right font-semibold">{fmtCurrency(totals.totalPrincipal)}</td>
                     <td className="py-2 px-2 text-right font-semibold">{fmtCurrency(totals.totalBalance)}</td>
                     <td className="py-2 px-2 text-right font-semibold">{totals.blendedRate.toFixed(2)}%</td>
