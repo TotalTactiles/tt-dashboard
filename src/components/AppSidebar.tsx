@@ -7,6 +7,7 @@ import {
   Target,
   FunctionSquare,
   BrainCircuit,
+  Crown,
   ShieldCheck } from
 "lucide-react";
 import { NavLink } from "@/components/NavLink";
