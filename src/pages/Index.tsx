@@ -38,6 +38,28 @@ const TOOLTIP_STYLE = {
   fontSize: "12px",
 } as const;
 
+const GpTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{
+      backgroundColor: "#0f172a",
+      border: "1px solid rgba(255,255,255,0.25)",
+      borderRadius: "10px",
+      padding: "10px 14px",
+      boxShadow: "0 4px 24px rgba(0,0,0,0.5)"
+    }}>
+      <p style={{ color: "#94a3b8", fontSize: "11px", marginBottom: "4px", fontFamily: "monospace" }}>{label}</p>
+      {payload.map((p: any, i: number) => (
+        <p key={i} style={{ color: "#ffffff", fontSize: "13px", fontWeight: 600, margin: 0 }}>
+          {p.name}: <span style={{ color: p.value >= 0 ? "#22c55e" : "#ef4444" }}>
+            {p.value < 0 ? "-" : ""}${Math.abs(p.value / 1000).toFixed(1)}k
+          </span>
+        </p>
+      ))}
+    </div>
+  );
+};
+
 function RevGpNetDebtChart({
   incomeOutgoingsData,
   forecastChartData,
@@ -77,8 +99,8 @@ function RevGpNetDebtChart({
           <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
           <XAxis dataKey="month" tick={{ fill: "#6b7280", fontSize: 11 }} />
           <YAxis tickFormatter={fmtKAxis} tick={{ fill: "#6b7280", fontSize: 11 }} />
-          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => fmtAUD(v as number)} />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Tooltip content={<GpTooltip />} />
+          <Legend wrapperStyle={{ color: "#e2e8f0", fontSize: "12px", paddingTop: "8px" }} />
           <ReferenceLine y={0} stroke="#ffffff20" strokeDasharray="3 3" />
           <Bar dataKey="revenue" fill="#22c55e" fillOpacity={0.7} name="Revenue" />
           <Bar dataKey="grossProfit" fill="#3b82f6" fillOpacity={0.7} name="Gross Profit" />
@@ -138,8 +160,8 @@ function MonthlyGpVsTargetChart({
           <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
           <XAxis dataKey="month" tick={{ fill: "#6b7280", fontSize: 11 }} />
           <YAxis tickFormatter={fmtKAxis} tick={{ fill: "#6b7280", fontSize: 11 }} />
-          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => fmtAUD(v as number)} />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Tooltip content={<GpTooltip />} />
+          <Legend wrapperStyle={{ color: "#e2e8f0", fontSize: "12px", paddingTop: "8px" }} />
           <ReferenceLine
             y={gpTarget}
             stroke="#f59e0b"
