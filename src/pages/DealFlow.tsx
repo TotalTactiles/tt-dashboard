@@ -177,7 +177,7 @@ const DealFlow = () => {
     return jobs
       .filter((j: any) => isActive(j.status ?? j["Current Status"]))
       .map((j: any) => {
-        const d = parseDealDate(j.dateQuoted);
+        const d = parseDealDate(j.dateQuoted ?? j["Date Created"] ?? j["Last Updated"] ?? "");
         if (!d) return null;
         const days = Math.floor((today.getTime() - d.getTime()) / 86400000);
         return {
