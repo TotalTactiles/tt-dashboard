@@ -592,7 +592,7 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
       ) : (
         <>
           {/* Desktop table */}
-          <div className="desktop-table overflow-x-auto overflow-y-visible" ref={tableContainerRef}>
+          <div className="desktop-table table-scroll-wrapper overflow-y-visible" ref={tableContainerRef}>
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-muted-foreground font-mono border-b border-border">
