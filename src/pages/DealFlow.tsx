@@ -183,6 +183,7 @@ const DealFlow = () => {
         return {
           ...j,
           daysOld: days,
+          status: j.status ?? (j["Current Status"] === "PO Received (GRN)" ? "won" : j["Current Status"] === "Verbal Confirmation (YLW)" ? "yellow" : "pending"),
           projectName: j["Project Name"] ?? j._project ?? "",
           companyName: j["Company Name"] ?? j._company ?? "",
         };
