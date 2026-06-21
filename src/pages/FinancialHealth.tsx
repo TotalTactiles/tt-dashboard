@@ -662,7 +662,7 @@ const ChartsSection = ({
         <p className="text-sm font-medium text-foreground mb-0.5">What We Earned vs What Was Borrowed</p>
         <p className="text-xs text-muted-foreground mb-3">Monthly income from operations vs capital injected via debt facilities</p>
 
-        {!earnedVsDebt.hasVinny ? (
+        {!earnedVsDebtData.hasAnySource ? (
           <div className="flex items-center justify-center text-center text-xs text-muted-foreground" style={{ height: 120 }}>
             No debt-funded facilities identified. Add facilities with 'Vinny' in the name to see this breakdown.
           </div>
