@@ -82,6 +82,10 @@ const DealFlow = () => {
   const wonItems = byStatus.won;
   const wonValue = wonItems.reduce((a: number, b: any) => a + (Number(b.value) || 0), 0);
 
+  const completedJobs = jobs.filter((j: any) => String(j.rawStatus ?? "").toUpperCase() === "COMPLETED");
+  const completedCount = completedJobs.length;
+  const completedValue = completedJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
+
   // Win/Loss
 
   const pipelineWonJobs = jobs.filter((j: any) => isPipelineWin(j));
