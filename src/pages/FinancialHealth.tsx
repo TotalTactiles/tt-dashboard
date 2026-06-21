@@ -592,11 +592,115 @@ const ChartsSection = ({
     return "#ef4444";
   };
 
+  // ---- Earned vs Debt-Funded Revenue ----
+  const parseMonthLabel = (s: string): Date | null => {
+    if (!s) return null;
+    const d = new Date(`${s} 1`);
+    return isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), 1);
+  };
+  const earnedVsDebt = useMemo(() => {
+    const vinny = debts.filter((d) => (d.name || "").toLowerCase().includes("vinny"));
+    const facs = vinny
+      .map((f) => {
+        const start = f.startDate ? new Date(f.startDate) : null;
+        const end = f.maturityDate ? new Date(f.maturityDate) : null;
+        const principal = Number(f.originalPrincipal) || 0;
+        if (!start || !end || isNaN(start.getTime()) || isNaN(end.getTime()) || principal <= 0) return null;
+        const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
+        if (months <= 0) return null;
+        return {
+          start: new Date(start.getFullYear(), start.getMonth(), 1),
+          end: new Date(end.getFullYear(), end.getMonth(), 1),
+          monthly: principal / months,
+        };
+      })
+      .filter(Boolean) as { start: Date; end: Date; monthly: number }[];
+
+    const rows = io.map((row) => {
+      const month = String(row?.month ?? "");
+      const earnedRevenue = Number(row?.income) || 0;
+      const md = parseMonthLabel(month);
+      let debtDrawdown = 0;
+      if (md) {
+        facs.forEach((f) => {
+          if (md >= f.start && md <= f.end) debtDrawdown += f.monthly;
+        });
+      }
+      return { month, earnedRevenue, debtDrawdown, netEarned: earnedRevenue - debtDrawdown };
+    });
+    return { rows, hasVinny: facs.length > 0 };
+  }, [io, debts]);
+
+  const earnedStats = useMemo(() => {
+    const r = earnedVsDebt.rows;
+    const totalEarned = r.reduce((s, x) => s + x.earnedRevenue, 0);
+    const totalDebt = r.reduce((s, x) => s + x.debtDrawdown, 0);
+    const avgNet = r.length ? r.reduce((s, x) => s + x.netEarned, 0) / r.length : 0;
+    const debtPct = totalEarned > 0 ? (totalDebt / totalEarned) * 100 : 0;
+    return { totalDebt, avgNet, debtPct };
+  }, [earnedVsDebt]);
+
+  const EarnedTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div style={TOOLTIP_STYLE} className="px-3 py-2">
+        <p className="text-foreground font-medium mb-1">{label}</p>
+        {payload.map((p: any) => (
+          <p key={p.dataKey} style={{ color: p.color }}>
+            {p.name}: {fmtAUD(p.value)}
+          </p>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold text-foreground">Debt vs Business Performance</h2>
         <p className="text-xs text-muted-foreground">Live cashflow data overlaid with debt obligations</p>
+      </div>
+
+      {/* Chart 0: Earned vs Debt-Funded Revenue */}
+      <div className="chart-container">
+        <p className="text-sm font-medium text-foreground mb-0.5">What We Earned vs What Was Borrowed</p>
+        <p className="text-xs text-muted-foreground mb-3">Monthly income from operations vs capital injected via debt facilities</p>
+
+        {!earnedVsDebt.hasVinny ? (
+          <div className="flex items-center justify-center text-center text-xs text-muted-foreground" style={{ height: 120 }}>
+            No debt-funded facilities identified. Add facilities with 'Vinny' in the name to see this breakdown.
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-2 mb-4">
+              <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Avg Monthly Earned</div>
+                <div className="text-base font-mono font-semibold text-green-500">{fmtAUD(earnedStats.avgNet)}</div>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Debt Capital Injected</div>
+                <div className="text-base font-mono font-semibold text-blue-500">{fmtAUD(earnedStats.totalDebt)}</div>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Debt as % of Total Income</div>
+                <div className="text-base font-mono font-semibold text-amber-500">{earnedStats.debtPct.toFixed(1)}%</div>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={280}>
+              <ComposedChart data={earnedVsDebt.rows} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" />
+                <XAxis dataKey="month" tick={CHART_TICK} />
+                <YAxis tick={CHART_TICK} tickFormatter={fmtKAxis} />
+                <Tooltip content={<EarnedTooltip />} contentStyle={{ backgroundColor: "#1a1a2e", border: "1px solid #ffffff20", borderRadius: "8px", fontSize: "12px" }} />
+                <Legend wrapperStyle={{ fontSize: 11, color: "#9ca3af" }} />
+                <ReferenceLine y={0} stroke="#ffffff20" />
+                <Bar dataKey="earnedRevenue" name="Total Income" fill="#22c55e" fillOpacity={0.8} />
+                <Bar dataKey="debtDrawdown" name="Debt Capital (Vinny)" fill="#3b82f6" fillOpacity={0.7} />
+                <Line type="monotone" dataKey="netEarned" name="True Earned (ex-Debt)" stroke="#f59e0b" strokeWidth={2.5} dot={false} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </>
+        )}
       </div>
 
       {/* Chart 1: Revenue Waterfall */}
