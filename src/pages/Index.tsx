@@ -675,19 +675,41 @@ const DashboardContent = () => {
                   index={11}
                   momContext={scopeLabel}
                 />
-                <StatCard
-                  label="Avg Contract Value"
-                  value={fmtAUD(sd.avgWon)}
-                  change={`${sd.wonCount} jobs won`}
-                  positive={true}
-                  index={14}
-                  altValue={fmtAUD(sd.avgQuoted)}
-                  altChange={`${sd.totalCount} jobs quoted`}
-                  altPositive={true}
-                  toggleLabelBase="Won"
-                  toggleLabelAlt="Quoted"
-                  greenAltPill={true}
-                />
+                {(() => {
+                  const allJobs = liveData?.quotedJobs ?? [];
+                  
+                  // Match Deal Flow exactly — won = "won" status only (not completed)
+                  const wonJobs = allJobs.filter((j: any) => j.status === "won");
+                  const completedJobs = allJobs.filter((j: any) => j.status === "completed");
+                  const wonAndCompleted = [...wonJobs, ...completedJobs];
+
+                  const getVal = (j: any): number =>
+                    parseFloat(j.amount ?? j.Amount ?? j.contractValue ?? j.Contract_Value ?? j.value ?? "0") || 0;
+
+                  const avgWon = wonAndCompleted.length > 0
+                    ? wonAndCompleted.reduce((s: number, j: any) => s + getVal(j), 0) / wonAndCompleted.length
+                    : 0;
+
+                  const avgQuoted = allJobs.length > 0
+                    ? allJobs.reduce((s: number, j: any) => s + getVal(j), 0) / allJobs.length
+                    : 0;
+
+                  return (
+                    <StatCard
+                      label="Avg Contract Value"
+                      value={fmtAUD(avgWon)}
+                      change={`${wonAndCompleted.length} jobs won`}
+                      positive={true}
+                      index={14}
+                      altValue={fmtAUD(avgQuoted)}
+                      altChange={`${allJobs.length} jobs quoted`}
+                      altPositive={true}
+                      toggleLabelBase="Won"
+                      toggleLabelAlt="Quoted"
+                      greenAltPill={true}
+                    />
+                  );
+                })()}
                 {(() => {
                   const netProfit = sd.netProfit;
                   const wonCount = sd.wonCount;
