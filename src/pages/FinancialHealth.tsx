@@ -5,6 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Pencil, Check, X, Trash2 } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
+import {
+  BarChart, Bar, LineChart, Line, ComposedChart, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine,
+} from "recharts";
 
 type DebtType = "Term Loan" | "Asset Finance" | "Credit Card" | "Director Loan" | "Other";
 type DebtPurpose = "Vehicle" | "Equipment" | "Working Capital" | "Property" | "Other";
@@ -369,8 +373,277 @@ const FinancialHealth = () => {
             ))}
           </div>
         </div>
+
+        {/* SECTION 3: Charts */}
+        <ChartsSection
+          incomeOutgoingsData={incomeOutgoingsData}
+          forecastChartData={forecastChartData}
+          debts={debts}
+          totalMonthlyRepayment={totalMonthlyRepayment}
+        />
       </div>
     </DashboardLayout>
+  );
+};
+
+// ---------- Charts Section ----------
+
+const CHART_TICK = { fill: "#6b7280", fontSize: 11 } as const;
+const GRID_STROKE = "#ffffff10";
+const TOOLTIP_STYLE = {
+  backgroundColor: "#1a1a2e",
+  border: "1px solid #ffffff20",
+  borderRadius: "8px",
+  fontSize: "12px",
+} as const;
+const SLICE_COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#8b5cf6", "#ef4444"];
+
+const fmtAUD = (n: number) =>
+  `$${(n || 0).toLocaleString("en-AU", { maximumFractionDigits: 0 })}`;
+const fmtKAxis = (n: number) => {
+  if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(n) >= 1000) return `$${Math.round(n / 1000)}k`;
+  return `$${n}`;
+};
+
+interface ChartsSectionProps {
+  incomeOutgoingsData: any[];
+  forecastChartData: any[];
+  debts: DebtFacility[];
+  totalMonthlyRepayment: number;
+}
+
+const ChartsSection = ({
+  incomeOutgoingsData,
+  forecastChartData,
+  debts,
+  totalMonthlyRepayment,
+}: ChartsSectionProps) => {
+  const io: any[] = Array.isArray(incomeOutgoingsData) ? incomeOutgoingsData : [];
+  const fc: any[] = Array.isArray(forecastChartData) ? forecastChartData : [];
+
+  // ---- Waterfall dataset ----
+  const waterfallData = useMemo(() => {
+    const fcByMonth = new Map<string, any>();
+    fc.forEach((f) => fcByMonth.set(String(f?.month ?? ""), f));
+    return io.map((row) => {
+      const month = String(row?.month ?? "");
+      const income = Number(row?.income) || 0;
+      const outgoings = Number(row?.outgoings) || 0;
+      const grossProfit = income - outgoings * 0.45;
+      const surplus = Number(fcByMonth.get(month)?.anticipatedSurplus) || 0;
+      const netAfterDebt = surplus - totalMonthlyRepayment;
+      return { month, revenue: income, grossProfit, netAfterDebt };
+    });
+  }, [io, fc, totalMonthlyRepayment]);
+
+  // ---- Cash cover runway ----
+  const runwayData = useMemo(() => {
+    return fc.map((row) => {
+      const month = String(row?.month ?? "");
+      const surplus = Number(row?.anticipatedSurplus) || 0;
+      let coverMonths: number | null = null;
+      if (totalMonthlyRepayment > 0) {
+        const raw = surplus / totalMonthlyRepayment;
+        coverMonths = Math.max(-2, Math.min(12, raw));
+      }
+      return { month, coverMonths };
+    });
+  }, [fc, totalMonthlyRepayment]);
+
+  // ---- Debt composition ----
+  const compositionData = useMemo(() => {
+    return debts
+      .filter((d) => Number(d.balance) > 0)
+      .map((d) => ({ name: d.name || "Unnamed", value: Number(d.balance) || 0 }));
+  }, [debts]);
+  const compositionTotal = compositionData.reduce((s, d) => s + d.value, 0);
+
+  // ---- Burden % of GP monthly ----
+  const burdenData = useMemo(() => {
+    return io.map((row) => {
+      const month = String(row?.month ?? "");
+      const income = Number(row?.income) || 0;
+      const outgoings = Number(row?.outgoings) || 0;
+      const monthlyGP = income - outgoings * 0.45;
+      let burdenPct: number | null = null;
+      if (monthlyGP > 0 && totalMonthlyRepayment > 0) {
+        burdenPct = Math.min(200, (totalMonthlyRepayment / monthlyGP) * 100);
+      }
+      return { month, burdenPct };
+    });
+  }, [io, totalMonthlyRepayment]);
+
+  const WaterfallTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div style={TOOLTIP_STYLE} className="px-3 py-2">
+        <p className="text-foreground font-medium mb-1">{label}</p>
+        {payload.map((p: any) => (
+          <p key={p.dataKey} style={{ color: p.color }}>
+            {p.name}: {fmtAUD(p.value)}
+          </p>
+        ))}
+      </div>
+    );
+  };
+
+  const RunwayTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    const v = payload[0]?.value;
+    return (
+      <div style={TOOLTIP_STYLE} className="px-3 py-2">
+        <p className="text-foreground font-medium">{label}</p>
+        <p className="text-muted-foreground">
+          {v == null ? "No repayment data" : `${Number(v).toFixed(1)} months cover`}
+        </p>
+      </div>
+    );
+  };
+
+  const CompositionTooltip = ({ active, payload }: any) => {
+    if (!active || !payload?.length) return null;
+    const p = payload[0];
+    const pct = compositionTotal > 0 ? (p.value / compositionTotal) * 100 : 0;
+    return (
+      <div style={TOOLTIP_STYLE} className="px-3 py-2">
+        <p className="text-foreground font-medium">{p.name}</p>
+        <p className="text-muted-foreground">{fmtAUD(p.value)} ({pct.toFixed(1)}%)</p>
+      </div>
+    );
+  };
+
+  const BurdenTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    const v = payload[0]?.value;
+    return (
+      <div style={TOOLTIP_STYLE} className="px-3 py-2">
+        <p className="text-foreground font-medium">{label}</p>
+        <p className="text-muted-foreground">
+          {v == null ? "No GP data" : `${Number(v).toFixed(1)}% of GP`}
+        </p>
+      </div>
+    );
+  };
+
+  const runwayColor = (v: number | null) => {
+    if (v == null) return "#6b7280";
+    if (v >= 3) return "#22c55e";
+    if (v >= 1.5) return "#eab308";
+    return "#ef4444";
+  };
+
+  const burdenColor = (v: number | null) => {
+    if (v == null) return "#6b7280";
+    if (v < 20) return "#22c55e";
+    if (v <= 35) return "#eab308";
+    return "#ef4444";
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-lg font-semibold text-foreground">Debt vs Business Performance</h2>
+        <p className="text-xs text-muted-foreground">Live cashflow data overlaid with debt obligations</p>
+      </div>
+
+      {/* Chart 1: Revenue Waterfall */}
+      <div className="chart-container">
+        <p className="text-sm font-medium text-foreground mb-0.5">Revenue → Gross Profit → Net After Debt</p>
+        <p className="text-xs text-muted-foreground mb-4">Monthly view of what survives after COGS, OpEx and debt repayments</p>
+        <ResponsiveContainer width="100%" height={260}>
+          <ComposedChart data={waterfallData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+            <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" />
+            <XAxis dataKey="month" tick={CHART_TICK} />
+            <YAxis tick={CHART_TICK} tickFormatter={fmtKAxis} />
+            <Tooltip content={<WaterfallTooltip />} />
+            <Legend wrapperStyle={{ fontSize: 11, color: "#9ca3af" }} />
+            <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" />
+            <Bar dataKey="revenue" name="Revenue" fill="#22c55e" fillOpacity={0.7} />
+            <Bar dataKey="grossProfit" name="Gross Profit" fill="#3b82f6" fillOpacity={0.7} />
+            <Line type="monotone" dataKey="netAfterDebt" name="Net After Debt" stroke="#f59e0b" strokeWidth={2} dot={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Chart 2: Cash Cover Runway */}
+      <div className="chart-container">
+        <p className="text-sm font-medium text-foreground mb-0.5">Cash Cover Runway</p>
+        <p className="text-xs text-muted-foreground mb-4">Months of debt repayments covered by anticipated monthly surplus</p>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={runwayData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+            <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" />
+            <XAxis dataKey="month" tick={CHART_TICK} />
+            <YAxis tick={CHART_TICK} domain={[-2, 12]} label={{ value: "Months Cover", angle: -90, position: "insideLeft", fill: "#6b7280", fontSize: 11 }} />
+            <Tooltip content={<RunwayTooltip />} />
+            <ReferenceLine y={3} stroke="#22c55e" strokeDasharray="3 3" label={{ value: "Safe Zone", fill: "#22c55e", fontSize: 10, position: "insideTopRight" }} />
+            <ReferenceLine y={1.5} stroke="#eab308" strokeDasharray="3 3" label={{ value: "Caution", fill: "#eab308", fontSize: 10, position: "insideTopRight" }} />
+            <Bar dataKey="coverMonths" name="Months Cover">
+              {runwayData.map((d, i) => (
+                <Cell key={i} fill={runwayColor(d.coverMonths)} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Charts 3a + 3b */}
+      <div className="flex flex-col md:flex-row gap-4">
+        {/* 3a: Donut */}
+        <div className="chart-container md:w-2/5">
+          <p className="text-sm font-medium text-foreground mb-0.5">Debt Composition</p>
+          <p className="text-xs text-muted-foreground mb-4">Balance by facility</p>
+          {compositionData.length === 0 ? (
+            <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">No debt entered</div>
+          ) : (
+            <>
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={compositionData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={2}>
+                    {compositionData.map((_, i) => (
+                      <Cell key={i} fill={SLICE_COLORS[i % SLICE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CompositionTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="mt-3 space-y-1">
+                {compositionData.map((d, i) => (
+                  <div key={d.name} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: SLICE_COLORS[i % SLICE_COLORS.length] }} />
+                      <span className="text-muted-foreground">{d.name}</span>
+                    </div>
+                    <span className="font-mono text-foreground">{fmtAUD(d.value)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* 3b: Burden */}
+        <div className="chart-container md:w-3/5">
+          <p className="text-sm font-medium text-foreground mb-0.5">Repayment Burden % of GP</p>
+          <p className="text-xs text-muted-foreground mb-4">Monthly debt repayment as % of that month's gross profit</p>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={burdenData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+              <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" />
+              <XAxis dataKey="month" tick={CHART_TICK} />
+              <YAxis tick={CHART_TICK} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+              <Tooltip content={<BurdenTooltip />} />
+              <ReferenceLine y={20} stroke="#22c55e" strokeDasharray="3 3" />
+              <ReferenceLine y={35} stroke="#ef4444" strokeDasharray="3 3" />
+              <Bar dataKey="burdenPct" name="Burden %">
+                {burdenData.map((d, i) => (
+                  <Cell key={i} fill={burdenColor(d.burdenPct)} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
   );
 };
 
