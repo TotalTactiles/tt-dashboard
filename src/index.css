@@ -70,60 +70,60 @@
 
   /* ── LIGHT THEME ── */
   .light {
-    --background: 0 0% 97%;
-    --foreground: 220 20% 10%;
+    --background: 195 8% 91%;
+    --foreground: 0 0% 6%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 10%;
+    --card-foreground: 0 0% 6%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 10%;
+    --popover-foreground: 0 0% 6%;
 
-    --primary: 217 91% 52%;
+    --primary: 213 54% 49%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 93%;
-    --secondary-foreground: 220 16% 30%;
+    --secondary: 195 8% 85%;
+    --secondary-foreground: 0 0% 15%;
 
-    --muted: 220 14% 95%;
-    --muted-foreground: 215 12% 42%;
+    --muted: 195 8% 88%;
+    --muted-foreground: 210 15% 38%;
 
-    --accent: 217 91% 52%;
+    --accent: 210 67% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 88%;
-    --input: 220 14% 88%;
-    --ring: 217 91% 52%;
+    --border: 195 8% 80%;
+    --input: 195 8% 80%;
+    --ring: 213 54% 49%;
 
-    --chart-green: 142 71% 38%;
+    --chart-green: 142 71% 36%;
     --chart-red: 0 72% 48%;
-    --chart-blue: 217 91% 52%;
-    --chart-amber: 38 92% 48%;
+    --chart-blue: 213 54% 49%;
+    --chart-amber: 38 92% 46%;
     --chart-purple: 270 60% 48%;
     --chart-orange: 25 95% 48%;
 
     /* Chart infrastructure tokens — light (soft grid) */
-    --chart-grid: 220 14% 92%;
-    --chart-axis: 215 12% 50%;
+    --chart-grid: 195 8% 84%;
+    --chart-axis: 210 15% 48%;
     --chart-tooltip-bg: 0 0% 100%;
-    --chart-tooltip-border: 220 14% 88%;
-    --chart-tooltip-text: 215 12% 32%;
-    --chart-zero-line: 215 12% 80%;
-    --chart-ref-line: 215 12% 65%;
-    --chart-ref-text: 215 12% 50%;
+    --chart-tooltip-border: 195 8% 80%;
+    --chart-tooltip-text: 210 15% 30%;
+    --chart-zero-line: 195 8% 75%;
+    --chart-ref-line: 195 8% 65%;
+    --chart-ref-text: 210 15% 48%;
     --chart-dot-stroke: 0 0% 100%;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 0 0% 8%;
-    --sidebar-primary: 217 91% 52%;
+    --sidebar-background: 195 8% 88%;
+    --sidebar-foreground: 0 0% 15%;
+    --sidebar-primary: 213 54% 49%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 91% 52% / 0.10;
-    --sidebar-accent-foreground: 220 20% 10%;
-    --sidebar-border: 220 14% 90%;
-    --sidebar-ring: 217 91% 52%;
+    --sidebar-accent: 195 8% 84%;
+    --sidebar-accent-foreground: 0 0% 6%;
+    --sidebar-border: 195 8% 80%;
+    --sidebar-ring: 213 54% 49%;
   }
 }
 
