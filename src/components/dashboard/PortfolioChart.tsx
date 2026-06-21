@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, ReferenceLine, Cell } from "recharts";
+import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, ReferenceLine, Cell } from "recharts";
 import { Download } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatMetricValue } from "@/lib/formatMetricValue";
@@ -103,10 +103,15 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
   const tc = useMemo(() => chartColors(), [resolvedTheme]);
 
   const filteredData = useMemo(() => {
-    let data = sourceData.map(d => ({
-      ...d,
-      outgoings: Math.abs(d.outgoings),
-    }));
+    let data = sourceData.map(d => {
+      const outgoings = Math.abs(d.outgoings);
+      const incomeForNet = d.isFuture ? (d.probableIncome ?? 0) : (d.income ?? 0);
+      return {
+        ...d,
+        outgoings,
+        netSurplus: incomeForNet - outgoings,
+      };
+    });
     // Year filter
     if (selectedYear !== null) {
       data = data.filter((d) => {
@@ -208,6 +213,7 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
         <div className="min-w-0">
           <h3 className="text-sm font-medium text-muted-foreground">Income vs Outgoings</h3>
           <p className="text-xl font-mono font-bold text-foreground">Monthly Cash Flow</p>
+          <p className="text-[10px] text-muted-foreground font-mono mt-0.5">Green = income · Red = outgoings · Yellow/Orange = net position</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {hasMultipleYears && (
@@ -254,20 +260,20 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono mb-3">
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-sm bg-chart-blue" />
+          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#22c55e", opacity: 0.85 }} />
           <span className="text-muted-foreground">Income</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-sm bg-chart-blue/35" />
+          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#22c55e", opacity: 0.35 }} />
           <span className="text-muted-foreground">Income (Probable)</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-sm bg-chart-red" />
+          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#ef4444", opacity: 0.85 }} />
           <span className="text-muted-foreground">Outgoings</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-0.5 rounded bg-chart-green" />
-          <span className="text-muted-foreground">Surplus</span>
+          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#a3e635" }} />
+          <span className="text-muted-foreground">Net Surplus / Deficit</span>
         </div>
       </div>
 
@@ -377,25 +383,25 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
               )}
               <Bar yAxisId="bars" dataKey="income" radius={[3, 3, 0, 0]} animationDuration={800}>
                 {filteredData.map((entry, index) => (
-                  <Cell key={`income-${index}`} fill={tc.blue} fillOpacity={entry.isFuture ? 0 : 1} />
+                  <Cell key={`income-${index}`} fill="#22c55e" fillOpacity={entry.isFuture ? 0 : 0.85} />
                 ))}
               </Bar>
               <Bar yAxisId="bars" dataKey="probableIncome" radius={[3, 3, 0, 0]} animationDuration={800}>
                 {filteredData.map((entry, index) => (
-                  <Cell key={`probable-${index}`} fill={tc.blue} fillOpacity={entry.isFuture ? 0.35 : 0} />
+                  <Cell key={`probable-${index}`} fill="#22c55e" fillOpacity={entry.isFuture ? 0.35 : 0} />
                 ))}
               </Bar>
-              <Bar yAxisId="bars" dataKey="outgoings" fill={tc.red} radius={[3, 3, 0, 0]} animationDuration={800} />
-              <ReferenceLine yAxisId="surplus" y={0} stroke={tc.zeroLine} strokeDasharray="3 3" />
-              <Line
-                yAxisId="surplus"
-                type="monotone"
-                dataKey="surplus"
-                stroke={tc.green}
-                strokeWidth={2}
-                dot={renderSurplusDot}
-                animationDuration={800}
-              />
+              <Bar yAxisId="bars" dataKey="outgoings" radius={[3, 3, 0, 0]} animationDuration={800}>
+                {filteredData.map((entry, index) => (
+                  <Cell key={`out-${index}`} fill="#ef4444" fillOpacity={0.85} />
+                ))}
+              </Bar>
+              <Bar yAxisId="bars" dataKey="netSurplus" radius={[3, 3, 0, 0]} animationDuration={800} name="Net Surplus / Deficit">
+                {filteredData.map((entry, index) => (
+                  <Cell key={`net-${index}`} fill={(entry as any).netSurplus >= 0 ? "#a3e635" : "#f97316"} />
+                ))}
+              </Bar>
+              <ReferenceLine yAxisId="bars" y={0} stroke="#ffffff30" />
             </ComposedChart>
           </ResponsiveContainer>
         </div>

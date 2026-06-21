@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceArea, ReferenceLine } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { chartColors } from "@/lib/chartTheme";
 import NoData from "./NoData";
@@ -61,7 +61,7 @@ const ForecastChart = React.memo(() => {
       className="chart-container"
     >
       <h3 className="text-sm font-semibold text-foreground mb-0.5">Forecasts</h3>
-      <p className="text-xs text-muted-foreground font-mono mb-4">Forward-looking forecast from cashflow model</p>
+      <p className="text-xs text-muted-foreground font-mono mb-4">Past performance (shaded) · Forward forecast from cashflow model</p>
       {forecastChartData.length === 0 ? (
         <NoData message="No forecast data" healthStatus={dataHealth.cashflow.status} />
       ) : (
@@ -152,6 +152,17 @@ const ForecastChart = React.memo(() => {
                   );
                 }}
               />
+              {forecastChartData.length > 0 && forecastChartData.some(d => d.month === "Jun-26") && (
+                <>
+                  <ReferenceArea x1={forecastChartData[0].month} x2="Jun-26" fill="#ffffff" fillOpacity={0.03} />
+                  <ReferenceLine
+                    x="Jun-26"
+                    stroke="#ffffff40"
+                    strokeDasharray="4 4"
+                    label={{ value: "Today", position: "top", fill: "#ffffff60", fontSize: 10 }}
+                  />
+                </>
+              )}
               {SERIES.map((s) => {
                 const sColor = getSeriesColor(s.color);
                 const isGhost = s.color === "ghost";
@@ -163,8 +174,8 @@ const ForecastChart = React.memo(() => {
                     stroke={sColor}
                     strokeWidth={s.strokeWidth}
                     strokeDasharray={s.dash}
-                    dot={isGhost ? { r: 2.5, fill: sColor, strokeWidth: 0 } : { r: 3, fill: sColor, strokeWidth: 1, stroke: tc.dotStroke }}
-                    activeDot={isGhost ? { r: 4, fill: sColor, strokeWidth: 1, stroke: tc.dotStroke } : { r: 5, fill: sColor, strokeWidth: 2, stroke: tc.dotStroke }}
+                    dot={{ r: 3, fill: "transparent", stroke: "transparent" }}
+                    activeDot={{ r: 5, fill: sColor, strokeWidth: 2, stroke: tc.dotStroke }}
                     animationDuration={1500}
                     connectNulls={isGhost ? false : true}
                   />

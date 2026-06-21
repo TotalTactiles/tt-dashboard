@@ -4,6 +4,7 @@ import { RefreshCw } from "lucide-react";
 import {
   ComposedChart, Bar, Line, ReferenceLine, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
+  AreaChart, Area,
 } from "recharts";
 import StatCard from "@/components/dashboard/StatCard";
 import { formatMetricValue } from "@/lib/formatMetricValue";
@@ -246,22 +247,27 @@ function RevGpNetDebtChart({
   return (
     <div className="chart-container">
       <div className="mb-3">
-        <h3 className="text-sm font-medium text-foreground">Revenue → Gross Profit → Net After Debt</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">Monthly view of what survives after COGS, OpEx and debt repayments</p>
+        <h3 className="text-sm font-medium text-foreground">Margin Waterfall</h3>
+        <p className="text-xs text-muted-foreground mt-0.5">Revenue shrinks to GP after COGS, then to net after debt repayments</p>
       </div>
       <ResponsiveContainer width="100%" height={240}>
-        <ComposedChart data={data}>
+        <AreaChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
           <XAxis dataKey="month" tick={{ fill: "#6b7280", fontSize: 11 }} />
           <YAxis tickFormatter={fmtKAxis} tick={{ fill: "#6b7280", fontSize: 11 }} />
           <Tooltip content={<GpTooltip />} />
           <Legend wrapperStyle={{ color: "#e2e8f0", fontSize: "12px", paddingTop: "8px" }} />
           <ReferenceLine y={0} stroke="#ffffff20" strokeDasharray="3 3" />
-          <Bar dataKey="revenue" fill="#22c55e" fillOpacity={0.7} name="Revenue" />
-          <Bar dataKey="grossProfit" fill="#3b82f6" fillOpacity={0.7} name="Gross Profit" />
-          <Line type="monotone" dataKey="netAfterDebt" stroke="#f59e0b" strokeWidth={2} dot={false} name="Net After Debt" />
-        </ComposedChart>
+          <Area type="monotone" dataKey="revenue" stroke="#22c55e" strokeWidth={2} fill="#22c55e" fillOpacity={0.15} name="Revenue" />
+          <Area type="monotone" dataKey="grossProfit" stroke="#3b82f6" strokeWidth={2} fill="#3b82f6" fillOpacity={0.2} name="Gross Profit" />
+          <Area type="monotone" dataKey="netAfterDebt" stroke="#f59e0b" strokeWidth={2} fill="#f59e0b" fillOpacity={0.25} name="Net After Debt" />
+        </AreaChart>
       </ResponsiveContainer>
+      <div className="flex gap-4 text-[10px] font-mono text-muted-foreground mt-2">
+        <span><span style={{ color: "#22c55e" }}>●</span> Revenue (total)</span>
+        <span><span style={{ color: "#3b82f6" }}>●</span> After COGS</span>
+        <span><span style={{ color: "#f59e0b" }}>●</span> After Debt</span>
+      </div>
     </div>
   );
 }
