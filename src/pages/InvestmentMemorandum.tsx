@@ -146,13 +146,28 @@ ${sorted.map((q: any) => {
 }).join('\n')}`);
   }
 
-  try {
-    const cashflow = liveData?.cashflow ?? [];
-    if (cashflow.length > 0) {
-      const cfSummary = cashflow.slice(0, 6).map((m: any) => `${m.month ?? m.Month ?? "?"}: Income $${(parseFloat(m.totalIncome ?? m["Total Income"] ?? 0)).toLocaleString("en-AU")} | Outgoings $${(parseFloat(m.totalOutgoings ?? m["Total Outgoings"] ?? 0)).toLocaleString("en-AU")} | Closing $${(parseFloat(m.closingBalance ?? m["Closing Balance"] ?? 0)).toLocaleString("en-AU")}`).join("; ");
-      sections.push(`CASHFLOW (recent months): ${cfSummary}`);
+  // Full raw cashflow rows
+  const cfRaw = accountingData?.sheets?.cashflow ?? [];
+  if (cfRaw.length > 0) {
+    // Pass every row with all its columns
+    const cfFormatted = cfRaw.map((r: any) => {
+      const entries = Object.entries(r)
+        .filter(([k]) => !k.startsWith('_'))
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(' | ');
+      return entries;
+    }).filter(Boolean).join('\n');
+    sections.push(`CASHFLOW TAB — RAW ROWS (${cfRaw.length} rows):\n${cfFormatted}`);
+    // Also extract column headers from first row
+    if (cfRaw[0]) {
+      const headers = Object.keys(cfRaw[0]).filter(k => !k.startsWith('_'));
+      sections.push(`CASHFLOW COLUMN HEADERS: ${headers.join(', ')}`);
     }
-  } catch { /* skip */ }
+  } else if (accountingData?.sheets?.cashflowSummary?.length > 0) {
+    // Fallback to summary
+    const cfSummary = accountingData.sheets.cashflowSummary;
+    sections.push(`CASHFLOW SUMMARY (${cfSummary.length} months):\n${cfSummary.map((m: any) => `${m.month}: Income $${m.income ?? 0} | Outgoings $${m.outgoings ?? 0} | Closing $${m.closing ?? 0}`).join('\n')}`);
+  }
 
   // Full expense line items
   const expSheet = accountingData?.sheets?.expenses ?? [];
