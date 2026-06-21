@@ -997,14 +997,16 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const kpiStats: KPIStat[] = [
       {
         label: "Quotes",
-        value: noData ? "--" : fmtAUD(parseNum(qs?.totalQuoted?.value ?? 0)),
-        change: noData ? "--" : `${totalQuotedCount} jobs`,
+        // BASE = Active (remaining/open pipeline)
+        value: noData ? "--" : fmtAUD(parseNum(qs?.remaining?.value ?? 0)),
+        change: noData ? "--" : `${parseNum(qs?.remaining?.count ?? 0)} active jobs`,
         positive: true, noData,
-        altValue: noData ? "--" : fmtAUD(parseNum(qs?.remaining?.value ?? 0)),
-        altChange: noData ? "--" : `${parseNum(qs?.remaining?.count ?? 0)} active jobs`,
+        // ALT = Total quoted (all stages)
+        altValue: noData ? "--" : fmtAUD(parseNum(qs?.totalQuoted?.value ?? 0)),
+        altChange: noData ? "--" : `${totalQuotedCount} jobs`,
         altPositive: true,
-        toggleLabelBase: "Total",
-        toggleLabelAlt: "Active",
+        toggleLabelBase: "Active",
+        toggleLabelAlt: "Total",
         greenAltPill: false,
         momDelta: noData ? undefined : (hasPrevMon ? fmtDelta(curMon.totalVal, prevMon.totalVal, "currency") : noMomText),
         momContext: noData ? undefined : (curMon.totalCount > 0 ? `+${curMon.totalCount} jobs this month` : undefined),
