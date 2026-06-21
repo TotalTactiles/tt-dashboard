@@ -176,10 +176,7 @@ const DealFlow = () => {
   // Stale deals
   const staleDeals = useMemo(() => {
     return quotesRaw
-      .filter((j: any) => {
-        const status = j["Current Status"] ?? "";
-        return !["Completed", "Lost/Dead", "PO Received (GRN)"].includes(status);
-      })
+      .filter((j: any) => !!(j["Current Status"]))
       .map((j: any) => {
         const zohoMatch = (quotedJobs ?? []).find((q: any) =>
           q["Job/Lead ID (Zoho)"] === j["Job/Lead ID (Zoho)"] ||
@@ -187,18 +184,23 @@ const DealFlow = () => {
         );
         const d = parseDealDate(zohoMatch?.dateQuoted ?? j["Date Created"] ?? j["Estimated Job Date"] ?? "");
         if (!d) return null;
-        const days = Math.floor((today.getTime() - d.getTime()) / 86400000);
+        const closeDate = j["Last Updated"]
+          ? parseDealDate(j["Last Updated"])
+          : null;
+        const endDate = closeDate ?? today;
+        const days = Math.floor((endDate.getTime() - d.getTime()) / 86400000);
         return {
           ...j,
           daysOld: days,
           projectName: j["Project Name"] ?? j._project ?? "",
           companyName: j["Company Name"] ?? j._company ?? "",
-          status: j["Current Status"] === "PO Received (GRN)" ? "won"
+          status: j["Current Status"] === "PO Received (GRN)" || j["Current Status"] === "Completed" ? "won"
+            : j["Current Status"] === "Lost/Dead" ? "lost"
             : j["Current Status"] === "Verbal Confirmation (YLW)" ? "yellow"
             : "pending",
         };
       })
-      .filter((j: any) => j && j.daysOld > 21)
+      .filter((j: any) => j && j.daysOld > 0)
       .sort((a: any, b: any) => b.daysOld - a.daysOld);
   }, [quotesRaw]);
 
