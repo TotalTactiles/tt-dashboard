@@ -38,6 +38,8 @@ const TOOLTIP_STYLE = {
   fontSize: "12px",
 } as const;
 
+const CACHE_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
+
 const GpTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
