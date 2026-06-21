@@ -391,7 +391,7 @@ const DealFlow = () => {
 
           <div className="chart-container p-5">
             <h2 className="text-fluid-base font-semibold mb-1">Stale Deals</h2>
-            <p className="text-fluid-xs text-muted-foreground mb-4">Open deals quoted &gt; 21 days ago</p>
+            <p className="text-fluid-xs text-muted-foreground mb-4">Days from quote to close — all deals</p>
 
             {/* Filter controls */}
             <div className="flex flex-wrap items-center gap-2 mb-3">
