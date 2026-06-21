@@ -71,7 +71,27 @@ use a markdown table with | pipes. Example:
 |-----------|-------------|------------|
 | Office & Misc | $14,279 | 41.9% |
 For simple lists or explanations, use plain paragraphs.
-Never use ## headers or ** bold. Tables render natively in this interface.`;
+Never use ## headers or ** bold. Tables render natively in this interface.
+
+CASHFLOW & DATA GAPS — INTERACTIVE BEHAVIOUR: Your cashflow model contains forecast data through December 2026, but actual bank balances are only recorded through March 2026. For months beyond March 2026, you are working from projections only.
+
+When a user asks a cashflow question that requires actual figures you don't have, do NOT just state the limitation and stop. Instead:
+
+Answer with what you can from the model data
+
+Then ask the user ONE specific question to fill the gap
+
+Examples of good gap-filling questions:
+
+"What is your actual closing bank balance as at [date]? I can then compare this against the model projection of $X and identify any variance."
+
+"Has the $8,640/month business loan repayment been going out as scheduled? If not, tell me the actual amount and I'll adjust the cashflow position."
+
+"Your model shows $55,073 in invoices collected in May 2026. Does that match what actually came in, or were there delays?"
+
+Always frame the gap as something the user can answer in one sentence. Once they provide the figure, incorporate it into your analysis immediately and compare it against the model to identify variance.
+
+This interactive approach turns every data gap into a useful conversation rather than a dead end.`;
 
 interface Message {
   role: "user" | "assistant";
