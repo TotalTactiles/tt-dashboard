@@ -28,10 +28,12 @@ const isActive = (s: string) => isPending(s) || isYellow(s) || isWon(s);
 const fmt = (n: number) =>
   "$" + Math.round(n).toLocaleString("en-AU");
 
+const fmtAUD = (n: number) => formatMetricValue(n, "currency");
+
 const STAGES: { key: string; label: string; colorVar: string }[] = [
   { key: "pending", label: "Active (Pending)", colorVar: "hsl(var(--muted-foreground))" },
   { key: "yellow", label: "Verbal (YLW)", colorVar: "hsl(var(--chart-orange))" },
-  { key: "won", label: "YLW + GRN", colorVar: "hsl(var(--chart-green))" },
+  { key: "won", label: "GRN", colorVar: "hsl(var(--chart-green))" },
 ];
 
 const STATUS_PILL: Record<string, string> = {
@@ -51,7 +53,7 @@ const item = {
 };
 
 const DealFlow = () => {
-  const { quotedJobs } = useDashboardData();
+  const { quotedJobs, liveData } = useDashboardData();
   const jobs = quotedJobs ?? [];
   const [staleSort, setStaleSort] = useState<"oldest" | "newest">("oldest");
   const [staleStatus, setStaleStatus] = useState<"all" | "pending" | "won">("all");
