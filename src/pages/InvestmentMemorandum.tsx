@@ -146,27 +146,42 @@ ${sorted.map((q: any) => {
 }).join('\n')}`);
   }
 
-  // Full raw cashflow rows
-  const cfRaw = accountingData?.sheets?.cashflow ?? [];
+  // Full raw cashflow tab — all rows and month columns
+  const cfRaw: any[] = accountingData?.sheets?.cashflow ?? [];
   if (cfRaw.length > 0) {
-    // Pass every row with all its columns
-    const cfFormatted = cfRaw.map((r: any) => {
-      const entries = Object.entries(r)
-        .filter(([k]) => !k.startsWith('_'))
-        .map(([k, v]) => `${k}: ${v}`)
-        .join(' | ');
-      return entries;
-    }).filter(Boolean).join('\n');
-    sections.push(`CASHFLOW TAB — RAW ROWS (${cfRaw.length} rows):\n${cfFormatted}`);
-    // Also extract column headers from first row
-    if (cfRaw[0]) {
-      const headers = Object.keys(cfRaw[0]).filter(k => !k.startsWith('_'));
-      sections.push(`CASHFLOW COLUMN HEADERS: ${headers.join(', ')}`);
+    // Get month column names from first row (exclude row_number and col_1)
+    const firstRow = cfRaw[0];
+    const monthCols = Object.keys(firstRow).filter(k => k !== 'row_number' && k !== 'col_1');
+
+    // Format each row as: ROW LABEL | Dec 2025: val | Jan 2026: val | ...
+    const rowLines = cfRaw
+      .filter(r => r.col_1 && String(r.col_1).trim())
+      .map(r => {
+        const label = String(r.col_1).trim();
+        const values = monthCols
+          .map(m => {
+            const v = r[m];
+            if (v === '' || v === null || v === undefined) return null;
+            const num = parseFloat(String(v));
+            if (isNaN(num)) return null;
+            return `${m}: $${num.toLocaleString('en-AU', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+          })
+          .filter(Boolean)
+          .join(' | ');
+        return values ? `${label}: ${values}` : `${label}: (no data)`;
+      });
+
+    sections.push(`CASHFLOW TAB — FULL DATA (${cfRaw.length} rows, months: ${monthCols.join(', ')}):
+${rowLines.join('\n')}`);
+  } else {
+    // Fallback to dashboard cashflow summary
+    const cfSummary = accountingData?.sheets?.cashflowSummary ?? [];
+    if (cfSummary.length > 0) {
+      sections.push(`CASHFLOW SUMMARY (${cfSummary.length} months):
+${cfSummary.map((m: any) => 
+  `${m.month ?? m.Month}: Income $${m.income ?? m.totalIncome ?? 0} | Outgoings $${m.outgoings ?? m.totalOutgoings ?? 0} | Closing $${m.closing ?? m.closingBalance ?? 0}`
+).join('\n')}`);
     }
-  } else if (accountingData?.sheets?.cashflowSummary?.length > 0) {
-    // Fallback to summary
-    const cfSummary = accountingData.sheets.cashflowSummary;
-    sections.push(`CASHFLOW SUMMARY (${cfSummary.length} months):\n${cfSummary.map((m: any) => `${m.month}: Income $${m.income ?? 0} | Outgoings $${m.outgoings ?? 0} | Closing $${m.closing ?? 0}`).join('\n')}`);
   }
 
   // Full expense line items
