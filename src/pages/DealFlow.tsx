@@ -175,14 +175,15 @@ const DealFlow = () => {
   // Stale deals
   const staleDeals = useMemo(() => {
     return jobs
-      .filter((j: any) => isActive(j.status))
+      .filter((j: any) => isActive(j.status ?? j["Current Status"]))
       .map((j: any) => {
-        const d = parseDealDate(j.dateQuoted);
+        const d = parseDealDate(j.dateQuoted ?? j["Date Created"] ?? j["Last Updated"] ?? "");
         if (!d) return null;
         const days = Math.floor((today.getTime() - d.getTime()) / 86400000);
         return {
           ...j,
           daysOld: days,
+          status: j.status ?? (j["Current Status"] === "PO Received (GRN)" ? "won" : j["Current Status"] === "Verbal Confirmation (YLW)" ? "yellow" : "pending"),
           projectName: j["Project Name"] ?? j._project ?? "",
           companyName: j["Company Name"] ?? j._company ?? "",
         };
