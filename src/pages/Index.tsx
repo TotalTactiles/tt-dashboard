@@ -977,8 +977,8 @@ const DashboardContent = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
-            <CashflowChart adjustedData={adjustedData} adjustments={adjustments} hasActiveGoals={hasActiveGoals} />
-            <FundPerformanceChart />
+            <RevGpNetDebtChart incomeOutgoingsData={incomeOutgoingsData} forecastChartData={forecastChartData} />
+            <MonthlyGpVsTargetChart incomeOutgoingsData={incomeOutgoingsData} />
           </div>
 
           <div className="mb-4 md:mb-6">
@@ -993,12 +993,14 @@ const DashboardContent = () => {
               showAll={showAllTables}
               onAllToggle={handleTableAllToggle}
             />
+            <FundPerformanceChart />
             <RevenueProjectsTable
               periodFilter={selectedPeriod}
               showAll={showAllTables}
               onAllToggle={handleTableAllToggle}
               invoiceFilter={invoiceFilter}
             />
+
             <div style={{ display: "flex", gap: "24px", alignItems: "flex-start", flexWrap: "wrap" }}>
               <div style={{ flex: "1 1 55%", minWidth: 0 }}>
                 <ExpenseBreakdown goals={goals} activeGoalIds={activeGoalIds} />
