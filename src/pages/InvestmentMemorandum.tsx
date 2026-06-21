@@ -918,7 +918,21 @@ export default function ConsultingPage() {
       return { role: m.role, content: m.content };
     });
     try {
-      const text = await callAI(SYSTEM_PROMPT + dataContext, apiMessages as any);
+      const debtRegister = readDebtRegister();
+      const debtTotals = computeDebtTotals(debtRegister);
+      const text = await callAI(SYSTEM_PROMPT + dataContext, apiMessages as any, {
+        message: trimmed,
+        mode: advisorMode,
+        context: {
+          source: "consigliere",
+          mode: advisorMode,
+          debtRegister,
+          debtTotals,
+          liveData,
+          investorMetrics,
+          accountingData,
+        },
+      });
       const parsed = parseResponseAndButtons(text);
       setMessages((prev) => [...prev, { role: "assistant", content: parsed.content, buttons: parsed.buttons, timestamp: new Date() }]);
       setAttachedFile(null);
@@ -930,7 +944,18 @@ export default function ConsultingPage() {
   }
 
   function clearSession() {
-    setMessages([{ ...WELCOME_MESSAGE, timestamp: new Date() }]);
+    setMessages([welcomeFor(advisorMode)]);
+  }
+
+  function changeMode(next: AdvisorMode) {
+    if (next === advisorMode) return;
+    setAdvisorMode(next);
+    setMessages([welcomeFor(next)]);
+    setReportMode(false);
+    setReportData({});
+    setInput("");
+    setShowCommandMenu(false);
+    setCommandFilter("");
   }
 
   const COMMANDS = [
