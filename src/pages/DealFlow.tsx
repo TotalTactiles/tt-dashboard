@@ -175,7 +175,7 @@ const DealFlow = () => {
   // Stale deals
   const staleDeals = useMemo(() => {
     return jobs
-      .filter((j: any) => isActive(j.status))
+      .filter((j: any) => isActive(j.status ?? j["Current Status"]))
       .map((j: any) => {
         const d = parseDealDate(j.dateQuoted);
         if (!d) return null;
