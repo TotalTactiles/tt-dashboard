@@ -3,12 +3,14 @@ import {
   Settings,
   Activity,
   CalendarDays,
-  HardHat,
   Target,
   FunctionSquare,
   BrainCircuit,
-  Crown,
-  ShieldCheck } from
+  ShieldCheck,
+  TrendingUp,
+  Receipt,
+  Package,
+  Users } from
 "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -26,11 +28,14 @@ import {
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Calendar", url: "/calendar", icon: CalendarDays },
   { title: "Deal Flow", url: "/deals", icon: Activity },
-  { title: "Employee Centre", url: "/employees", icon: HardHat },
+  { title: "Revenue & COGS", url: "/revenue", icon: TrendingUp },
+  { title: "Expenses", url: "/expenses", icon: Receipt },
+  { title: "Stock", url: "/stock", icon: Package },
+  { title: "Calendar", url: "/calendar", icon: CalendarDays },
+  { title: "Employee Centre", url: "/employees", icon: Users },
   { title: "Goals & Targets", url: "/goals", icon: Target },
-  { title: "Consigliere", url: "/consulting", icon: Crown },
+  { title: "Consulting", url: "/consulting", icon: BrainCircuit },
   { title: "Formulas", url: "/formulas", icon: FunctionSquare },
   { title: "Financial Health", url: "/financial-health", icon: ShieldCheck },
   { title: "Settings", url: "/settings", icon: Settings }
@@ -49,12 +54,12 @@ export function AppSidebar() {
         <div className={`p-4 ${collapsed ? "px-2" : ""}`}>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-mono font-bold text-sm">K&M</span>
+              <span className="text-primary-foreground font-mono font-bold text-sm">TT</span>
             </div>
             {!collapsed &&
             <div>
-                <p className="text-sm font-semibold text-foreground">K&M Enterprises </p>
-                <p className="text-[10px] text-muted-foreground font-mono">Legacy Dashboard </p>
+                <p className="text-sm font-semibold text-foreground">Total Tactiles</p>
+                <p className="text-[10px] text-muted-foreground font-mono">Operations Dashboard</p>
               </div>
             }
           </div>
