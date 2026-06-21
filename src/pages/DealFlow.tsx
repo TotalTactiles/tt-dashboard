@@ -283,11 +283,10 @@ const DealFlow = () => {
         <motion.section variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="chart-container p-5">
             <h2 className="text-fluid-base font-semibold mb-4">Win / Loss Summary</h2>
-            <div className="grid grid-cols-2 gap-4">
-              {/* Rate cards */}
+            <div className="grid grid-cols-2" style={{ gap: "20px 32px" }}>
               <div>
-                <div className="text-fluid-xs text-muted-foreground">Win Rate</div>
-                <div className="font-mono text-fluid-2xl font-semibold text-chart-green">
+                <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Win Rate</div>
+                <div className="text-[22px] font-bold text-[#22c55e]">
                   {winRate.toFixed(1)}%
                   <span title="Win Rate = (YLW + GRN) ÷ (YLW + GRN + Lost). Measures how often TT wins when a deal reaches a decision, excluding still-active pipeline.">
                     <Info
@@ -296,11 +295,11 @@ const DealFlow = () => {
                     />
                   </span>
                 </div>
-                <div className="text-[11px] text-muted-foreground mt-1">YLW + GRN ÷ decided deals</div>
+                <div className="text-[11px] text-[#64748b]">YLW+GRN+decided</div>
               </div>
               <div>
-                <div className="text-fluid-xs text-muted-foreground">Pipeline CR</div>
-                <div className="font-mono text-fluid-2xl font-semibold text-chart-blue">
+                <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Pipeline CR</div>
+                <div className="text-[22px] font-bold text-[#38bdf8]">
                   {pipelineCR.toFixed(1)}%
                   <span title={`Pipeline CR is lower than Win Rate because ${pendingCount} deals (${pendingPct}% of all quotes) are still active in the pipeline. TT's avg quote-to-close cycle is ~${Math.round(avgDaysToClose)} days, so many quotes are still converting. As these resolve, Pipeline CR will trend toward Win Rate.`}>
                     <Info
@@ -309,25 +308,23 @@ const DealFlow = () => {
                     />
                   </span>
                 </div>
-                <div className="text-[11px] text-muted-foreground mt-1">Won ÷ all quoted</div>
-              </div>
-              {/* Other stats */}
-              <div>
-                <div className="text-fluid-xs text-muted-foreground">Total Value Won</div>
-                <div className="font-mono text-fluid-2xl font-semibold">{fmtAUD(totalValueWon)}</div>
+                <div className="text-[11px] text-[#64748b]">Won ÷ all quoted</div>
               </div>
               <div>
-                <div className="text-fluid-xs text-muted-foreground">Avg Won Deal</div>
-                <div className="font-mono text-fluid-base">{fmtAUD(avgWonDeal)}</div>
-                <div className="text-[11px] text-muted-foreground mt-1">{wonAndCompleted.length} GRN + Completed jobs</div>
+                <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Total Value Won</div>
+                <div className="text-[22px] font-bold text-[#22c55e]">{fmtAUD(totalValueWon)}</div>
               </div>
               <div>
-                <div className="text-fluid-xs text-muted-foreground">Avg Lost Deal</div>
-                <div className="font-mono text-fluid-base">{fmt(avgLostDeal)}</div>
+                <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Total Value Lost</div>
+                <div className="text-[22px] font-bold text-[#ef4444]">{fmt(ytdLostValue)}</div>
               </div>
-              <div className="col-span-2 pt-2 border-t border-border/40">
-                <div className="text-fluid-xs text-muted-foreground">Total Value Lost</div>
-                <div className="font-mono text-fluid-base text-destructive">{fmt(ytdLostValue)}</div>
+              <div>
+                <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Avg Won Deal</div>
+                <div className="text-[22px] font-bold text-[#38bdf8]">{fmtAUD(avgWonDeal)}</div>
+              </div>
+              <div>
+                <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Avg Lost Deal</div>
+                <div className="text-[22px] font-bold text-[#ef4444]">{fmt(avgLostDeal)}</div>
               </div>
             </div>
           </div>
