@@ -128,22 +128,66 @@ ${revenueItems.map((r: any) => {
   } catch { /* skip */ }
 
   // Full quotes detail
-  if (sheets?.quotes?.length > 0 || accountingData?.sheets?.quotes?.length > 0) {
-    const quotes = sheets?.quotes ?? accountingData?.sheets?.quotes ?? [];
-    const sorted = [...quotes].sort((a: any, b: any) => {
-      const aVal = parseFloat(String(a['Contract Value ($)'] ?? a['Contract Value'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
-      const bVal = parseFloat(String(b['Contract Value ($)'] ?? b['Contract Value'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
-      return bVal - aVal;
+  const quotesRaw: any[] = accountingData?.sheets?.quotes ?? [];
+  if (quotesRaw.length > 0) {
+    const sorted = [...quotesRaw].sort((a: any, b: any) => {
+      const av = parseFloat(String(
+        a['Contract Value ($)'] ?? a['Contract Value'] ??
+        a['Stage Value ($)'] ?? 0
+      ).replace(/[^0-9.-]/g, '')) || 0;
+      const bv = parseFloat(String(
+        b['Contract Value ($)'] ?? b['Contract Value'] ??
+        b['Stage Value ($)'] ?? 0
+      ).replace(/[^0-9.-]/g, '')) || 0;
+      return bv - av;
     });
-    sections.push(`QUOTES — ALL DEALS (${quotes.length} total, sorted by value desc):
-${sorted.map((q: any) => {
-  const val = parseFloat(String(q['Contract Value ($)'] ?? q['Contract Value'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
-  const stage = q['Current Status'] ?? q['Stage'] ?? q['Status'] ?? '?';
-  const company = q['Company Name'] ?? q['_company'] ?? '?';
-  const project = q['Project Name'] ?? q['_project'] ?? '?';
-  const date = q['Estimated Job Date'] ?? q['Date Quoted'] ?? '?';
-  return `• ${company} / ${project} — $${val.toLocaleString('en-AU')} | Stage: ${stage} | Date: ${date}`;
-}).join('\n')}`);
+    const won = sorted.filter((q: any) => {
+      const s = String(q['Current Status'] ?? q['Status'] ?? '').toLowerCase();
+      return s.includes('won') || s.includes('awarded') || s.includes('completed');
+    });
+    const active = sorted.filter((q: any) => {
+      const s = String(q['Current Status'] ?? q['Status'] ?? '').toLowerCase();
+      return !s.includes('lost') && !s.includes('dead') &&
+             !s.includes('won') && !s.includes('completed');
+    });
+    const lost = sorted.filter((q: any) => {
+      const s = String(q['Current Status'] ?? q['Status'] ?? '').toLowerCase();
+      return s.includes('lost') || s.includes('dead');
+    });
+    const totalPipeline = active.reduce((s: number, q: any) => {
+      const v = parseFloat(String(
+        q['Contract Value ($)'] ?? q['Contract Value'] ??
+        q['Stage Value ($)'] ?? 0
+      ).replace(/[^0-9.-]/g, '')) || 0;
+      return s + v;
+    }, 0);
+    const formatQuote = (q: any) => {
+      const val = parseFloat(String(
+        q['Contract Value ($)'] ?? q['Contract Value'] ??
+        q['Stage Value ($)'] ?? 0
+      ).replace(/[^0-9.-]/g, '')) || 0;
+      const company = String(
+        q['Company Name'] ?? q['_company'] ?? ''
+      ).trim();
+      const project = String(
+        q['Project Name'] ?? q['_project'] ?? ''
+      ).trim();
+      const status = String(
+        q['Current Status'] ?? q['Stage'] ?? ''
+      ).trim();
+      const date = String(
+        q['Estimated Job Date'] ?? q['Date Quoted'] ?? ''
+      ).trim();
+      return `• ${company} / ${project} — $${val.toLocaleString('en-AU')} | ${status} | ${date}`;
+    };
+    sections.push(`QUOTES PIPELINE (${quotesRaw.length} total):
+Won/Completed: ${won.length} deals
+Active pipeline: ${active.length} deals, total value: $${totalPipeline.toLocaleString('en-AU')}
+Lost/Dead: ${lost.length} deals
+TOP 30 ACTIVE QUOTES (by value):
+${active.slice(0, 30).map(formatQuote).join('\n')}
+RECENT WON DEALS (last 15):
+${won.slice(0, 15).map(formatQuote).join('\n')}`);
   }
 
   // Full raw cashflow tab — all rows and month columns
