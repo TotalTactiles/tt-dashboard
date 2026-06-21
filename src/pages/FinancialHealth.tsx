@@ -683,7 +683,7 @@ const ChartsSection = ({
               </div>
             </div>
             <ResponsiveContainer width="100%" height={280}>
-              <ComposedChart data={earnedVsDebt.rows} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+              <ComposedChart data={earnedVsDebtData.rows} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" />
                 <XAxis dataKey="month" tick={CHART_TICK} />
                 <YAxis tick={CHART_TICK} tickFormatter={fmtKAxis} />
