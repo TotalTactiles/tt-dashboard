@@ -314,11 +314,12 @@ const DealFlow = () => {
               {/* Other stats */}
               <div>
                 <div className="text-fluid-xs text-muted-foreground">Total Value Won</div>
-                <div className="font-mono text-fluid-2xl font-semibold">{fmt(pipelineWonValue)}</div>
+                <div className="font-mono text-fluid-2xl font-semibold">{fmtAUD(totalValueWon)}</div>
               </div>
               <div>
                 <div className="text-fluid-xs text-muted-foreground">Avg Won Deal</div>
-                <div className="font-mono text-fluid-base">{fmt(avgWonDeal)}</div>
+                <div className="font-mono text-fluid-base">{fmtAUD(avgWonDeal)}</div>
+                <div className="text-[11px] text-muted-foreground mt-1">{wonAndCompleted.length} GRN + Completed jobs</div>
               </div>
               <div>
                 <div className="text-fluid-xs text-muted-foreground">Avg Lost Deal</div>
