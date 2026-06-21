@@ -4,6 +4,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { useDashboardData, QuotedJob } from "@/contexts/DashboardDataContext";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { ArrowDown, AlertTriangle, CheckCircle2, ChevronRight, Info } from "lucide-react";
+import { formatMetricValue } from "@/lib/formatMetricValue";
 
 function parseDealDate(raw: string): Date | null {
   if (!raw) return null;
@@ -27,10 +28,12 @@ const isActive = (s: string) => isPending(s) || isYellow(s) || isWon(s);
 const fmt = (n: number) =>
   "$" + Math.round(n).toLocaleString("en-AU");
 
+const fmtAUD = (n: number) => formatMetricValue(n, "currency");
+
 const STAGES: { key: string; label: string; colorVar: string }[] = [
   { key: "pending", label: "Active (Pending)", colorVar: "hsl(var(--muted-foreground))" },
   { key: "yellow", label: "Verbal (YLW)", colorVar: "hsl(var(--chart-orange))" },
-  { key: "won", label: "YLW + GRN", colorVar: "hsl(var(--chart-green))" },
+  { key: "won", label: "GRN", colorVar: "hsl(var(--chart-green))" },
 ];
 
 const STATUS_PILL: Record<string, string> = {
@@ -50,7 +53,7 @@ const item = {
 };
 
 const DealFlow = () => {
-  const { quotedJobs } = useDashboardData();
+  const { quotedJobs, liveData } = useDashboardData();
   const jobs = quotedJobs ?? [];
   const [staleSort, setStaleSort] = useState<"oldest" | "newest">("oldest");
   const [staleStatus, setStaleStatus] = useState<"all" | "pending" | "won">("all");
@@ -69,7 +72,7 @@ const DealFlow = () => {
   const stageStats = STAGES.map(s => {
     let items;
     if (s.key === "won") {
-      items = jobs.filter((j: any) => isPipelineWin(j));
+      items = jobs.filter((j: any) => j.status === "won" && !String(j.rawStatus ?? "").toLowerCase().includes("completed"));
     } else {
       items = byStatus[s.key as keyof typeof byStatus] ?? [];
     }
@@ -92,6 +95,21 @@ const DealFlow = () => {
   const pipelineWonCount = pipelineWonJobs.length;
   const pipelineWonValue = pipelineWonJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
 
+  const wonAndCompleted = (liveData?.quotes ?? []).filter((j: any) =>
+    j["Current Status"] === "PO Received (GRN)" ||
+    j["Current Status"] === "Completed"
+  );
+
+  const avgWonDeal = wonAndCompleted.length > 0
+    ? wonAndCompleted.reduce((s: number, j: any) =>
+        s + (parseFloat(String(j["Contract Value ($)"] ?? j._value ?? "0").replace(/[^0-9.-]/g, "")) || 0), 0
+      ) / wonAndCompleted.length
+    : 0;
+
+  const totalValueWon = wonAndCompleted.reduce((s: number, j: any) =>
+    s + (parseFloat(String(j["Contract Value ($)"] ?? j._value ?? "0").replace(/[^0-9.-]/g, "")) || 0), 0
+  );
+
   const lostJobs = jobs.filter((j: any) => isLost(j.status));
   const lostCount = lostJobs.length;
   const ytdLostValue = lostJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
@@ -105,7 +123,6 @@ const DealFlow = () => {
     ? (pipelineWonCount / jobs.length) * 100
     : 0;
 
-  const avgWonDeal = pipelineWonCount > 0 ? pipelineWonValue / pipelineWonCount : 0;
   const avgLostDeal = lostCount > 0 ? ytdLostValue / lostCount : 0;
 
   const pendingCount = jobs.filter((j: any) => isActive(j.status)).length;
@@ -297,11 +314,12 @@ const DealFlow = () => {
               {/* Other stats */}
               <div>
                 <div className="text-fluid-xs text-muted-foreground">Total Value Won</div>
-                <div className="font-mono text-fluid-2xl font-semibold">{fmt(pipelineWonValue)}</div>
+                <div className="font-mono text-fluid-2xl font-semibold">{fmtAUD(totalValueWon)}</div>
               </div>
               <div>
                 <div className="text-fluid-xs text-muted-foreground">Avg Won Deal</div>
-                <div className="font-mono text-fluid-base">{fmt(avgWonDeal)}</div>
+                <div className="font-mono text-fluid-base">{fmtAUD(avgWonDeal)}</div>
+                <div className="text-[11px] text-muted-foreground mt-1">{wonAndCompleted.length} GRN + Completed jobs</div>
               </div>
               <div>
                 <div className="text-fluid-xs text-muted-foreground">Avg Lost Deal</div>
