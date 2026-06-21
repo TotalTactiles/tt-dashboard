@@ -402,7 +402,8 @@ const WELCOME_MESSAGE: Message = welcomeFor("consigliere");
 
 export default function ConsultingPage() {
   const { liveData, investorMetrics, hasLiveData } = useDashboardData() as any;
-  const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
+  const [advisorMode, setAdvisorMode] = useState<AdvisorMode>("consigliere");
+  const [messages, setMessages] = useState<Message[]>([welcomeFor("consigliere")]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [accountingData, setAccountingData] = useState<any>(null);
