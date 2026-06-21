@@ -7,62 +7,62 @@
 @layer base {
   /* ── DARK THEME (default) ── */
   :root {
-    --background: 0 0% 5%;
-    --foreground: 210 20% 92%;
+    --background: 0 0% 3%;
+    --foreground: 195 8% 91%;
 
-    --card: 0 0% 7%;
-    --card-foreground: 0 0% 95%;
+    --card: 0 0% 6%;
+    --card-foreground: 195 8% 91%;
 
-    --popover: 220 18% 12%;
-    --popover-foreground: 210 20% 92%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 195 8% 91%;
 
-    --primary: 217 91% 60%;
+    --primary: 210 67% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 16% 16%;
-    --secondary-foreground: 210 20% 80%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 195 8% 75%;
 
-    --muted: 220 14% 14%;
-    --muted-foreground: 215 14% 55%;
+    --muted: 0 0% 9%;
+    --muted-foreground: 210 15% 52%;
 
-    --accent: 217 91% 60%;
+    --accent: 213 54% 49%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 55%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 0 0% 14%;
-    --input: 220 14% 18%;
-    --ring: 217 91% 60%;
+    --border: 0 0% 13%;
+    --input: 0 0% 13%;
+    --ring: 210 67% 55%;
 
     --radius: 0.5rem;
 
-    --chart-green: 142 71% 45%;
-    --chart-red: 0 72% 51%;
-    --chart-blue: 217 91% 60%;
+    --chart-green: 142 71% 42%;
+    --chart-red: 0 72% 55%;
+    --chart-blue: 210 67% 55%;
     --chart-amber: 38 92% 55%;
     --chart-purple: 270 60% 55%;
     --chart-orange: 25 95% 55%;
 
     /* Chart infrastructure tokens — softer grid */
-    --chart-grid: 220 14% 15%;
-    --chart-axis: 215 12% 48%;
-    --chart-tooltip-bg: 220 20% 11%;
-    --chart-tooltip-border: 220 14% 20%;
-    --chart-tooltip-text: 215 14% 72%;
-    --chart-zero-line: 215 12% 28%;
-    --chart-ref-line: 215 12% 40%;
-    --chart-ref-text: 215 12% 52%;
-    --chart-dot-stroke: 220 18% 10%;
+    --chart-grid: 0 0% 12%;
+    --chart-axis: 210 15% 45%;
+    --chart-tooltip-bg: 0 0% 7%;
+    --chart-tooltip-border: 0 0% 14%;
+    --chart-tooltip-text: 195 8% 70%;
+    --chart-zero-line: 0 0% 20%;
+    --chart-ref-line: 0 0% 28%;
+    --chart-ref-text: 210 15% 48%;
+    --chart-dot-stroke: 0 0% 6%;
 
-    --sidebar-background: 0 0% 4%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-background: 0 0% 2%;
+    --sidebar-foreground: 195 8% 80%;
+    --sidebar-primary: 210 67% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 91% 60% / 0.12;
-    --sidebar-accent-foreground: 210 20% 92%;
-    --sidebar-border: 0 0% 12%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-accent: 0 0% 8%;
+    --sidebar-accent-foreground: 195 8% 91%;
+    --sidebar-border: 0 0% 10%;
+    --sidebar-ring: 210 67% 55%;
 
     --font-display: 'JetBrains Mono', monospace;
     --font-body: 'Plus Jakarta Sans', 'Inter', sans-serif;
@@ -70,60 +70,60 @@
 
   /* ── LIGHT THEME ── */
   .light {
-    --background: 0 0% 97%;
-    --foreground: 220 20% 10%;
+    --background: 195 8% 91%;
+    --foreground: 0 0% 6%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 10%;
+    --card-foreground: 0 0% 6%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 10%;
+    --popover-foreground: 0 0% 6%;
 
-    --primary: 217 91% 52%;
+    --primary: 213 54% 49%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 93%;
-    --secondary-foreground: 220 16% 30%;
+    --secondary: 195 8% 85%;
+    --secondary-foreground: 0 0% 15%;
 
-    --muted: 220 14% 95%;
-    --muted-foreground: 215 12% 42%;
+    --muted: 195 8% 88%;
+    --muted-foreground: 210 15% 38%;
 
-    --accent: 217 91% 52%;
+    --accent: 210 67% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 88%;
-    --input: 220 14% 88%;
-    --ring: 217 91% 52%;
+    --border: 195 8% 80%;
+    --input: 195 8% 80%;
+    --ring: 213 54% 49%;
 
-    --chart-green: 142 71% 38%;
+    --chart-green: 142 71% 36%;
     --chart-red: 0 72% 48%;
-    --chart-blue: 217 91% 52%;
-    --chart-amber: 38 92% 48%;
+    --chart-blue: 213 54% 49%;
+    --chart-amber: 38 92% 46%;
     --chart-purple: 270 60% 48%;
     --chart-orange: 25 95% 48%;
 
     /* Chart infrastructure tokens — light (soft grid) */
-    --chart-grid: 220 14% 92%;
-    --chart-axis: 215 12% 50%;
+    --chart-grid: 195 8% 84%;
+    --chart-axis: 210 15% 48%;
     --chart-tooltip-bg: 0 0% 100%;
-    --chart-tooltip-border: 220 14% 88%;
-    --chart-tooltip-text: 215 12% 32%;
-    --chart-zero-line: 215 12% 80%;
-    --chart-ref-line: 215 12% 65%;
-    --chart-ref-text: 215 12% 50%;
+    --chart-tooltip-border: 195 8% 80%;
+    --chart-tooltip-text: 210 15% 30%;
+    --chart-zero-line: 195 8% 75%;
+    --chart-ref-line: 195 8% 65%;
+    --chart-ref-text: 210 15% 48%;
     --chart-dot-stroke: 0 0% 100%;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 0 0% 8%;
-    --sidebar-primary: 217 91% 52%;
+    --sidebar-background: 195 8% 88%;
+    --sidebar-foreground: 0 0% 15%;
+    --sidebar-primary: 213 54% 49%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 91% 52% / 0.10;
-    --sidebar-accent-foreground: 220 20% 10%;
-    --sidebar-border: 220 14% 90%;
-    --sidebar-ring: 217 91% 52%;
+    --sidebar-accent: 195 8% 84%;
+    --sidebar-accent-foreground: 0 0% 6%;
+    --sidebar-border: 195 8% 80%;
+    --sidebar-ring: 213 54% 49%;
   }
 }
 
@@ -273,7 +273,7 @@
   }
 
   .glow-green {
-    text-shadow: 0 0 10px hsl(var(--primary) / 0.5);
+    text-shadow: 0 0 10px hsl(var(--primary) / 0.4);
   }
 
   .glow-red {
@@ -282,7 +282,7 @@
 
   /* Light mode: softer glow effect */
   .light .glow-green {
-    text-shadow: 0 0 6px hsl(var(--primary) / 0.3);
+    text-shadow: 0 0 6px hsl(var(--primary) / 0.25);
   }
   .light .glow-red {
     text-shadow: 0 0 6px hsl(var(--chart-red) / 0.25);
