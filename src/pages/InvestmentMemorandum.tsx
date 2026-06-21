@@ -1033,18 +1033,12 @@ export default function ConsultingPage() {
         <div className="flex items-center justify-between border-b border-border/40 pb-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-              <BrainCircuit className="w-5 h-5 text-primary" />
+              <Crown className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-foreground">Accounting Consultant</h1>
+              <h1 className="text-lg font-semibold text-foreground">The Consigliere</h1>
               <p className="text-xs text-muted-foreground font-mono">
-                {accountingDataLoading
-                  ? "Loading full financial data…"
-                  : accountingData
-                    ? "Full data connected · AUD · GST 10%"
-                    : hasLiveData
-                      ? "Live data connected · AUD · GST 10%"
-                      : "Connecting to live data…"}
+                Your strategic advisor. Deloitte-level accounting. JP Morgan-level finance. One mind.
               </p>
             </div>
           </div>
@@ -1055,6 +1049,32 @@ export default function ConsultingPage() {
             </Button>
           </div>
         </div>
+
+        {/* Mode selector */}
+        <div className="inline-flex bg-white/5 rounded-xl p-1 border border-white/10 w-fit">
+          {([
+            { id: "accountant", label: "📊 Accountant" },
+            { id: "financier", label: "💼 Financier" },
+            { id: "consigliere", label: "🤝 Consigliere" },
+          ] as { id: AdvisorMode; label: string }[]).map((m) => {
+            const active = advisorMode === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => changeMode(m.id)}
+                disabled={loading}
+                className={
+                  active
+                    ? "px-4 py-1.5 rounded-lg text-sm font-medium bg-chart-green text-black"
+                    : "px-4 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground transition-all"
+                }
+              >
+                {m.label}
+              </button>
+            );
+          })}
+        </div>
+
 
         {/* Chat window */}
         <div className="flex-1 overflow-y-auto space-y-4 pr-2">
