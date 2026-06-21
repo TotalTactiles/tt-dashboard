@@ -275,6 +275,36 @@ const DashboardContent = () => {
     });
   };
 
+  // ── GP target — synced via webhook cache ─────────────────────────
+  const [gpTarget, setGpTarget] = useState(30000);
+  const isFirstLoad = useRef(true);
+
+  useEffect(() => {
+    fetch(CACHE_WEBHOOK)
+      .then((r) => r.json())
+      .then((rows: any[]) => {
+        const row = rows.find((r) => r.key === "gp_monthly_target");
+        if (row) setGpTarget(parseFloat(row.value) || 30000);
+      })
+      .catch(() => {
+        const saved = localStorage.getItem("tt_gp_monthly_target");
+        if (saved) setGpTarget(parseFloat(saved) || 30000);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (isFirstLoad.current) {
+      isFirstLoad.current = false;
+      return;
+    }
+    fetch(CACHE_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "gp_monthly_target", value: String(gpTarget) }),
+    }).catch(() => {});
+    localStorage.setItem("tt_gp_monthly_target", String(gpTarget));
+  }, [gpTarget]);
+
   // ── Compute date windows from real current date ──────────────────
   const investorDateWindows = useMemo(() => {
     const now = new Date();
