@@ -57,7 +57,7 @@ const DealFlow = () => {
   const jobs = quotedJobs ?? [];
   const quotesRaw = (liveData?.quotes as any[]) ?? [];
   const [staleSort, setStaleSort] = useState<"oldest" | "newest">("oldest");
-  const [staleStatus, setStaleStatus] = useState<"all" | "pending" | "won" | "lost">("all");
+  const [staleStatus, setStaleStatus] = useState<"all" | "pending" | "won" | "lost" | "stale">("all");
 
   const today = new Date();
 
@@ -200,13 +200,16 @@ const DealFlow = () => {
             : "pending",
         };
       })
-      .filter((j: any) => j && j.daysOld > 0)
+      .filter((j: any) => j !== null)
+      .map((j: any) => j.daysOld <= 0 ? { ...j, daysOld: 1 } : j)
       .sort((a: any, b: any) => b.daysOld - a.daysOld);
   }, [quotesRaw]);
 
   const filteredStaleDeals = useMemo(() => {
     let list = staleDeals;
-    if (staleStatus !== "all") {
+    if (staleStatus === "stale") {
+      list = list.filter((j: any) => j.status === "pending" && j.daysOld > 21);
+    } else if (staleStatus !== "all") {
       list = list.filter((j: any) => j.status === staleStatus);
     }
     if (staleSort === "newest") {
@@ -390,8 +393,8 @@ const DealFlow = () => {
           </div>
 
           <div className="chart-container p-5">
-            <h2 className="text-fluid-base font-semibold mb-1">Stale Deals</h2>
-            <p className="text-fluid-xs text-muted-foreground mb-4">Days from quote to close — all deals</p>
+            <h2 className="text-fluid-base font-semibold mb-1">Pipeline Velocity</h2>
+            <p className="text-fluid-xs text-muted-foreground mb-4">Quote-to-close duration across all deals</p>
 
             {/* Filter controls */}
             <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -420,13 +423,14 @@ const DealFlow = () => {
                   { key: "pending", label: "Pending" },
                   { key: "won", label: "Won" },
                   { key: "lost", label: "Lost" },
+                  { key: "stale", label: "Stale" },
                 ].map((opt) => (
                   <button
                     key={opt.key}
-                    onClick={() => setStaleStatus(opt.key as "all" | "pending" | "won" | "lost")}
+                    onClick={() => setStaleStatus(opt.key as "all" | "pending" | "won" | "lost" | "stale")}
                     className={`text-[11px] px-2 py-1 rounded-full border transition-colors font-mono ${
                       staleStatus === opt.key
-                        ? opt.key === "pending"
+                        ? opt.key === "pending" || opt.key === "stale"
                           ? "bg-chart-orange/20 text-chart-orange border-chart-orange/40"
                           : opt.key === "lost"
                           ? "bg-red-500/25 text-red-400 border-red-500/40"
