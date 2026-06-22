@@ -992,70 +992,127 @@ const ChartsSection = ({
             ))}
           </div>
 
-          {/* FILTER ROW — shared */}
-          <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-            <div className="flex items-center gap-1.5">
-              {(["All","Q1","Q2","Q3","Q4"] as const).map(p => (
-                <button
-                  key={p}
-                  onClick={() => { setStrippedPeriod(p); setStrippedMonth(""); }}
-                  className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all
-                    ${strippedPeriod === p && !strippedMonth
-                      ? "bg-chart-green text-black"
-                      : "bg-white/5 text-muted-foreground hover:bg-white/10"}`}
-                >{p}</button>
-              ))}
-            </div>
-            <select
-              value={strippedMonth}
-              onChange={e => { setStrippedMonth(e.target.value); if (e.target.value) setStrippedPeriod("All"); }}
-              className={`bg-white/5 border rounded-lg px-3 py-1 text-xs font-mono focus:outline-none cursor-pointer transition-all
-                ${strippedMonth ? "border-chart-green/50 text-chart-green" : "border-white/10 text-muted-foreground"}`}
-            >
-              <option value="" className="bg-[#0f172a] text-muted-foreground">Month ▾</option>
-              {debtStripped.rows.map((d: any) => (
-                <option key={d.month} value={d.month} className="bg-[#0f172a] text-foreground">{d.month}</option>
-              ))}
-            </select>
-          </div>
+          {/* MAIN ROW — left column (filter + chart + lender) | right column (Financial Position) */}
+          <div className="flex flex-col lg:flex-row gap-5 mt-4">
+            {/* LEFT COLUMN */}
+            <div className="flex-1 min-w-0 flex flex-col gap-4">
+              {/* Filter row */}
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  {(["All","Q1","Q2","Q3","Q4"] as const).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => { setStrippedPeriod(p); setStrippedMonth(""); }}
+                      className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all
+                        ${strippedPeriod === p && !strippedMonth
+                          ? "bg-chart-green text-black"
+                          : "bg-white/5 text-muted-foreground hover:bg-white/10"}`}
+                    >{p}</button>
+                  ))}
+                </div>
+                <select
+                  value={strippedMonth}
+                  onChange={e => { setStrippedMonth(e.target.value); if (e.target.value) setStrippedPeriod("All"); }}
+                  className={`bg-white/5 border rounded-lg px-3 py-1 text-xs font-mono focus:outline-none cursor-pointer transition-all
+                    ${strippedMonth ? "border-chart-green/50 text-chart-green" : "border-white/10 text-muted-foreground"}`}
+                >
+                  <option value="" className="bg-[#0f172a] text-muted-foreground">Month ▾</option>
+                  {debtStripped.rows.map((d: any) => (
+                    <option key={d.month} value={d.month} className="bg-[#0f172a] text-foreground">{d.month}</option>
+                  ))}
+                </select>
+              </div>
 
-          {/* MAIN ROW — chart left, figures right */}
-          <div className="flex flex-col lg:flex-row gap-5">
-            {/* LEFT — chart */}
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-foreground mb-0.5">Monthly Net Free Cash After All Debt</p>
-              <p className="text-[10px] text-muted-foreground mb-3">Earned revenue minus operating costs minus all debt repayments</p>
-              <ResponsiveContainer width="100%" height={260}>
-                <ComposedChart data={filteredStrippedRows} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                  <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" />
-                  <XAxis dataKey="month" tick={CHART_TICK} />
-                  <YAxis tick={CHART_TICK} tickFormatter={fmtKAxis} />
-                  <Tooltip content={<NetFreeTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-                  <ReferenceLine y={0} stroke="#ffffff30" strokeDasharray="3 3" />
-                  <Bar dataKey="earnedRevenue" name="Earned Revenue" fill="#22c55e" fillOpacity={0.6} />
-                  <Bar dataKey="debtBurden" name="Debt Repayments" fill="#ef4444" fillOpacity={0.7} />
-                  <Bar dataKey="operatingCosts" name="Operating Costs" fill="#3b82f6" fillOpacity={0.6} />
-                  <Line
-                    type="monotone"
-                    dataKey="netFreeCash"
-                    name="Net Free Cash"
-                    stroke="#f59e0b"
-                    strokeWidth={2.5}
-                    dot={(props: any) => {
-                      const { cx, cy, payload, index } = props;
-                      const fill = payload.netFreeCash >= 0 ? "#f59e0b" : "#ef4444";
-                      return <circle key={index} cx={cx} cy={cy} r={3} fill={fill} stroke={fill} />;
-                    }}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
+              {/* Chart */}
+              <div>
+                <p className="text-xs font-medium text-foreground mb-0.5">Monthly Net Free Cash After All Debt</p>
+                <p className="text-[10px] text-muted-foreground mb-3">Earned revenue minus operating costs minus all debt repayments</p>
+                <ResponsiveContainer width="100%" height={240}>
+                  <ComposedChart data={filteredStrippedRows} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                    <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" />
+                    <XAxis dataKey="month" tick={CHART_TICK} />
+                    <YAxis tick={CHART_TICK} tickFormatter={fmtKAxis} />
+                    <Tooltip content={<NetFreeTooltip />} />
+                    <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                    <ReferenceLine y={0} stroke="#ffffff30" strokeDasharray="3 3" />
+                    <Bar dataKey="earnedRevenue" name="Earned Revenue" fill="#22c55e" fillOpacity={0.6} />
+                    <Bar dataKey="debtBurden" name="Debt Repayments" fill="#ef4444" fillOpacity={0.7} />
+                    <Bar dataKey="operatingCosts" name="Operating Costs" fill="#3b82f6" fillOpacity={0.6} />
+                    <Line
+                      type="monotone"
+                      dataKey="netFreeCash"
+                      name="Net Free Cash"
+                      stroke="#f59e0b"
+                      strokeWidth={2.5}
+                      dot={(props: any) => {
+                        const { cx, cy, payload, index } = props;
+                        const fill = payload.netFreeCash >= 0 ? "#f59e0b" : "#ef4444";
+                        return <circle key={index} cx={cx} cy={cy} r={3} fill={fill} stroke={fill} />;
+                      }}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Lender Serviceability — fills remaining space below chart */}
+              <div className="border-t border-white/10 pt-4">
+                <p className="text-xs font-semibold text-foreground mb-0.5">Lender Serviceability View</p>
+                <p className="text-[10px] text-muted-foreground mb-3">How a bank or broker assesses your capacity for new debt</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Lender Calculation */}
+                  <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
+                    <p className="text-xs font-semibold text-foreground mb-3">Lender Calculation</p>
+                    <div className="flex justify-between items-center py-2 border-b border-white/5">
+                      <span className="text-xs text-muted-foreground">Usable income (80% buffer)</span>
+                      <span className="text-xs font-mono font-semibold text-foreground">{fmtAUD(debtStripped.avg6 * 0.80)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-white/5">
+                      <span className="text-xs text-muted-foreground">Less existing commitments</span>
+                      <span className="text-xs font-mono font-semibold text-foreground">{fmtAUD(totalMonthlyRepayment)}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 pb-1 mt-1"
+                      style={{ borderTop: "2px solid rgba(255,255,255,0.15)", borderBottom: "3px double rgba(255,255,255,0.15)" }}>
+                      <span className="text-xs font-semibold text-foreground">Available for new debt</span>
+                      <span className={`text-sm font-mono font-bold ${debtStripped.maxNewRepayment > 2000 ? "text-emerald-400" : debtStripped.maxNewRepayment > 500 ? "text-amber-400" : "text-red-400"}`}>
+                        {fmtAUD(debtStripped.maxNewRepayment)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Borrowing Capacity */}
+                  <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
+                    <p className="text-xs font-semibold text-foreground mb-3">Borrowing Capacity</p>
+                    <div className="flex justify-between items-center py-2 border-b border-white/5">
+                      <span className="text-xs text-muted-foreground">At current serviceability</span>
+                      <span className="text-sm font-mono font-bold text-emerald-400">{fmtAUD(debtStripped.borrowingCapacity60)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-white/5">
+                      <span className="text-xs text-muted-foreground">Assumes 60 month term</span>
+                      <span className="text-xs font-mono text-muted-foreground">—</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-white/5">
+                      <span className="text-xs text-muted-foreground">Assumes ~7% interest rate</span>
+                      <span className="text-xs font-mono text-muted-foreground">—</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-3">
+                      <div className={`w-2 h-2 rounded-full shrink-0 ${debtStripped.maxNewRepayment > 2000 ? "bg-emerald-400" : debtStripped.maxNewRepayment > 500 ? "bg-amber-400" : "bg-red-400"}`} />
+                      <p className={`text-xs font-medium ${debtStripped.maxNewRepayment > 2000 ? "text-emerald-400" : debtStripped.maxNewRepayment > 500 ? "text-amber-400" : "text-red-400"}`}>
+                        {debtStripped.maxNewRepayment > 2000
+                          ? "Serviceability is strong. You could likely support a new facility."
+                          : debtStripped.maxNewRepayment > 500
+                          ? "Marginal serviceability. A lender may require additional security."
+                          : "Insufficient net free cash. Strengthen earnings before applying."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* DIVIDER */}
+            {/* VERTICAL DIVIDER */}
             <div className="hidden lg:block w-px bg-white/10 self-stretch" />
 
-            {/* RIGHT — Financial Position figures */}
+            {/* RIGHT COLUMN — Financial Position */}
             <div className="lg:w-[380px] shrink-0 flex flex-col">
               <div className="mb-4">
                 <p className="text-sm font-semibold text-foreground">Financial Position</p>
@@ -1134,61 +1191,8 @@ const ChartsSection = ({
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Lender Serviceability View — inside unified card */}
-          <div className="mt-6 pt-5 border-t border-white/10">
-            <p className="text-xs font-semibold text-foreground mb-0.5">Lender Serviceability View</p>
-            <p className="text-[10px] text-muted-foreground mb-4">How a bank or broker assesses your capacity for new debt</p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Lender Calculation */}
-              <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
-                <p className="text-xs font-semibold text-foreground mb-3">Lender Calculation</p>
-                <div className="flex justify-between items-center py-2 border-b border-white/5">
-                  <span className="text-xs text-muted-foreground">Usable income (80% buffer)</span>
-                  <span className="text-xs font-mono font-semibold text-foreground">{fmtAUD(debtStripped.avg6 * 0.80)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-white/5">
-                  <span className="text-xs text-muted-foreground">Less existing commitments</span>
-                  <span className="text-xs font-mono font-semibold text-foreground">{fmtAUD(totalMonthlyRepayment)}</span>
-                </div>
-                <div className="flex justify-between items-center pt-2 pb-1 mt-1"
-                  style={{ borderTop: "2px solid rgba(255,255,255,0.15)", borderBottom: "3px double rgba(255,255,255,0.15)" }}>
-                  <span className="text-xs font-semibold text-foreground">Available for new debt</span>
-                  <span className={`text-sm font-mono font-bold ${debtStripped.maxNewRepayment > 2000 ? "text-emerald-400" : debtStripped.maxNewRepayment > 500 ? "text-amber-400" : "text-red-400"}`}>
-                    {fmtAUD(debtStripped.maxNewRepayment)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Borrowing Capacity */}
-              <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
-                <p className="text-xs font-semibold text-foreground mb-3">Borrowing Capacity</p>
-                <div className="flex justify-between items-center py-2 border-b border-white/5">
-                  <span className="text-xs text-muted-foreground">At current serviceability</span>
-                  <span className="text-sm font-mono font-bold text-emerald-400">{fmtAUD(debtStripped.borrowingCapacity60)}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-white/5">
-                  <span className="text-xs text-muted-foreground">Assumes 60 month term</span>
-                  <span className="text-xs font-mono text-muted-foreground">—</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-white/5">
-                  <span className="text-xs text-muted-foreground">Assumes ~7% interest rate</span>
-                  <span className="text-xs font-mono text-muted-foreground">—</span>
-                </div>
-                <div className="flex items-center gap-2 mt-3">
-                  <div className={`w-2 h-2 rounded-full ${debtStripped.maxNewRepayment > 2000 ? "bg-emerald-400" : debtStripped.maxNewRepayment > 500 ? "bg-amber-400" : "bg-red-400"}`} />
-                  <p className={`text-xs font-medium ${debtStripped.maxNewRepayment > 2000 ? "text-emerald-400" : debtStripped.maxNewRepayment > 500 ? "text-amber-400" : "text-red-400"}`}>
-                    {debtStripped.maxNewRepayment > 2000
-                      ? "Serviceability is strong. You could likely support a new facility."
-                      : debtStripped.maxNewRepayment > 500
-                      ? "Marginal serviceability. A lender may require additional security."
-                      : "Insufficient net free cash. Strengthen earnings before applying."}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
       </div>
