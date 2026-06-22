@@ -1049,7 +1049,7 @@ const ScorecardDetailPanel = ({
         return {
           title: "Debt-to-Gross-Profit — What It Means",
           formula: "Total Debt ÷ Gross Profit YTD × 100",
-          explanation: "This one asks: if we used ALL our gross profit just to pay off debt — no wages, no expenses, nothing else — how long would it take? At 94%, it would take us just under 1 year of gross profit to clear all debt entirely. The benchmark is under 75%, meaning under 9 months of GP. We're slightly above that. The good news: as GP grows through bigger jobs and better margins, this number naturally comes down without paying off a single dollar of debt early.",
+          explanation: `Total debt is ${fmt(totalDebt)}. Annual gross profit is ${fmt(grossProfitYTD)}. If we used every dollar of GP solely to repay debt, it would take ${(debtToGpValue / 100).toFixed(1)} years to clear it entirely. The target is under 0.75 years. We're at ${(debtToGpValue / 100).toFixed(1)} years — improving as GP grows.`,
           pills: [
             { label: "Total Debt", value: fmt(totalDebt) },
             { label: "GP YTD", value: fmt(grossProfitYTD) },
