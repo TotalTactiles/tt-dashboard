@@ -889,7 +889,7 @@ const ChartsSection = ({
       maxNewRepayment,
       borrowingCapacity60,
     };
-  }, [io, liveData, forecastChartData, totalMonthlyRepayment]);
+  }, [io, liveData, forecastChartData, totalMonthlyRepayment, serviceabilityView]);
 
 
 
