@@ -704,7 +704,81 @@ const ChartsSection = ({
     );
   };
 
+  // ---- Debt-Stripped Earnings & Lender Serviceability ----
+  const debtStripped = useMemo(() => {
+    const rawCashflow = liveData?.cashflow ?? [];
+    const findRow = (label: string) => {
+      const upper = label.toUpperCase();
+      return rawCashflow.find((r: any) => {
+        const rl = (r._label_rowLabel ?? r.col_1 ?? "").toString().toUpperCase();
+        return rl.includes(upper);
+      }) ?? null;
+    };
+    const parseNum = (v: any) => {
+      if (v === null || v === undefined || v === "") return 0;
+      return parseFloat(String(v).replace(/[$,]/g, "")) || 0;
+    };
+    const businessLoanRow = findRow("BUSINESS LOAN REPAYMENT");
+    const vehicleRepaymentRow = findRow("MOTOR VEHICLE REPAYMENT");
+
+    const rows = io.map((row) => {
+      const month = String(row?.month ?? "");
+      const earnedRevenue = Number(row?.income) || 0;
+      const totalCosts = Math.abs(Number(row?.outgoings) || 0);
+      const monthlyDebt =
+        Math.abs(parseNum(businessLoanRow?.[month] ?? 0)) +
+        Math.abs(parseNum(vehicleRepaymentRow?.[month] ?? 0));
+      const operatingCosts = Math.max(0, totalCosts - monthlyDebt);
+      const netFreeCash = earnedRevenue - operatingCosts - monthlyDebt;
+      return { month, earnedRevenue, operatingCosts, debtBurden: monthlyDebt, netFreeCash };
+    });
+
+    const active = rows.filter((r) => r.earnedRevenue > 0);
+    const avgN = (n: number) => {
+      const slice = active.slice(-n);
+      if (!slice.length) return 0;
+      return slice.reduce((s, x) => s + x.netFreeCash, 0) / slice.length;
+    };
+    const avg3 = avgN(3);
+    const avg6 = avgN(6);
+    const avg12 = active.length ? active.reduce((s, x) => s + x.netFreeCash, 0) / active.length : 0;
+    const lenderBuffer = 0.8;
+    const maxNewRepayment = avg6 * lenderBuffer;
+    const borrowingCapacity60 = maxNewRepayment * 60 * 0.85;
+    return { rows, avg3, avg6, avg12, maxNewRepayment, borrowingCapacity60 };
+  }, [io, liveData]);
+
+  const ragColor = (v: number) => (v > 2000 ? "#22c55e" : v >= 500 ? "#f59e0b" : "#ef4444");
+  const ragLabel = (v: number): "green" | "amber" | "red" =>
+    v > 2000 ? "green" : v >= 500 ? "amber" : "red";
+  const verdictText = (r: "green" | "amber" | "red") =>
+    r === "green"
+      ? "Serviceability is strong. You could likely support a new facility."
+      : r === "amber"
+      ? "Marginal serviceability. A lender may require additional security."
+      : "Insufficient net free cash. Strengthen earnings before applying.";
+  const fmtK = (n: number) => {
+    const sign = n < 0 ? "-" : "";
+    const abs = Math.abs(n);
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+    return `${sign}$${Math.round(abs / 1000)}k`;
+  };
+  const NetFreeTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div style={TOOLTIP_STYLE} className="px-3 py-2">
+        <p className="text-foreground font-medium mb-1">{label}</p>
+        {payload.map((p: any) => (
+          <p key={p.dataKey} style={{ color: p.color }}>{p.name}: {fmtAUD(p.value)}</p>
+        ))}
+      </div>
+    );
+  };
+  const rag = ragLabel(debtStripped.maxNewRepayment);
+  const ragHex = ragColor(debtStripped.maxNewRepayment);
+
   return (
+
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold text-foreground">Debt vs Business Performance</h2>
