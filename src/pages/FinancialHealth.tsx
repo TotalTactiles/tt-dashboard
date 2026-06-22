@@ -1115,6 +1115,10 @@ const ChartsSection = ({
                       <span className="text-xs text-muted-foreground">Usable income (80% buffer)</span>
                       <span className="text-xs font-mono font-semibold text-foreground">{fmtAUD(debtStripped.lenderUsableIncome)}</span>
                     </div>
+                    <p className="text-[9px] text-muted-foreground italic mt-0.5">
+                      Based on 6m blended (actuals + 70% of contracted pipeline)
+                    </p>
+
                     <div className="flex justify-between items-center py-2 border-b border-white/5">
                       <span className="text-xs text-muted-foreground">Less existing commitments</span>
                       <span className="text-xs font-mono font-semibold text-foreground">{fmtAUD(totalMonthlyRepayment)}</span>
