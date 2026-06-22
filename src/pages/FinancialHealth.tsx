@@ -830,24 +830,42 @@ const ChartsSection = ({
       .filter((d: any) => !d?.isFuture && (Number(d?.income) || 0) > 0)
       .map((d: any) => ({ month: d.month, net: (Number(d.income) || 0) - (Number(d.outgoings) || 0), type: "actual" as const }));
 
-    // Forward contracted — filter based on selected view
-    const _forwardContracted = (Array.isArray(forecastChartData) ? forecastChartData : [])
+    // Forward contracted — derive monthly movement from cumulative anticipatedSurplus
+    const _fcdAll = Array.isArray(forecastChartData) ? forecastChartData : [];
+    const _fcdSorted = _fcdAll.filter((d: any) => !_pastActuals.some((p) => p.month === d.month));
+    const _lastPastMonth = _fcdAll
+      .filter((d: any) => _pastActuals.some((p) => p.month === d.month))
+      .slice(-1)[0];
+    const _baseSurplus = Number(_lastPastMonth?.anticipatedSurplus) || 0;
+
+    const _forwardContracted = _fcdSorted
       .filter((d: any) => {
-        const isInPast = _pastActuals.some((p) => p.month === d.month);
-        if (isInPast) return false;
         if (serviceabilityView === "actuals") return false;
         if (serviceabilityView === "with_grn") return Number(d?.anticipatedSurplus) > 0;
         if (serviceabilityView === "with_ylw") return Number(d?.surplusIncludingProbable) > 0;
         return false;
       })
       .slice(0, 6)
-      .map((d: any) => ({
-        month: d.month,
-        net: (serviceabilityView === "with_grn"
-          ? Number(d?.anticipatedSurplus) || 0
-          : Number(d?.surplusIncludingProbable) || 0) * 0.70,
-        type: serviceabilityView,
-      }));
+      .map((d: any, i: number, arr: any[]) => {
+        const prevCumulative = i === 0
+          ? _baseSurplus
+          : (serviceabilityView === "with_ylw"
+              ? Number(arr[i - 1].surplusIncludingProbable) || 0
+              : Number(arr[i - 1].anticipatedSurplus) || 0);
+        const currentCumulative = serviceabilityView === "with_ylw"
+          ? Number(d.surplusIncludingProbable) || 0
+          : Number(d.anticipatedSurplus) || 0;
+        const monthlyMovement = currentCumulative - prevCumulative;
+        return {
+          month: d.month,
+          net: Math.max(0, monthlyMovement) * 0.70,
+          type: serviceabilityView,
+          _raw: currentCumulative,
+          _prev: prevCumulative,
+          _movement: monthlyMovement,
+        };
+      })
+      .filter((d: any) => d.net > 0);
 
 
     const _allMonths = [..._pastActuals, ..._forwardContracted];
@@ -1118,19 +1136,24 @@ const ChartsSection = ({
                   <td className="pr-4 text-right">anticipatedSurplus</td>
                   <td className="pr-4 text-right">surplusInclProbable</td>
                   <td className="pr-4 text-right">Used (×0.70)</td>
+                  <td className="pr-4 text-right">Monthly Movement</td>
                 </tr>
               </thead>
               <tbody>
                 {(forecastChartData ?? []).map((d: any) => {
                   const isInPast = debtStripped._pastActuals.some((p: any) => p.month === d.month);
                   const included = debtStripped._forwardContracted.some((f: any) => f.month === d.month);
+                  const fwd = debtStripped._forwardContracted.find((f: any) => f.month === d.month);
                   return (
                     <tr key={d.month} className={included ? "text-blue-400" : "text-white/20"}>
                       <td className="pr-4">{d.month} {included ? "✓" : ""} {isInPast ? "(past)" : ""}</td>
                       <td className="pr-4 text-right">${Number(d.anticipatedSurplus || 0).toLocaleString()}</td>
                       <td className="pr-4 text-right">${Number(d.surplusIncludingProbable || 0).toLocaleString()}</td>
                       <td className="pr-4 text-right">
-                        {included ? `$${debtStripped._forwardContracted.find((f: any) => f.month === d.month)?.net.toFixed(0)}` : "—"}
+                        {included ? `$${fwd?.net.toFixed(0)}` : "—"}
+                      </td>
+                      <td className="pr-4 text-right text-yellow-400">
+                        {included ? `$${fwd?._movement?.toFixed(0) ?? "—"}` : "—"}
                       </td>
                     </tr>
                   );
