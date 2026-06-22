@@ -157,7 +157,7 @@ const FinancialHealth = () => {
   }, [forecastChartData]);
 
   type RAG = "green" | "amber" | "red" | "none";
-  interface Metric { name: string; value: string; benchmark: string; rag: RAG; }
+  interface Metric { name: string; value: string; benchmark: string; rag: RAG; subValue?: string; subBenchmark?: string; }
 
   const dataMissing = totalDebt <= 0 || !revenueInclGST;
 
@@ -223,12 +223,14 @@ const FinancialHealth = () => {
         value: `${cashCover.toFixed(1)} months`,
         benchmark: "Benchmark: ≥ 3 months",
         rag: ragFromThresholds(cashCover, 3, 1.5),
+        subValue: `(${(cashCover / 12).toFixed(1)} years)`,
       },
       {
         name: "Repayment Burden",
         value: `${burden.toFixed(0)}% of GP`,
         benchmark: "Benchmark: < 20% of GP",
         rag: ragFromThresholds(burden, 20, 35, true),
+        subBenchmark: `${Math.round(burden)}c in every $1 of GP goes to debt`,
       },
     ];
   }, [dataMissing, annualInterestCost, grossProfitYTD, totalMonthlyRepayment, revenueExGST, totalDebt, recentSurplus]);
@@ -444,10 +446,16 @@ const FinancialHealth = () => {
                 >
                   <div className="absolute top-3 right-3">{ragDot(m.rag)}</div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wider">{m.name}</p>
-                  <div className="flex items-center justify-center py-3">
+                  <div className="flex flex-col items-center justify-center py-3">
                     <span className="text-3xl font-bold text-foreground font-mono">{m.value}</span>
+                    {m.subValue && m.value !== "--" && (
+                      <p className="text-xs text-muted-foreground font-mono mt-1">{m.subValue}</p>
+                    )}
                   </div>
                   <p className="text-[10px] text-muted-foreground">{m.benchmark}</p>
+                  {m.subBenchmark && m.value !== "--" && (
+                    <p className="text-[10px] text-muted-foreground mt-1 font-mono">{m.subBenchmark}</p>
+                  )}
                   {m.rag === "none" && <p className="text-[10px] text-muted-foreground mt-0.5">No data</p>}
                 </button>
               );
