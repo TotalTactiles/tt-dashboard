@@ -793,6 +793,8 @@ const ChartsSection = ({
   };
 
   // ---- Debt-Stripped Earnings & Lender Serviceability ----
+  const [serviceabilityView, setServiceabilityView] = useState<"actuals"|"with_grn"|"with_ylw">("with_grn");
+
   const debtStripped = useMemo(() => {
     const rawCashflow = liveData?.cashflow ?? [];
     const findRow = (label: string) => {
@@ -827,16 +829,25 @@ const ChartsSection = ({
       .filter((d: any) => !d?.isFuture && (Number(d?.income) || 0) > 0)
       .map((d: any) => ({ month: d.month, net: (Number(d.income) || 0) - (Number(d.outgoings) || 0), type: "actual" as const }));
 
-    // Forward contracted: surplusIncludingProbable from forecastChartData
-    // (includes GRN + YLW signed contracts — presentable to lenders)
-    // Discount forward figures by 30% (conservative lender haircut on projections)
+    // Forward contracted — filter based on selected view
     const _forwardContracted = (Array.isArray(forecastChartData) ? forecastChartData : [])
       .filter((d: any) => {
         const isInPast = _pastActuals.some((p) => p.month === d.month);
-        return !isInPast && Number(d?.surplusIncludingProbable) > 0;
+        if (isInPast) return false;
+        if (serviceabilityView === "actuals") return false;
+        if (serviceabilityView === "with_grn") return Number(d?.anticipatedSurplus) > 0;
+        if (serviceabilityView === "with_ylw") return Number(d?.surplusIncludingProbable) > 0;
+        return false;
       })
       .slice(0, 6)
-      .map((d: any) => ({ month: d.month, net: Number(d.surplusIncludingProbable) * 0.70, type: "contracted" as const }));
+      .map((d: any) => ({
+        month: d.month,
+        net: (serviceabilityView === "with_grn"
+          ? Number(d?.anticipatedSurplus) || 0
+          : Number(d?.surplusIncludingProbable) || 0) * 0.70,
+        type: serviceabilityView,
+      }));
+
 
     const _allMonths = [..._pastActuals, ..._forwardContracted];
 
@@ -878,7 +889,7 @@ const ChartsSection = ({
       maxNewRepayment,
       borrowingCapacity60,
     };
-  }, [io, liveData, forecastChartData, totalMonthlyRepayment]);
+  }, [io, liveData, forecastChartData, totalMonthlyRepayment, serviceabilityView]);
 
 
 
@@ -1023,13 +1034,43 @@ const ChartsSection = ({
           <p className="text-xs text-muted-foreground">What the business actually earns after all debt is removed — the lender's view</p>
         </div>
 
+        {/* Serviceability View Toggle */}
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">
+            Serviceability View:
+          </span>
+          <div className="inline-flex bg-white/5 rounded-xl p-1 border border-white/10">
+            {[
+              { key: "actuals", label: "📊 Past Actuals Only", desc: "Verified bank-statement income" },
+              { key: "with_grn", label: "✅ With GRNs", desc: "Actuals + signed contracts/POs (70% haircut)" },
+              { key: "with_ylw", label: "🤝 With GRNs & YLWs", desc: "Actuals + all contracted + probable pipeline (70% haircut)" },
+            ].map(opt => (
+              <button
+                key={opt.key}
+                onClick={() => setServiceabilityView(opt.key as any)}
+                title={opt.desc}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all whitespace-nowrap
+                  ${serviceabilityView === opt.key
+                    ? "bg-chart-green text-black font-semibold"
+                    : "text-muted-foreground hover:text-foreground"}`}
+              >{opt.label}</button>
+            ))}
+          </div>
+          <span className="text-[10px] text-muted-foreground italic font-mono">
+            {serviceabilityView === "actuals" && "Conservative — past income only"}
+            {serviceabilityView === "with_grn" && "Standard — signed contracts counted at 70%"}
+            {serviceabilityView === "with_ylw" && "Optimistic — all pipeline counted at 70%"}
+          </span>
+        </div>
+
         {/* Unified card: pills + filters + chart + Financial Position */}
         <div className="chart-container mt-4">
           {/* TOP ROW — 4 stat pills inline */}
           <div className="flex flex-wrap gap-3 mb-5">
             {[
               { label: "Avg Monthly (3m Actual)", value: debtStripped.avg3, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg3 >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD },
-              { label: "Avg Monthly (6m Blended)", value: debtStripped.avg6Blended, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg6Blended >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD },
+              { label: serviceabilityView === "actuals" ? "Avg Monthly (6m Actual)" : serviceabilityView === "with_grn" ? "Avg Monthly (6m + GRNs)" : "Avg Monthly (6m + GRN/YLW)", value: debtStripped.avg6Blended, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg6Blended >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD },
+
 
               { label: "Max New Monthly Repayment", value: debtStripped.maxNewRepayment, colorStyle: ragHex, colorClass: "", fmt: fmtAUD },
               { label: "Est. Borrowing Capacity", value: debtStripped.borrowingCapacity60, colorStyle: undefined as string | undefined, colorClass: "text-chart-green", fmt: fmtK },
@@ -1116,7 +1157,10 @@ const ChartsSection = ({
                       <span className="text-xs font-mono font-semibold text-foreground">{fmtAUD(debtStripped.lenderUsableIncome)}</span>
                     </div>
                     <p className="text-[9px] text-muted-foreground italic mt-0.5">
-                      Based on 6m blended (actuals + 70% of contracted pipeline)
+                      {serviceabilityView === "actuals" && "Based on past 6m actuals only"}
+                      {serviceabilityView === "with_grn" && "6m blended: actuals + signed contracts at 70%"}
+                      {serviceabilityView === "with_ylw" && "6m blended: actuals + all pipeline at 70%"}
+
                     </p>
 
                     <div className="flex justify-between items-center py-2 border-b border-white/5">
