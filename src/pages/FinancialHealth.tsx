@@ -157,7 +157,7 @@ const FinancialHealth = () => {
   }, [forecastChartData]);
 
   type RAG = "green" | "amber" | "red" | "none";
-  interface Metric { name: string; value: string; benchmark: string; rag: RAG; }
+  interface Metric { name: string; value: string; benchmark: string; rag: RAG; subValue?: string; subBenchmark?: string; }
 
   const dataMissing = totalDebt <= 0 || !revenueInclGST;
 
