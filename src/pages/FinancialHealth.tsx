@@ -911,165 +911,78 @@ const ChartsSection = ({
         <p className="text-xs text-muted-foreground">Live cashflow data overlaid with debt obligations</p>
       </div>
 
-      {/* Chart 0: Earned vs Debt-Funded Revenue + Figures */}
-      <div className="flex flex-col lg:flex-row gap-4">
-        {/* Panel 1 - Chart */}
-        <div className="chart-container flex-1 lg:w-[55%]">
-          <p className="text-sm font-medium text-foreground mb-0.5">What We Earned vs What Was Borrowed</p>
-          <p className="text-xs text-muted-foreground mb-3">Monthly income from operations vs capital injected via debt facilities</p>
+      {/* Chart 0: Earned vs Debt-Funded Revenue */}
+      <div className="chart-container">
+        <p className="text-sm font-medium text-foreground mb-0.5">What We Earned vs What Was Borrowed</p>
+        <p className="text-xs text-muted-foreground mb-3">Monthly income from operations vs capital injected via debt facilities</p>
 
-          {!earnedVsDebtData.hasAnySource ? (
-            <div className="flex items-center justify-center text-center text-xs text-muted-foreground" style={{ height: 120 }}>
-              No debt-funded facilities identified. Add facilities with 'Vinny' in the name to see this breakdown.
+        {!earnedVsDebtData.hasAnySource ? (
+          <div className="flex items-center justify-center text-center text-xs text-muted-foreground" style={{ height: 120 }}>
+            No debt-funded facilities identified. Add facilities with 'Vinny' in the name to see this breakdown.
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                {(["All","Q1","Q2","Q3","Q4"] as const).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => { setEarnedPeriod(p); setEarnedMonth(""); }}
+                    className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all
+                      ${earnedPeriod === p && !earnedMonth
+                        ? "bg-chart-green text-black"
+                        : "bg-white/5 text-muted-foreground hover:bg-white/10"}`}
+                  >{p}</button>
+                ))}
+              </div>
+              <select
+                value={earnedMonth}
+                onChange={e => {
+                  setEarnedMonth(e.target.value);
+                  if (e.target.value) setEarnedPeriod("All");
+                }}
+                className={`bg-white/5 border rounded-lg px-3 py-1 text-xs font-mono focus:outline-none cursor-pointer transition-all
+                  ${earnedMonth
+                    ? "border-chart-green/50 text-chart-green"
+                    : "border-white/10 text-muted-foreground"}`}
+              >
+                <option value="" className="bg-[#0f172a] text-muted-foreground">Month ▾</option>
+                {earnedVsDebtData.rows.map((d: any) => (
+                  <option key={d.month} value={d.month} className="bg-[#0f172a] text-foreground">{d.month}</option>
+                ))}
+              </select>
             </div>
-          ) : (
-            <>
-              <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-                <div className="flex items-center gap-1.5">
-                  {(["All","Q1","Q2","Q3","Q4"] as const).map(p => (
-                    <button
-                      key={p}
-                      onClick={() => { setEarnedPeriod(p); setEarnedMonth(""); }}
-                      className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all
-                        ${earnedPeriod === p && !earnedMonth
-                          ? "bg-chart-green text-black"
-                          : "bg-white/5 text-muted-foreground hover:bg-white/10"}`}
-                    >{p}</button>
-                  ))}
-                </div>
-                <select
-                  value={earnedMonth}
-                  onChange={e => {
-                    setEarnedMonth(e.target.value);
-                    if (e.target.value) setEarnedPeriod("All");
-                  }}
-                  className={`bg-white/5 border rounded-lg px-3 py-1 text-xs font-mono focus:outline-none cursor-pointer transition-all
-                    ${earnedMonth
-                      ? "border-chart-green/50 text-chart-green"
-                      : "border-white/10 text-muted-foreground"}`}
-                >
-                  <option value="" className="bg-[#0f172a] text-muted-foreground">Month ▾</option>
-                  {earnedVsDebtData.rows.map((d: any) => (
-                    <option key={d.month} value={d.month} className="bg-[#0f172a] text-foreground">{d.month}</option>
-                  ))}
-                </select>
+            <div className="flex flex-wrap gap-2 mb-4">
+              <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Avg Monthly Earned</div>
+                <div className="text-base font-mono font-semibold text-green-500">{fmtAUD(earnedStats.avgNet)}</div>
               </div>
-              <div className="flex flex-wrap gap-2 mb-4">
-                <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2">
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Avg Monthly Earned</div>
-                  <div className="text-base font-mono font-semibold text-green-500">{fmtAUD(earnedStats.avgNet)}</div>
-                </div>
-                <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2">
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Debt Capital Injected</div>
-                  <div className="text-base font-mono font-semibold text-blue-500">{fmtAUD(earnedStats.totalDebt)}</div>
-                </div>
-                <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2">
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Debt as % of Total Income</div>
-                  <div className="text-base font-mono font-semibold text-amber-500">{earnedStats.debtPct.toFixed(1)}%</div>
-                </div>
+              <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Debt Capital Injected</div>
+                <div className="text-base font-mono font-semibold text-blue-500">{fmtAUD(earnedStats.totalDebt)}</div>
               </div>
-              <ResponsiveContainer width="100%" height={280}>
-                <ComposedChart data={filteredEarnedData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                  <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" />
-                  <XAxis dataKey="month" tick={CHART_TICK} />
-                  <YAxis tick={CHART_TICK} tickFormatter={fmtKAxis} />
-                  <Tooltip content={<EarnedTooltip />} contentStyle={{ backgroundColor: "#1a1a2e", border: "1px solid #ffffff20", borderRadius: "8px", fontSize: "12px" }} />
-                  <Legend wrapperStyle={{ fontSize: 11, color: "#9ca3af" }} />
-                  <ReferenceLine y={0} stroke="#ffffff20" />
-                  <Bar dataKey="earnedRevenue" name="Total Income" fill="#22c55e" fillOpacity={0.8} />
-                  <Bar dataKey="debtDrawdown" name="Debt Capital (Vinny)" fill="#3b82f6" fillOpacity={0.7} />
-                  <Line type="monotone" dataKey="netEarned" name="True Earned (ex-Debt)" stroke="#f59e0b" strokeWidth={2.5} dot={false} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </>
-          )}
-        </div>
-
-        {/* Panel 2 - Figures */}
-        <div className="bg-[#0a0f1a] border border-white/10 rounded-xl p-6 flex flex-col gap-0 lg:w-[45%]">
-          <div className="mb-5">
-            <p className="text-base font-semibold text-foreground tracking-tight">Financial Position</p>
-            <p className="text-[10px] text-muted-foreground/60 font-mono uppercase tracking-wider">Viewing</p>
-            <p className="text-xs text-muted-foreground font-mono">{periodLabel}</p>
-          </div>
-
-          {/* INCOME */}
-          <div className="flex items-center gap-2 mt-4 mb-1">
-            <div className="h-px flex-1 bg-white/10" />
-            <span className="text-[9px] uppercase tracking-[0.15em] font-mono font-semibold text-emerald-400/80">INCOME</span>
-            <div className="h-px flex-1 bg-white/10" />
-          </div>
-          <div className="flex justify-between items-center py-2 border-b border-white/5">
-            <span className="text-xs text-muted-foreground">Total Revenue Earned</span>
-            <span className="text-sm font-mono font-semibold text-emerald-400">{fmtAUD(periodFigures.periodRevenue)}</span>
-          </div>
-
-          {/* EXPENDITURE */}
-          <div className="flex items-center gap-2 mt-4 mb-1">
-            <div className="h-px flex-1 bg-white/10" />
-            <span className="text-[9px] uppercase tracking-[0.15em] font-mono font-semibold text-red-400/80">EXPENDITURE</span>
-            <div className="h-px flex-1 bg-white/10" />
-          </div>
-          <div className="flex justify-between items-center py-2 border-b border-white/5">
-            <span className="text-xs text-muted-foreground">Operating Costs</span>
-            <span className="text-sm font-mono font-semibold text-red-400">{fmtAUD(periodFigures.periodOutgoings)}</span>
-          </div>
-          <div className="flex justify-between items-center py-2 border-b border-white/5">
-            <span className="text-xs text-muted-foreground">Debt Repayments</span>
-            <span className="text-sm font-mono font-semibold text-red-400">{fmtAUD(periodFigures.periodDebtRepayments)}</span>
-          </div>
-          <div
-            className="flex justify-between items-center pt-2 pb-1 mt-1"
-            style={{ borderTop: "2px solid rgba(255,255,255,0.15)", borderBottom: "3px double rgba(255,255,255,0.15)" }}
-          >
-            <span className="text-xs font-semibold text-foreground">Total Expenditure</span>
-            <span className="text-sm font-mono font-bold text-red-400">{fmtAUD(periodFigures.periodOutgoings + periodFigures.periodDebtRepayments)}</span>
-          </div>
-
-          {/* NET POSITION */}
-          <div className="flex items-center gap-2 mt-4 mb-1">
-            <div className="h-px flex-1 bg-white/10" />
-            <span className={`text-[9px] uppercase tracking-[0.15em] font-mono font-semibold ${periodFigures.netPosition >= 0 ? "text-amber-400/80" : "text-red-400/80"}`}>NET POSITION</span>
-            <div className="h-px flex-1 bg-white/10" />
-          </div>
-          <div
-            className="flex justify-between items-center py-3 mt-2"
-            style={{ borderTop: "2px solid rgba(255,255,255,0.2)", borderBottom: "3px double rgba(255,255,255,0.25)" }}
-          >
-            <span className="text-sm font-semibold text-foreground">Net After All Costs & Debt</span>
-            <span className={`text-xl font-mono font-bold ${periodFigures.netPosition >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-              {periodFigures.netPosition < 0 ? "-" : ""}{fmtAUD(Math.abs(periodFigures.netPosition))}
-            </span>
-          </div>
-          <p className="text-[10px] text-muted-foreground italic mt-1.5">
-            {periodFigures.netPosition >= 0
-              ? `↑ ${fmtAUD(periodFigures.netPosition)} generated after all costs and debt this period`
-              : `↓ Costs exceeded revenue by ${fmtAUD(Math.abs(periodFigures.netPosition))} this period`}
-          </p>
-
-          {/* DEBT POSITION — ALL TIME */}
-          <div className="flex items-center gap-2 mt-6 mb-1">
-            <div className="h-px flex-1 bg-white/10" />
-            <span className="text-[9px] uppercase tracking-[0.15em] font-mono font-semibold text-muted-foreground/60">DEBT POSITION — ALL TIME</span>
-            <div className="h-px flex-1 bg-white/10" />
-          </div>
-          <div className="flex justify-between items-center py-2 border-b border-white/5">
-            <span className="text-xs text-muted-foreground">Total Facilities Drawn</span>
-            <span className="text-sm font-mono font-semibold text-foreground">{fmtAUD(periodFigures.totalBorrowedToDate)}</span>
-          </div>
-          <div className="flex justify-between items-center py-2 border-b border-white/5">
-            <span className="text-xs text-muted-foreground">Principal Repaid to Date</span>
-            <span className="text-sm font-mono font-semibold text-emerald-400">{fmtAUD(periodFigures.totalRepaidToDate)}</span>
-          </div>
-          <div
-            className="flex justify-between items-center pt-2 pb-1 mt-1"
-            style={{ borderTop: "2px solid rgba(255,255,255,0.15)", borderBottom: "3px double rgba(255,255,255,0.15)" }}
-          >
-            <span className="text-xs font-semibold text-foreground">Still Outstanding</span>
-            <span className="text-sm font-mono font-bold text-red-400">{fmtAUD(periodFigures.totalStillOwed)}</span>
-          </div>
-        </div>
+              <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Debt as % of Total Income</div>
+                <div className="text-base font-mono font-semibold text-amber-500">{earnedStats.debtPct.toFixed(1)}%</div>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={280}>
+              <ComposedChart data={filteredEarnedData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" />
+                <XAxis dataKey="month" tick={CHART_TICK} />
+                <YAxis tick={CHART_TICK} tickFormatter={fmtKAxis} />
+                <Tooltip content={<EarnedTooltip />} contentStyle={{ backgroundColor: "#1a1a2e", border: "1px solid #ffffff20", borderRadius: "8px", fontSize: "12px" }} />
+                <Legend wrapperStyle={{ fontSize: 11, color: "#9ca3af" }} />
+                <ReferenceLine y={0} stroke="#ffffff20" />
+                <Bar dataKey="earnedRevenue" name="Total Income" fill="#22c55e" fillOpacity={0.8} />
+                <Bar dataKey="debtDrawdown" name="Debt Capital (Vinny)" fill="#3b82f6" fillOpacity={0.7} />
+                <Line type="monotone" dataKey="netEarned" name="True Earned (ex-Debt)" stroke="#f59e0b" strokeWidth={2.5} dot={false} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </>
+        )}
       </div>
+
 
       {/* Debt-Stripped Earnings & Lender Serviceability */}
       <div className="space-y-4 pt-2">
