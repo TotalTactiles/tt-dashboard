@@ -451,11 +451,11 @@ const FinancialHealth = () => {
                     {m.subValue && m.value !== "--" && (
                       <p className="text-xs text-muted-foreground font-mono mt-1">{m.subValue}</p>
                     )}
+                    {m.subBenchmark && m.value !== "--" && (
+                      <p className="text-xs text-muted-foreground font-mono mt-1">({m.subBenchmark})</p>
+                    )}
                   </div>
                   <p className="text-[10px] text-muted-foreground">{m.benchmark}</p>
-                  {m.subBenchmark && m.value !== "--" && (
-                    <p className="text-[10px] text-muted-foreground mt-1 font-mono">{m.subBenchmark}</p>
-                  )}
                   {m.rag === "none" && <p className="text-[10px] text-muted-foreground mt-0.5">No data</p>}
                 </button>
               );
