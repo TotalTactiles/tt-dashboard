@@ -951,7 +951,8 @@ const ChartsSection = ({
         <div className="bg-[#0a0f1a] border border-white/10 rounded-xl p-6 flex flex-col gap-0 lg:w-[45%]">
           <div className="mb-5">
             <p className="text-base font-semibold text-foreground tracking-tight">Financial Position</p>
-            <p className="text-[11px] text-muted-foreground font-mono mt-0.5">Viewing: {periodLabel}</p>
+            <p className="text-[10px] text-muted-foreground/60 font-mono uppercase tracking-wider">Viewing</p>
+            <p className="text-xs text-muted-foreground font-mono">{periodLabel}</p>
           </div>
 
           {/* INCOME */}
