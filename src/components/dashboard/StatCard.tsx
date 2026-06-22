@@ -211,7 +211,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
       className={`stat-card relative overflow-hidden flex flex-col gap-0.5 ${ylwGlowClass}`}
-      style={{ minHeight: "100px", containerType: 'inline-size' }}
+      style={{ minHeight: "90px", containerType: 'inline-size', padding: "clamp(0.65rem, 1.5vw, 1.1rem)" }}
     >
       {/* ROW 1 — Label + badges */}
       <div className="flex items-start justify-between gap-1" style={{ minWidth: 0, overflow: 'hidden' }}>
