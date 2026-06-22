@@ -44,23 +44,24 @@ import type { ProjectKPIData } from "@/hooks/useDataSources";
 
 const cardContainerStyle: React.CSSProperties = {
   containerType: 'inline-size',
-  padding: "clamp(12px, 1.8vw, 20px)",
-  minHeight: "120px",
+  padding: "clamp(0.65rem, 1.5vw, 1.1rem)",
+  minHeight: "90px",
 };
 
 const titleStyle: React.CSSProperties = {
-  fontSize: 'clamp(0.5rem, 1.8cqi, 0.65rem)',
-  letterSpacing: '0.05em',
+  fontSize: 'clamp(0.48rem, 1.6cqi, 0.62rem)',
+  letterSpacing: '0.04em',
   textTransform: 'uppercase',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
   minWidth: 0,
   maxWidth: '100%',
+  fontWeight: 500,
 };
 
 const valueShortStyle: React.CSSProperties = {
-  fontSize: 'clamp(1rem, 4.5cqi, 1.8rem)',
+  fontSize: 'clamp(0.95rem, 4cqi, 1.6rem)',
   lineHeight: '1.2',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
@@ -68,10 +69,12 @@ const valueShortStyle: React.CSSProperties = {
   minWidth: 0,
   display: 'block',
   maxWidth: '100%',
+  fontWeight: 600,
+  letterSpacing: '-0.02em',
 };
 
 const valueLongStyle: React.CSSProperties = {
-  fontSize: 'clamp(0.75rem, 3.5cqi, 1.4rem)',
+  fontSize: 'clamp(0.75rem, 3cqi, 1.3rem)',
   lineHeight: '1.2',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
@@ -79,16 +82,19 @@ const valueLongStyle: React.CSSProperties = {
   minWidth: 0,
   display: 'block',
   maxWidth: '100%',
+  fontWeight: 600,
+  letterSpacing: '-0.015em',
 };
 
 const sublineStyle: React.CSSProperties = {
-  fontSize: 'clamp(0.55rem, 1.6cqi, 0.72rem)',
-  lineHeight: '1.4',
+  fontSize: 'clamp(0.58rem, 1.5cqi, 0.7rem)',
+  lineHeight: '1.45',
   overflow: 'hidden',
   display: '-webkit-box',
   WebkitLineClamp: 2,
   WebkitBoxOrient: 'vertical',
   minWidth: 0,
+  fontWeight: 400,
 };
 
 const noteStyle: React.CSSProperties = {
