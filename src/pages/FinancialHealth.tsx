@@ -1083,7 +1083,7 @@ const ChartsSection = ({
                     <p className="text-xs font-semibold text-foreground mb-3">Lender Calculation</p>
                     <div className="flex justify-between items-center py-2 border-b border-white/5">
                       <span className="text-xs text-muted-foreground">Usable income (80% buffer)</span>
-                      <span className="text-xs font-mono font-semibold text-foreground">{fmtAUD(debtStripped.avg6 * 0.80)}</span>
+                      <span className="text-xs font-mono font-semibold text-foreground">{fmtAUD(debtStripped.lenderUsableIncome)}</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-white/5">
                       <span className="text-xs text-muted-foreground">Less existing commitments</span>
