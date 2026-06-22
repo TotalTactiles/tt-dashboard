@@ -1195,7 +1195,7 @@ const ChartsSection = ({
 
         </div>
 
-      </div>
+
 
 
 
