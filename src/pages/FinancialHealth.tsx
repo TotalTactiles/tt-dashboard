@@ -1075,7 +1075,7 @@ const ScorecardDetailPanel = ({
         return {
           title: "Repayment Burden — What It Means",
           formula: "(Monthly Repayments × 12) ÷ Gross Profit YTD × 100",
-          explanation: "Out of every dollar of gross profit we make, 22 cents goes straight to loan repayments before we can spend anything else. Think of it like rent — it comes out first no matter what. The safe zone is under 20 cents in the dollar. We're at 22 cents, which is just slightly above. If we took on another $5k/month in loan repayments without growing GP, this number would jump. It's the key metric to watch before taking on any new debt facilities.",
+          explanation: `Out of ${fmt(grossProfitYTD)} in gross profit, ${fmt(annualRepay)} goes to loan repayments — that's ${repaymentBurdenValue.toFixed(0)}c from every $1 of GP. The safe zone is under 20c. We're at ${repaymentBurdenValue.toFixed(0)}c — just above. Taking on additional debt without growing GP would push this higher.`,
           pills: [
             { label: "Annual Repayments", value: fmt(annualRepay) },
             { label: "GP YTD", value: fmt(grossProfitYTD) },
