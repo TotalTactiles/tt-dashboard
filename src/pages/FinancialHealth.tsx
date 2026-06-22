@@ -741,6 +741,7 @@ const ChartsSection = ({
   }, [earnedVsDebtData]);
 
   const [earnedPeriod, setEarnedPeriod] = useState<"Q1"|"Q2"|"Q3"|"Q4"|"All">("All");
+  const [earnedMonth, setEarnedMonth] = useState<string>("");
   const quarterMonths: Record<string, string[]> = {
     Q1: ["Jan-26","Feb-26","Mar-26"],
     Q2: ["Apr-26","May-26","Jun-26"],
@@ -748,11 +749,11 @@ const ChartsSection = ({
     Q4: ["Oct-26","Nov-26","Dec-26"],
     All: [],
   };
-  const filteredEarnedData = useMemo(() => (
-    earnedPeriod === "All"
-      ? earnedVsDebtData.rows
-      : earnedVsDebtData.rows.filter((d: any) => quarterMonths[earnedPeriod].includes(d.month))
-  ), [earnedPeriod, earnedVsDebtData]);
+  const filteredEarnedData = useMemo(() => {
+    if (earnedMonth) return earnedVsDebtData.rows.filter((d: any) => d.month === earnedMonth);
+    if (earnedPeriod === "All") return earnedVsDebtData.rows;
+    return earnedVsDebtData.rows.filter((d: any) => quarterMonths[earnedPeriod].includes(d.month));
+  }, [earnedPeriod, earnedMonth, earnedVsDebtData]);
 
   const periodFigures = useMemo(() => {
     const periodRevenue = filteredEarnedData.reduce((s: number, d: any) => s + (d.earnedRevenue || 0), 0);
@@ -765,9 +766,17 @@ const ChartsSection = ({
     return { periodRevenue, periodDebtRepayments, periodOutgoings, totalBorrowedToDate, totalRepaidToDate, totalStillOwed, netPosition };
   }, [filteredEarnedData, debts]);
 
-  const periodLabel = earnedPeriod === "All"
-    ? "Viewing: Full Year 2026"
-    : `Viewing: ${earnedPeriod} 2026 · ${{Q1:"Jan–Mar",Q2:"Apr–Jun",Q3:"Jul–Sep",Q4:"Oct–Dec"}[earnedPeriod]}`;
+  const periodLabel = (() => {
+    if (earnedMonth) return earnedMonth;
+    if (earnedPeriod === "All") return "Full Year 2026";
+    const labels: Record<string, string> = {
+      Q1: "Q1 2026 · Jan–Mar",
+      Q2: "Q2 2026 · Apr–Jun",
+      Q3: "Q3 2026 · Jul–Sep",
+      Q4: "Q4 2026 · Oct–Dec",
+    };
+    return labels[earnedPeriod] ?? "";
+  })();
 
   const EarnedTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
@@ -877,17 +886,35 @@ const ChartsSection = ({
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-2 mb-3">
-                {(["All","Q1","Q2","Q3","Q4"] as const).map(p => (
-                  <button
-                    key={p}
-                    onClick={() => setEarnedPeriod(p)}
-                    className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all
-                      ${earnedPeriod === p
-                        ? "bg-chart-green text-black"
-                        : "bg-white/5 text-muted-foreground hover:bg-white/10"}`}
-                  >{p}</button>
-                ))}
+              <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  {(["All","Q1","Q2","Q3","Q4"] as const).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => { setEarnedPeriod(p); setEarnedMonth(""); }}
+                      className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all
+                        ${earnedPeriod === p && !earnedMonth
+                          ? "bg-chart-green text-black"
+                          : "bg-white/5 text-muted-foreground hover:bg-white/10"}`}
+                    >{p}</button>
+                  ))}
+                </div>
+                <select
+                  value={earnedMonth}
+                  onChange={e => {
+                    setEarnedMonth(e.target.value);
+                    if (e.target.value) setEarnedPeriod("All");
+                  }}
+                  className={`bg-white/5 border rounded-lg px-3 py-1 text-xs font-mono focus:outline-none cursor-pointer transition-all
+                    ${earnedMonth
+                      ? "border-chart-green/50 text-chart-green"
+                      : "border-white/10 text-muted-foreground"}`}
+                >
+                  <option value="" className="bg-[#0f172a] text-muted-foreground">Month ▾</option>
+                  {earnedVsDebtData.rows.map((d: any) => (
+                    <option key={d.month} value={d.month} className="bg-[#0f172a] text-foreground">{d.month}</option>
+                  ))}
+                </select>
               </div>
               <div className="flex flex-wrap gap-2 mb-4">
                 <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2">
@@ -924,7 +951,8 @@ const ChartsSection = ({
         <div className="bg-[#0a0f1a] border border-white/10 rounded-xl p-6 flex flex-col gap-0 lg:w-[45%]">
           <div className="mb-5">
             <p className="text-base font-semibold text-foreground tracking-tight">Financial Position</p>
-            <p className="text-[11px] text-muted-foreground font-mono mt-0.5">Viewing: {periodLabel}</p>
+            <p className="text-[10px] text-muted-foreground/60 font-mono uppercase tracking-wider">Viewing</p>
+            <p className="text-xs text-muted-foreground font-mono">{periodLabel}</p>
           </div>
 
           {/* INCOME */}
