@@ -741,6 +741,7 @@ const ChartsSection = ({
   }, [earnedVsDebtData]);
 
   const [earnedPeriod, setEarnedPeriod] = useState<"Q1"|"Q2"|"Q3"|"Q4"|"All">("All");
+  const [earnedMonth, setEarnedMonth] = useState<string>("");
   const quarterMonths: Record<string, string[]> = {
     Q1: ["Jan-26","Feb-26","Mar-26"],
     Q2: ["Apr-26","May-26","Jun-26"],
@@ -748,11 +749,11 @@ const ChartsSection = ({
     Q4: ["Oct-26","Nov-26","Dec-26"],
     All: [],
   };
-  const filteredEarnedData = useMemo(() => (
-    earnedPeriod === "All"
-      ? earnedVsDebtData.rows
-      : earnedVsDebtData.rows.filter((d: any) => quarterMonths[earnedPeriod].includes(d.month))
-  ), [earnedPeriod, earnedVsDebtData]);
+  const filteredEarnedData = useMemo(() => {
+    if (earnedMonth) return earnedVsDebtData.rows.filter((d: any) => d.month === earnedMonth);
+    if (earnedPeriod === "All") return earnedVsDebtData.rows;
+    return earnedVsDebtData.rows.filter((d: any) => quarterMonths[earnedPeriod].includes(d.month));
+  }, [earnedPeriod, earnedMonth, earnedVsDebtData]);
 
   const periodFigures = useMemo(() => {
     const periodRevenue = filteredEarnedData.reduce((s: number, d: any) => s + (d.earnedRevenue || 0), 0);
@@ -765,9 +766,17 @@ const ChartsSection = ({
     return { periodRevenue, periodDebtRepayments, periodOutgoings, totalBorrowedToDate, totalRepaidToDate, totalStillOwed, netPosition };
   }, [filteredEarnedData, debts]);
 
-  const periodLabel = earnedPeriod === "All"
-    ? "Viewing: Full Year 2026"
-    : `Viewing: ${earnedPeriod} 2026 · ${{Q1:"Jan–Mar",Q2:"Apr–Jun",Q3:"Jul–Sep",Q4:"Oct–Dec"}[earnedPeriod]}`;
+  const periodLabel = (() => {
+    if (earnedMonth) return earnedMonth;
+    if (earnedPeriod === "All") return "Full Year 2026";
+    const labels: Record<string, string> = {
+      Q1: "Q1 2026 · Jan–Mar",
+      Q2: "Q2 2026 · Apr–Jun",
+      Q3: "Q3 2026 · Jul–Sep",
+      Q4: "Q4 2026 · Oct–Dec",
+    };
+    return labels[earnedPeriod] ?? "";
+  })();
 
   const EarnedTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
