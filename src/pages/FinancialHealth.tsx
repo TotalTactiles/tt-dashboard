@@ -427,119 +427,35 @@ const FinancialHealth = () => {
                 </tr>
               </thead>
               <tbody className="font-mono">
-                {debts.map((d, index) => {
-                  const isEditing = editingId === d.id && draft;
-                  const row = isEditing ? (draft as DebtFacility) : d;
-                  return (
-                    <tr
-                      key={d.id}
-                      draggable={true}
-                      onDragStart={() => { dragIndexRef.current = index; }}
-                      onDragOver={(e) => { e.preventDefault(); setDragOverIndex(index); }}
-                      onDrop={() => {
-                        const dragIndex = dragIndexRef.current;
-                        if (dragIndex !== null && dragIndex !== index) {
-                          setDebts((prev) => {
-                            const next = [...prev];
-                            const temp = next[dragIndex];
-                            next[dragIndex] = next[index];
-                            next[index] = temp;
-                            return next;
-                          });
-                        }
-                        setDragOverIndex(null);
-                        dragIndexRef.current = null;
-                      }}
-                      onDragEnd={() => { setDragOverIndex(null); dragIndexRef.current = null; }}
-                      className={`border-b border-border/40 hover:bg-muted/20 ${dragOverIndex === index ? "opacity-50" : ""}`}
-                    >
-                      <td className="py-1.5 px-2 w-8 shrink-0 whitespace-nowrap">
-                        <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                      </td>
-                      <td className="py-1.5 px-2 text-left whitespace-nowrap">
-                        {isEditing ? (
-                          <Input value={row.name} onChange={(e) => updateDraft("name", e.target.value)} className="h-7 text-xs" />
-                        ) : row.name}
-                      </td>
-                      <td className="py-1.5 px-2 text-left whitespace-nowrap">
-                        {isEditing ? (
-                          <Input value={row.lender} onChange={(e) => updateDraft("lender", e.target.value)} className="h-7 text-xs" />
-                        ) : row.lender || "—"}
-                      </td>
-                      <td className="py-1.5 px-2 text-left whitespace-nowrap">
-                        {isEditing ? (
-                          <Select value={row.type} onValueChange={(v) => updateDraft("type", v as DebtType)}>
-                            <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {TYPE_OPTIONS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        ) : row.type}
-                      </td>
-                      <td className="py-1.5 px-2 text-right whitespace-nowrap">
-                        {isEditing ? (
-                          <Input type="number" value={row.originalPrincipal} onChange={(e) => updateDraft("originalPrincipal", Number(e.target.value))} className="h-7 text-xs text-right" />
-                        ) : fmtCurrency(row.originalPrincipal)}
-                      </td>
-                      <td className="py-1.5 px-2 text-right whitespace-nowrap">
-                        {isEditing ? (
-                          <Input type="number" value={row.balance} onChange={(e) => updateDraft("balance", Number(e.target.value))} className="h-7 text-xs text-right" />
-                        ) : fmtCurrency(row.balance)}
-                      </td>
-                      <td className="py-1.5 px-2 text-right whitespace-nowrap">
-                        {isEditing ? (
-                          <Input type="number" step="0.01" value={row.rate} onChange={(e) => updateDraft("rate", Number(e.target.value))} className="h-7 text-xs text-right" />
-                        ) : `${(row.rate || 0).toFixed(2)}%`}
-                      </td>
-                      <td className="py-1.5 px-2 text-right whitespace-nowrap">
-                        {isEditing ? (
-                          <Input type="number" value={row.monthlyRepayment} onChange={(e) => updateDraft("monthlyRepayment", Number(e.target.value))} className="h-7 text-xs text-right" />
-                        ) : fmtCurrency(row.monthlyRepayment)}
-                      </td>
-                      <td className="py-1.5 px-2 text-left whitespace-nowrap">
-                        {isEditing ? (
-                          <Input type="date" value={row.startDate} onChange={(e) => updateDraft("startDate", e.target.value)} className="h-7 text-xs" />
-                        ) : row.startDate || "—"}
-                      </td>
-                      <td className="py-1.5 px-2 text-left whitespace-nowrap">
-                        {isEditing ? (
-                          <Input type="date" value={row.maturityDate} onChange={(e) => updateDraft("maturityDate", e.target.value)} className="h-7 text-xs" />
-                        ) : row.maturityDate || "—"}
-                      </td>
-                      <td className="py-1.5 px-2 text-left whitespace-nowrap">
-                        {isEditing ? (
-                          <Select value={row.purpose} onValueChange={(v) => updateDraft("purpose", v as DebtPurpose)}>
-                            <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {PURPOSE_OPTIONS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        ) : row.purpose}
-                      </td>
-                      <td className="py-1.5 px-2 w-[80px] shrink-0 whitespace-nowrap text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {isEditing ? (
-                            <>
-                              <button onClick={saveEdit} className="p-1 rounded hover:bg-chart-green/20 text-chart-green" aria-label="Save">
-                                <Check className="w-3.5 h-3.5" />
-                              </button>
-                              <button onClick={cancelEdit} className="p-1 rounded hover:bg-muted text-muted-foreground" aria-label="Cancel">
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </>
-                          ) : (
-                            <button onClick={() => startEdit(d)} className="p-1 rounded hover:bg-muted text-muted-foreground" aria-label="Edit">
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                          <button onClick={() => deleteRow(d.id)} className="p-1 rounded hover:bg-red-500/20 text-red-400" aria-label="Delete">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {debts.map((d, index) => (
+                  <DebtRegisterRow
+                    key={d.id}
+                    facility={d}
+                    isDragOver={dragOverIndex === index}
+                    autoEdit={autoEditId === d.id}
+                    onAutoEditConsumed={() => setAutoEditId(null)}
+                    onSave={handleRowSave}
+                    onDelete={deleteRow}
+                    onDragStart={() => { dragIndexRef.current = index; }}
+                    onDragOver={() => { setDragOverIndex(index); }}
+                    onDrop={() => {
+                      const dragIndex = dragIndexRef.current;
+                      if (dragIndex !== null && dragIndex !== index) {
+                        setDebts((prev) => {
+                          const next = [...prev];
+                          const temp = next[dragIndex];
+                          next[dragIndex] = next[index];
+                          next[index] = temp;
+                          return next;
+                        });
+                      }
+                      setDragOverIndex(null);
+                      dragIndexRef.current = null;
+                    }}
+                    onDragEnd={() => { setDragOverIndex(null); dragIndexRef.current = null; }}
+                  />
+                ))}
+
                 {debts.length === 0 && (
                   <tr><td colSpan={12} className="py-6 text-center text-muted-foreground whitespace-nowrap">No facilities. Click "Add Facility" to start.</td></tr>
                 )}
