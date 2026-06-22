@@ -1157,7 +1157,10 @@ const ChartsSection = ({
                       <span className="text-xs font-mono font-semibold text-foreground">{fmtAUD(debtStripped.lenderUsableIncome)}</span>
                     </div>
                     <p className="text-[9px] text-muted-foreground italic mt-0.5">
-                      Based on 6m blended (actuals + 70% of contracted pipeline)
+                      {serviceabilityView === "actuals" && "Based on past 6m actuals only"}
+                      {serviceabilityView === "with_grn" && "6m blended: actuals + signed contracts at 70%"}
+                      {serviceabilityView === "with_ylw" && "6m blended: actuals + all pipeline at 70%"}
+
                     </p>
 
                     <div className="flex justify-between items-center py-2 border-b border-white/5">
