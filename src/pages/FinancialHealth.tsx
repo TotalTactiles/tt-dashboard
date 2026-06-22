@@ -975,164 +975,167 @@ const ChartsSection = ({
           <p className="text-xs text-muted-foreground">What the business actually earns after all debt is removed — the lender's view</p>
         </div>
 
-        {/* Row 1: Stat Pills */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { label: "Avg Monthly Net Free Cash (3m)", value: debtStripped.avg3, color: debtStripped.avg3 > 0 ? "#22c55e" : "#ef4444", fmt: fmtAUD },
-            { label: "Avg Monthly Net Free Cash (6m)", value: debtStripped.avg6, color: debtStripped.avg6 > 0 ? "#22c55e" : "#ef4444", fmt: fmtAUD },
-            { label: "Max New Monthly Repayment", value: debtStripped.maxNewRepayment, color: ragHex, fmt: fmtAUD },
-            { label: "Est. Borrowing Capacity", value: debtStripped.borrowingCapacity60, color: ragHex, fmt: fmtK },
-          ].map((p) => (
-            <div key={p.label} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{p.label}</p>
-              <p className="text-xl font-mono font-bold mt-1" style={{ color: p.color }}>{p.fmt(p.value)}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Row 2: Chart + Financial Position side-by-side */}
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* LEFT — Monthly Net Free Cash chart */}
-          <div className="chart-container flex-1 lg:w-[55%]">
-            <p className="text-sm font-medium text-foreground mb-0.5">Monthly Net Free Cash After All Debt</p>
-            <p className="text-xs text-muted-foreground mb-3">Earned revenue minus operating costs minus all debt repayments</p>
-            <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-              <div className="flex items-center gap-1.5">
-                {(["All","Q1","Q2","Q3","Q4"] as const).map(p => (
-                  <button
-                    key={p}
-                    onClick={() => { setStrippedPeriod(p); setStrippedMonth(""); }}
-                    className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all
-                      ${strippedPeriod === p && !strippedMonth
-                        ? "bg-chart-green text-black"
-                        : "bg-white/5 text-muted-foreground hover:bg-white/10"}`}
-                  >{p}</button>
-                ))}
+        {/* Unified card: pills + filters + chart + Financial Position */}
+        <div className="chart-container mt-4">
+          {/* TOP ROW — 4 stat pills inline */}
+          <div className="flex flex-wrap gap-3 mb-5">
+            {[
+              { label: "Avg Net Free Cash (3m)", value: debtStripped.avg3, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg3 >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD },
+              { label: "Avg Net Free Cash (6m)", value: debtStripped.avg6, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg6 >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD },
+              { label: "Max New Monthly Repayment", value: debtStripped.maxNewRepayment, colorStyle: ragHex, colorClass: "", fmt: fmtAUD },
+              { label: "Est. Borrowing Capacity", value: debtStripped.borrowingCapacity60, colorStyle: undefined as string | undefined, colorClass: "text-chart-green", fmt: fmtK },
+            ].map(pill => (
+              <div key={pill.label} className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 flex-1 min-w-[180px]">
+                <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-mono mb-1">{pill.label}</p>
+                <p className={`text-lg font-mono font-bold ${pill.colorClass}`} style={pill.colorStyle ? { color: pill.colorStyle } : undefined}>{pill.fmt(pill.value)}</p>
               </div>
-              <select
-                value={strippedMonth}
-                onChange={e => { setStrippedMonth(e.target.value); if (e.target.value) setStrippedPeriod("All"); }}
-                className={`bg-white/5 border rounded-lg px-3 py-1 text-xs font-mono focus:outline-none cursor-pointer transition-all
-                  ${strippedMonth ? "border-chart-green/50 text-chart-green" : "border-white/10 text-muted-foreground"}`}
-              >
-                <option value="" className="bg-[#0f172a] text-muted-foreground">Month ▾</option>
-                {debtStripped.rows.map((d: any) => (
-                  <option key={d.month} value={d.month} className="bg-[#0f172a] text-foreground">{d.month}</option>
-                ))}
-              </select>
-            </div>
-            <ResponsiveContainer width="100%" height={260}>
-              <ComposedChart data={filteredStrippedRows} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" />
-                <XAxis dataKey="month" tick={CHART_TICK} />
-                <YAxis tick={CHART_TICK} tickFormatter={fmtKAxis} />
-                <Tooltip content={<NetFreeTooltip />} />
-                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-                <ReferenceLine y={0} stroke="#ffffff30" strokeDasharray="3 3" />
-                <Bar dataKey="earnedRevenue" name="Earned Revenue" fill="#22c55e" fillOpacity={0.6} />
-                <Bar dataKey="debtBurden" name="Debt Repayments" fill="#ef4444" fillOpacity={0.7} />
-                <Bar dataKey="operatingCosts" name="Operating Costs" fill="#3b82f6" fillOpacity={0.6} />
-                <Line
-                  type="monotone"
-                  dataKey="netFreeCash"
-                  name="Net Free Cash"
-                  stroke="#f59e0b"
-                  strokeWidth={2.5}
-                  dot={(props: any) => {
-                    const { cx, cy, payload, index } = props;
-                    const fill = payload.netFreeCash >= 0 ? "#f59e0b" : "#ef4444";
-                    return <circle key={index} cx={cx} cy={cy} r={3} fill={fill} stroke={fill} />;
-                  }}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
+            ))}
           </div>
 
-          {/* RIGHT — Financial Position panel */}
-          <div className="bg-[#0a0f1a] border border-white/10 rounded-xl p-6 flex flex-col gap-0 lg:w-[45%]">
-            <div className="mb-5">
-              <p className="text-base font-semibold text-foreground tracking-tight">Financial Position</p>
-              <p className="text-[10px] text-muted-foreground/60 font-mono uppercase tracking-wider">Viewing</p>
-              <p className="text-xs text-muted-foreground font-mono">{strippedPeriodLabel}</p>
+          {/* FILTER ROW — shared */}
+          <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              {(["All","Q1","Q2","Q3","Q4"] as const).map(p => (
+                <button
+                  key={p}
+                  onClick={() => { setStrippedPeriod(p); setStrippedMonth(""); }}
+                  className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all
+                    ${strippedPeriod === p && !strippedMonth
+                      ? "bg-chart-green text-black"
+                      : "bg-white/5 text-muted-foreground hover:bg-white/10"}`}
+                >{p}</button>
+              ))}
             </div>
-
-            {/* INCOME */}
-            <div className="flex items-center gap-2 mt-4 mb-1">
-              <div className="h-px flex-1 bg-white/10" />
-              <span className="text-[9px] uppercase tracking-[0.15em] font-mono font-semibold text-emerald-400/80">INCOME</span>
-              <div className="h-px flex-1 bg-white/10" />
-            </div>
-            <div className="flex justify-between items-center py-2 border-b border-white/5">
-              <span className="text-xs text-muted-foreground">Total Revenue Earned</span>
-              <span className="text-sm font-mono font-semibold text-emerald-400">{fmtAUD(strippedFinancialFigures.periodRevenue)}</span>
-            </div>
-
-            {/* EXPENDITURE */}
-            <div className="flex items-center gap-2 mt-4 mb-1">
-              <div className="h-px flex-1 bg-white/10" />
-              <span className="text-[9px] uppercase tracking-[0.15em] font-mono font-semibold text-red-400/80">EXPENDITURE</span>
-              <div className="h-px flex-1 bg-white/10" />
-            </div>
-            <div className="flex justify-between items-center py-2 border-b border-white/5">
-              <span className="text-xs text-muted-foreground">Operating Costs</span>
-              <span className="text-sm font-mono font-semibold text-red-400">{fmtAUD(strippedFinancialFigures.periodOutgoings)}</span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b border-white/5">
-              <span className="text-xs text-muted-foreground">Debt Repayments</span>
-              <span className="text-sm font-mono font-semibold text-red-400">{fmtAUD(strippedFinancialFigures.periodDebtRepayments)}</span>
-            </div>
-            <div
-              className="flex justify-between items-center pt-2 pb-1 mt-1"
-              style={{ borderTop: "2px solid rgba(255,255,255,0.15)", borderBottom: "3px double rgba(255,255,255,0.15)" }}
+            <select
+              value={strippedMonth}
+              onChange={e => { setStrippedMonth(e.target.value); if (e.target.value) setStrippedPeriod("All"); }}
+              className={`bg-white/5 border rounded-lg px-3 py-1 text-xs font-mono focus:outline-none cursor-pointer transition-all
+                ${strippedMonth ? "border-chart-green/50 text-chart-green" : "border-white/10 text-muted-foreground"}`}
             >
-              <span className="text-xs font-semibold text-foreground">Total Expenditure</span>
-              <span className="text-sm font-mono font-bold text-red-400">{fmtAUD(strippedFinancialFigures.periodOutgoings + strippedFinancialFigures.periodDebtRepayments)}</span>
+              <option value="" className="bg-[#0f172a] text-muted-foreground">Month ▾</option>
+              {debtStripped.rows.map((d: any) => (
+                <option key={d.month} value={d.month} className="bg-[#0f172a] text-foreground">{d.month}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* MAIN ROW — chart left, figures right */}
+          <div className="flex flex-col lg:flex-row gap-5">
+            {/* LEFT — chart */}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-foreground mb-0.5">Monthly Net Free Cash After All Debt</p>
+              <p className="text-[10px] text-muted-foreground mb-3">Earned revenue minus operating costs minus all debt repayments</p>
+              <ResponsiveContainer width="100%" height={260}>
+                <ComposedChart data={filteredStrippedRows} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                  <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" />
+                  <XAxis dataKey="month" tick={CHART_TICK} />
+                  <YAxis tick={CHART_TICK} tickFormatter={fmtKAxis} />
+                  <Tooltip content={<NetFreeTooltip />} />
+                  <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                  <ReferenceLine y={0} stroke="#ffffff30" strokeDasharray="3 3" />
+                  <Bar dataKey="earnedRevenue" name="Earned Revenue" fill="#22c55e" fillOpacity={0.6} />
+                  <Bar dataKey="debtBurden" name="Debt Repayments" fill="#ef4444" fillOpacity={0.7} />
+                  <Bar dataKey="operatingCosts" name="Operating Costs" fill="#3b82f6" fillOpacity={0.6} />
+                  <Line
+                    type="monotone"
+                    dataKey="netFreeCash"
+                    name="Net Free Cash"
+                    stroke="#f59e0b"
+                    strokeWidth={2.5}
+                    dot={(props: any) => {
+                      const { cx, cy, payload, index } = props;
+                      const fill = payload.netFreeCash >= 0 ? "#f59e0b" : "#ef4444";
+                      return <circle key={index} cx={cx} cy={cy} r={3} fill={fill} stroke={fill} />;
+                    }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
             </div>
 
-            {/* NET POSITION */}
-            <div className="flex items-center gap-2 mt-4 mb-1">
-              <div className="h-px flex-1 bg-white/10" />
-              <span className={`text-[9px] uppercase tracking-[0.15em] font-mono font-semibold ${strippedFinancialFigures.netPosition >= 0 ? "text-amber-400/80" : "text-red-400/80"}`}>NET POSITION</span>
-              <div className="h-px flex-1 bg-white/10" />
-            </div>
-            <div
-              className="flex justify-between items-center py-3 mt-2"
-              style={{ borderTop: "2px solid rgba(255,255,255,0.2)", borderBottom: "3px double rgba(255,255,255,0.25)" }}
-            >
-              <span className="text-sm font-semibold text-foreground">Net After All Costs & Debt</span>
-              <span className={`text-xl font-mono font-bold ${strippedFinancialFigures.netPosition >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                {strippedFinancialFigures.netPosition < 0 ? "-" : ""}{fmtAUD(Math.abs(strippedFinancialFigures.netPosition))}
-              </span>
-            </div>
-            <p className="text-[10px] text-muted-foreground italic mt-1.5">
-              {strippedFinancialFigures.netPosition >= 0
-                ? `↑ ${fmtAUD(strippedFinancialFigures.netPosition)} generated after all costs and debt this period`
-                : `↓ Costs exceeded revenue by ${fmtAUD(Math.abs(strippedFinancialFigures.netPosition))} this period`}
-            </p>
+            {/* DIVIDER */}
+            <div className="hidden lg:block w-px bg-white/10 self-stretch" />
 
-            {/* DEBT POSITION — ALL TIME */}
-            <div className="flex items-center gap-2 mt-6 mb-1">
-              <div className="h-px flex-1 bg-white/10" />
-              <span className="text-[9px] uppercase tracking-[0.15em] font-mono font-semibold text-muted-foreground/60">DEBT POSITION — ALL TIME</span>
-              <div className="h-px flex-1 bg-white/10" />
-            </div>
-            <div className="flex justify-between items-center py-2 border-b border-white/5">
-              <span className="text-xs text-muted-foreground">Total Facilities Drawn</span>
-              <span className="text-sm font-mono font-semibold text-foreground">{fmtAUD(strippedFinancialFigures.totalBorrowedToDate)}</span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b border-white/5">
-              <span className="text-xs text-muted-foreground">Principal Repaid to Date</span>
-              <span className="text-sm font-mono font-semibold text-emerald-400">{fmtAUD(strippedFinancialFigures.totalRepaidToDate)}</span>
-            </div>
-            <div
-              className="flex justify-between items-center pt-2 pb-1 mt-1"
-              style={{ borderTop: "2px solid rgba(255,255,255,0.15)", borderBottom: "3px double rgba(255,255,255,0.15)" }}
-            >
-              <span className="text-xs font-semibold text-foreground">Still Outstanding</span>
-              <span className="text-sm font-mono font-bold text-red-400">{fmtAUD(strippedFinancialFigures.totalStillOwed)}</span>
+            {/* RIGHT — Financial Position figures */}
+            <div className="lg:w-[380px] shrink-0 flex flex-col">
+              <div className="mb-4">
+                <p className="text-sm font-semibold text-foreground">Financial Position</p>
+                <p className="text-[9px] text-muted-foreground/60 font-mono uppercase tracking-wider mt-0.5">Viewing</p>
+                <p className="text-xs text-muted-foreground font-mono">{strippedPeriodLabel}</p>
+              </div>
+
+              {/* INCOME */}
+              <div className="flex items-center gap-2 mb-1">
+                <div className="h-px flex-1 bg-white/10" />
+                <span className="text-[9px] uppercase tracking-[0.15em] font-mono font-semibold text-emerald-400/80">Income</span>
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-white/5">
+                <span className="text-xs text-muted-foreground">Total Revenue Earned</span>
+                <span className="text-sm font-mono font-semibold text-emerald-400">{fmtAUD(strippedFinancialFigures.periodRevenue)}</span>
+              </div>
+
+              {/* EXPENDITURE */}
+              <div className="flex items-center gap-2 mt-3 mb-1">
+                <div className="h-px flex-1 bg-white/10" />
+                <span className="text-[9px] uppercase tracking-[0.15em] font-mono font-semibold text-red-400/80">Expenditure</span>
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-white/5">
+                <span className="text-xs text-muted-foreground">Operating Costs</span>
+                <span className="text-sm font-mono font-semibold text-red-400">{fmtAUD(strippedFinancialFigures.periodOutgoings)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-white/5">
+                <span className="text-xs text-muted-foreground">Debt Repayments</span>
+                <span className="text-sm font-mono font-semibold text-red-400">{fmtAUD(strippedFinancialFigures.periodDebtRepayments)}</span>
+              </div>
+              <div className="flex justify-between items-center pt-2 pb-1 mt-1"
+                style={{ borderTop: "2px solid rgba(255,255,255,0.15)", borderBottom: "3px double rgba(255,255,255,0.15)" }}>
+                <span className="text-xs font-semibold text-foreground">Total Expenditure</span>
+                <span className="text-sm font-mono font-bold text-red-400">{fmtAUD(strippedFinancialFigures.periodOutgoings + strippedFinancialFigures.periodDebtRepayments)}</span>
+              </div>
+
+              {/* NET POSITION */}
+              <div className="flex items-center gap-2 mt-3 mb-1">
+                <div className="h-px flex-1 bg-white/10" />
+                <span className={`text-[9px] uppercase tracking-[0.15em] font-mono font-semibold ${strippedFinancialFigures.netPosition >= 0 ? "text-amber-400/80" : "text-red-400/80"}`}>Net Position</span>
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+              <div className="flex justify-between items-center py-3 mt-1"
+                style={{ borderTop: "2px solid rgba(255,255,255,0.2)", borderBottom: "3px double rgba(255,255,255,0.25)" }}>
+                <span className="text-sm font-semibold text-foreground">Net After All Costs & Debt</span>
+                <span className={`text-xl font-mono font-bold ${strippedFinancialFigures.netPosition >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                  {strippedFinancialFigures.netPosition < 0 ? "-" : ""}{fmtAUD(Math.abs(strippedFinancialFigures.netPosition))}
+                </span>
+              </div>
+              <p className="text-[10px] text-muted-foreground italic mt-1.5 mb-3">
+                {strippedFinancialFigures.netPosition >= 0
+                  ? `↑ ${fmtAUD(strippedFinancialFigures.netPosition)} generated after all costs and debt this period`
+                  : `↓ Costs exceeded revenue by ${fmtAUD(Math.abs(strippedFinancialFigures.netPosition))} this period`}
+              </p>
+
+              {/* DEBT POSITION ALL TIME */}
+              <div className="flex items-center gap-2 mb-1">
+                <div className="h-px flex-1 bg-white/10" />
+                <span className="text-[9px] uppercase tracking-[0.15em] font-mono font-semibold text-muted-foreground/60">Debt Position — All Time</span>
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-white/5">
+                <span className="text-xs text-muted-foreground">Total Facilities Drawn</span>
+                <span className="text-sm font-mono font-semibold text-foreground">{fmtAUD(strippedFinancialFigures.totalBorrowedToDate)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-white/5">
+                <span className="text-xs text-muted-foreground">Principal Repaid to Date</span>
+                <span className="text-sm font-mono font-semibold text-emerald-400">{fmtAUD(strippedFinancialFigures.totalRepaidToDate)}</span>
+              </div>
+              <div className="flex justify-between items-center pt-2 pb-1 mt-1"
+                style={{ borderTop: "2px solid rgba(255,255,255,0.15)", borderBottom: "3px double rgba(255,255,255,0.15)" }}>
+                <span className="text-xs font-semibold text-foreground">Still Outstanding</span>
+                <span className="text-sm font-mono font-bold text-red-400">{fmtAUD(strippedFinancialFigures.totalStillOwed)}</span>
+              </div>
             </div>
           </div>
         </div>
+
 
         {/* Row 3: Lender Serviceability Panel */}
         <div>
