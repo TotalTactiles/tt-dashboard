@@ -1010,7 +1010,7 @@ const ScorecardDetailPanel = ({
         return {
           title: "Interest Coverage Ratio — What It Means",
           formula: "Gross Profit YTD ÷ Annual Interest Cost",
-          explanation: "Think of this like a safety cushion. If you owe $10,000 in interest this year, are you making enough profit to pay it? At 9.1x, for every $1 of interest we owe, the business generates $9.10 in gross profit. Even if revenue dropped significantly, we'd still comfortably cover the interest bill. Lenders want to see this above 2.5x — we're well clear at 9.1x. This is one of the healthiest numbers a business can show a bank.",
+          explanation: `We owe ${fmt(annualInterestCost)} in interest this year. Our gross profit is ${fmt(grossProfitYTD)} — that's ${interestCoverageValue.toFixed(1)}x the interest bill. Even if revenue fell heavily, we'd still cover the interest with GP to spare. Lenders want to see above 2.5x. We're at ${interestCoverageValue.toFixed(1)}x.`,
           pills: [
             { label: "GP YTD", value: fmt(grossProfitYTD) },
             { label: "Annual Interest", value: fmt(annualInterestCost) },
