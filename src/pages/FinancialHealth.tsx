@@ -865,6 +865,44 @@ const ChartsSection = ({
   const rag = ragLabel(debtStripped.maxNewRepayment);
   const ragHex = ragColor(debtStripped.maxNewRepayment);
 
+  // ---- Debt-Stripped panel filters (chart + Financial Position) ----
+  const [strippedPeriod, setStrippedPeriod] = useState<"All"|"Q1"|"Q2"|"Q3"|"Q4">("All");
+  const [strippedMonth, setStrippedMonth] = useState<string>("");
+  const strippedMonthsFilter = useMemo<string[] | null>(() => {
+    if (strippedMonth) return [strippedMonth];
+    if (strippedPeriod === "All") return null;
+    return quarterMonths[strippedPeriod] ?? null;
+  }, [strippedPeriod, strippedMonth]);
+  const filteredStrippedRows = useMemo(() => {
+    if (!strippedMonthsFilter) return debtStripped.rows;
+    return debtStripped.rows.filter((r: any) => strippedMonthsFilter.includes(r.month));
+  }, [debtStripped, strippedMonthsFilter]);
+  const strippedFinancialFigures = useMemo(() => {
+    const rows = !strippedMonthsFilter
+      ? earnedVsDebtData.rows
+      : earnedVsDebtData.rows.filter((d: any) => strippedMonthsFilter.includes(d.month));
+    const periodRevenue = rows.reduce((s: number, d: any) => s + (d.earnedRevenue || 0), 0);
+    const periodDebtRepayments = rows.reduce((s: number, d: any) => s + (d.debtDrawdown || 0), 0);
+    const periodOutgoings = rows.reduce((s: number, d: any) => s + (d.operatingCosts || 0), 0);
+    const totalBorrowedToDate = debts.reduce((s, f) => s + (Number(f.originalPrincipal) || 0), 0);
+    const totalStillOwed = debts.reduce((s, f) => s + (Number(f.balance) || 0), 0);
+    const totalRepaidToDate = Math.max(0, totalBorrowedToDate - totalStillOwed);
+    const netPosition = periodRevenue - periodOutgoings - periodDebtRepayments;
+    return { periodRevenue, periodDebtRepayments, periodOutgoings, totalBorrowedToDate, totalRepaidToDate, totalStillOwed, netPosition };
+  }, [strippedMonthsFilter, earnedVsDebtData, debts]);
+  const strippedPeriodLabel = (() => {
+    if (strippedMonth) return strippedMonth;
+    if (strippedPeriod === "All") return "Full Year 2026";
+    const labels: Record<string, string> = {
+      Q1: "Q1 2026 · Jan–Mar",
+      Q2: "Q2 2026 · Apr–Jun",
+      Q3: "Q3 2026 · Jul–Sep",
+      Q4: "Q4 2026 · Oct–Dec",
+    };
+    return labels[strippedPeriod] ?? "";
+  })();
+
+
   return (
 
     <div className="space-y-4">
