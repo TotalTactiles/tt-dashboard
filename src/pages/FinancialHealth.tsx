@@ -827,24 +827,8 @@ const ChartsSection = ({
         )}
       </div>
 
-      {/* Chart 1: Revenue Waterfall */}
-      <div className="chart-container">
-        <p className="text-sm font-medium text-foreground mb-0.5">Revenue → Gross Profit → Net After Debt</p>
-        <p className="text-xs text-muted-foreground mb-4">Monthly view of what survives after COGS, OpEx and debt repayments</p>
-        <ResponsiveContainer width="100%" height={260}>
-          <ComposedChart data={waterfallData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-            <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" />
-            <XAxis dataKey="month" tick={CHART_TICK} />
-            <YAxis tick={CHART_TICK} tickFormatter={fmtKAxis} />
-            <Tooltip content={<WaterfallTooltip />} />
-            <Legend wrapperStyle={{ fontSize: 11, color: "#9ca3af" }} />
-            <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" />
-            <Bar dataKey="revenue" name="Revenue" fill="#22c55e" fillOpacity={0.7} />
-            <Bar dataKey="grossProfit" name="Gross Profit" fill="#3b82f6" fillOpacity={0.7} />
-            <Line type="monotone" dataKey="netAfterDebt" name="Net After Debt" stroke="#f59e0b" strokeWidth={2} dot={false} />
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
+
+
 
       {/* Chart 2: Debt Payoff Trajectory */}
       {(() => {
