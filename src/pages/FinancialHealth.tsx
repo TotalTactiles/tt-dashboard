@@ -829,16 +829,25 @@ const ChartsSection = ({
       .filter((d: any) => !d?.isFuture && (Number(d?.income) || 0) > 0)
       .map((d: any) => ({ month: d.month, net: (Number(d.income) || 0) - (Number(d.outgoings) || 0), type: "actual" as const }));
 
-    // Forward contracted: surplusIncludingProbable from forecastChartData
-    // (includes GRN + YLW signed contracts — presentable to lenders)
-    // Discount forward figures by 30% (conservative lender haircut on projections)
+    // Forward contracted — filter based on selected view
     const _forwardContracted = (Array.isArray(forecastChartData) ? forecastChartData : [])
       .filter((d: any) => {
         const isInPast = _pastActuals.some((p) => p.month === d.month);
-        return !isInPast && Number(d?.surplusIncludingProbable) > 0;
+        if (isInPast) return false;
+        if (serviceabilityView === "actuals") return false;
+        if (serviceabilityView === "with_grn") return Number(d?.anticipatedSurplus) > 0;
+        if (serviceabilityView === "with_ylw") return Number(d?.surplusIncludingProbable) > 0;
+        return false;
       })
       .slice(0, 6)
-      .map((d: any) => ({ month: d.month, net: Number(d.surplusIncludingProbable) * 0.70, type: "contracted" as const }));
+      .map((d: any) => ({
+        month: d.month,
+        net: (serviceabilityView === "with_grn"
+          ? Number(d?.anticipatedSurplus) || 0
+          : Number(d?.surplusIncludingProbable) || 0) * 0.70,
+        type: serviceabilityView,
+      }));
+
 
     const _allMonths = [..._pastActuals, ..._forwardContracted];
 
