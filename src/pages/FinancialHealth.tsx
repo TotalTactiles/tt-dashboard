@@ -61,6 +61,147 @@ const defaults: DebtFacility[] = [
 
 const fmtCurrency = (n: number) => `$${(n || 0).toLocaleString("en-AU", { maximumFractionDigits: 0 })}`;
 
+// ---------- Debt Register Row (memoised to isolate keystroke re-renders) ----------
+interface DebtRegisterRowProps {
+  facility: DebtFacility;
+  isDragOver: boolean;
+  autoEdit: boolean;
+  onSave: (updated: DebtFacility) => void;
+  onDelete: (id: string) => void;
+  onAutoEditConsumed: () => void;
+  onDragStart: () => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: () => void;
+  onDragEnd: () => void;
+}
+
+const DebtRegisterRow = memo(({
+  facility, isDragOver, autoEdit,
+  onSave, onDelete, onAutoEditConsumed,
+  onDragStart, onDragOver, onDrop, onDragEnd,
+}: DebtRegisterRowProps) => {
+  const [isEditing, setIsEditing] = useState<boolean>(autoEdit);
+  const [editData, setEditData] = useState<DebtFacility>(facility);
+
+  useEffect(() => {
+    if (autoEdit) {
+      setIsEditing(true);
+      setEditData(facility);
+      onAutoEditConsumed();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoEdit]);
+
+  useEffect(() => {
+    if (!isEditing) setEditData(facility);
+  }, [facility, isEditing]);
+
+  const handleSave = () => { onSave(editData); setIsEditing(false); };
+  const handleCancel = () => { setEditData(facility); setIsEditing(false); };
+  const update = <K extends keyof DebtFacility>(k: K, v: DebtFacility[K]) =>
+    setEditData(prev => ({ ...prev, [k]: v }));
+
+  const row = isEditing ? editData : facility;
+
+  return (
+    <tr
+      draggable={true}
+      onDragStart={onDragStart}
+      onDragOver={(e) => { e.preventDefault(); onDragOver(e); }}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+      className={`border-b border-border/40 hover:bg-muted/20 ${isDragOver ? "opacity-50" : ""}`}
+    >
+      <td className="py-1.5 px-2 w-8 shrink-0 whitespace-nowrap">
+        <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+      </td>
+      <td className="py-1.5 px-2 text-left whitespace-nowrap">
+        {isEditing ? (
+          <Input value={row.name} onChange={(e) => update("name", e.target.value)} className="h-7 text-xs" />
+        ) : row.name}
+      </td>
+      <td className="py-1.5 px-2 text-left whitespace-nowrap">
+        {isEditing ? (
+          <Input value={row.lender} onChange={(e) => update("lender", e.target.value)} className="h-7 text-xs" />
+        ) : row.lender || "—"}
+      </td>
+      <td className="py-1.5 px-2 text-left whitespace-nowrap">
+        {isEditing ? (
+          <Select value={row.type} onValueChange={(v) => update("type", v as DebtType)}>
+            <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {TYPE_OPTIONS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        ) : row.type}
+      </td>
+      <td className="py-1.5 px-2 text-right whitespace-nowrap">
+        {isEditing ? (
+          <Input type="number" value={row.originalPrincipal} onChange={(e) => update("originalPrincipal", Number(e.target.value))} className="h-7 text-xs text-right" />
+        ) : fmtCurrency(row.originalPrincipal)}
+      </td>
+      <td className="py-1.5 px-2 text-right whitespace-nowrap">
+        {isEditing ? (
+          <Input type="number" value={row.balance} onChange={(e) => update("balance", Number(e.target.value))} className="h-7 text-xs text-right" />
+        ) : fmtCurrency(row.balance)}
+      </td>
+      <td className="py-1.5 px-2 text-right whitespace-nowrap">
+        {isEditing ? (
+          <Input type="number" step="0.01" value={row.rate} onChange={(e) => update("rate", Number(e.target.value))} className="h-7 text-xs text-right" />
+        ) : `${(row.rate || 0).toFixed(2)}%`}
+      </td>
+      <td className="py-1.5 px-2 text-right whitespace-nowrap">
+        {isEditing ? (
+          <Input type="number" value={row.monthlyRepayment} onChange={(e) => update("monthlyRepayment", Number(e.target.value))} className="h-7 text-xs text-right" />
+        ) : fmtCurrency(row.monthlyRepayment)}
+      </td>
+      <td className="py-1.5 px-2 text-left whitespace-nowrap">
+        {isEditing ? (
+          <Input type="date" value={row.startDate} onChange={(e) => update("startDate", e.target.value)} className="h-7 text-xs" />
+        ) : row.startDate || "—"}
+      </td>
+      <td className="py-1.5 px-2 text-left whitespace-nowrap">
+        {isEditing ? (
+          <Input type="date" value={row.maturityDate} onChange={(e) => update("maturityDate", e.target.value)} className="h-7 text-xs" />
+        ) : row.maturityDate || "—"}
+      </td>
+      <td className="py-1.5 px-2 text-left whitespace-nowrap">
+        {isEditing ? (
+          <Select value={row.purpose} onValueChange={(v) => update("purpose", v as DebtPurpose)}>
+            <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {PURPOSE_OPTIONS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        ) : row.purpose}
+      </td>
+      <td className="py-1.5 px-2 w-[80px] shrink-0 whitespace-nowrap text-right">
+        <div className="flex items-center justify-end gap-1">
+          {isEditing ? (
+            <>
+              <button onClick={handleSave} className="p-1 rounded hover:bg-chart-green/20 text-chart-green" aria-label="Save">
+                <Check className="w-3.5 h-3.5" />
+              </button>
+              <button onClick={handleCancel} className="p-1 rounded hover:bg-muted text-muted-foreground" aria-label="Cancel">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </>
+          ) : (
+            <button onClick={() => setIsEditing(true)} className="p-1 rounded hover:bg-muted text-muted-foreground" aria-label="Edit">
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <button onClick={() => onDelete(facility.id)} className="p-1 rounded hover:bg-red-500/20 text-red-400" aria-label="Delete">
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+});
+DebtRegisterRow.displayName = "DebtRegisterRow";
+
+
 const FinancialHealth = () => {
   const { incomeOutgoingsData, forecastChartData, liveData } = useDashboardData() as any;
 
