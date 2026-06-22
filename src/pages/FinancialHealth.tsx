@@ -27,7 +27,30 @@ interface DebtFacility {
   purpose: DebtPurpose;
 }
 
-const STORAGE_KEY = "tt_debt_register";
+const DEBT_CACHE_KEY = "tt_debt_register";
+const CACHE_WEBHOOK_GET = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
+const CACHE_WEBHOOK_POST = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
+
+const readCache = async (): Promise<Record<string, string>> => {
+  try {
+    const res = await fetch(CACHE_WEBHOOK_GET);
+    const rows: Array<{ key: string; value: string }> = await res.json();
+    return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  } catch {
+    return {};
+  }
+};
+
+const writeCache = async (key: string, value: string): Promise<void> => {
+  try {
+    await fetch(CACHE_WEBHOOK_POST, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, value }),
+    });
+  } catch {}
+  try { localStorage.setItem(key, value); } catch {}
+};
 const TYPE_OPTIONS: DebtType[] = ["Term Loan", "Asset Finance", "Credit Card", "Director Loan", "Other"];
 const PURPOSE_OPTIONS: DebtPurpose[] = ["Vehicle", "Equipment", "Working Capital", "Property", "Other"];
 
@@ -41,25 +64,44 @@ const fmtCurrency = (n: number) => `$${(n || 0).toLocaleString("en-AU", { maximu
 const FinancialHealth = () => {
   const { incomeOutgoingsData, forecastChartData, liveData } = useDashboardData() as any;
 
-  const [debts, setDebts] = useState<DebtFacility[]>(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    return defaults;
-  });
+  const [debts, setDebts] = useState<DebtFacility[]>(defaults);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<DebtFacility | null>(null);
   const dragIndexRef = useRef<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [activeTile, setActiveTile] = useState<string | null>(null);
+  const debtRegisterInitialised = useRef(false);
 
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(debts)); } catch {}
+    const loadDebtRegister = async () => {
+      try {
+        const cache = await readCache();
+        if (cache[DEBT_CACHE_KEY]) {
+          const parsed = JSON.parse(cache[DEBT_CACHE_KEY]);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setDebts(parsed);
+            return;
+          }
+        }
+      } catch {}
+      try {
+        const saved = localStorage.getItem(DEBT_CACHE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) setDebts(parsed);
+        }
+      } catch {}
+    };
+    loadDebtRegister();
+  }, []);
+
+  useEffect(() => {
+    if (!debtRegisterInitialised.current) {
+      debtRegisterInitialised.current = true;
+      return;
+    }
+    writeCache(DEBT_CACHE_KEY, JSON.stringify(debts));
   }, [debts]);
 
   const totals = useMemo(() => {
