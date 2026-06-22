@@ -1134,71 +1134,63 @@ const ChartsSection = ({
               </div>
             </div>
           </div>
-        </div>
 
+          {/* Lender Serviceability View — inside unified card */}
+          <div className="mt-6 pt-5 border-t border-white/10">
+            <p className="text-xs font-semibold text-foreground mb-0.5">Lender Serviceability View</p>
+            <p className="text-[10px] text-muted-foreground mb-4">How a bank or broker assesses your capacity for new debt</p>
 
-        {/* Row 3: Lender Serviceability Panel */}
-        <div>
-          <p className="text-sm font-medium text-foreground mb-0.5">Lender Serviceability View</p>
-          <p className="text-xs text-muted-foreground mb-3">How a bank or broker assesses your capacity for new debt</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {/* Column 1 */}
-            <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 space-y-2">
-              <p className="text-xs font-semibold text-foreground mb-2">Current Position</p>
-              {[
-                { l: "Existing monthly debt", v: fmtAUD(totalMonthlyRepayment) },
-                { l: "Avg net free cash (6m)", v: fmtAUD(debtStripped.avg6) },
-                { l: "Free cash after debt", v: fmtAUD(debtStripped.avg6) },
-              ].map((r) => (
-                <div key={r.l} className="flex justify-between">
-                  <span className="text-xs text-muted-foreground">{r.l}</span>
-                  <span className="text-xs font-mono font-semibold text-foreground">{r.v}</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Lender Calculation */}
+              <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
+                <p className="text-xs font-semibold text-foreground mb-3">Lender Calculation</p>
+                <div className="flex justify-between items-center py-2 border-b border-white/5">
+                  <span className="text-xs text-muted-foreground">Usable income (80% buffer)</span>
+                  <span className="text-xs font-mono font-semibold text-foreground">{fmtAUD(debtStripped.avg6 * 0.80)}</span>
                 </div>
-              ))}
-            </div>
-
-            {/* Column 2 */}
-            <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 space-y-2">
-              <p className="text-xs font-semibold text-foreground mb-2">Lender Calculation</p>
-              {[
-                { l: "Usable income (80% buffer)", v: fmtAUD(debtStripped.avg6 * 0.8), c: "text-foreground" },
-                { l: "Less existing commitments", v: fmtAUD(totalMonthlyRepayment), c: "text-foreground" },
-                { l: "Available for new debt", v: fmtAUD(debtStripped.maxNewRepayment), c: "" },
-              ].map((r) => (
-                <div key={r.l} className="flex justify-between">
-                  <span className="text-xs text-muted-foreground">{r.l}</span>
-                  <span
-                    className={`text-xs font-mono font-semibold ${r.c}`}
-                    style={!r.c ? { color: ragHex } : undefined}
-                  >
-                    {r.v}
+                <div className="flex justify-between items-center py-2 border-b border-white/5">
+                  <span className="text-xs text-muted-foreground">Less existing commitments</span>
+                  <span className="text-xs font-mono font-semibold text-foreground">{fmtAUD(totalMonthlyRepayment)}</span>
+                </div>
+                <div className="flex justify-between items-center pt-2 pb-1 mt-1"
+                  style={{ borderTop: "2px solid rgba(255,255,255,0.15)", borderBottom: "3px double rgba(255,255,255,0.15)" }}>
+                  <span className="text-xs font-semibold text-foreground">Available for new debt</span>
+                  <span className={`text-sm font-mono font-bold ${debtStripped.maxNewRepayment > 2000 ? "text-emerald-400" : debtStripped.maxNewRepayment > 500 ? "text-amber-400" : "text-red-400"}`}>
+                    {fmtAUD(debtStripped.maxNewRepayment)}
                   </span>
                 </div>
-              ))}
-            </div>
+              </div>
 
-            {/* Column 3 */}
-            <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 space-y-2">
-              <p className="text-xs font-semibold text-foreground mb-2">Borrowing Capacity</p>
-              <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground">At current serviceability</span>
-                <span className="text-xs font-mono font-semibold" style={{ color: ragHex }}>{fmtAUD(debtStripped.borrowingCapacity60)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground">Assumes 60 month term</span>
-                <span className="text-xs font-mono font-semibold text-foreground">—</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-muted-foreground">Assumes ~7% interest rate</span>
-                <span className="text-xs font-mono font-semibold text-foreground">—</span>
-              </div>
-              <div className="flex items-start gap-2 pt-2 mt-2 border-t border-white/10">
-                <span className="inline-block w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0" style={{ backgroundColor: ragHex }} />
-                <p className="text-[11px] text-foreground/80 leading-snug">{verdictText(rag)}</p>
+              {/* Borrowing Capacity */}
+              <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
+                <p className="text-xs font-semibold text-foreground mb-3">Borrowing Capacity</p>
+                <div className="flex justify-between items-center py-2 border-b border-white/5">
+                  <span className="text-xs text-muted-foreground">At current serviceability</span>
+                  <span className="text-sm font-mono font-bold text-emerald-400">{fmtAUD(debtStripped.borrowingCapacity60)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-white/5">
+                  <span className="text-xs text-muted-foreground">Assumes 60 month term</span>
+                  <span className="text-xs font-mono text-muted-foreground">—</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-white/5">
+                  <span className="text-xs text-muted-foreground">Assumes ~7% interest rate</span>
+                  <span className="text-xs font-mono text-muted-foreground">—</span>
+                </div>
+                <div className="flex items-center gap-2 mt-3">
+                  <div className={`w-2 h-2 rounded-full ${debtStripped.maxNewRepayment > 2000 ? "bg-emerald-400" : debtStripped.maxNewRepayment > 500 ? "bg-amber-400" : "bg-red-400"}`} />
+                  <p className={`text-xs font-medium ${debtStripped.maxNewRepayment > 2000 ? "text-emerald-400" : debtStripped.maxNewRepayment > 500 ? "text-amber-400" : "text-red-400"}`}>
+                    {debtStripped.maxNewRepayment > 2000
+                      ? "Serviceability is strong. You could likely support a new facility."
+                      : debtStripped.maxNewRepayment > 500
+                      ? "Marginal serviceability. A lender may require additional security."
+                      : "Insufficient net free cash. Strengthen earnings before applying."}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
+
       </div>
 
 
