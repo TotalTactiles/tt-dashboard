@@ -830,24 +830,42 @@ const ChartsSection = ({
       .filter((d: any) => !d?.isFuture && (Number(d?.income) || 0) > 0)
       .map((d: any) => ({ month: d.month, net: (Number(d.income) || 0) - (Number(d.outgoings) || 0), type: "actual" as const }));
 
-    // Forward contracted — filter based on selected view
-    const _forwardContracted = (Array.isArray(forecastChartData) ? forecastChartData : [])
+    // Forward contracted — derive monthly movement from cumulative anticipatedSurplus
+    const _fcdAll = Array.isArray(forecastChartData) ? forecastChartData : [];
+    const _fcdSorted = _fcdAll.filter((d: any) => !_pastActuals.some((p) => p.month === d.month));
+    const _lastPastMonth = _fcdAll
+      .filter((d: any) => _pastActuals.some((p) => p.month === d.month))
+      .slice(-1)[0];
+    const _baseSurplus = Number(_lastPastMonth?.anticipatedSurplus) || 0;
+
+    const _forwardContracted = _fcdSorted
       .filter((d: any) => {
-        const isInPast = _pastActuals.some((p) => p.month === d.month);
-        if (isInPast) return false;
         if (serviceabilityView === "actuals") return false;
         if (serviceabilityView === "with_grn") return Number(d?.anticipatedSurplus) > 0;
         if (serviceabilityView === "with_ylw") return Number(d?.surplusIncludingProbable) > 0;
         return false;
       })
       .slice(0, 6)
-      .map((d: any) => ({
-        month: d.month,
-        net: (serviceabilityView === "with_grn"
-          ? Number(d?.anticipatedSurplus) || 0
-          : Number(d?.surplusIncludingProbable) || 0) * 0.70,
-        type: serviceabilityView,
-      }));
+      .map((d: any, i: number, arr: any[]) => {
+        const prevCumulative = i === 0
+          ? _baseSurplus
+          : (serviceabilityView === "with_ylw"
+              ? Number(arr[i - 1].surplusIncludingProbable) || 0
+              : Number(arr[i - 1].anticipatedSurplus) || 0);
+        const currentCumulative = serviceabilityView === "with_ylw"
+          ? Number(d.surplusIncludingProbable) || 0
+          : Number(d.anticipatedSurplus) || 0;
+        const monthlyMovement = currentCumulative - prevCumulative;
+        return {
+          month: d.month,
+          net: Math.max(0, monthlyMovement) * 0.70,
+          type: serviceabilityView,
+          _raw: currentCumulative,
+          _prev: prevCumulative,
+          _movement: monthlyMovement,
+        };
+      })
+      .filter((d: any) => d.net > 0);
 
 
     const _allMonths = [..._pastActuals, ..._forwardContracted];
