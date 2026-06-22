@@ -1028,8 +1028,9 @@ const ChartsSection = ({
           {/* TOP ROW — 4 stat pills inline */}
           <div className="flex flex-wrap gap-3 mb-5">
             {[
-              { label: "Avg Net Free Cash (3m)", value: debtStripped.avg3, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg3 >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD },
-              { label: "Avg Net Free Cash (6m)", value: debtStripped.avg6, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg6 >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD },
+              { label: "Avg Monthly (3m Actual)", value: debtStripped.avg3, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg3 >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD },
+              { label: "Avg Monthly (6m Blended)", value: debtStripped.avg6Blended, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg6Blended >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD },
+
               { label: "Max New Monthly Repayment", value: debtStripped.maxNewRepayment, colorStyle: ragHex, colorClass: "", fmt: fmtAUD },
               { label: "Est. Borrowing Capacity", value: debtStripped.borrowingCapacity60, colorStyle: undefined as string | undefined, colorClass: "text-chart-green", fmt: fmtK },
             ].map(pill => (
