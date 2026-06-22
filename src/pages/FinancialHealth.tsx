@@ -794,6 +794,7 @@ const ChartsSection = ({
 
   // ---- Debt-Stripped Earnings & Lender Serviceability ----
   const [serviceabilityView, setServiceabilityView] = useState<"actuals"|"with_grn"|"with_ylw">("with_grn");
+  const [showSvcDebug, setShowSvcDebug] = useState(false);
 
   const debtStripped = useMemo(() => {
     const rawCashflow = liveData?.cashflow ?? [];
