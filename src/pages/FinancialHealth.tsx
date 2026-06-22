@@ -1062,7 +1062,7 @@ const ScorecardDetailPanel = ({
         return {
           title: "Cash Cover — What It Means",
           formula: "Current Month Anticipated Surplus ÷ Monthly Repayments",
-          explanation: "This is our day-to-day safety net. It asks: if no new money came in tomorrow, how many months could we keep paying our loans using just this month's cash surplus? At 52.2 months (4.3 years), we have an extraordinary buffer. Even in a slow month with minimal revenue, our surplus is covering the loan repayments many times over. This is the most important number for day-to-day solvency — and ours is exceptional.",
+          explanation: `This month's surplus covers ${cashCoverValue.toFixed(1)} months (${cashCoverYears} years) of loan repayments. With ${fmt(totalMonthlyRepayment)} due monthly, the business is generating well above what's needed to stay current. The minimum safe zone is 3 months cover. We're at ${cashCoverValue.toFixed(1)} months.`,
           pills: [
             { label: "Current Surplus", value: fmt(recentSurplus) },
             { label: "Monthly Repayments", value: fmt(totalMonthlyRepayment) },
