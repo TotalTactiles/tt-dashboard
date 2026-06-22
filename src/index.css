@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.google.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   /* ── DARK THEME (default) ── */
@@ -65,7 +65,7 @@
     --sidebar-ring: 210 67% 55%;
 
     --font-display: 'JetBrains Mono', monospace;
-    --font-body: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    --font-body: 'Inter', sans-serif;
   }
 
   /* ── LIGHT THEME ── */
@@ -137,6 +137,8 @@
     font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-weight: 400;
+    letter-spacing: -0.01em;
   }
 
   h1, h2, h3 {
@@ -257,7 +259,7 @@
   .stat-card {
     @apply bg-card border transition-all duration-200;
     border-color: hsl(var(--border));
-    border-radius: 4px;
+    border-radius: 10px;
     padding: clamp(0.875rem, 1.2vw + 0.25rem, 1.25rem);
   }
 
@@ -273,19 +275,19 @@
   }
 
   .glow-green {
-    text-shadow: 0 0 10px hsl(var(--primary) / 0.4);
+    text-shadow: 0 0 8px hsl(var(--primary) / 0.3);
   }
-
+  .glow-blue {
+    text-shadow: 0 0 8px hsl(var(--primary) / 0.3);
+  }
   .glow-red {
-    text-shadow: 0 0 10px hsl(var(--chart-red) / 0.4);
+    text-shadow: 0 0 8px hsl(var(--chart-red) / 0.3);
   }
-
-  /* Light mode: softer glow effect */
-  .light .glow-green {
-    text-shadow: 0 0 6px hsl(var(--primary) / 0.25);
+  .light .glow-green, .light .glow-blue {
+    text-shadow: 0 0 6px hsl(var(--primary) / 0.2);
   }
   .light .glow-red {
-    text-shadow: 0 0 6px hsl(var(--chart-red) / 0.25);
+    text-shadow: 0 0 6px hsl(var(--chart-red) / 0.2);
   }
 
   /* ── TT brand utilities ── */
@@ -428,6 +430,93 @@
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     width: 100%;
+  }
+
+  /* ── Mobile polish: softer sizing and spacing ── */
+  @media (max-width: 767px) {
+    .stat-card {
+      padding: 0.75rem !important;
+      border-radius: 10px !important;
+    }
+    .chart-container {
+      padding: 0.75rem !important;
+      border-radius: 10px !important;
+    }
+    h1 {
+      font-size: clamp(1.1rem, 5vw, 1.4rem) !important;
+      font-weight: 600 !important;
+      letter-spacing: -0.02em !important;
+    }
+    h2 {
+      font-size: clamp(0.95rem, 4vw, 1.15rem) !important;
+      font-weight: 600 !important;
+      letter-spacing: -0.01em !important;
+    }
+    h3 {
+      font-size: clamp(0.85rem, 3.5vw, 1rem) !important;
+      font-weight: 500 !important;
+    }
+    p, span, li {
+      font-size: clamp(0.75rem, 3.2vw, 0.875rem);
+      line-height: 1.55;
+    }
+    .font-mono, [class*="font-mono"] {
+      letter-spacing: 0.01em !important;
+    }
+    .kpi-value {
+      font-size: clamp(1.1rem, 5.5vw, 1.5rem) !important;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .kpi-value-short {
+      font-size: clamp(1.2rem, 6vw, 1.6rem) !important;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .kpi-title {
+      font-size: 0.6rem !important;
+      letter-spacing: 0.04em !important;
+    }
+    .kpi-subline {
+      font-size: 0.7rem !important;
+      line-height: 1.45 !important;
+    }
+    .kpi-note {
+      font-size: 0.65rem !important;
+    }
+    .text-fluid-2xl { font-size: clamp(1.05rem, 5vw, 1.3rem) !important; }
+    .text-fluid-xl  { font-size: clamp(0.95rem, 4.5vw, 1.1rem) !important; }
+    .text-fluid-lg  { font-size: clamp(0.85rem, 4vw, 1rem) !important; }
+    .text-fluid-base{ font-size: clamp(0.75rem, 3.5vw, 0.875rem) !important; }
+    .text-fluid-sm  { font-size: clamp(0.7rem, 3vw, 0.8rem) !important; }
+    .text-fluid-xs  { font-size: clamp(0.65rem, 2.8vw, 0.75rem) !important; }
+    .text-fluid-heading { font-size: clamp(0.95rem, 4.5vw, 1.15rem) !important; }
+    .dashboard-main-padding {
+      padding: 0.75rem 0.625rem !important;
+    }
+    .table-scroll-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 8px;
+    }
+    .scorecard-desc {
+      font-size: 0.7rem !important;
+      line-height: 1.4 !important;
+      color: hsl(var(--muted-foreground));
+    }
+    .scorecard-value {
+      font-size: clamp(1.4rem, 7vw, 2rem) !important;
+      font-weight: 300 !important;
+      letter-spacing: -0.03em !important;
+      line-height: 1.1 !important;
+    }
+    .scorecard-benchmark {
+      font-size: 0.65rem !important;
+      margin-top: 0.5rem !important;
+    }
+    .pb-20 { padding-bottom: 5rem !important; }
   }
 }
 
