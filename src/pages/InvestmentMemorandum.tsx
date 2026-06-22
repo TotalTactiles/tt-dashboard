@@ -949,7 +949,7 @@ export default function ConsultingPage() {
       return { role: m.role, content: m.content };
     });
     try {
-      const debtRegister = readDebtRegister();
+      const debtRegister = await getDebtRegister();
       const debtTotals = computeDebtTotals(debtRegister);
       const text = await callAI(SYSTEM_PROMPT + dataContext, apiMessages as any, {
         message: trimmed,
