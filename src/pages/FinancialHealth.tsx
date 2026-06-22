@@ -794,6 +794,7 @@ const ChartsSection = ({
 
   // ---- Debt-Stripped Earnings & Lender Serviceability ----
   const [serviceabilityView, setServiceabilityView] = useState<"actuals"|"with_grn"|"with_ylw">("with_grn");
+  const [showSvcDebug, setShowSvcDebug] = useState(false);
 
   const debtStripped = useMemo(() => {
     const rawCashflow = liveData?.cashflow ?? [];
@@ -888,6 +889,9 @@ const ChartsSection = ({
       lenderUsableIncome,
       maxNewRepayment,
       borrowingCapacity60,
+      existingMonthlyDebt,
+      _pastActuals,
+      _forwardContracted,
     };
   }, [io, liveData, forecastChartData, totalMonthlyRepayment, serviceabilityView]);
 
@@ -1062,6 +1066,101 @@ const ChartsSection = ({
             {serviceabilityView === "with_ylw" && "Optimistic — all pipeline counted at 70%"}
           </span>
         </div>
+
+        {/* DEBUG PANEL — remove after fixing */}
+        <button
+          onClick={() => setShowSvcDebug(p => !p)}
+          className="text-[10px] font-mono text-amber-400/60 hover:text-amber-400 mb-2 underline"
+        >
+          {showSvcDebug ? "Hide" : "Show"} Serviceability Debug
+        </button>
+        {showSvcDebug && (
+          <div className="bg-black/40 border border-amber-400/20 rounded-xl p-4 mb-4 overflow-x-auto">
+            <p className="text-[10px] font-mono text-amber-400 mb-3 font-bold">
+              SERVICEABILITY DEBUG — View: {serviceabilityView}
+            </p>
+
+            <p className="text-[9px] font-mono text-white/60 mb-1">
+              PAST ACTUALS ({debtStripped._pastActuals.length} months):
+            </p>
+            <table className="text-[9px] font-mono mb-3 w-full">
+              <thead>
+                <tr className="text-white/40">
+                  <td className="pr-4">Month</td>
+                  <td className="pr-4 text-right">Income</td>
+                  <td className="pr-4 text-right">Outgoings</td>
+                  <td className="pr-4 text-right">Net (income-out)</td>
+                  <td className="pr-4 text-right">isFuture</td>
+                </tr>
+              </thead>
+              <tbody>
+                {(incomeOutgoingsData ?? []).map((d: any) => (
+                  <tr key={d.month} className={d.isFuture ? "text-white/20" : "text-white/70"}>
+                    <td className="pr-4">{d.month}</td>
+                    <td className="pr-4 text-right">${Number(d.income || 0).toLocaleString()}</td>
+                    <td className="pr-4 text-right">${Number(d.outgoings || 0).toLocaleString()}</td>
+                    <td className={`pr-4 text-right ${(d.income - d.outgoings) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      ${Number((d.income || 0) - (d.outgoings || 0)).toLocaleString()}
+                    </td>
+                    <td className="pr-4 text-right">{d.isFuture ? "YES" : "no"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <p className="text-[9px] font-mono text-white/60 mb-1">
+              FORWARD CONTRACTED ({debtStripped._forwardContracted.length} months, view={serviceabilityView}):
+            </p>
+            <table className="text-[9px] font-mono mb-3 w-full">
+              <thead>
+                <tr className="text-white/40">
+                  <td className="pr-4">Month</td>
+                  <td className="pr-4 text-right">anticipatedSurplus</td>
+                  <td className="pr-4 text-right">surplusInclProbable</td>
+                  <td className="pr-4 text-right">Used (×0.70)</td>
+                </tr>
+              </thead>
+              <tbody>
+                {(forecastChartData ?? []).map((d: any) => {
+                  const isInPast = debtStripped._pastActuals.some((p: any) => p.month === d.month);
+                  const included = debtStripped._forwardContracted.some((f: any) => f.month === d.month);
+                  return (
+                    <tr key={d.month} className={included ? "text-blue-400" : "text-white/20"}>
+                      <td className="pr-4">{d.month} {included ? "✓" : ""} {isInPast ? "(past)" : ""}</td>
+                      <td className="pr-4 text-right">${Number(d.anticipatedSurplus || 0).toLocaleString()}</td>
+                      <td className="pr-4 text-right">${Number(d.surplusIncludingProbable || 0).toLocaleString()}</td>
+                      <td className="pr-4 text-right">
+                        {included ? `$${debtStripped._forwardContracted.find((f: any) => f.month === d.month)?.net.toFixed(0)}` : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            <p className="text-[9px] font-mono text-white/60 mb-1">COMPUTED VALUES:</p>
+            <div className="grid grid-cols-2 gap-2 text-[9px] font-mono">
+              <div className="text-white/50">_pastActuals count:</div>
+              <div className="text-white">{debtStripped._pastActuals.length}</div>
+              <div className="text-white/50">_forwardContracted count:</div>
+              <div className="text-white">{debtStripped._forwardContracted.length}</div>
+              <div className="text-white/50">avg3MonthNetFree (3m actual):</div>
+              <div className="text-emerald-400">${debtStripped.avg3.toFixed(0)}</div>
+              <div className="text-white/50">avg6MonthNetFree (6m actual):</div>
+              <div className="text-emerald-400">${debtStripped.avg6.toFixed(0)}</div>
+              <div className="text-white/50">avg6MonthBlended (6m blended):</div>
+              <div className="text-blue-400">${debtStripped.avg6Blended.toFixed(0)}</div>
+              <div className="text-white/50">existingMonthlyDebt:</div>
+              <div className="text-red-400">${debtStripped.existingMonthlyDebt.toFixed(0)}</div>
+              <div className="text-white/50">lenderUsableIncome (×0.80):</div>
+              <div className="text-white">${debtStripped.lenderUsableIncome.toFixed(0)}</div>
+              <div className="text-white/50">maxNewRepayment:</div>
+              <div className="text-emerald-400">${debtStripped.maxNewRepayment.toFixed(0)}</div>
+              <div className="text-white/50">borrowingCapacity60:</div>
+              <div className="text-emerald-400">${debtStripped.borrowingCapacity60.toFixed(0)}</div>
+            </div>
+          </div>
+        )}
 
         {/* Unified card: pills + filters + chart + Financial Position */}
         <div className="chart-container mt-4">
