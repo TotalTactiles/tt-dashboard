@@ -199,28 +199,28 @@ const FinancialHealth = () => {
         value: isFinite(icr) ? `${icr.toFixed(1)}x` : "∞",
         benchmark: "Benchmark: ≥ 2.5x",
         rag: !isFinite(icr) ? "green" : ragFromThresholds(icr, 2.5, 1.5),
-        subBenchmark: isFinite(icr) ? `Every $1 of interest costs you $${icr.toFixed(1)} in GP to cover` : undefined,
+        subBenchmark: isFinite(icr) ? `For every $1 of interest owed, we generate $${icr.toFixed(1)} in GP` : undefined,
       },
       {
         name: "Debt Service Coverage",
         value: isFinite(dscr) ? `${dscr.toFixed(1)}x` : "∞",
         benchmark: "Benchmark: ≥ 1.5x",
         rag: !isFinite(dscr) ? "green" : ragFromThresholds(dscr, 1.5, 1.0),
-        subBenchmark: isFinite(dscr) ? `You earn $${dscr.toFixed(1)} for every $1 of total repayments due` : undefined,
+        subBenchmark: isFinite(dscr) ? `We generate $${dscr.toFixed(1)} in GP for every $1 of total repayments` : undefined,
       },
       {
         name: "Debt-to-Revenue",
         value: `${dToRev.toFixed(0)}%`,
         benchmark: "Benchmark: < 40%",
         rag: ragFromThresholds(dToRev, 40, 65, true),
-        subBenchmark: `${Math.round(dToRev)}c of debt carried per $1 of revenue earned`,
+        subBenchmark: `${Math.round(dToRev)}c of debt for every $1 of revenue we bring in`,
       },
       {
         name: "Debt-to-Gross-Profit",
         value: `${dToGP.toFixed(0)}%`,
         benchmark: "Benchmark: < 75%",
         rag: ragFromThresholds(dToGP, 75, 150, true),
-        subBenchmark: `~${(dToGP / 100).toFixed(1)} years of gross profit to clear all debt entirely`,
+        subBenchmark: `Total debt = ~${(dToGP / 100).toFixed(1)} years of gross profit`,
       },
       {
         name: "Cash Cover",
@@ -1002,78 +1002,78 @@ const ScorecardDetailPanel = ({
         return {
           title: "Interest Coverage Ratio — What It Means",
           formula: "Gross Profit YTD ÷ Annual Interest Cost",
-          explanation: "Measures how many times over your gross profit can cover your annual interest bill. For every $1 of interest you owe, the business generates this much gross profit. Lenders want to see above 2.5x.",
+          explanation: "Think of this like a safety cushion. If you owe $10,000 in interest this year, are you making enough profit to pay it? At 9.1x, for every $1 of interest we owe, the business generates $9.10 in gross profit. Even if revenue dropped significantly, we'd still comfortably cover the interest bill. Lenders want to see this above 2.5x — we're well clear at 9.1x. This is one of the healthiest numbers a business can show a bank.",
           pills: [
             { label: "GP YTD", value: fmt(grossProfitYTD) },
             { label: "Annual Interest", value: fmt(annualInterestCost) },
             { label: "Ratio", value: metric?.value || "--" },
           ],
-          verdict: "✓ Strong. No serviceability concern on interest alone.",
+          verdict: "✓ Strong. Interest is not a burden at current trading levels.",
           verdictColor: "text-chart-green",
         };
       case "Debt Service Coverage":
         return {
           title: "Debt Service Coverage Ratio (DSCR) — What It Means",
           formula: "Gross Profit YTD ÷ Total Annual Repayments",
-          explanation: "Unlike interest coverage, DSCR includes the full repayment — principal + interest. Banks use this to determine if they'll lend more. Above 1.5x is acceptable; above 2x is comfortable; above 3x is strong.",
+          explanation: "This is the big one banks actually use. It doesn't just look at interest — it looks at your FULL repayment (principal + interest combined). At 4.6x, we're generating 4.6 times what we need to cover all debt repayments. Think of it this way: if our total repayments are $10,177/month, we're generating roughly $46,800 in GP that month. Banks use 1.5x as the minimum before they'll lend. Above 3x is considered strong. We're at 4.6x — we'd qualify for additional lending on these numbers.",
           pills: [
             { label: "GP YTD", value: fmt(grossProfitYTD) },
             { label: "Annual Repayments", value: fmt(annualRepay) },
             { label: "Ratio", value: metric?.value || "--" },
           ],
-          verdict: "✓ Strong. You'd likely qualify for additional lending on these numbers.",
+          verdict: "✓ Strong. Would comfortably meet bank lending criteria for new facilities.",
           verdictColor: "text-chart-green",
         };
       case "Debt-to-Revenue":
         return {
           title: "Debt-to-Revenue — What It Means",
           formula: "Total Debt ÷ Revenue YTD (ex GST) × 100",
-          explanation: "Shows how much debt the business is carrying relative to what it earns. The 40% benchmark is conservative and designed for stable businesses — contracting businesses with secured assets commonly run 50–80%.",
+          explanation: "Imagine you earn $100k this year in total revenue. If you have $64k in debt, your Debt-to-Revenue is 64%. It's asking: how big is your debt compared to the size of your business? The 40% benchmark is set for stable, low-risk businesses like supermarkets. For a growing contracting business carrying equipment and working capital loans, 50–80% is completely normal. Our 64% sits right in that range. This number should naturally improve as revenue grows without taking on more debt.",
           pills: [
             { label: "Total Debt", value: fmt(totalDebt) },
             { label: "Revenue ex GST", value: fmt(revenueExGST) },
             { label: "Ratio", value: metric?.value || "--" },
           ],
-          verdict: "⚠ Above benchmark but not a concern at this stage of growth. Watch as revenue scales.",
+          verdict: "⚠ Above the conservative benchmark but appropriate for our business type and growth stage.",
           verdictColor: "text-yellow-500",
         };
       case "Debt-to-Gross-Profit":
         return {
           title: "Debt-to-Gross-Profit — What It Means",
           formula: "Total Debt ÷ Gross Profit YTD × 100",
-          explanation: "How many years of gross profit would it take to pay off all debt entirely — assuming zero other expenses. This is a medium-term sustainability indicator.",
+          explanation: "This one asks: if we used ALL our gross profit just to pay off debt — no wages, no expenses, nothing else — how long would it take? At 94%, it would take us just under 1 year of gross profit to clear all debt entirely. The benchmark is under 75%, meaning under 9 months of GP. We're slightly above that. The good news: as GP grows through bigger jobs and better margins, this number naturally comes down without paying off a single dollar of debt early.",
           pills: [
             { label: "Total Debt", value: fmt(totalDebt) },
             { label: "GP YTD", value: fmt(grossProfitYTD) },
             { label: "Ratio", value: metric?.value || "--" },
           ],
-          verdict: "⚠ Manageable. Target is to get this below 75% as GP grows.",
+          verdict: "⚠ Slightly above benchmark. Will improve naturally as gross profit grows.",
           verdictColor: "text-yellow-500",
         };
       case "Cash Cover":
         return {
           title: "Cash Cover — What It Means",
           formula: "Current Month Anticipated Surplus ÷ Monthly Repayments",
-          explanation: "How many months of debt repayments are covered by this month's anticipated cash surplus alone. This is the most important day-to-day solvency indicator.",
+          explanation: "This is our day-to-day safety net. It asks: if no new money came in tomorrow, how many months could we keep paying our loans using just this month's cash surplus? At 52.2 months (4.3 years), we have an extraordinary buffer. Even in a slow month with minimal revenue, our surplus is covering the loan repayments many times over. This is the most important number for day-to-day solvency — and ours is exceptional.",
           pills: [
             { label: "Current Surplus", value: fmt(recentSurplus) },
             { label: "Monthly Repayments", value: fmt(totalMonthlyRepayment) },
             { label: "Months Cover", value: metric?.value || "--" },
           ],
-          verdict: "✓ Exceptional. The business has significant buffer above its debt commitments.",
+          verdict: "✓ Exceptional. The business has a very strong cash buffer above its debt commitments.",
           verdictColor: "text-chart-green",
         };
       case "Repayment Burden":
         return {
           title: "Repayment Burden — What It Means",
           formula: "(Monthly Repayments × 12) ÷ Gross Profit YTD × 100",
-          explanation: "What percentage of annual gross profit is consumed by debt repayments — before any operating expenses or drawings. The 20% benchmark is a guide.",
+          explanation: "Out of every dollar of gross profit we make, 22 cents goes straight to loan repayments before we can spend anything else. Think of it like rent — it comes out first no matter what. The safe zone is under 20 cents in the dollar. We're at 22 cents, which is just slightly above. If we took on another $5k/month in loan repayments without growing GP, this number would jump. It's the key metric to watch before taking on any new debt facilities.",
           pills: [
             { label: "Annual Repayments", value: fmt(annualRepay) },
             { label: "GP YTD", value: fmt(grossProfitYTD) },
             { label: "Burden %", value: metric?.value || "--" },
           ],
-          verdict: "⚠ Just above benchmark. Consider whether new debt facilities would push this above 35%.",
+          verdict: "⚠ Just above the 20% safe zone. Monitor before adding new debt facilities.",
           verdictColor: "text-yellow-500",
         };
       default:
