@@ -821,43 +821,65 @@ const ChartsSection = ({
       return { month, earnedRevenue, operatingCosts, debtBurden: monthlyDebt, netFreeCash };
     });
 
-    // === SERVICEABILITY CALC — uses monthly surplus from incomeOutgoingsData ===
-    const _validSurplusMonths = (io ?? []).filter((d: any) =>
-      (Number(d?.income) || 0) > 0 && typeof d?.surplus === "number" && !d?.isFuture
-    );
-    const _s3 = _validSurplusMonths.slice(-3);
-    const _s6 = _validSurplusMonths.slice(-6);
-    const _s12 = _validSurplusMonths.slice(-12);
-    const avg3MonthNetFree = _s3.length > 0 ? _s3.reduce((s: number, d: any) => s + d.surplus, 0) / _s3.length : 0;
-    const avg6MonthNetFree = _s6.length > 0 ? _s6.reduce((s: number, d: any) => s + d.surplus, 0) / _s6.length : 0;
-    const avg12MonthNetFree = _s12.length > 0 ? _s12.reduce((s: number, d: any) => s + d.surplus, 0) / _s12.length : 0;
-    // === END SERVICEABILITY CALC ===
+    // ── SERVICEABILITY CALCULATION ──────────────────────────────────────
+    // Past actuals: income - outgoings for completed months
+    const _pastActuals = (io ?? [])
+      .filter((d: any) => !d?.isFuture && (Number(d?.income) || 0) > 0)
+      .map((d: any) => ({ month: d.month, net: (Number(d.income) || 0) - (Number(d.outgoings) || 0), type: "actual" as const }));
+
+    // Forward contracted: surplusIncludingProbable from forecastChartData
+    // (includes GRN + YLW signed contracts — presentable to lenders)
+    // Discount forward figures by 30% (conservative lender haircut on projections)
+    const _forwardContracted = (Array.isArray(forecastChartData) ? forecastChartData : [])
+      .filter((d: any) => {
+        const isInPast = _pastActuals.some((p) => p.month === d.month);
+        return !isInPast && Number(d?.surplusIncludingProbable) > 0;
+      })
+      .slice(0, 6)
+      .map((d: any) => ({ month: d.month, net: Number(d.surplusIncludingProbable) * 0.70, type: "contracted" as const }));
+
+    const _allMonths = [..._pastActuals, ..._forwardContracted];
+
+    const _p3 = _pastActuals.slice(-3);
+    const _p6 = _pastActuals.slice(-6);
+    const _b6 = _allMonths.slice(-6);
+
+    const avg3MonthNetFree = _p3.length > 0 ? _p3.reduce((s, d) => s + d.net, 0) / _p3.length : 0;
+    const avg6MonthNetFree = _p6.length > 0 ? _p6.reduce((s, d) => s + d.net, 0) / _p6.length : 0;
+    const avg6MonthBlended = _b6.length > 0 ? _b6.reduce((s, d) => s + d.net, 0) / _b6.length : 0;
+    const avg12MonthNetFree = _allMonths.length > 0 ? _allMonths.reduce((s, d) => s + d.net, 0) / _allMonths.length : 0;
 
     const existingMonthlyDebt = totalMonthlyRepayment;
-    const lenderUsableIncome = Math.max(0, avg6MonthNetFree) * 0.80;
+    const lenderUsableIncome = Math.max(0, avg6MonthBlended) * 0.80;
     const maxNewRepayment = Math.max(0, lenderUsableIncome - existingMonthlyDebt);
-    const monthlyRate007 = 0.07 / 12;
+    const _mr = 0.07 / 12;
     const borrowingCapacity60 = maxNewRepayment > 0
-      ? maxNewRepayment * ((1 - Math.pow(1 + monthlyRate007, -60)) / monthlyRate007)
+      ? maxNewRepayment * ((1 - Math.pow(1 + _mr, -60)) / _mr)
       : 0;
 
-    console.log("[Serviceability Debug]", {
-      validMonthCount: _validSurplusMonths.length,
-      months: _validSurplusMonths.map((d: any) => ({ month: d.month, surplus: d.surplus, isFuture: d.isFuture })),
+    console.log("[SVC DEBUG]", {
+      pastMonths: _pastActuals.length,
+      forwardMonths: _forwardContracted.length,
       avg3: avg3MonthNetFree,
-      avg6: avg6MonthNetFree,
+      avg6actual: avg6MonthNetFree,
+      avg6blended: avg6MonthBlended,
+      maxNewRepayment,
+      borrowingCapacity60,
     });
+    // ── END SERVICEABILITY ───────────────────────────────────────────────
 
     return {
       rows,
       avg3: avg3MonthNetFree,
       avg6: avg6MonthNetFree,
+      avg6Blended: avg6MonthBlended,
       avg12: avg12MonthNetFree,
       lenderUsableIncome,
       maxNewRepayment,
       borrowingCapacity60,
     };
-  }, [io, liveData, totalMonthlyRepayment]);
+  }, [io, liveData, forecastChartData, totalMonthlyRepayment]);
+
 
 
 
@@ -1006,8 +1028,9 @@ const ChartsSection = ({
           {/* TOP ROW — 4 stat pills inline */}
           <div className="flex flex-wrap gap-3 mb-5">
             {[
-              { label: "Avg Net Free Cash (3m)", value: debtStripped.avg3, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg3 >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD },
-              { label: "Avg Net Free Cash (6m)", value: debtStripped.avg6, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg6 >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD },
+              { label: "Avg Monthly (3m Actual)", value: debtStripped.avg3, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg3 >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD },
+              { label: "Avg Monthly (6m Blended)", value: debtStripped.avg6Blended, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg6Blended >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD },
+
               { label: "Max New Monthly Repayment", value: debtStripped.maxNewRepayment, colorStyle: ragHex, colorClass: "", fmt: fmtAUD },
               { label: "Est. Borrowing Capacity", value: debtStripped.borrowingCapacity60, colorStyle: undefined as string | undefined, colorClass: "text-chart-green", fmt: fmtK },
             ].map(pill => (
@@ -1092,6 +1115,10 @@ const ChartsSection = ({
                       <span className="text-xs text-muted-foreground">Usable income (80% buffer)</span>
                       <span className="text-xs font-mono font-semibold text-foreground">{fmtAUD(debtStripped.lenderUsableIncome)}</span>
                     </div>
+                    <p className="text-[9px] text-muted-foreground italic mt-0.5">
+                      Based on 6m blended (actuals + 70% of contracted pipeline)
+                    </p>
+
                     <div className="flex justify-between items-center py-2 border-b border-white/5">
                       <span className="text-xs text-muted-foreground">Less existing commitments</span>
                       <span className="text-xs font-mono font-semibold text-foreground">{fmtAUD(totalMonthlyRepayment)}</span>
