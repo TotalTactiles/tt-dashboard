@@ -1023,7 +1023,7 @@ const ScorecardDetailPanel = ({
         return {
           title: "Debt Service Coverage Ratio (DSCR) — What It Means",
           formula: "Gross Profit YTD ÷ Total Annual Repayments",
-          explanation: "This is the big one banks actually use. It doesn't just look at interest — it looks at your FULL repayment (principal + interest combined). At 4.6x, we're generating 4.6 times what we need to cover all debt repayments. Think of it this way: if our total repayments are $10,177/month, we're generating roughly $46,800 in GP that month. Banks use 1.5x as the minimum before they'll lend. Above 3x is considered strong. We're at 4.6x — we'd qualify for additional lending on these numbers.",
+          explanation: `Total repayments are ${fmt(totalMonthlyRepayment)}/month — ${fmt(annualRepay)}/year. Our GP is ${fmt(grossProfitYTD)}, which is ${dscrValue.toFixed(1)}x that annual repayment figure. Banks require 1.5x minimum to approve lending. Above 3x is strong. At ${dscrValue.toFixed(1)}x, we'd comfortably qualify for additional facilities.`,
           pills: [
             { label: "GP YTD", value: fmt(grossProfitYTD) },
             { label: "Annual Repayments", value: fmt(annualRepay) },
