@@ -996,13 +996,21 @@ const ScorecardDetailPanel = ({
   const annualRepay = totalMonthlyRepayment * 12;
   const metric = metrics.find((m) => m.name === activeTile);
 
+  const interestCoverageValue = annualInterestCost > 0 ? grossProfitYTD / annualInterestCost : 0;
+  const dscrValue = annualRepay > 0 ? grossProfitYTD / annualRepay : 0;
+  const debtToRevenueValue = revenueExGST > 0 ? (totalDebt / revenueExGST) * 100 : 0;
+  const debtToGpValue = grossProfitYTD > 0 ? (totalDebt / grossProfitYTD) * 100 : 0;
+  const cashCoverValue = totalMonthlyRepayment > 0 ? recentSurplus / totalMonthlyRepayment : 0;
+  const cashCoverYears = (cashCoverValue / 12).toFixed(1);
+  const repaymentBurdenValue = grossProfitYTD > 0 ? (annualRepay / grossProfitYTD) * 100 : 0;
+
   const buildContent = () => {
     switch (activeTile) {
       case "Interest Coverage":
         return {
           title: "Interest Coverage Ratio — What It Means",
           formula: "Gross Profit YTD ÷ Annual Interest Cost",
-          explanation: "Think of this like a safety cushion. If you owe $10,000 in interest this year, are you making enough profit to pay it? At 9.1x, for every $1 of interest we owe, the business generates $9.10 in gross profit. Even if revenue dropped significantly, we'd still comfortably cover the interest bill. Lenders want to see this above 2.5x — we're well clear at 9.1x. This is one of the healthiest numbers a business can show a bank.",
+          explanation: `We owe ${fmt(annualInterestCost)} in interest this year. Our gross profit is ${fmt(grossProfitYTD)} — that's ${interestCoverageValue.toFixed(1)}x the interest bill. Even if revenue fell heavily, we'd still cover the interest with GP to spare. Lenders want to see above 2.5x. We're at ${interestCoverageValue.toFixed(1)}x.`,
           pills: [
             { label: "GP YTD", value: fmt(grossProfitYTD) },
             { label: "Annual Interest", value: fmt(annualInterestCost) },
@@ -1015,7 +1023,7 @@ const ScorecardDetailPanel = ({
         return {
           title: "Debt Service Coverage Ratio (DSCR) — What It Means",
           formula: "Gross Profit YTD ÷ Total Annual Repayments",
-          explanation: "This is the big one banks actually use. It doesn't just look at interest — it looks at your FULL repayment (principal + interest combined). At 4.6x, we're generating 4.6 times what we need to cover all debt repayments. Think of it this way: if our total repayments are $10,177/month, we're generating roughly $46,800 in GP that month. Banks use 1.5x as the minimum before they'll lend. Above 3x is considered strong. We're at 4.6x — we'd qualify for additional lending on these numbers.",
+          explanation: `Total repayments are ${fmt(totalMonthlyRepayment)}/month — ${fmt(annualRepay)}/year. Our GP is ${fmt(grossProfitYTD)}, which is ${dscrValue.toFixed(1)}x that annual repayment figure. Banks require 1.5x minimum to approve lending. Above 3x is strong. At ${dscrValue.toFixed(1)}x, we'd comfortably qualify for additional facilities.`,
           pills: [
             { label: "GP YTD", value: fmt(grossProfitYTD) },
             { label: "Annual Repayments", value: fmt(annualRepay) },
@@ -1028,7 +1036,7 @@ const ScorecardDetailPanel = ({
         return {
           title: "Debt-to-Revenue — What It Means",
           formula: "Total Debt ÷ Revenue YTD (ex GST) × 100",
-          explanation: "Imagine you earn $100k this year in total revenue. If you have $64k in debt, your Debt-to-Revenue is 64%. It's asking: how big is your debt compared to the size of your business? The 40% benchmark is set for stable, low-risk businesses like supermarkets. For a growing contracting business carrying equipment and working capital loans, 50–80% is completely normal. Our 64% sits right in that range. This number should naturally improve as revenue grows without taking on more debt.",
+          explanation: `We have ${fmt(totalDebt)} in total debt against ${fmt(revenueExGST)} in revenue (ex GST). That's ${debtToRevenueValue.toFixed(0)}c of debt for every $1 earned. The 40% benchmark suits stable businesses — contracting businesses carrying equipment and working capital loans typically run 50–80%. Our ${debtToRevenueValue.toFixed(0)}% sits within that normal range.`,
           pills: [
             { label: "Total Debt", value: fmt(totalDebt) },
             { label: "Revenue ex GST", value: fmt(revenueExGST) },
@@ -1041,7 +1049,7 @@ const ScorecardDetailPanel = ({
         return {
           title: "Debt-to-Gross-Profit — What It Means",
           formula: "Total Debt ÷ Gross Profit YTD × 100",
-          explanation: "This one asks: if we used ALL our gross profit just to pay off debt — no wages, no expenses, nothing else — how long would it take? At 94%, it would take us just under 1 year of gross profit to clear all debt entirely. The benchmark is under 75%, meaning under 9 months of GP. We're slightly above that. The good news: as GP grows through bigger jobs and better margins, this number naturally comes down without paying off a single dollar of debt early.",
+          explanation: `Total debt is ${fmt(totalDebt)}. Annual gross profit is ${fmt(grossProfitYTD)}. If we used every dollar of GP solely to repay debt, it would take ${(debtToGpValue / 100).toFixed(1)} years to clear it entirely. The target is under 0.75 years. We're at ${(debtToGpValue / 100).toFixed(1)} years — improving as GP grows.`,
           pills: [
             { label: "Total Debt", value: fmt(totalDebt) },
             { label: "GP YTD", value: fmt(grossProfitYTD) },
@@ -1054,7 +1062,7 @@ const ScorecardDetailPanel = ({
         return {
           title: "Cash Cover — What It Means",
           formula: "Current Month Anticipated Surplus ÷ Monthly Repayments",
-          explanation: "This is our day-to-day safety net. It asks: if no new money came in tomorrow, how many months could we keep paying our loans using just this month's cash surplus? At 52.2 months (4.3 years), we have an extraordinary buffer. Even in a slow month with minimal revenue, our surplus is covering the loan repayments many times over. This is the most important number for day-to-day solvency — and ours is exceptional.",
+          explanation: `This month's surplus covers ${cashCoverValue.toFixed(1)} months (${cashCoverYears} years) of loan repayments. With ${fmt(totalMonthlyRepayment)} due monthly, the business is generating well above what's needed to stay current. The minimum safe zone is 3 months cover. We're at ${cashCoverValue.toFixed(1)} months.`,
           pills: [
             { label: "Current Surplus", value: fmt(recentSurplus) },
             { label: "Monthly Repayments", value: fmt(totalMonthlyRepayment) },
@@ -1067,7 +1075,7 @@ const ScorecardDetailPanel = ({
         return {
           title: "Repayment Burden — What It Means",
           formula: "(Monthly Repayments × 12) ÷ Gross Profit YTD × 100",
-          explanation: "Out of every dollar of gross profit we make, 22 cents goes straight to loan repayments before we can spend anything else. Think of it like rent — it comes out first no matter what. The safe zone is under 20 cents in the dollar. We're at 22 cents, which is just slightly above. If we took on another $5k/month in loan repayments without growing GP, this number would jump. It's the key metric to watch before taking on any new debt facilities.",
+          explanation: `Out of ${fmt(grossProfitYTD)} in gross profit, ${fmt(annualRepay)} goes to loan repayments — that's ${repaymentBurdenValue.toFixed(0)}c from every $1 of GP. The safe zone is under 20c. We're at ${repaymentBurdenValue.toFixed(0)}c — just above. Taking on additional debt without growing GP would push this higher.`,
           pills: [
             { label: "Annual Repayments", value: fmt(annualRepay) },
             { label: "GP YTD", value: fmt(grossProfitYTD) },
