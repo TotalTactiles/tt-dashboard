@@ -935,22 +935,6 @@ const ChartsSection = ({
                   >{p}</button>
                 ))}
               </div>
-              <select
-                value={earnedMonth}
-                onChange={e => {
-                  setEarnedMonth(e.target.value);
-                  if (e.target.value) setEarnedPeriod("All");
-                }}
-                className={`bg-white/5 border rounded-lg px-3 py-1 text-xs font-mono focus:outline-none cursor-pointer transition-all
-                  ${earnedMonth
-                    ? "border-chart-green/50 text-chart-green"
-                    : "border-white/10 text-muted-foreground"}`}
-              >
-                <option value="" className="bg-[#0f172a] text-muted-foreground">Month ▾</option>
-                {earnedVsDebtData.rows.map((d: any) => (
-                  <option key={d.month} value={d.month} className="bg-[#0f172a] text-foreground">{d.month}</option>
-                ))}
-              </select>
             </div>
             <div className="flex flex-wrap gap-2 mb-4">
               <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2">
