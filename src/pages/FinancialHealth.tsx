@@ -821,20 +821,39 @@ const ChartsSection = ({
       return { month, earnedRevenue, operatingCosts, debtBurden: monthlyDebt, netFreeCash };
     });
 
-    const active = rows.filter((r) => r.earnedRevenue > 0);
-    const avgN = (n: number) => {
-      const slice = active.slice(-n);
-      if (!slice.length) return 0;
-      return slice.reduce((s, x) => s + x.netFreeCash, 0) / slice.length;
+    // ---- Serviceability metrics from anticipatedSurplus (cashflow) ----
+    const parseSurplus = (v: any) => {
+      if (v === null || v === undefined || v === "") return 0;
+      return parseFloat(String(v).replace(/[$,]/g, "")) || 0;
     };
-    const avg3 = avgN(3);
-    const avg6 = avgN(6);
-    const avg12 = active.length ? active.reduce((s, x) => s + x.netFreeCash, 0) / active.length : 0;
-    const lenderBuffer = 0.8;
-    const maxNewRepayment = avg6 * lenderBuffer;
-    const borrowingCapacity60 = maxNewRepayment * 60 * 0.85;
-    return { rows, avg3, avg6, avg12, maxNewRepayment, borrowingCapacity60 };
-  }, [io, liveData]);
+    const surplusMonths = (Array.isArray(forecastChartData) ? forecastChartData : [])
+      .filter((d: any) => d?.anticipatedSurplus != null && parseSurplus(d.anticipatedSurplus) !== 0)
+      .map((d: any) => ({ month: String(d.month ?? ""), surplus: parseSurplus(d.anticipatedSurplus) }));
+    const monthOrder = io.map((d: any) => String(d?.month ?? ""));
+    const sortedSurplus = [...surplusMonths].sort(
+      (a, b) => monthOrder.indexOf(a.month) - monthOrder.indexOf(b.month)
+    );
+    const currentIdx = monthOrder.indexOf("Jun-26");
+    const pastMonths = sortedSurplus.filter(
+      (d) => currentIdx < 0 || monthOrder.indexOf(d.month) <= currentIdx
+    );
+    const avgOf = (arr: { surplus: number }[]) =>
+      arr.length > 0 ? arr.reduce((s, d) => s + d.surplus, 0) / arr.length : 0;
+    const avg3 = avgOf(pastMonths.slice(-3));
+    const avg6 = avgOf(pastMonths.slice(-6));
+    const avg12 = avgOf(pastMonths.slice(-12));
+
+    const lenderUsableIncome = avg6 * 0.80;
+    const maxNewRepayment = Math.max(0, lenderUsableIncome - totalMonthlyRepayment);
+    const monthlyRate = 0.07 / 12;
+    const borrowingCapacity60 =
+      maxNewRepayment > 0
+        ? maxNewRepayment * ((1 - Math.pow(1 + monthlyRate, -60)) / monthlyRate)
+        : 0;
+
+    return { rows, avg3, avg6, avg12, lenderUsableIncome, maxNewRepayment, borrowingCapacity60 };
+  }, [io, liveData, forecastChartData, totalMonthlyRepayment]);
+
 
   const ragColor = (v: number) => (v > 2000 ? "#22c55e" : v >= 500 ? "#f59e0b" : "#ef4444");
   const ragLabel = (v: number): "green" | "amber" | "red" =>
@@ -1064,7 +1083,7 @@ const ChartsSection = ({
                     <p className="text-xs font-semibold text-foreground mb-3">Lender Calculation</p>
                     <div className="flex justify-between items-center py-2 border-b border-white/5">
                       <span className="text-xs text-muted-foreground">Usable income (80% buffer)</span>
-                      <span className="text-xs font-mono font-semibold text-foreground">{fmtAUD(debtStripped.avg6 * 0.80)}</span>
+                      <span className="text-xs font-mono font-semibold text-foreground">{fmtAUD(debtStripped.lenderUsableIncome)}</span>
                     </div>
                     <div className="flex justify-between items-center py-2 border-b border-white/5">
                       <span className="text-xs text-muted-foreground">Less existing commitments</span>
