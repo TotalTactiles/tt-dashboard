@@ -27,7 +27,6 @@ interface DebtFacility {
   purpose: DebtPurpose;
 }
 
-const STORAGE_KEY = "tt_debt_register";
 const DEBT_CACHE_KEY = "tt_debt_register";
 const CACHE_WEBHOOK_GET = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
 const CACHE_WEBHOOK_POST = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
