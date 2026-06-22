@@ -1036,7 +1036,7 @@ const ScorecardDetailPanel = ({
         return {
           title: "Debt-to-Revenue — What It Means",
           formula: "Total Debt ÷ Revenue YTD (ex GST) × 100",
-          explanation: "Imagine you earn $100k this year in total revenue. If you have $64k in debt, your Debt-to-Revenue is 64%. It's asking: how big is your debt compared to the size of your business? The 40% benchmark is set for stable, low-risk businesses like supermarkets. For a growing contracting business carrying equipment and working capital loans, 50–80% is completely normal. Our 64% sits right in that range. This number should naturally improve as revenue grows without taking on more debt.",
+          explanation: `We have ${fmt(totalDebt)} in total debt against ${fmt(revenueExGST)} in revenue (ex GST). That's ${debtToRevenueValue.toFixed(0)}c of debt for every $1 earned. The 40% benchmark suits stable businesses — contracting businesses carrying equipment and working capital loans typically run 50–80%. Our ${debtToRevenueValue.toFixed(0)}% sits within that normal range.`,
           pills: [
             { label: "Total Debt", value: fmt(totalDebt) },
             { label: "Revenue ex GST", value: fmt(revenueExGST) },
