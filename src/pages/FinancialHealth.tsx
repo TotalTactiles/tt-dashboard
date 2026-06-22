@@ -1036,7 +1036,125 @@ const ChartsSection = ({
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* SECTION 5: Debt-Stripped Earnings & Lender Serviceability */}
+      <div className="space-y-4 pt-2">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Debt-Stripped Earnings</h2>
+          <p className="text-xs text-muted-foreground">What the business actually earns after all debt is removed — the lender's view</p>
+        </div>
+
+        {/* Row 1: Stat Pills */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: "Avg Monthly Net Free Cash (3m)", value: debtStripped.avg3, color: debtStripped.avg3 > 0 ? "#22c55e" : "#ef4444", fmt: fmtAUD },
+            { label: "Avg Monthly Net Free Cash (6m)", value: debtStripped.avg6, color: debtStripped.avg6 > 0 ? "#22c55e" : "#ef4444", fmt: fmtAUD },
+            { label: "Max New Monthly Repayment", value: debtStripped.maxNewRepayment, color: ragHex, fmt: fmtAUD },
+            { label: "Est. Borrowing Capacity", value: debtStripped.borrowingCapacity60, color: ragHex, fmt: fmtK },
+          ].map((p) => (
+            <div key={p.label} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{p.label}</p>
+              <p className="text-xl font-mono font-bold mt-1" style={{ color: p.color }}>{p.fmt(p.value)}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Row 2: Chart */}
+        <div className="chart-container">
+          <p className="text-sm font-medium text-foreground mb-0.5">Monthly Net Free Cash After All Debt</p>
+          <p className="text-xs text-muted-foreground mb-3">Earned revenue minus operating costs minus all debt repayments</p>
+          <ResponsiveContainer width="100%" height={260}>
+            <ComposedChart data={debtStripped.rows} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+              <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" />
+              <XAxis dataKey="month" tick={CHART_TICK} />
+              <YAxis tick={CHART_TICK} tickFormatter={fmtKAxis} />
+              <Tooltip content={<NetFreeTooltip />} />
+              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+              <ReferenceLine y={0} stroke="#ffffff30" strokeDasharray="3 3" />
+              <Bar dataKey="earnedRevenue" name="Earned Revenue" fill="#22c55e" fillOpacity={0.6} />
+              <Bar dataKey="debtBurden" name="Debt Repayments" fill="#ef4444" fillOpacity={0.7} />
+              <Bar dataKey="operatingCosts" name="Operating Costs" fill="#3b82f6" fillOpacity={0.6} />
+              <Line
+                type="monotone"
+                dataKey="netFreeCash"
+                name="Net Free Cash"
+                stroke="#f59e0b"
+                strokeWidth={2.5}
+                dot={(props: any) => {
+                  const { cx, cy, payload, index } = props;
+                  const fill = payload.netFreeCash >= 0 ? "#f59e0b" : "#ef4444";
+                  return <circle key={index} cx={cx} cy={cy} r={3} fill={fill} stroke={fill} />;
+                }}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Row 3: Lender Serviceability Panel */}
+        <div>
+          <p className="text-sm font-medium text-foreground mb-0.5">Lender Serviceability View</p>
+          <p className="text-xs text-muted-foreground mb-3">How a bank or broker assesses your capacity for new debt</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Column 1 */}
+            <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 space-y-2">
+              <p className="text-xs font-semibold text-foreground mb-2">Current Position</p>
+              {[
+                { l: "Existing monthly debt", v: fmtAUD(totalMonthlyRepayment) },
+                { l: "Avg net free cash (6m)", v: fmtAUD(debtStripped.avg6) },
+                { l: "Free cash after debt", v: fmtAUD(debtStripped.avg6) },
+              ].map((r) => (
+                <div key={r.l} className="flex justify-between">
+                  <span className="text-xs text-muted-foreground">{r.l}</span>
+                  <span className="text-xs font-mono font-semibold text-foreground">{r.v}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Column 2 */}
+            <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 space-y-2">
+              <p className="text-xs font-semibold text-foreground mb-2">Lender Calculation</p>
+              {[
+                { l: "Usable income (80% buffer)", v: fmtAUD(debtStripped.avg6 * 0.8), c: "text-foreground" },
+                { l: "Less existing commitments", v: fmtAUD(totalMonthlyRepayment), c: "text-foreground" },
+                { l: "Available for new debt", v: fmtAUD(debtStripped.maxNewRepayment), c: "" },
+              ].map((r) => (
+                <div key={r.l} className="flex justify-between">
+                  <span className="text-xs text-muted-foreground">{r.l}</span>
+                  <span
+                    className={`text-xs font-mono font-semibold ${r.c}`}
+                    style={!r.c ? { color: ragHex } : undefined}
+                  >
+                    {r.v}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Column 3 */}
+            <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 space-y-2">
+              <p className="text-xs font-semibold text-foreground mb-2">Borrowing Capacity</p>
+              <div className="flex justify-between">
+                <span className="text-xs text-muted-foreground">At current serviceability</span>
+                <span className="text-xs font-mono font-semibold" style={{ color: ragHex }}>{fmtAUD(debtStripped.borrowingCapacity60)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-xs text-muted-foreground">Assumes 60 month term</span>
+                <span className="text-xs font-mono font-semibold text-foreground">—</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-xs text-muted-foreground">Assumes ~7% interest rate</span>
+                <span className="text-xs font-mono font-semibold text-foreground">—</span>
+              </div>
+              <div className="flex items-start gap-2 pt-2 mt-2 border-t border-white/10">
+                <span className="inline-block w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0" style={{ backgroundColor: ragHex }} />
+                <p className="text-[11px] text-foreground/80 leading-snug">{verdictText(rag)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+
   );
 };
 
