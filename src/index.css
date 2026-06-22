@@ -259,7 +259,7 @@
   .stat-card {
     @apply bg-card border transition-all duration-200;
     border-color: hsl(var(--border));
-    border-radius: 4px;
+    border-radius: 10px;
     padding: clamp(0.875rem, 1.2vw + 0.25rem, 1.25rem);
   }
 
@@ -275,19 +275,19 @@
   }
 
   .glow-green {
-    text-shadow: 0 0 10px hsl(var(--primary) / 0.4);
+    text-shadow: 0 0 8px hsl(var(--primary) / 0.3);
   }
-
+  .glow-blue {
+    text-shadow: 0 0 8px hsl(var(--primary) / 0.3);
+  }
   .glow-red {
-    text-shadow: 0 0 10px hsl(var(--chart-red) / 0.4);
+    text-shadow: 0 0 8px hsl(var(--chart-red) / 0.3);
   }
-
-  /* Light mode: softer glow effect */
-  .light .glow-green {
-    text-shadow: 0 0 6px hsl(var(--primary) / 0.25);
+  .light .glow-green, .light .glow-blue {
+    text-shadow: 0 0 6px hsl(var(--primary) / 0.2);
   }
   .light .glow-red {
-    text-shadow: 0 0 6px hsl(var(--chart-red) / 0.25);
+    text-shadow: 0 0 6px hsl(var(--chart-red) / 0.2);
   }
 
   /* ── TT brand utilities ── */
