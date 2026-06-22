@@ -28,6 +28,30 @@ interface DebtFacility {
 }
 
 const STORAGE_KEY = "tt_debt_register";
+const DEBT_CACHE_KEY = "tt_debt_register";
+const CACHE_WEBHOOK_GET = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
+const CACHE_WEBHOOK_POST = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
+
+const readCache = async (): Promise<Record<string, string>> => {
+  try {
+    const res = await fetch(CACHE_WEBHOOK_GET);
+    const rows: Array<{ key: string; value: string }> = await res.json();
+    return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  } catch {
+    return {};
+  }
+};
+
+const writeCache = async (key: string, value: string): Promise<void> => {
+  try {
+    await fetch(CACHE_WEBHOOK_POST, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, value }),
+    });
+  } catch {}
+  try { localStorage.setItem(key, value); } catch {}
+};
 const TYPE_OPTIONS: DebtType[] = ["Term Loan", "Asset Finance", "Credit Card", "Director Loan", "Other"];
 const PURPOSE_OPTIONS: DebtPurpose[] = ["Vehicle", "Equipment", "Working Capital", "Property", "Other"];
 
