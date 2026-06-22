@@ -207,12 +207,12 @@ const FinancialHealth = () => {
 
   const [debts, setDebts] = useState<DebtFacility[]>(defaults);
 
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<DebtFacility | null>(null);
   const dragIndexRef = useRef<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [autoEditId, setAutoEditId] = useState<string | null>(null);
   const [activeTile, setActiveTile] = useState<string | null>(null);
   const debtRegisterInitialised = useRef(false);
+
 
   useEffect(() => {
     const loadDebtRegister = async () => {
