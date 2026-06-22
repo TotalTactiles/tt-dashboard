@@ -886,17 +886,35 @@ const ChartsSection = ({
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-2 mb-3">
-                {(["All","Q1","Q2","Q3","Q4"] as const).map(p => (
-                  <button
-                    key={p}
-                    onClick={() => setEarnedPeriod(p)}
-                    className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all
-                      ${earnedPeriod === p
-                        ? "bg-chart-green text-black"
-                        : "bg-white/5 text-muted-foreground hover:bg-white/10"}`}
-                  >{p}</button>
-                ))}
+              <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  {(["All","Q1","Q2","Q3","Q4"] as const).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => { setEarnedPeriod(p); setEarnedMonth(""); }}
+                      className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all
+                        ${earnedPeriod === p && !earnedMonth
+                          ? "bg-chart-green text-black"
+                          : "bg-white/5 text-muted-foreground hover:bg-white/10"}`}
+                    >{p}</button>
+                  ))}
+                </div>
+                <select
+                  value={earnedMonth}
+                  onChange={e => {
+                    setEarnedMonth(e.target.value);
+                    if (e.target.value) setEarnedPeriod("All");
+                  }}
+                  className={`bg-white/5 border rounded-lg px-3 py-1 text-xs font-mono focus:outline-none cursor-pointer transition-all
+                    ${earnedMonth
+                      ? "border-chart-green/50 text-chart-green"
+                      : "border-white/10 text-muted-foreground"}`}
+                >
+                  <option value="" className="bg-[#0f172a] text-muted-foreground">Month ▾</option>
+                  {earnedVsDebtData.rows.map((d: any) => (
+                    <option key={d.month} value={d.month} className="bg-[#0f172a] text-foreground">{d.month}</option>
+                  ))}
+                </select>
               </div>
               <div className="flex flex-wrap gap-2 mb-4">
                 <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2">
