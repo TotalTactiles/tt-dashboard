@@ -363,13 +363,26 @@ ${expItems.map((r: any) => {
 
 
 
-function readDebtRegister(): any[] {
+const CACHE_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
+
+async function getDebtRegister(): Promise<any[]> {
   try {
-    const raw = localStorage.getItem("tt_debt_register");
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch { return []; }
+    const res = await fetch(CACHE_WEBHOOK);
+    const rows: Array<{ key: string; value: string }> = await res.json();
+    const row = rows.find((r) => r.key === "tt_debt_register");
+    if (row?.value) {
+      const parsed = JSON.parse(row.value);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  try {
+    const saved = localStorage.getItem("tt_debt_register");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
 }
 
 function computeDebtTotals(register: any[]) {
@@ -936,7 +949,7 @@ export default function ConsultingPage() {
       return { role: m.role, content: m.content };
     });
     try {
-      const debtRegister = readDebtRegister();
+      const debtRegister = await getDebtRegister();
       const debtTotals = computeDebtTotals(debtRegister);
       const text = await callAI(SYSTEM_PROMPT + dataContext, apiMessages as any, {
         message: trimmed,
