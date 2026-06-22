@@ -721,7 +721,9 @@ const ChartsSection = ({
       const earnedRevenue = Number(row?.income) || 0;
       const cashflowVal = loanRepaymentRow ? Math.abs(parseNum(loanRepaymentRow[month])) : 0;
       const debtDrawdown = cashflowVal > 0 ? cashflowVal : vinnyFallback;
-      return { month, earnedRevenue, debtDrawdown, netEarned: earnedRevenue - debtDrawdown };
+      const totalCosts = Math.abs(Number(row?.outgoings) || 0);
+      const operatingCosts = Math.max(0, totalCosts - debtDrawdown);
+      return { month, earnedRevenue, debtDrawdown, operatingCosts, netEarned: earnedRevenue - debtDrawdown };
     });
 
     const hasAnySource = loanRepaymentRow !== null || vinnyFacilities.length > 0;
