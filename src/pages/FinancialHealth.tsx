@@ -921,17 +921,29 @@ const ChartsSection = ({
         </div>
 
         {/* Panel 2 - Figures */}
-        <div className="chart-container lg:w-[45%]">
-          <p className="text-sm font-semibold text-foreground">Financial Position</p>
-          <p className="text-xs text-muted-foreground mb-3">{periodLabel}</p>
-
-          <div className="text-[10px] uppercase tracking-widest font-mono pt-3 pb-1 text-chart-green/70">What Came In</div>
-          <div className="flex justify-between items-center py-2 border-b border-white/5">
-            <span className="text-xs text-muted-foreground">Total Revenue Earned</span>
-            <span className="text-sm font-mono font-semibold text-chart-green">{fmtAUD(periodFigures.periodRevenue)}</span>
+        <div className="bg-[#0a0f1a] border border-white/10 rounded-xl p-6 flex flex-col gap-0 lg:w-[45%]">
+          <div className="mb-5">
+            <p className="text-base font-semibold text-foreground tracking-tight">Financial Position</p>
+            <p className="text-[11px] text-muted-foreground font-mono mt-0.5">Viewing: {periodLabel}</p>
           </div>
 
-          <div className="text-[10px] uppercase tracking-widest font-mono pt-3 pb-1 text-red-400/70">What Went Out</div>
+          {/* INCOME */}
+          <div className="flex items-center gap-2 mt-4 mb-1">
+            <div className="h-px flex-1 bg-white/10" />
+            <span className="text-[9px] uppercase tracking-[0.15em] font-mono font-semibold text-emerald-400/80">INCOME</span>
+            <div className="h-px flex-1 bg-white/10" />
+          </div>
+          <div className="flex justify-between items-center py-2 border-b border-white/5">
+            <span className="text-xs text-muted-foreground">Total Revenue Earned</span>
+            <span className="text-sm font-mono font-semibold text-emerald-400">{fmtAUD(periodFigures.periodRevenue)}</span>
+          </div>
+
+          {/* EXPENDITURE */}
+          <div className="flex items-center gap-2 mt-4 mb-1">
+            <div className="h-px flex-1 bg-white/10" />
+            <span className="text-[9px] uppercase tracking-[0.15em] font-mono font-semibold text-red-400/80">EXPENDITURE</span>
+            <div className="h-px flex-1 bg-white/10" />
+          </div>
           <div className="flex justify-between items-center py-2 border-b border-white/5">
             <span className="text-xs text-muted-foreground">Operating Costs</span>
             <span className="text-sm font-mono font-semibold text-red-400">{fmtAUD(periodFigures.periodOutgoings)}</span>
@@ -940,34 +952,55 @@ const ChartsSection = ({
             <span className="text-xs text-muted-foreground">Debt Repayments</span>
             <span className="text-sm font-mono font-semibold text-red-400">{fmtAUD(periodFigures.periodDebtRepayments)}</span>
           </div>
-          <div className="flex justify-between items-center py-2 border-b border-white/5">
-            <span className="text-xs text-muted-foreground">Total Out</span>
+          <div
+            className="flex justify-between items-center pt-2 pb-1 mt-1"
+            style={{ borderTop: "2px solid rgba(255,255,255,0.15)", borderBottom: "3px double rgba(255,255,255,0.15)" }}
+          >
+            <span className="text-xs font-semibold text-foreground">Total Expenditure</span>
             <span className="text-sm font-mono font-bold text-red-400">{fmtAUD(periodFigures.periodOutgoings + periodFigures.periodDebtRepayments)}</span>
           </div>
 
-          <div className={`text-[10px] uppercase tracking-widest font-mono pt-3 pb-1 ${periodFigures.netPosition >= 0 ? "text-chart-green/70" : "text-red-400/70"}`}>Net Position</div>
-          <div className="flex justify-between items-center py-2 border-b border-white/5">
-            <span className="text-xs text-muted-foreground">Net After All Costs & Debt</span>
-            <span className={`text-xl font-bold font-mono ${periodFigures.netPosition >= 0 ? "text-chart-green" : "text-red-400"}`}>{fmtAUD(periodFigures.netPosition)}</span>
+          {/* NET POSITION */}
+          <div className="flex items-center gap-2 mt-4 mb-1">
+            <div className="h-px flex-1 bg-white/10" />
+            <span className={`text-[9px] uppercase tracking-[0.15em] font-mono font-semibold ${periodFigures.netPosition >= 0 ? "text-amber-400/80" : "text-red-400/80"}`}>NET POSITION</span>
+            <div className="h-px flex-1 bg-white/10" />
           </div>
-          <p className="text-[10px] text-muted-foreground mt-1">
+          <div
+            className="flex justify-between items-center py-3 mt-2"
+            style={{ borderTop: "2px solid rgba(255,255,255,0.2)", borderBottom: "3px double rgba(255,255,255,0.25)" }}
+          >
+            <span className="text-sm font-semibold text-foreground">Net After All Costs & Debt</span>
+            <span className={`text-xl font-mono font-bold ${periodFigures.netPosition >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+              {periodFigures.netPosition < 0 ? "-" : ""}{fmtAUD(Math.abs(periodFigures.netPosition))}
+            </span>
+          </div>
+          <p className="text-[10px] text-muted-foreground italic mt-1.5">
             {periodFigures.netPosition >= 0
-              ? `↑ The business generated ${fmtAUD(periodFigures.netPosition)} after covering all costs and debt this period`
-              : `↓ Costs and debt exceeded revenue by ${fmtAUD(Math.abs(periodFigures.netPosition))} this period`}
+              ? `↑ ${fmtAUD(periodFigures.netPosition)} generated after all costs and debt this period`
+              : `↓ Costs exceeded revenue by ${fmtAUD(Math.abs(periodFigures.netPosition))} this period`}
           </p>
 
-          <div className="text-[10px] uppercase tracking-widest font-mono pt-3 pb-1 text-muted-foreground/70">Debt Picture (All Time)</div>
-          <div className="flex justify-between items-center py-2 border-b border-white/5">
-            <span className="text-xs text-muted-foreground">Total Borrowed</span>
-            <span className="text-sm font-mono font-semibold text-muted-foreground">{fmtAUD(periodFigures.totalBorrowedToDate)}</span>
+          {/* DEBT POSITION — ALL TIME */}
+          <div className="flex items-center gap-2 mt-6 mb-1">
+            <div className="h-px flex-1 bg-white/10" />
+            <span className="text-[9px] uppercase tracking-[0.15em] font-mono font-semibold text-muted-foreground/60">DEBT POSITION — ALL TIME</span>
+            <div className="h-px flex-1 bg-white/10" />
           </div>
           <div className="flex justify-between items-center py-2 border-b border-white/5">
-            <span className="text-xs text-muted-foreground">Total Repaid to Date</span>
-            <span className="text-sm font-mono font-semibold text-chart-green">{fmtAUD(periodFigures.totalRepaidToDate)}</span>
+            <span className="text-xs text-muted-foreground">Total Facilities Drawn</span>
+            <span className="text-sm font-mono font-semibold text-foreground">{fmtAUD(periodFigures.totalBorrowedToDate)}</span>
           </div>
           <div className="flex justify-between items-center py-2 border-b border-white/5">
-            <span className="text-xs text-muted-foreground">Still Owed</span>
-            <span className="text-sm font-mono font-semibold text-red-400">{fmtAUD(periodFigures.totalStillOwed)}</span>
+            <span className="text-xs text-muted-foreground">Principal Repaid to Date</span>
+            <span className="text-sm font-mono font-semibold text-emerald-400">{fmtAUD(periodFigures.totalRepaidToDate)}</span>
+          </div>
+          <div
+            className="flex justify-between items-center pt-2 pb-1 mt-1"
+            style={{ borderTop: "2px solid rgba(255,255,255,0.15)", borderBottom: "3px double rgba(255,255,255,0.15)" }}
+          >
+            <span className="text-xs font-semibold text-foreground">Still Outstanding</span>
+            <span className="text-sm font-mono font-bold text-red-400">{fmtAUD(periodFigures.totalStillOwed)}</span>
           </div>
         </div>
       </div>
