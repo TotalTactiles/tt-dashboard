@@ -223,12 +223,14 @@ const FinancialHealth = () => {
         value: `${cashCover.toFixed(1)} months`,
         benchmark: "Benchmark: ≥ 3 months",
         rag: ragFromThresholds(cashCover, 3, 1.5),
+        subValue: `(${(cashCover / 12).toFixed(1)} years)`,
       },
       {
         name: "Repayment Burden",
         value: `${burden.toFixed(0)}% of GP`,
         benchmark: "Benchmark: < 20% of GP",
         rag: ragFromThresholds(burden, 20, 35, true),
+        subBenchmark: `${Math.round(burden)}c in every $1 of GP goes to debt`,
       },
     ];
   }, [dataMissing, annualInterestCost, grossProfitYTD, totalMonthlyRepayment, revenueExGST, totalDebt, recentSurplus]);
