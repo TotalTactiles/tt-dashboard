@@ -1034,13 +1034,43 @@ const ChartsSection = ({
           <p className="text-xs text-muted-foreground">What the business actually earns after all debt is removed — the lender's view</p>
         </div>
 
+        {/* Serviceability View Toggle */}
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">
+            Serviceability View:
+          </span>
+          <div className="inline-flex bg-white/5 rounded-xl p-1 border border-white/10">
+            {[
+              { key: "actuals", label: "📊 Past Actuals Only", desc: "Verified bank-statement income" },
+              { key: "with_grn", label: "✅ With GRNs", desc: "Actuals + signed contracts/POs (70% haircut)" },
+              { key: "with_ylw", label: "🤝 With GRNs & YLWs", desc: "Actuals + all contracted + probable pipeline (70% haircut)" },
+            ].map(opt => (
+              <button
+                key={opt.key}
+                onClick={() => setServiceabilityView(opt.key as any)}
+                title={opt.desc}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all whitespace-nowrap
+                  ${serviceabilityView === opt.key
+                    ? "bg-chart-green text-black font-semibold"
+                    : "text-muted-foreground hover:text-foreground"}`}
+              >{opt.label}</button>
+            ))}
+          </div>
+          <span className="text-[10px] text-muted-foreground italic font-mono">
+            {serviceabilityView === "actuals" && "Conservative — past income only"}
+            {serviceabilityView === "with_grn" && "Standard — signed contracts counted at 70%"}
+            {serviceabilityView === "with_ylw" && "Optimistic — all pipeline counted at 70%"}
+          </span>
+        </div>
+
         {/* Unified card: pills + filters + chart + Financial Position */}
         <div className="chart-container mt-4">
           {/* TOP ROW — 4 stat pills inline */}
           <div className="flex flex-wrap gap-3 mb-5">
             {[
               { label: "Avg Monthly (3m Actual)", value: debtStripped.avg3, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg3 >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD },
-              { label: "Avg Monthly (6m Blended)", value: debtStripped.avg6Blended, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg6Blended >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD },
+              { label: serviceabilityView === "actuals" ? "Avg Monthly (6m Actual)" : serviceabilityView === "with_grn" ? "Avg Monthly (6m + GRNs)" : "Avg Monthly (6m + GRN/YLW)", value: debtStripped.avg6Blended, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg6Blended >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD },
+
 
               { label: "Max New Monthly Repayment", value: debtStripped.maxNewRepayment, colorStyle: ragHex, colorClass: "", fmt: fmtAUD },
               { label: "Est. Borrowing Capacity", value: debtStripped.borrowingCapacity60, colorStyle: undefined as string | undefined, colorClass: "text-chart-green", fmt: fmtK },
