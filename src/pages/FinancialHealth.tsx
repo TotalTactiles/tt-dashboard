@@ -453,10 +453,10 @@ const FinancialHealth = () => {
                   <div className="flex flex-col items-center justify-center py-3">
                     <span className="text-3xl font-bold text-foreground font-mono">{m.value}</span>
                     {m.subValue && m.value !== "--" && (
-                      <p className="text-xs text-muted-foreground font-mono mt-1">{m.subValue}</p>
+                      <p className="text-xs text-foreground/70 font-mono mt-1 text-center">{m.subValue}</p>
                     )}
                     {m.subBenchmark && m.value !== "--" && (
-                      <p className="text-xs text-muted-foreground font-mono mt-1">({m.subBenchmark})</p>
+                      <p className="text-xs text-foreground/70 font-mono mt-1 text-center px-2">({m.subBenchmark})</p>
                     )}
                   </div>
                   <p className="text-[10px] text-muted-foreground">{m.benchmark}</p>
