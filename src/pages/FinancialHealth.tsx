@@ -446,10 +446,16 @@ const FinancialHealth = () => {
                 >
                   <div className="absolute top-3 right-3">{ragDot(m.rag)}</div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wider">{m.name}</p>
-                  <div className="flex items-center justify-center py-3">
+                  <div className="flex flex-col items-center justify-center py-3">
                     <span className="text-3xl font-bold text-foreground font-mono">{m.value}</span>
+                    {m.subValue && m.value !== "--" && (
+                      <p className="text-xs text-muted-foreground font-mono mt-1">{m.subValue}</p>
+                    )}
                   </div>
                   <p className="text-[10px] text-muted-foreground">{m.benchmark}</p>
+                  {m.subBenchmark && m.value !== "--" && (
+                    <p className="text-[10px] text-muted-foreground mt-1 font-mono">{m.subBenchmark}</p>
+                  )}
                   {m.rag === "none" && <p className="text-[10px] text-muted-foreground mt-0.5">No data</p>}
                 </button>
               );
