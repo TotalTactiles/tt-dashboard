@@ -254,28 +254,19 @@ const FinancialHealth = () => {
     return { totalPrincipal, totalBalance, totalMonthly, blendedRate };
   }, [debts]);
 
-  const startEdit = (d: DebtFacility) => { setEditingId(d.id); setDraft({ ...d }); };
-  const cancelEdit = () => { setEditingId(null); setDraft(null); };
-  const saveEdit = () => {
-    if (!draft) return;
-    setDebts((prev) => prev.map((d) => (d.id === draft.id ? draft : d)));
-    cancelEdit();
+  const handleRowSave = (updated: DebtFacility) => {
+    setDebts((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
   };
   const deleteRow = (id: string) => {
     setDebts((prev) => prev.filter((d) => d.id !== id));
-    if (editingId === id) cancelEdit();
   };
   const addFacility = () => {
     const id = `f-${Date.now()}`;
     const fresh: DebtFacility = { id, name: "New Facility", lender: "", type: "Term Loan", originalPrincipal: 0, balance: 0, rate: 0, monthlyRepayment: 0, startDate: "", maturityDate: "", purpose: "Working Capital" };
     setDebts((prev) => [...prev, fresh]);
-    setEditingId(id);
-    setDraft(fresh);
+    setAutoEditId(id);
   };
 
-  const updateDraft = <K extends keyof DebtFacility>(k: K, v: DebtFacility[K]) => {
-    setDraft((d) => (d ? { ...d, [k]: v } : d));
-  };
 
   // --- Scorecard inputs ---
   const totalDebt = totals.totalBalance;
