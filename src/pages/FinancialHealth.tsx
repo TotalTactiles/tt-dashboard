@@ -1136,19 +1136,24 @@ const ChartsSection = ({
                   <td className="pr-4 text-right">anticipatedSurplus</td>
                   <td className="pr-4 text-right">surplusInclProbable</td>
                   <td className="pr-4 text-right">Used (×0.70)</td>
+                  <td className="pr-4 text-right">Monthly Movement</td>
                 </tr>
               </thead>
               <tbody>
                 {(forecastChartData ?? []).map((d: any) => {
                   const isInPast = debtStripped._pastActuals.some((p: any) => p.month === d.month);
                   const included = debtStripped._forwardContracted.some((f: any) => f.month === d.month);
+                  const fwd = debtStripped._forwardContracted.find((f: any) => f.month === d.month);
                   return (
                     <tr key={d.month} className={included ? "text-blue-400" : "text-white/20"}>
                       <td className="pr-4">{d.month} {included ? "✓" : ""} {isInPast ? "(past)" : ""}</td>
                       <td className="pr-4 text-right">${Number(d.anticipatedSurplus || 0).toLocaleString()}</td>
                       <td className="pr-4 text-right">${Number(d.surplusIncludingProbable || 0).toLocaleString()}</td>
                       <td className="pr-4 text-right">
-                        {included ? `$${debtStripped._forwardContracted.find((f: any) => f.month === d.month)?.net.toFixed(0)}` : "—"}
+                        {included ? `$${fwd?.net.toFixed(0)}` : "—"}
+                      </td>
+                      <td className="pr-4 text-right text-yellow-400">
+                        {included ? `$${fwd?._movement?.toFixed(0) ?? "—"}` : "—"}
                       </td>
                     </tr>
                   );
