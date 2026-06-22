@@ -821,29 +821,21 @@ const ChartsSection = ({
       return { month, earnedRevenue, operatingCosts, debtBurden: monthlyDebt, netFreeCash };
     });
 
-    // ---- Serviceability metrics from anticipatedSurplus (cashflow) ----
-    const parseSurplus = (v: any) => {
-      if (v === null || v === undefined || v === "") return 0;
-      return parseFloat(String(v).replace(/[$,]/g, "")) || 0;
-    };
-    const surplusMonths = (Array.isArray(forecastChartData) ? forecastChartData : [])
-      .filter((d: any) => d?.anticipatedSurplus != null && parseSurplus(d.anticipatedSurplus) !== 0)
-      .map((d: any) => ({ month: String(d.month ?? ""), surplus: parseSurplus(d.anticipatedSurplus) }));
-    const monthOrder = io.map((d: any) => String(d?.month ?? ""));
-    const sortedSurplus = [...surplusMonths].sort(
-      (a, b) => monthOrder.indexOf(a.month) - monthOrder.indexOf(b.month)
+    // ---- Serviceability metrics from incomeOutgoingsData.surplus (monthly) ----
+    const currentMonthIdx = io.findIndex((d: any) => d?.month === "Jun-26");
+    const pastData = currentMonthIdx >= 0
+      ? io.slice(0, currentMonthIdx + 1)
+      : io.filter((d: any) => !d?.isFuture);
+    const validMonths = pastData.filter(
+      (d: any) => (Number(d?.income) || 0) > 0 && d?.surplus !== null && d?.surplus !== undefined
     );
-    const currentIdx = monthOrder.indexOf("Jun-26");
-    const pastMonths = sortedSurplus.filter(
-      (d) => currentIdx < 0 || monthOrder.indexOf(d.month) <= currentIdx
-    );
-    const avgOf = (arr: { surplus: number }[]) =>
-      arr.length > 0 ? arr.reduce((s, d) => s + d.surplus, 0) / arr.length : 0;
-    const avg3 = avgOf(pastMonths.slice(-3));
-    const avg6 = avgOf(pastMonths.slice(-6));
-    const avg12 = avgOf(pastMonths.slice(-12));
+    const avgOf = (arr: any[]) =>
+      arr.length > 0 ? arr.reduce((s: number, d: any) => s + (Number(d?.surplus) || 0), 0) / arr.length : 0;
+    const avg3 = avgOf(validMonths.slice(-3));
+    const avg6 = avgOf(validMonths.slice(-6));
+    const avg12 = avgOf(validMonths.slice(-12));
 
-    const lenderUsableIncome = avg6 * 0.80;
+    const lenderUsableIncome = Math.max(0, avg6) * 0.80;
     const maxNewRepayment = Math.max(0, lenderUsableIncome - totalMonthlyRepayment);
     const monthlyRate = 0.07 / 12;
     const borrowingCapacity60 =
@@ -852,7 +844,8 @@ const ChartsSection = ({
         : 0;
 
     return { rows, avg3, avg6, avg12, lenderUsableIncome, maxNewRepayment, borrowingCapacity60 };
-  }, [io, liveData, forecastChartData, totalMonthlyRepayment]);
+  }, [io, liveData, totalMonthlyRepayment]);
+
 
 
   const ragColor = (v: number) => (v > 2000 ? "#22c55e" : v >= 500 ? "#f59e0b" : "#ef4444");
