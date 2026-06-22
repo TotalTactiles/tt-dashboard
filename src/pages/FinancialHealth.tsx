@@ -888,6 +888,9 @@ const ChartsSection = ({
       lenderUsableIncome,
       maxNewRepayment,
       borrowingCapacity60,
+      existingMonthlyDebt,
+      _pastActuals,
+      _forwardContracted,
     };
   }, [io, liveData, forecastChartData, totalMonthlyRepayment, serviceabilityView]);
 
