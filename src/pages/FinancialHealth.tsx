@@ -821,30 +821,44 @@ const ChartsSection = ({
       return { month, earnedRevenue, operatingCosts, debtBurden: monthlyDebt, netFreeCash };
     });
 
-    // ---- Serviceability metrics from incomeOutgoingsData.surplus (monthly) ----
-    const currentMonthIdx = io.findIndex((d: any) => d?.month === "Jun-26");
-    const pastData = currentMonthIdx >= 0
-      ? io.slice(0, currentMonthIdx + 1)
-      : io.filter((d: any) => !d?.isFuture);
-    const validMonths = pastData.filter(
-      (d: any) => (Number(d?.income) || 0) > 0 && d?.surplus !== null && d?.surplus !== undefined
+    // === SERVICEABILITY CALC — uses monthly surplus from incomeOutgoingsData ===
+    const _validSurplusMonths = (io ?? []).filter((d: any) =>
+      (Number(d?.income) || 0) > 0 && typeof d?.surplus === "number" && !d?.isFuture
     );
-    const avgOf = (arr: any[]) =>
-      arr.length > 0 ? arr.reduce((s: number, d: any) => s + (Number(d?.surplus) || 0), 0) / arr.length : 0;
-    const avg3 = avgOf(validMonths.slice(-3));
-    const avg6 = avgOf(validMonths.slice(-6));
-    const avg12 = avgOf(validMonths.slice(-12));
+    const _s3 = _validSurplusMonths.slice(-3);
+    const _s6 = _validSurplusMonths.slice(-6);
+    const _s12 = _validSurplusMonths.slice(-12);
+    const avg3MonthNetFree = _s3.length > 0 ? _s3.reduce((s: number, d: any) => s + d.surplus, 0) / _s3.length : 0;
+    const avg6MonthNetFree = _s6.length > 0 ? _s6.reduce((s: number, d: any) => s + d.surplus, 0) / _s6.length : 0;
+    const avg12MonthNetFree = _s12.length > 0 ? _s12.reduce((s: number, d: any) => s + d.surplus, 0) / _s12.length : 0;
+    // === END SERVICEABILITY CALC ===
 
-    const lenderUsableIncome = Math.max(0, avg6) * 0.80;
-    const maxNewRepayment = Math.max(0, lenderUsableIncome - totalMonthlyRepayment);
-    const monthlyRate = 0.07 / 12;
-    const borrowingCapacity60 =
-      maxNewRepayment > 0
-        ? maxNewRepayment * ((1 - Math.pow(1 + monthlyRate, -60)) / monthlyRate)
-        : 0;
+    const existingMonthlyDebt = totalMonthlyRepayment;
+    const lenderUsableIncome = Math.max(0, avg6MonthNetFree) * 0.80;
+    const maxNewRepayment = Math.max(0, lenderUsableIncome - existingMonthlyDebt);
+    const monthlyRate007 = 0.07 / 12;
+    const borrowingCapacity60 = maxNewRepayment > 0
+      ? maxNewRepayment * ((1 - Math.pow(1 + monthlyRate007, -60)) / monthlyRate007)
+      : 0;
 
-    return { rows, avg3, avg6, avg12, lenderUsableIncome, maxNewRepayment, borrowingCapacity60 };
+    console.log("[Serviceability Debug]", {
+      validMonthCount: _validSurplusMonths.length,
+      months: _validSurplusMonths.map((d: any) => ({ month: d.month, surplus: d.surplus, isFuture: d.isFuture })),
+      avg3: avg3MonthNetFree,
+      avg6: avg6MonthNetFree,
+    });
+
+    return {
+      rows,
+      avg3: avg3MonthNetFree,
+      avg6: avg6MonthNetFree,
+      avg12: avg12MonthNetFree,
+      lenderUsableIncome,
+      maxNewRepayment,
+      borrowingCapacity60,
+    };
   }, [io, liveData, totalMonthlyRepayment]);
+
 
 
 
