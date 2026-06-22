@@ -740,6 +740,35 @@ const ChartsSection = ({
     return { totalDebt, avgNet, debtPct };
   }, [earnedVsDebtData]);
 
+  const [earnedPeriod, setEarnedPeriod] = useState<"Q1"|"Q2"|"Q3"|"Q4"|"All">("All");
+  const quarterMonths: Record<string, string[]> = {
+    Q1: ["Jan-26","Feb-26","Mar-26"],
+    Q2: ["Apr-26","May-26","Jun-26"],
+    Q3: ["Jul-26","Aug-26","Sep-26"],
+    Q4: ["Oct-26","Nov-26","Dec-26"],
+    All: [],
+  };
+  const filteredEarnedData = useMemo(() => (
+    earnedPeriod === "All"
+      ? earnedVsDebtData.rows
+      : earnedVsDebtData.rows.filter((d: any) => quarterMonths[earnedPeriod].includes(d.month))
+  ), [earnedPeriod, earnedVsDebtData]);
+
+  const periodFigures = useMemo(() => {
+    const periodRevenue = filteredEarnedData.reduce((s: number, d: any) => s + (d.earnedRevenue || 0), 0);
+    const periodDebtRepayments = filteredEarnedData.reduce((s: number, d: any) => s + (d.debtDrawdown || 0), 0);
+    const periodOutgoings = filteredEarnedData.reduce((s: number, d: any) => s + (d.operatingCosts || 0), 0);
+    const totalBorrowedToDate = debts.reduce((s, f) => s + (Number(f.originalPrincipal) || 0), 0);
+    const totalStillOwed = debts.reduce((s, f) => s + (Number(f.balance) || 0), 0);
+    const totalRepaidToDate = Math.max(0, totalBorrowedToDate - totalStillOwed);
+    const netPosition = periodRevenue - periodOutgoings - periodDebtRepayments;
+    return { periodRevenue, periodDebtRepayments, periodOutgoings, totalBorrowedToDate, totalRepaidToDate, totalStillOwed, netPosition };
+  }, [filteredEarnedData, debts]);
+
+  const periodLabel = earnedPeriod === "All"
+    ? "Viewing: Full Year 2026"
+    : `Viewing: ${earnedPeriod} 2026 · ${{Q1:"Jan–Mar",Q2:"Apr–Jun",Q3:"Jul–Sep",Q4:"Oct–Dec"}[earnedPeriod]}`;
+
   const EarnedTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
     return (
