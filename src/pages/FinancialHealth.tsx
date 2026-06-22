@@ -996,6 +996,14 @@ const ScorecardDetailPanel = ({
   const annualRepay = totalMonthlyRepayment * 12;
   const metric = metrics.find((m) => m.name === activeTile);
 
+  const interestCoverageValue = annualInterestCost > 0 ? grossProfitYTD / annualInterestCost : 0;
+  const dscrValue = annualRepay > 0 ? grossProfitYTD / annualRepay : 0;
+  const debtToRevenueValue = revenueExGST > 0 ? (totalDebt / revenueExGST) * 100 : 0;
+  const debtToGpValue = grossProfitYTD > 0 ? (totalDebt / grossProfitYTD) * 100 : 0;
+  const cashCoverValue = totalMonthlyRepayment > 0 ? recentSurplus / totalMonthlyRepayment : 0;
+  const cashCoverYears = (cashCoverValue / 12).toFixed(1);
+  const repaymentBurdenValue = grossProfitYTD > 0 ? (annualRepay / grossProfitYTD) * 100 : 0;
+
   const buildContent = () => {
     switch (activeTile) {
       case "Interest Coverage":
