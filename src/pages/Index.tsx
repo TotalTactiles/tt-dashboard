@@ -957,6 +957,7 @@ const DashboardContent = () => {
                     key="win-loss-summary"
                     quotedJobs={quotedJobs}
                     index={i}
+                    emphasis
                   />
                 );
               }
@@ -970,6 +971,7 @@ const DashboardContent = () => {
                     grossProfit={e.grossProfit ?? 0}
                     netProfit={e.netProfit ?? 0}
                     index={i}
+                    emphasis
                   />
                 );
               }
@@ -984,6 +986,7 @@ const DashboardContent = () => {
                   altValue={stat.altValue}
                   altChange={stat.altChange}
                   altPositive={stat.altPositive}
+                  emphasis
                 />
               );
             })}
