@@ -251,6 +251,17 @@ export interface DashboardData {
   updateScreenshot: (id: string, url: string) => void;
   removeScreenshot: (id: string) => void;
   changeDetectorMeta: { lastChecked: string | null; lastTriggered: string | null; noChangeCount: number };
+  xeroData: any | null;
+  xeroCash: any | null;
+  xeroPnl: any | null;
+  xeroMonthlyCashflow: Array<{
+    monthKey: string;
+    monthLabel: string;
+    receipts: number;
+    spend: number;
+    net: number;
+    count: number;
+  }>;
 }
 
 const DashboardDataContext = createContext<DashboardData | null>(null);
