@@ -445,25 +445,18 @@ function loadFormulas(): MetricFormula[] {
     const raw = localStorage.getItem(STORAGE_KEY);
 
     if (!raw) {
-      const seeded = DEFAULT_FORMULAS.map((formula) => ({ ...formula, id: crypto.randomUUID() }));
+      const seeded = DEFAULT_FORMULAS.map((f) => ({ ...f, id: crypto.randomUUID() }));
       localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
-      localStorage.setItem(SEED_KEY, "true");
-      localStorage.setItem(FORMULA_MIGRATION_KEY, "true");
       return seeded;
     }
 
     const parsed = JSON.parse(raw) as MetricFormula[];
-
-    if (!localStorage.getItem(FORMULA_MIGRATION_KEY)) {
-      const migrated = migrateStoredFormulas(parsed);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-      localStorage.setItem(FORMULA_MIGRATION_KEY, "true");
-      return migrated;
-    }
-
-    return parsed;
+    // Always sync — upsertSystemFormula is idempotent (no-op if unchanged)
+    const synced = migrateStoredFormulas(parsed);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(synced));
+    return synced;
   } catch {
-    return [];
+    return DEFAULT_FORMULAS.map((f) => ({ ...f, id: crypto.randomUUID() }));
   }
 }
 
