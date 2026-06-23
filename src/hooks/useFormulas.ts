@@ -373,6 +373,9 @@ const DEFAULT_VARIABLE_NAMES = [
   "ConversionRate", "ConversionRateConfirmed", "NetRevenue", "CashPosition", "MonthlyExpenses",
   "GrossProfitMargin",
   "onTimeDelivery", "scheduleSlippage", "marginVariance", "labourEfficiency",
+  "XeroCashOpening", "XeroCashCurrent", "XeroCashMovement",
+  "XeroCashPosition", "XeroRevenue", "XeroNetProfit", "XeroAR",
+  "XeroGrossProfit", "GrossProfitMargin", "YLWplusGRN",
 ];
 
 export function getAvailableVariables(kpiVariables?: Record<string, number>): string[] {
