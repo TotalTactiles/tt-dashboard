@@ -36,7 +36,32 @@ interface StatCardProps {
   altChange2?: string;
   altPositive2?: boolean;
   toggleLabelAlt2?: string;
+  emphasis?: boolean;
 }
+
+const emphasisValueShortStyle: React.CSSProperties = {
+  fontSize: 'clamp(2rem, 3.2vw, 3.25rem)',
+  lineHeight: 1.05,
+  fontWeight: 700,
+  fontVariantNumeric: 'tabular-nums',
+  letterSpacing: '-0.02em',
+  minWidth: 0,
+  maxWidth: '100%',
+  display: 'block',
+  wordBreak: 'break-word',
+};
+
+const emphasisValueLongStyle: React.CSSProperties = {
+  fontSize: 'clamp(1.65rem, 2.8vw, 2.75rem)',
+  lineHeight: 1.05,
+  fontWeight: 700,
+  fontVariantNumeric: 'tabular-nums',
+  letterSpacing: '-0.015em',
+  minWidth: 0,
+  maxWidth: '100%',
+  display: 'block',
+  wordBreak: 'break-word',
+};
 
 function timeAgo(ts: number | null): string {
   if (!ts) return "never";
