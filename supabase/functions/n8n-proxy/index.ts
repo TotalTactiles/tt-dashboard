@@ -34,11 +34,34 @@ Deno.serve(async (req) => {
         ? JSON.stringify(payload ?? {})
         : JSON.stringify(source ? { source, timestamp: new Date().toISOString() } : {});
 
-    const response = await fetch(targetUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: forwardBody,
-    });
+    // Abort upstream call before the edge function's 150s idle timeout fires
+    const controller = new AbortController();
+    const timeoutMs = 120_000;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    let response: Response;
+    try {
+      response = await fetch(targetUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: forwardBody,
+        signal: controller.signal,
+      });
+    } catch (err) {
+      clearTimeout(timeoutId);
+      const aborted = (err as any)?.name === "AbortError";
+      return new Response(
+        JSON.stringify({
+          _proxyError: true,
+          error: aborted
+            ? `Upstream n8n webhook did not respond within ${timeoutMs / 1000}s`
+            : (err instanceof Error ? err.message : "Upstream fetch failed"),
+          timeout: aborted,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    clearTimeout(timeoutId);
 
     // Handle empty or non-JSON upstream responses gracefully
     let data: any = {};
