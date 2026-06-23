@@ -145,7 +145,7 @@ const noteStyle: React.CSSProperties = {
 
 type ToggleMode = "base" | "alt" | "alt2";
 
-const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted, toggleLabelBase, toggleLabelAlt, momDelta, altMomDelta, momContext, altMomContext, greenAltPill, altValue2, altChange2, altPositive2, toggleLabelAlt2 }: StatCardProps) => {
+const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted, toggleLabelBase, toggleLabelAlt, momDelta, altMomDelta, momContext, altMomContext, greenAltPill, altValue2, altChange2, altPositive2, toggleLabelAlt2, emphasis }: StatCardProps) => {
   const { kpiVariables, formulaCache, formulas } = useDashboardData();
   const [mode, setMode] = useState<ToggleMode>("base");
   const [editing, setEditing] = useState(false);
