@@ -1093,10 +1093,9 @@ const DashboardContent = () => {
                 );
               }
               const formulaInfo = stat.label === "Total Won" ? null : getFormulaInfo(stat.label);
-              // Win Rate caption: keep a single short centred line on the card face;
-              // the longer benchmark text is retained as a hover tooltip.
+              // Win Rate: remove the "Won ÷ (Won + Lost)" caption from the card face entirely.
               const captionOverride = stat.label === "Win Rate"
-                ? { momContext: "Won ÷ (Won + Lost)", altMomContext: "Won ÷ (Won + Lost)" }
+                ? { momContext: undefined, altMomContext: undefined }
                 : null;
               return (
                 <StatCard
