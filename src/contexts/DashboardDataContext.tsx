@@ -1182,10 +1182,18 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const kpiVariables: Record<string, number> = {
       ...baseKpiVariables,
       ...projectExecutionVariables,
-      XeroCashOpening: xeroCbaOpening,
-      XeroCashCurrent: xeroCbaCurrent,
-      XeroCashMovement: xeroCbaMovement,
-      XeroCashPosition: xeroCbaOpening,
+      XeroCashOpening: (liveData as any)?.xeroData?.cashPosition?.cba?.openingBalance
+        ?? parseFloat((liveData as any)?.xero_cba_opening ?? '0')
+        ?? 0,
+      XeroCashCurrent: (liveData as any)?.xeroData?.cashPosition?.cba?.currentBalance
+        ?? parseFloat((liveData as any)?.xero_cba_current ?? '0')
+        ?? 0,
+      XeroCashMovement: (liveData as any)?.xeroData?.cashPosition?.cba?.netMovementMTD
+        ?? parseFloat((liveData as any)?.xero_cba_movement ?? '0')
+        ?? 0,
+      XeroCashPosition: (liveData as any)?.xeroData?.cashPosition?.cba?.openingBalance
+        ?? parseFloat((liveData as any)?.xero_cba_opening ?? '0')
+        ?? 0,
       XeroRevenue: xeroRevenueFlt,
       XeroGrossProfit: xeroPnl?.grossProfit ?? 0,
       XeroNetProfit: xeroNetProfitFlt,
