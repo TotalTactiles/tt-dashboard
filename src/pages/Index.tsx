@@ -251,17 +251,20 @@ function RevenueProfitCard({
   const topLabel = isRevenue ? "GROSS REVENUE" : "GROSS PROFIT";
   const bottomLabel = isRevenue ? "NET REVENUE" : "NET PROFIT";
 
-  // Revenue always positive treatment; profit colored by sign
   const topColor = isRevenue ? "text-chart-green" : (topVal >= 0 ? "text-chart-green" : "text-chart-red");
   const bottomColor = isRevenue ? "text-chart-green" : (bottomVal >= 0 ? "text-chart-green" : "text-chart-red");
+
+  const figureStyle: React.CSSProperties = emphasis
+    ? { fontSize: 'clamp(1.5rem, 2.6vw, 2.5rem)', lineHeight: 1.1, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }
+    : {};
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className="stat-card relative overflow-hidden flex flex-col gap-0.5"
-      style={{ minHeight: "100px", containerType: 'inline-size' }}
+      className={`stat-card relative overflow-hidden flex flex-col gap-0.5 ${emphasis ? 'h-full' : ''}`}
+      style={{ minHeight: emphasis ? "180px" : "100px", containerType: 'inline-size' }}
     >
       <div className="flex items-center justify-between gap-1" style={{ minWidth: 0 }}>
         <p
@@ -298,16 +301,18 @@ function RevenueProfitCard({
         </div>
       </div>
 
-      <div className="mt-0.5">
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">{topLabel}</p>
-        <p className={`text-xl font-bold font-mono ${topColor}`}>{fmtCompact(topVal)}</p>
-      </div>
+      <div className={emphasis ? "flex-1 flex flex-col justify-center min-w-0" : ""}>
+        <div className="min-w-0">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">{topLabel}</p>
+          <p className={`font-bold font-mono break-words ${topColor} ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{fmtCompact(topVal)}</p>
+        </div>
 
-      <div className="h-px bg-white/10 my-1" />
+        <div className="h-px bg-white/10 my-1" />
 
-      <div>
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">{bottomLabel}</p>
-        <p className={`text-xl font-bold font-mono ${bottomColor}`}>{fmtCompact(bottomVal)}</p>
+        <div className="min-w-0">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">{bottomLabel}</p>
+          <p className={`font-bold font-mono break-words ${bottomColor} ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{fmtCompact(bottomVal)}</p>
+        </div>
       </div>
     </motion.div>
   );
