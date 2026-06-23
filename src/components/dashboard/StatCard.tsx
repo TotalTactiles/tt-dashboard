@@ -40,8 +40,8 @@ interface StatCardProps {
 }
 
 const emphasisValueShortStyle: React.CSSProperties = {
-  fontSize: 'clamp(2rem, 3.2vw, 3.25rem)',
-  lineHeight: 1.05,
+  fontSize: 'clamp(1.75rem, 2.4vw, 2.5rem)',
+  lineHeight: 1.1,
   fontWeight: 700,
   fontVariantNumeric: 'tabular-nums',
   letterSpacing: '-0.02em',
@@ -52,8 +52,8 @@ const emphasisValueShortStyle: React.CSSProperties = {
 };
 
 const emphasisValueLongStyle: React.CSSProperties = {
-  fontSize: 'clamp(1.65rem, 2.8vw, 2.75rem)',
-  lineHeight: 1.05,
+  fontSize: 'clamp(1.5rem, 2.1vw, 2.15rem)',
+  lineHeight: 1.1,
   fontWeight: 700,
   fontVariantNumeric: 'tabular-nums',
   letterSpacing: '-0.015em',
@@ -253,231 +253,214 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
     }
   }, [editing]);
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.1 }}
-      className={`stat-card relative overflow-hidden flex flex-col gap-0.5 ${emphasis ? 'h-full' : ''} ${ylwGlowClass}`}
-      style={{ minHeight: emphasis ? "180px" : "90px", containerType: 'inline-size', padding: "clamp(0.65rem, 1.5vw, 1.1rem)" }}
-    >
-      {/* ROW 1 — Label + badges */}
-      <div className="flex items-start justify-between gap-1" style={{ minWidth: 0, overflow: 'hidden' }}>
-        <div style={{ minWidth: 0, flex: '1 1 0%' }}>
-          <p
-            className="font-mono text-muted-foreground font-medium"
-            style={titleStyle}
-            title={label}
-          >
-            {label}
-          </p>
-        </div>
-        <div className="flex items-center gap-0.5 flex-shrink-0 flex-wrap justify-end" style={{ maxWidth: "50%" }}>
-          {isActual && (
-            <span className="text-[9px] font-mono text-amber-400/70 bg-amber-400/10 border border-amber-400/20 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>
-              manual
-            </span>
-          )}
-          {goalAdjusted && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="text-[9px] font-mono text-amber-400/70 bg-amber-400/10 border border-amber-400/20 rounded px-1 py-0.5 leading-none cursor-help whitespace-nowrap" style={{ flexShrink: 0 }}>
-                  adj.
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs font-mono max-w-[250px]">
-                Value includes active goal scenarios. Toggle goals off to see baseline.
-              </TooltipContent>
-            </Tooltip>
-          )}
-          {formulaDriven && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="text-[9px] font-mono text-chart-green/70 bg-chart-green/10 border border-chart-green/20 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>
-                  f(x)
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs font-mono max-w-[250px]">
-                <p className="font-semibold">Formula: {formulaDriven.name}</p>
-                <p className="text-muted-foreground mt-0.5">Expression: {formulaDriven.expression}</p>
-                <p className="text-muted-foreground mt-0.5">Last computed: {timeAgo(formulaDriven.lastComputed)}</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </div>
-      </div>
+  // Shared title style for emphasis cards — more legible than the tiny default
+  const emphasisTitleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-xs truncate";
 
-      {/* Toggle pills — own row below label when present */}
-      {hasToggle && !noData && (
-        <div className="flex mt-0.5 mb-0.5">
-          <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
-            <button
-              onClick={() => setMode("base")}
-              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
-                mode === "base"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <span className="hidden sm:inline">{toggleLabelBase ?? "Confirmed"}</span>
-              <span className="sm:hidden">✓</span>
-            </button>
-            <button
-              onClick={() => setMode("alt")}
-              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
-                mode === "alt"
-                  ? pillActiveClass
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {toggleLabelAlt ?? "With YLWs"}
-            </button>
-            {hasThirdToggle && (
-              <button
-                onClick={() => setMode("alt2")}
-                className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
-                  mode === "alt2"
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {toggleLabelAlt2}
-              </button>
-            )}
-          </div>
-        </div>
+  // Badges block — same markup whether emphasised or not
+  const badges = (
+    <div className="flex items-center gap-0.5 flex-wrap justify-center">
+      {isActual && (
+        <span className="text-[9px] font-mono text-amber-400/70 bg-amber-400/10 border border-amber-400/20 rounded px-1 py-0.5 leading-none whitespace-nowrap">
+          manual
+        </span>
       )}
+      {goalAdjusted && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="text-[9px] font-mono text-amber-400/70 bg-amber-400/10 border border-amber-400/20 rounded px-1 py-0.5 leading-none cursor-help whitespace-nowrap">
+              adj.
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs font-mono max-w-[250px]">
+            Value includes active goal scenarios. Toggle goals off to see baseline.
+          </TooltipContent>
+        </Tooltip>
+      )}
+      {formulaDriven && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="text-[9px] font-mono text-chart-green/70 bg-chart-green/10 border border-chart-green/20 rounded px-1 py-0.5 leading-none whitespace-nowrap">
+              f(x)
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs font-mono max-w-[250px]">
+            <p className="font-semibold">Formula: {formulaDriven.name}</p>
+            <p className="text-muted-foreground mt-0.5">Expression: {formulaDriven.expression}</p>
+            <p className="text-muted-foreground mt-0.5">Last computed: {timeAgo(formulaDriven.lastComputed)}</p>
+          </TooltipContent>
+        </Tooltip>
+      )}
+    </div>
+  );
 
-      {/* ROW 2 — Main value */}
-      <div style={{ minWidth: 0, overflow: 'hidden' }} className={emphasis ? "my-0.5 flex-1 flex flex-col justify-center break-words" : "my-0.5"}>
-        {isActual && (editing || isActualNotSet) ? (
-          <div className="flex items-center gap-1">
-            <span className="text-muted-foreground font-mono" style={{ fontSize: 'clamp(0.75rem, 3cqi, 1.2rem)' }}>$</span>
-            <input
-              ref={inputRef}
-              type="text"
-              inputMode="decimal"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onBlur={() => {
-                if (inputValue.trim()) saveActualBalance(inputValue);
-                else setEditing(false);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && inputValue.trim()) saveActualBalance(inputValue);
-                if (e.key === "Escape") setEditing(false);
-              }}
-              placeholder="Enter bank balance..."
-              className="bg-transparent border-b border-primary/40 outline-none font-mono font-bold text-foreground w-full"
-              style={{ fontSize: 'clamp(0.75rem, 3.5cqi, 1.4rem)', lineHeight: '1.2' }}
-              autoFocus
-            />
-          </div>
-        ) : (
-          <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span
-                  className={`font-mono font-bold ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}
-                  style={emphasis ? (isShort ? emphasisValueShortStyle : emphasisValueLongStyle) : (isShort ? valueShortStyle : valueLongStyle)}
-                  title={displayValue}
-                >
-                  {abbreviatedDisplay}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs font-mono">
-                {displayValue}
-              </TooltipContent>
-            </Tooltip>
-            {isActual && !isActualNotSet && (
-              <button
-                onClick={handleEditClick}
-                className="text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded"
-                title="Edit actual balance"
-              >
-                <Pencil className="w-3 h-3" />
-              </button>
-            )}
-          </div>
+  const pillsBlock = hasToggle && !noData ? (
+    <div className={`flex ${emphasis ? "justify-center" : ""} mt-0.5 mb-0.5`}>
+      <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
+        <button
+          onClick={() => setMode("base")}
+          className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+            mode === "base" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <span className="hidden sm:inline">{toggleLabelBase ?? "Confirmed"}</span>
+          <span className="sm:hidden">✓</span>
+        </button>
+        <button
+          onClick={() => setMode("alt")}
+          className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+            mode === "alt" ? pillActiveClass : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {toggleLabelAlt ?? "With YLWs"}
+        </button>
+        {hasThirdToggle && (
+          <button
+            onClick={() => setMode("alt2")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+              mode === "alt2" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {toggleLabelAlt2}
+          </button>
         )}
       </div>
+    </div>
+  ) : null;
 
-      {/* ROW 3 — MoM delta (hidden for Actual toggle) */}
-      {!isActual && !noData && (showAlt && altMomDelta ? altMomDelta : momDelta) && (
-        <p
-          className="font-mono text-muted-foreground"
-          style={sublineStyle}
-          title={showAlt && altMomDelta ? altMomDelta : momDelta}
-        >
-          {showAlt && altMomDelta ? altMomDelta : momDelta}
-        </p>
+  const valueBlock = (
+    <div style={{ minWidth: 0 }} className={emphasis ? "w-full break-words" : "my-0.5"}>
+      {isActual && (editing || isActualNotSet) ? (
+        <div className={`flex items-center gap-1 ${emphasis ? "justify-center" : ""}`}>
+          <span className="text-muted-foreground font-mono" style={{ fontSize: 'clamp(0.75rem, 3cqi, 1.2rem)' }}>$</span>
+          <input
+            ref={inputRef}
+            type="text"
+            inputMode="decimal"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onBlur={() => {
+              if (inputValue.trim()) saveActualBalance(inputValue);
+              else setEditing(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && inputValue.trim()) saveActualBalance(inputValue);
+              if (e.key === "Escape") setEditing(false);
+            }}
+            placeholder="Enter bank balance..."
+            className={`bg-transparent border-b border-primary/40 outline-none font-mono font-bold text-foreground w-full ${emphasis ? "text-center" : ""}`}
+            style={{ fontSize: 'clamp(0.75rem, 3.5cqi, 1.4rem)', lineHeight: '1.2' }}
+            autoFocus
+          />
+        </div>
+      ) : (
+        <div className={`flex items-center gap-1 ${emphasis ? "justify-center" : ""}`}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span
+                className={`font-mono font-bold ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}
+                style={emphasis ? (isShort ? emphasisValueShortStyle : emphasisValueLongStyle) : (isShort ? valueShortStyle : valueLongStyle)}
+                title={displayValue}
+              >
+                {abbreviatedDisplay}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs font-mono">
+              {displayValue}
+            </TooltipContent>
+          </Tooltip>
+          {isActual && !isActualNotSet && (
+            <button
+              onClick={handleEditClick}
+              className="text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded"
+              title="Edit actual balance"
+            >
+              <Pencil className="w-3 h-3" />
+            </button>
+          )}
+        </div>
       )}
+    </div>
+  );
 
-      {/* ROW 3b — Monthly context / Actual discrepancy */}
-      {!noData && (() => {
-        if (isActual) {
-          if (isActualNotSet) return null;
-          return (
-            <div className="space-y-0.5">
-              {/* Date line */}
-              <p style={sublineStyle} className="text-muted-foreground font-mono">
-                {resolvedActualDate}
-              </p>
-              {/* Discrepancy vs Today estimate */}
-              {(() => {
-                if (localActualValue === null) return null;
-                const todayRaw = altValue ?? "";
-                let todayNum = 0;
-                const mM = todayRaw.match(/\$([0-9.]+)M/);
-                const mK = todayRaw.match(/\$([0-9.]+)K/);
-                const mPlain = todayRaw.match(/\$([0-9,]+)/);
-                if (mM) todayNum = parseFloat(mM[1]) * 1_000_000;
-                else if (mK) todayNum = parseFloat(mK[1]) * 1_000;
-                else if (mPlain) todayNum = parseFloat(mPlain[1].replace(/,/g, ''));
-                if (todayNum === 0) return null;
-                const diff = localActualValue - todayNum;
-                const isOver = diff >= 0;
-                const absDiff = Math.abs(diff);
-                const diffFmt = absDiff >= 1000
-                  ? `$${(absDiff / 1000).toFixed(1)}K`
-                  : `$${Math.round(absDiff).toLocaleString()}`;
-                return (
-                  <p
-                    style={sublineStyle}
-                    className={`font-mono font-medium ${isOver ? 'text-chart-green' : 'text-chart-red'}`}
-                  >
-                    {isOver ? '↑' : '↓'} {diffFmt} {isOver ? 'above' : 'below'} est.
-                  </p>
-                );
-              })()}
-            </div>
+  const momBlock = !isActual && !noData && (showAlt && altMomDelta ? altMomDelta : momDelta) ? (
+    <p
+      className={`font-mono text-muted-foreground ${emphasis ? "text-xs truncate w-full" : ""}`}
+      style={emphasis ? undefined : sublineStyle}
+      title={showAlt && altMomDelta ? altMomDelta : momDelta}
+    >
+      {showAlt && altMomDelta ? altMomDelta : momDelta}
+    </p>
+  ) : null;
+
+  const contextBlock = (() => {
+    if (noData) return null;
+    if (isActual) {
+      if (isActualNotSet) return null;
+      let discrepancy: React.ReactNode = null;
+      if (localActualValue !== null) {
+        const todayRaw = altValue ?? "";
+        let todayNum = 0;
+        const mM = todayRaw.match(/\$([0-9.]+)M/);
+        const mK = todayRaw.match(/\$([0-9.]+)K/);
+        const mPlain = todayRaw.match(/\$([0-9,]+)/);
+        if (mM) todayNum = parseFloat(mM[1]) * 1_000_000;
+        else if (mK) todayNum = parseFloat(mK[1]) * 1_000;
+        else if (mPlain) todayNum = parseFloat(mPlain[1].replace(/,/g, ''));
+        if (todayNum !== 0) {
+          const diff = localActualValue - todayNum;
+          const isOver = diff >= 0;
+          const absDiff = Math.abs(diff);
+          const diffFmt = absDiff >= 1000 ? `$${(absDiff / 1000).toFixed(1)}K` : `$${Math.round(absDiff).toLocaleString()}`;
+          discrepancy = (
+            <p
+              style={emphasis ? undefined : sublineStyle}
+              className={`font-mono font-medium ${emphasis ? "text-xs" : ""} ${isOver ? 'text-chart-green' : 'text-chart-red'}`}
+            >
+              {isOver ? '↑' : '↓'} {diffFmt} {isOver ? 'above' : 'below'} est.
+            </p>
           );
         }
-        const ctx = showAlt && altMomContext ? altMomContext : momContext;
-        return ctx ? (
-          <p className="font-mono text-muted-foreground/80" style={noteStyle} title={ctx}>
-            {ctx}
+      }
+      return (
+        <div className="space-y-0.5">
+          <p style={emphasis ? undefined : sublineStyle} className={`text-muted-foreground font-mono ${emphasis ? "text-xs" : ""}`}>
+            {resolvedActualDate}
           </p>
-        ) : null;
-      })()}
+          {discrepancy}
+        </div>
+      );
+    }
+    const ctx = showAlt && altMomContext ? altMomContext : momContext;
+    return ctx ? (
+      <p
+        className={`font-mono text-muted-foreground/80 ${emphasis ? "text-xs truncate w-full" : ""}`}
+        style={emphasis ? undefined : noteStyle}
+        title={ctx}
+      >
+        {ctx}
+      </p>
+    ) : null;
+  })();
 
-      {/* ROW 4 — Secondary metric / change + alt diff */}
-      <div style={{ minWidth: 0, overflow: 'hidden' }} className="mt-auto pt-1">
+  const footerBlock = (
+    <>
+      <div style={{ minWidth: 0 }} className={`${emphasis ? "w-full flex flex-col items-center" : ""} mt-auto pt-1`}>
         {showAlt && altDiff && !noData && (
-          <p className="font-mono text-amber-400/80" style={sublineStyle} title={`${altDiff} with YLWs`}>
+          <p className={`font-mono text-amber-400/80 ${emphasis ? "text-xs" : ""}`} style={emphasis ? undefined : sublineStyle} title={`${altDiff} with YLWs`}>
             ↑ {altDiff} with YLWs
           </p>
         )}
         {!isActual && !noData && displayChange !== "--" && (
-          <div className={`flex items-center gap-0.5 font-mono ${accentColor}`} style={{ ...sublineStyle, display: 'flex', WebkitLineClamp: undefined, WebkitBoxOrient: undefined }}>
+          <div
+            className={`flex items-center gap-0.5 font-mono ${emphasis ? "justify-center text-xs" : ""} ${accentColor}`}
+            style={emphasis ? undefined : { ...sublineStyle, display: 'flex', WebkitLineClamp: undefined, WebkitBoxOrient: undefined }}
+          >
             {displayPositive ? <TrendingUp className="w-3 h-3 shrink-0" /> : <TrendingDown className="w-3 h-3 shrink-0" />}
             <span className="truncate" title={displayChange}>{displayChange}</span>
           </div>
         )}
       </div>
-
-      {/* ROW 5 — Progress bar */}
-      <div className="mt-1.5 h-[3px] bg-secondary rounded-full overflow-hidden">
+      <div className="mt-1.5 h-[3px] bg-secondary rounded-full overflow-hidden w-full">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: noData ? "0%" : displayPositive ? "72%" : "45%" }}
@@ -485,8 +468,61 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
           className={`h-full rounded-full ${barColor}`}
         />
       </div>
+    </>
+  );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-5 gap-2" : "gap-0.5"} ${ylwGlowClass}`}
+      style={emphasis
+        ? { minHeight: "200px", containerType: 'inline-size' }
+        : { minHeight: "90px", containerType: 'inline-size', padding: "clamp(0.65rem, 1.5vw, 1.1rem)" }}
+    >
+      {emphasis ? (
+        <>
+          {/* TOP — title + badges + pills */}
+          <div className="w-full flex flex-col items-center gap-1">
+            <div className="flex items-center justify-center gap-1.5 w-full min-w-0">
+              <p className={emphasisTitleClass} title={label}>{label}</p>
+              {badges}
+            </div>
+            {pillsBlock}
+          </div>
+
+          {/* MIDDLE — figure(s) + sub deltas, centred */}
+          <div className="flex-1 flex flex-col items-center justify-center gap-1 w-full min-w-0">
+            {valueBlock}
+            {momBlock}
+            {contextBlock}
+          </div>
+
+          {/* BOTTOM — trend + bar */}
+          {footerBlock}
+        </>
+      ) : (
+        <>
+          {/* ROW 1 — Label + badges */}
+          <div className="flex items-start justify-between gap-1" style={{ minWidth: 0, overflow: 'hidden' }}>
+            <div style={{ minWidth: 0, flex: '1 1 0%' }}>
+              <p className="font-mono text-muted-foreground font-medium" style={titleStyle} title={label}>{label}</p>
+            </div>
+            <div className="flex items-center gap-0.5 flex-shrink-0 flex-wrap justify-end" style={{ maxWidth: "50%" }}>
+              {badges}
+            </div>
+          </div>
+          {pillsBlock}
+          {valueBlock}
+          {momBlock}
+          {contextBlock}
+          {footerBlock}
+        </>
+      )}
     </motion.div>
   );
 };
+
 
 export default StatCard;
