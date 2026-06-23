@@ -187,16 +187,16 @@ function RevenueGoalCard({
 
       {/* Footer caption */}
       {target > 0 && (
-        <div className="mt-2 text-center text-xs text-muted-foreground whitespace-normal break-words">
-          <span className="font-mono tabular-nums text-foreground">{fmtAUD(currentRevenue)}</span>{" "}
+        <div className="mt-2 text-center text-[10px] uppercase tracking-wider text-muted-foreground whitespace-normal break-words">
+          <span className="font-mono tabular-nums text-chart-green">{fmtAUD(currentRevenue)}</span>{" "}
           of <span className="font-mono tabular-nums text-foreground">{fmtAUD(target)}</span>
           {remaining > 0 ? (
             <>
               {" · "}
-              <span className="font-mono tabular-nums">{fmtAUD(remaining)}</span> to go
+              <span className="font-mono tabular-nums text-chart-red">{fmtAUD(remaining)}</span> to go
             </>
           ) : (
-            <> · Goal met 🎉</>
+            <> · <span className="text-chart-green">Goal met 🎉</span></>
           )}
         </div>
       )}
