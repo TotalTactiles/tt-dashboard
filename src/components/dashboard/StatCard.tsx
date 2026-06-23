@@ -39,9 +39,9 @@ interface StatCardProps {
   emphasis?: boolean;
 }
 
-// Unified emphasis figure style — one type scale across every Quick Look Sales card.
+// Unified emphasis figure style — one compact type scale across every Quick Look Sales card.
 const emphasisFigureStyle: React.CSSProperties = {
-  fontSize: 'clamp(1.25rem, 1.8vw, 1.75rem)',
+  fontSize: 'clamp(1.25rem, 1.6vw, 1.5rem)',
   lineHeight: 1.15,
   fontWeight: 700,
   fontVariantNumeric: 'tabular-nums',
@@ -53,6 +53,7 @@ const emphasisFigureStyle: React.CSSProperties = {
 };
 const emphasisValueShortStyle = emphasisFigureStyle;
 const emphasisValueLongStyle = emphasisFigureStyle;
+
 
 function timeAgo(ts: number | null): string {
   if (!ts) return "never";
@@ -244,8 +245,9 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
     }
   }, [editing]);
 
-  // Shared title style for emphasis cards — more legible than the tiny default
-  const emphasisTitleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-xs whitespace-normal break-words leading-tight text-center";
+  // Shared title style for emphasis cards — compact, legible, line-tight
+  const emphasisTitleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
+
 
   // Badges block — same markup whether emphasised or not
   const badges = (
@@ -375,13 +377,14 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
 
   const momBlock = !isActual && !noData && (showAlt && altMomDelta ? altMomDelta : momDelta) ? (
     <p
-      className={`font-mono text-muted-foreground ${emphasis ? "text-xs whitespace-normal break-words text-center w-full px-1" : ""}`}
+      className={`font-mono text-muted-foreground ${emphasis ? "text-[0.65rem] whitespace-normal break-words text-center w-full px-1 leading-tight" : ""}`}
       style={emphasis ? undefined : sublineStyle}
       title={showAlt && altMomDelta ? altMomDelta : momDelta}
     >
       {showAlt && altMomDelta ? altMomDelta : momDelta}
     </p>
   ) : null;
+
 
   const contextBlock = (() => {
     if (noData) return null;
@@ -405,7 +408,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
           discrepancy = (
             <p
               style={emphasis ? undefined : sublineStyle}
-              className={`font-mono font-medium ${emphasis ? "text-xs" : ""} ${isOver ? 'text-chart-green' : 'text-chart-red'}`}
+              className={`font-mono font-medium leading-tight ${emphasis ? "text-[0.65rem]" : ""} ${isOver ? 'text-chart-green' : 'text-chart-red'}`}
             >
               {isOver ? '↑' : '↓'} {diffFmt} {isOver ? 'above' : 'below'} est.
             </p>
@@ -414,7 +417,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       }
       return (
         <div className="space-y-0.5">
-          <p style={emphasis ? undefined : sublineStyle} className={`text-muted-foreground font-mono ${emphasis ? "text-xs" : ""}`}>
+          <p style={emphasis ? undefined : sublineStyle} className={`text-muted-foreground font-mono leading-tight ${emphasis ? "text-[0.65rem]" : ""}`}>
             {resolvedActualDate}
           </p>
           {discrepancy}
@@ -424,7 +427,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
     const ctx = showAlt && altMomContext ? altMomContext : momContext;
     return ctx ? (
       <p
-        className={`font-mono text-muted-foreground/80 ${emphasis ? "text-xs whitespace-normal break-words text-center w-full px-1" : ""}`}
+        className={`font-mono text-muted-foreground/80 leading-tight ${emphasis ? "text-[0.65rem] whitespace-normal break-words text-center w-full px-1" : ""}`}
         style={emphasis ? undefined : noteStyle}
         title={ctx}
       >
@@ -433,16 +436,17 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
     ) : null;
   })();
 
+
   const trendBlock = (
     <div style={{ minWidth: 0 }} className={`${emphasis ? "w-full flex flex-col items-center" : "mt-auto pt-1"}`}>
       {showAlt && altDiff && !noData && (
-        <p className={`font-mono text-amber-400/80 ${emphasis ? "text-xs" : ""}`} style={emphasis ? undefined : sublineStyle} title={`${altDiff} with YLWs`}>
+        <p className={`font-mono text-amber-400/80 leading-tight ${emphasis ? "text-[0.65rem]" : ""}`} style={emphasis ? undefined : sublineStyle} title={`${altDiff} with YLWs`}>
           ↑ {altDiff} with YLWs
         </p>
       )}
       {!isActual && !noData && displayChange !== "--" && (
         <div
-          className={`flex items-center gap-0.5 font-mono ${emphasis ? "justify-center text-xs" : ""} ${accentColor}`}
+          className={`flex items-center gap-0.5 font-mono leading-tight ${emphasis ? "justify-center text-[0.65rem]" : ""} ${accentColor}`}
           style={emphasis ? undefined : { ...sublineStyle, display: 'flex', WebkitLineClamp: undefined, WebkitBoxOrient: undefined }}
         >
           {displayPositive ? <TrendingUp className="w-3 h-3 shrink-0" /> : <TrendingDown className="w-3 h-3 shrink-0" />}
@@ -451,6 +455,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       )}
     </div>
   );
+
 
   const barBlock = (
     <div className={`mt-1.5 h-[3px] bg-secondary rounded-full overflow-hidden w-full ${emphasis ? "mt-auto" : ""}`}>
@@ -468,32 +473,33 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-4 gap-1.5" : "gap-0.5"} ${ylwGlowClass}`}
+      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-3 gap-1" : "gap-0.5"} ${ylwGlowClass}`}
       style={emphasis
-        ? { minHeight: "170px", containerType: 'inline-size' }
+        ? { containerType: 'inline-size' }
         : { minHeight: "90px", containerType: 'inline-size', padding: "clamp(0.65rem, 1.5vw, 1.1rem)" }}
     >
       {emphasis ? (
         <>
           {/* HEADER — fixed height, 2-line capable, never truncate */}
-          <div className="w-full min-h-[2.5rem] flex items-center justify-center gap-1.5 min-w-0 px-1">
+          <div className="w-full min-h-[1.5rem] flex items-center justify-center gap-1.5 min-w-0 px-1">
             <p className={emphasisTitleClass} title={label} style={{ whiteSpace: 'normal', overflow: 'visible' }}>
               {label}
             </p>
             {badges}
           </div>
           {/* PILLS — reserved row even when empty */}
-          <div className="w-full min-h-[1.75rem] flex items-center justify-center">
+          <div className="w-full min-h-[1.5rem] flex items-center justify-center">
             {pillsBlock}
           </div>
           {/* BODY — figure + sub-lines centred (trend lives inside as a sub) */}
-          <div className="flex-1 flex flex-col items-center justify-center gap-1 w-full min-w-0">
+          <div className="flex-1 flex flex-col items-center justify-center gap-0.5 w-full min-w-0">
             {valueBlock}
             {momBlock}
             {contextBlock}
             {trendBlock}
           </div>
         </>
+
 
       ) : (
         <>

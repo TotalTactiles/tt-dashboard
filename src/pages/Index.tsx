@@ -139,26 +139,26 @@ function WinLossSummaryCard({
   const bottomLabel = mode === "total" ? "LOST" : "AVG LOST";
 
   const figureStyle: React.CSSProperties = emphasis
-    ? { fontSize: 'clamp(1.25rem, 1.8vw, 1.75rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' }
+    ? { fontSize: 'clamp(1.25rem, 1.6vw, 1.5rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' }
     : {};
 
   const titleClass = emphasis
-    ? "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-xs whitespace-normal break-words leading-tight text-center"
+    ? "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center"
     : "font-mono text-muted-foreground font-medium";
 
-  const subClass = emphasis ? "text-[0.7rem] text-muted-foreground font-mono whitespace-normal break-words text-center" : "text-[10px] text-muted-foreground font-mono";
-  const labelClass = emphasis ? "text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center" : "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
+  const subClass = emphasis ? "text-[0.65rem] leading-tight text-muted-foreground font-mono whitespace-normal break-words text-center" : "text-[10px] text-muted-foreground font-mono";
+  const labelClass = emphasis ? "text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center" : "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-4 gap-1.5" : "gap-0.5"}`}
-      style={{ minHeight: emphasis ? "170px" : "100px", containerType: 'inline-size' }}
+      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-3 gap-1" : "gap-0.5"}`}
+      style={{ minHeight: emphasis ? undefined : "100px", containerType: 'inline-size' }}
     >
       {/* HEADER — fixed height, 2-line capable, never truncate */}
-      <div className={emphasis ? "w-full min-h-[2.5rem] flex items-center justify-center px-1" : "w-full"}>
+      <div className={emphasis ? "w-full min-h-[1.5rem] flex items-center justify-center px-1" : "w-full"}>
         <p
           className={titleClass}
           style={emphasis ? { whiteSpace: 'normal', overflow: 'visible' } : {
@@ -176,7 +176,7 @@ function WinLossSummaryCard({
         </p>
       </div>
       {/* PILLS — reserved row */}
-      <div className={`${emphasis ? "min-h-[1.75rem]" : ""} flex ${emphasis ? "justify-center items-center" : ""}`}>
+      <div className={`${emphasis ? "min-h-[1.5rem]" : ""} flex ${emphasis ? "justify-center items-center" : ""}`}>
         <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
           <button
             onClick={() => setMode("total")}
@@ -194,10 +194,10 @@ function WinLossSummaryCard({
       </div>
 
       {/* BODY — figures + subs, divider, centred */}
-      <div className={`${emphasis ? "flex-1 flex flex-col items-center justify-center gap-1" : ""} w-full min-w-0`}>
+      <div className={`${emphasis ? "flex-1 flex flex-col items-center justify-center gap-0.5" : ""} w-full min-w-0`}>
         <div className={`min-w-0 ${emphasis ? "w-full" : ""}`}>
           <p className={labelClass}>{topLabel}</p>
-          <p className={`font-bold font-mono text-chart-green break-words ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{fmtCompact(topVal)}</p>
+          <p className={`font-bold font-mono text-chart-green break-words leading-tight ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{fmtCompact(topVal)}</p>
           <p className={subClass}>{wonCount} jobs</p>
         </div>
 
@@ -205,13 +205,14 @@ function WinLossSummaryCard({
 
         <div className={`min-w-0 ${emphasis ? "w-full" : ""}`}>
           <p className={labelClass}>{bottomLabel}</p>
-          <p className={`font-bold font-mono text-chart-red break-words ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{fmtCompact(bottomVal)}</p>
+          <p className={`font-bold font-mono text-chart-red break-words leading-tight ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{fmtCompact(bottomVal)}</p>
           <p className={subClass}>{lostCount} jobs</p>
         </div>
       </div>
     </motion.div>
   );
 }
+
 
 
 
@@ -250,24 +251,24 @@ function RevenueProfitCard({
   const bottomColor = isRevenue ? "text-chart-green" : (bottomVal >= 0 ? "text-chart-green" : "text-chart-red");
 
   const figureStyle: React.CSSProperties = emphasis
-    ? { fontSize: 'clamp(1.25rem, 1.8vw, 1.75rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' }
+    ? { fontSize: 'clamp(1.25rem, 1.6vw, 1.5rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' }
     : {};
 
   const titleClass = emphasis
-    ? "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-xs whitespace-normal break-words leading-tight text-center"
+    ? "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center"
     : "font-mono text-muted-foreground font-medium";
-  const labelClass = emphasis ? "text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center" : "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
+  const labelClass = emphasis ? "text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center" : "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-4 gap-1.5" : "gap-0.5"}`}
-      style={{ minHeight: emphasis ? "170px" : "100px", containerType: 'inline-size' }}
+      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-3 gap-1" : "gap-0.5"}`}
+      style={{ minHeight: emphasis ? undefined : "100px", containerType: 'inline-size' }}
     >
       {/* HEADER */}
-      <div className={emphasis ? "w-full min-h-[2.5rem] flex items-center justify-center px-1" : "w-full"}>
+      <div className={emphasis ? "w-full min-h-[1.5rem] flex items-center justify-center px-1" : "w-full"}>
         <p
           className={titleClass}
           style={emphasis ? { whiteSpace: 'normal', overflow: 'visible' } : {
@@ -285,7 +286,7 @@ function RevenueProfitCard({
         </p>
       </div>
       {/* PILLS */}
-      <div className={`${emphasis ? "min-h-[1.75rem]" : ""} flex ${emphasis ? "justify-center items-center" : ""}`}>
+      <div className={`${emphasis ? "min-h-[1.5rem]" : ""} flex ${emphasis ? "justify-center items-center" : ""}`}>
         <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
           <button
             onClick={() => setMode("revenue")}
@@ -303,22 +304,23 @@ function RevenueProfitCard({
       </div>
 
       {/* BODY */}
-      <div className={`${emphasis ? "flex-1 flex flex-col items-center justify-center gap-1" : ""} w-full min-w-0`}>
+      <div className={`${emphasis ? "flex-1 flex flex-col items-center justify-center gap-0.5" : ""} w-full min-w-0`}>
         <div className={`min-w-0 ${emphasis ? "w-full" : ""}`}>
           <p className={labelClass}>{topLabel}</p>
-          <p className={`font-bold font-mono break-words ${topColor} ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{fmtCompact(topVal)}</p>
+          <p className={`font-bold font-mono break-words leading-tight ${topColor} ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{fmtCompact(topVal)}</p>
         </div>
 
         <div className={`h-px bg-white/10 my-1 ${emphasis ? "w-2/3 mx-auto" : ""}`} />
 
         <div className={`min-w-0 ${emphasis ? "w-full" : ""}`}>
           <p className={labelClass}>{bottomLabel}</p>
-          <p className={`font-bold font-mono break-words ${bottomColor} ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{fmtCompact(bottomVal)}</p>
+          <p className={`font-bold font-mono break-words leading-tight ${bottomColor} ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{fmtCompact(bottomVal)}</p>
         </div>
       </div>
     </motion.div>
   );
 }
+
 
 
 
@@ -347,25 +349,25 @@ function PipelineSummaryCard({
   };
 
   const figureStyle: React.CSSProperties = emphasis
-    ? { fontSize: 'clamp(1.25rem, 1.8vw, 1.75rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' }
+    ? { fontSize: 'clamp(1.25rem, 1.6vw, 1.5rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' }
     : {};
 
   const titleClass = emphasis
-    ? "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-xs whitespace-normal break-words leading-tight text-center"
+    ? "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center"
     : "font-mono text-muted-foreground font-medium";
-  const subClass = emphasis ? "text-[0.7rem] text-muted-foreground font-mono whitespace-normal break-words text-center" : "text-[10px] text-muted-foreground font-mono";
-  const labelClass = emphasis ? "text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center" : "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
+  const subClass = emphasis ? "text-[0.65rem] leading-tight text-muted-foreground font-mono whitespace-normal break-words text-center" : "text-[10px] text-muted-foreground font-mono";
+  const labelClass = emphasis ? "text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center" : "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-4 gap-1.5" : "gap-0.5"}`}
-      style={{ minHeight: emphasis ? "170px" : "100px", containerType: 'inline-size' }}
+      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-3 gap-1" : "gap-0.5"}`}
+      style={{ minHeight: emphasis ? undefined : "100px", containerType: 'inline-size' }}
     >
       {/* HEADER */}
-      <div className={emphasis ? "w-full min-h-[2.5rem] flex items-center justify-center px-1" : "w-full"}>
+      <div className={emphasis ? "w-full min-h-[1.5rem] flex items-center justify-center px-1" : "w-full"}>
         <p
           className={titleClass}
           style={emphasis ? { whiteSpace: 'normal', overflow: 'visible' } : {
@@ -383,26 +385,27 @@ function PipelineSummaryCard({
         </p>
       </div>
       {/* PILLS — reserved spacer (no toggle on this card) */}
-      <div className={`${emphasis ? "min-h-[1.75rem]" : ""}`} />
+      <div className={`${emphasis ? "min-h-[1.5rem]" : ""}`} />
 
       {/* BODY */}
-      <div className={`${emphasis ? "flex-1 flex flex-col items-center justify-center gap-1" : ""} w-full min-w-0`}>
+      <div className={`${emphasis ? "flex-1 flex flex-col items-center justify-center gap-0.5" : ""} w-full min-w-0`}>
         <div className={`min-w-0 ${emphasis ? "w-full" : ""}`}>
           <p className={labelClass}>QUOTING OPPS</p>
-          <p className={`font-bold font-mono text-chart-green break-words ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{noData ? "—" : topCount}</p>
+          <p className={`font-bold font-mono text-chart-green break-words leading-tight ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{noData ? "—" : topCount}</p>
         </div>
 
         <div className={`h-px bg-white/10 my-1 ${emphasis ? "w-2/3 mx-auto" : ""}`} />
 
         <div className={`min-w-0 ${emphasis ? "w-full" : ""}`}>
           <p className={labelClass}>IN THE RUNNING</p>
-          <p className={`font-bold font-mono text-chart-green break-words ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{String(bottomCount)}</p>
+          <p className={`font-bold font-mono text-chart-green break-words leading-tight ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{String(bottomCount)}</p>
           <p className={subClass}>{`${fmtCompact(bottomValue)} · active quotes`}</p>
         </div>
       </div>
     </motion.div>
   );
 }
+
 
 
 
