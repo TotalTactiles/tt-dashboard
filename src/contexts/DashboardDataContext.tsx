@@ -1077,13 +1077,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         momDelta: noData ? undefined : (hasPrevMon ? fmtDelta(curMon.totalVal, prevMon.totalVal, "currency") : noMomText),
         momContext: noData ? undefined : (curMon.totalCount > 0 ? `+${curMon.totalCount} jobs this month` : undefined),
       },
-      // 2. Current Quoting Opportunities — single value, no toggle (from CRM second-fetch)
+      // 2. Pipeline — split card (Quoting Opps + In the running), rendered by PipelineSummaryCard in Index.tsx
       {
-        label: "Current Quoting Opportunities",
+        label: "Pipeline",
         value: quotingOpp ? String(quotingOpp.count) : "—",
         change: quotingOpp && quotingOpp.value > 0
           ? `${fmtAUD(quotingOpp.value)} in pipeline`
-          : (quotingOpp ? "active opportunities" : "awaiting CRM feed"),
+          : (quotingOpp ? "from CRM leads" : "awaiting CRM feed"),
         positive: true,
         noData: !quotingOpp,
       },
