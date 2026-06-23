@@ -39,20 +39,9 @@ interface StatCardProps {
   emphasis?: boolean;
 }
 
-const emphasisValueShortStyle: React.CSSProperties = {
-  fontSize: 'clamp(1.75rem, 2.4vw, 2.5rem)',
-  lineHeight: 1.1,
-  fontWeight: 700,
-  fontVariantNumeric: 'tabular-nums',
-  letterSpacing: '-0.02em',
-  minWidth: 0,
-  maxWidth: '100%',
-  display: 'block',
-  wordBreak: 'break-word',
-};
-
-const emphasisValueLongStyle: React.CSSProperties = {
-  fontSize: 'clamp(1.5rem, 2.1vw, 2.15rem)',
+// Unified emphasis figure style — one type scale across every Quick Look Sales card.
+const emphasisFigureStyle: React.CSSProperties = {
+  fontSize: 'clamp(1.5rem, 2vw, 1.875rem)',
   lineHeight: 1.1,
   fontWeight: 700,
   fontVariantNumeric: 'tabular-nums',
@@ -62,6 +51,8 @@ const emphasisValueLongStyle: React.CSSProperties = {
   display: 'block',
   wordBreak: 'break-word',
 };
+const emphasisValueShortStyle = emphasisFigureStyle;
+const emphasisValueLongStyle = emphasisFigureStyle;
 
 function timeAgo(ts: number | null): string {
   if (!ts) return "never";
