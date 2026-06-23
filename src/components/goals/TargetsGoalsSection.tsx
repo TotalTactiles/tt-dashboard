@@ -6,11 +6,6 @@ import { formatMetricValue } from "@/lib/formatMetricValue";
 
 const fmtAUD = (n: number) => formatMetricValue(n, "currency");
 
-const statValueStyle = {
-  fontSize: "clamp(1rem, 1.6vw, 1.375rem)",
-  letterSpacing: "-0.01em",
-} as const;
-
 type Props = {
   /** YTD actual revenue (gross). Swap to netRevenue for ex-GST comparison. */
   currentRevenue: number;
@@ -115,8 +110,8 @@ function RevenueGoalCard({
         </span>
       </div>
 
-      {/* Editable target headline */}
-      <div className="flex flex-col items-center mb-3">
+      {/* Editable target — prominent */}
+      <div className="flex flex-col items-center mb-2">
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
           Target
         </span>
@@ -150,52 +145,59 @@ function RevenueGoalCard({
         )}
       </div>
 
-      {/* Split body */}
-      {target > 0 ? (
-        <div className="flex flex-1 flex-row items-center gap-5 max-sm:flex-col max-sm:gap-3">
-          {/* LEFT: gauge */}
-          <div className="flex-1 flex items-center justify-center">
-            <div className="relative w-full max-w-[180px]" style={{ minHeight: 140, height: 140 }}>
-              <ResponsiveContainer width="100%" height={140}>
-                <RadialBarChart
-                  innerRadius="72%"
-                  outerRadius="100%"
-                  data={chartData}
-                  startAngle={90}
-                  endAngle={-270}
-                >
-                  <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-                  <RadialBar
-                    background={{ fill: "hsl(var(--muted))" }}
-                    dataKey="value"
-                    cornerRadius={8}
-                    fill="hsl(var(--chart-green, 142 71% 45%))"
-                  />
-                </RadialBarChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span
-                  className="font-mono tabular-nums font-semibold"
-                  style={{ fontSize: "clamp(1.125rem, 1.8vw, 1.5rem)", letterSpacing: "-0.02em" }}
-                >
-                  {pct.toFixed(0)}%
-                </span>
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
-                  of goal
-                </span>
-              </div>
+      {/* Gauge */}
+      <div className="relative flex-1 flex items-center justify-center" style={{ minHeight: 160 }}>
+        {target > 0 ? (
+          <>
+            <ResponsiveContainer width="100%" height={180}>
+              <RadialBarChart
+                innerRadius="72%"
+                outerRadius="100%"
+                data={chartData}
+                startAngle={90}
+                endAngle={-270}
+              >
+                <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+                <RadialBar
+                  background={{ fill: "hsl(var(--muted))" }}
+                  dataKey="value"
+                  cornerRadius={8}
+                  fill="hsl(var(--chart-green, 142 71% 45%))"
+                />
+              </RadialBarChart>
+            </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span
+                className="font-mono tabular-nums font-semibold"
+                style={{ fontSize: "clamp(1.5rem, 2.4vw, 2rem)", letterSpacing: "-0.02em" }}
+              >
+                {pct.toFixed(0)}%
+              </span>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
+                of goal
+              </span>
             </div>
+          </>
+        ) : (
+          <div className="text-center text-sm text-muted-foreground px-4">
+            Set a revenue goal to start tracking
           </div>
+        )}
+      </div>
 
-          {/* RIGHT: breakdown */}
-          <div className="flex-1 flex flex-col justify-center gap-3 max-sm:items-center">
-            <Stat label="YTD Revenue" value={fmtAUD(currentRevenue)} tone="green" />
-            <Stat label="To Go" value={fmtAUD(remaining)} tone="neutral" />
-          </div>
-        </div>
-      ) : (
-        <div className="flex-1 flex items-center justify-center text-center text-sm text-muted-foreground px-4">
-          Set a revenue goal to start tracking
+      {/* Footer caption */}
+      {target > 0 && (
+        <div className="mt-2 text-center text-[10px] uppercase tracking-wider text-muted-foreground whitespace-normal break-words">
+          <span className="font-mono tabular-nums text-chart-green">{fmtAUD(currentRevenue)}</span>{" "}
+          of <span className="font-mono tabular-nums text-foreground">{fmtAUD(target)}</span>
+          {remaining > 0 ? (
+            <>
+              {" · "}
+              <span className="font-mono tabular-nums text-chart-red">{fmtAUD(remaining)}</span> to go
+            </>
+          ) : (
+            <> · <span className="text-chart-green">Goal met 🎉</span></>
+          )}
         </div>
       )}
     </motion.div>
@@ -232,60 +234,40 @@ function JobsToGoalCard({
         </span>
       </div>
 
-      {/* Split body */}
-      <div className="flex flex-1 flex-row items-center gap-5 max-sm:flex-col max-sm:gap-3">
-        {/* LEFT: big figure */}
-        <div className="flex-1 flex flex-col items-center justify-center text-center">
-          <span
-            className="font-mono tabular-nums font-semibold text-chart-green"
-            style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", letterSpacing: "-0.02em", lineHeight: 1 }}
-          >
-            {empty ? "—" : met ? "Goal met 🎉" : jobsToGoal}
+      <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
+        <span
+          className="font-mono tabular-nums font-semibold text-chart-green"
+          style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", letterSpacing: "-0.02em", lineHeight: 1 }}
+        >
+          {empty ? "—" : met ? "Goal met 🎉" : jobsToGoal}
+        </span>
+        {!empty && !met && (
+          <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+            Jobs to Goal
           </span>
-          {!empty && !met && (
-            <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mt-2">
-              Jobs to Goal
-            </span>
-          )}
-        </div>
+        )}
+      </div>
 
-        {/* RIGHT: breakdown */}
+      <div className="mt-2 text-center text-xs text-muted-foreground space-y-0.5 whitespace-normal break-words">
         {empty ? (
-          <div className="flex-1 flex items-center justify-center text-center text-sm text-muted-foreground">
-            Set a revenue goal to compute jobs needed
-          </div>
-        ) : met ? null : (
-          <div className="flex-1 flex flex-col justify-center gap-3 max-sm:items-center">
-            <Stat label="Avg Won" value={avgWonDeal > 0 ? fmtAUD(avgWonDeal) : "—"} tone="neutral" />
-            <Stat label="Remaining" value={fmtAUD(remaining)} tone="neutral" />
-          </div>
+          <div>Set a revenue goal to compute jobs needed</div>
+        ) : (
+          <>
+            <div>
+              at avg won{" "}
+              <span className="font-mono tabular-nums text-foreground">
+                {avgWonDeal > 0 ? fmtAUD(avgWonDeal) : "—"}
+              </span>
+            </div>
+            {!met && (
+              <div>
+                <span className="font-mono tabular-nums text-foreground">{fmtAUD(remaining)}</span>{" "}
+                remaining
+              </div>
+            )}
+          </>
         )}
       </div>
     </motion.div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone: "green" | "neutral";
-}) {
-  const valueColor = tone === "green" ? "text-chart-green" : "text-foreground";
-  return (
-    <div className="min-w-0">
-      <div className="text-[0.65rem] uppercase tracking-[0.1em] text-muted-foreground mb-0.5">
-        {label}
-      </div>
-      <div
-        className={`font-mono tabular-nums font-semibold break-words ${valueColor}`}
-        style={statValueStyle}
-      >
-        {value}
-      </div>
-    </div>
   );
 }
