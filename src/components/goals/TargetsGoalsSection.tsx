@@ -187,7 +187,7 @@ function RevenueGoalCard({
 
       {/* Footer caption */}
       {target > 0 && (
-        <div className="mt-2 text-center text-[10px] uppercase tracking-wider text-muted-foreground whitespace-normal break-words">
+        <div className="mt-2 text-center text-[15px] uppercase tracking-wider text-muted-foreground whitespace-normal break-words">
           <span className="font-mono tabular-nums text-chart-green">{fmtAUD(currentRevenue)}</span>{" "}
           of <span className="font-mono tabular-nums text-foreground">{fmtAUD(target)}</span>
           {remaining > 0 ? (
