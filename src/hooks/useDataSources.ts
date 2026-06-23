@@ -371,6 +371,8 @@ export function useDataSources() {
         });
         if (error) throw new Error(error.message || "Proxy request failed");
         responseData = data;
+        console.log('[fetchSource] raw responseData keys:', Object.keys(responseData ?? {}));
+        console.log('[fetchSource] xeroData present:', 'xeroData' in (responseData ?? {}));
       }
 
       if (signal.aborted) return { success: false, error: "Superseded" };
