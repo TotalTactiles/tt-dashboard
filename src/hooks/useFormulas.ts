@@ -427,6 +427,13 @@ function migrateStoredFormulas(formulas: MetricFormula[]): MetricFormula[] {
     changed = true;
   }
 
+  // Remove deprecated "Cashflow Position (Opening)" — replaced by "Cashflow Position (Open)"
+  const oldCashIdx = next.findIndex((f) => f.name === "Cashflow Position (Opening)");
+  if (oldCashIdx !== -1) {
+    next.splice(oldCashIdx, 1);
+    changed = true;
+  }
+
   // Upsert all system formulas (ensures new ones are added, existing ones updated)
   for (const systemFormula of DEFAULT_FORMULAS) {
     const result = upsertSystemFormula(next, systemFormula);
