@@ -1155,6 +1155,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const kpiVariables: Record<string, number> = {
       ...baseKpiVariables,
       ...projectExecutionVariables,
+      XeroCashOpening: xeroCash?.cba?.openingBalance ?? 0,
+      XeroCashCurrent: xeroCash?.cba?.currentBalance ?? 0,
+      XeroCashMovement: xeroCash?.cba?.netMovementMTD ?? 0,
+      XeroRevenue: xeroPnl?.revenue ?? 0,
+      XeroGrossProfit: xeroPnl?.grossProfit ?? 0,
+      XeroNetProfit: xeroPnl?.netProfit ?? 0,
+      XeroAR: xeroPnl?.accountsReceivable ?? 0,
     };
 
     console.log("[Formula Variable Verification] Project Execution variables", {
@@ -1294,6 +1301,10 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       updateScreenshot: ds.updateScreenshot,
       removeScreenshot: ds.removeScreenshot,
       changeDetectorMeta: ds.changeDetectorMeta ?? { lastChecked: null, lastTriggered: null, noChangeCount: 0 },
+      xeroData,
+      xeroCash,
+      xeroPnl,
+      xeroMonthlyCashflow,
     };
   }, [liveData, hasLiveData, connectedCount, isLoading, isRefreshing, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride, calendarData, projectKPIData]);
 
@@ -1343,6 +1354,10 @@ export function useDashboardData(): DashboardData {
       updateScreenshot: () => {},
       removeScreenshot: () => {},
       changeDetectorMeta: { lastChecked: null, lastTriggered: null, noChangeCount: 0 },
+      xeroData: null,
+      xeroCash: null,
+      xeroPnl: null,
+      xeroMonthlyCashflow: [],
     } as DashboardData;
   }
   return ctx;
