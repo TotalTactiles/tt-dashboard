@@ -943,13 +943,27 @@ const DashboardContent = () => {
                   />
                 );
               }
+              if (stat.label === "Revenue / Profit") {
+                const e = stat.extras ?? {};
+                return (
+                  <RevenueProfitCard
+                    key="revenue-profit"
+                    grossRevenue={e.grossRevenue ?? 0}
+                    netRevenue={e.netRevenue ?? 0}
+                    grossProfit={e.grossProfit ?? 0}
+                    netProfit={e.netProfit ?? 0}
+                    index={i}
+                  />
+                );
+              }
+              const formulaInfo = stat.label === "Total Won" ? null : getFormulaInfo(stat.label);
               return (
                 <StatCard
                   key={stat.label}
                   {...stat}
                   value={getCardValue(stat)}
                   index={i}
-                  formulaDriven={getFormulaInfo(stat.label)}
+                  formulaDriven={formulaInfo}
                   altValue={stat.altValue}
                   altChange={stat.altChange}
                   altPositive={stat.altPositive}
