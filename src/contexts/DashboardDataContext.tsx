@@ -1174,21 +1174,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const kpiVariables: Record<string, number> = {
       ...baseKpiVariables,
       ...projectExecutionVariables,
-      XeroCashOpening: (liveData as any)?.xeroData?.cashPosition?.cba?.openingBalance
-        ?? parseFloat((liveData as any)?.xero_cba_opening ?? '0')
-        ?? 0,
-      XeroCashCurrent: (liveData as any)?.xeroData?.cashPosition?.cba?.currentBalance
-        ?? parseFloat((liveData as any)?.xero_cba_current ?? '0')
-        ?? 0,
-      XeroCashMovement: (liveData as any)?.xeroData?.cashPosition?.cba?.netMovementMTD
-        ?? parseFloat((liveData as any)?.xero_cba_movement ?? '0')
-        ?? 0,
-      XeroCashPosition: (liveData as any)?.xeroData?.cashPosition?.cba?.openingBalance
-        ?? parseFloat((liveData as any)?.xero_cba_opening ?? '0')
-        ?? 0,
-      XeroRevenue: xeroRevenueFlt,
+      XeroCashOpening: Number((liveData as any)?.xero_cba_opening) || (liveData as any)?.xeroData?.cashPosition?.cba?.openingBalance || 0,
+      XeroCashCurrent: Number((liveData as any)?.xero_cba_current) || (liveData as any)?.xeroData?.cashPosition?.cba?.currentBalance || 0,
+      XeroCashMovement: Number((liveData as any)?.xero_cba_movement) || (liveData as any)?.xeroData?.cashPosition?.cba?.netMovementMTD || 0,
+      XeroCashPosition: Number((liveData as any)?.xero_cba_opening) || (liveData as any)?.xeroData?.cashPosition?.cba?.openingBalance || 0,
+      XeroRevenue: Number((liveData as any)?.xero_revenue) || (liveData as any)?.xeroData?.pnl?.revenue || 0,
       XeroGrossProfit: xeroPnl?.grossProfit ?? 0,
-      XeroNetProfit: xeroNetProfitFlt,
+      XeroNetProfit: Number((liveData as any)?.xero_net_profit) || (liveData as any)?.xeroData?.pnl?.netProfit || 0,
       XeroAR: xeroPnl?.accountsReceivable ?? 0,
     };
 
