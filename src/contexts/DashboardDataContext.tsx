@@ -1182,13 +1182,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const kpiVariables: Record<string, number> = {
       ...baseKpiVariables,
       ...projectExecutionVariables,
-      XeroCashOpening: xeroCash?.cba?.openingBalance ?? 0,
-      XeroCashCurrent: xeroCash?.cba?.openingBalance ?? 0,
-      XeroCashMovement: xeroCash?.cba?.netMovementMTD ?? 0,
-      XeroCashPosition: xeroCash?.cba?.openingBalance ?? 0,
-      XeroRevenue: xeroPnl?.revenue ?? 0,
+      XeroCashOpening: xeroCbaOpening,
+      XeroCashCurrent: xeroCbaCurrent,
+      XeroCashMovement: xeroCbaMovement,
+      XeroCashPosition: xeroCbaOpening,
+      XeroRevenue: xeroRevenueFlt,
       XeroGrossProfit: xeroPnl?.grossProfit ?? 0,
-      XeroNetProfit: xeroPnl?.netProfit ?? 0,
+      XeroNetProfit: xeroNetProfitFlt,
       XeroAR: xeroPnl?.accountsReceivable ?? 0,
     };
 
