@@ -813,14 +813,12 @@ const DashboardContent = () => {
           {/* KPI Cards - responsive grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 items-stretch mb-4 md:mb-6" style={{ gap: "clamp(8px, 1vw, 16px)" }}>
             {adjustedKpiStats.map((stat, i) => {
-              if (stat.label === "Avg Days to Close") {
+              if (stat.label === "Win / Loss Summary") {
                 return (
                   <WinLossSummaryCard
                     key="win-loss-summary"
                     quotedJobs={quotedJobs}
                     index={i}
-                    view={winLossView}
-                    onViewChange={setWinLossView}
                   />
                 );
               }
