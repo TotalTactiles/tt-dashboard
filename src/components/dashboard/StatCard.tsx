@@ -375,7 +375,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
 
   const momBlock = !isActual && !noData && (showAlt && altMomDelta ? altMomDelta : momDelta) ? (
     <p
-      className={`font-mono text-muted-foreground ${emphasis ? "text-xs truncate w-full" : ""}`}
+      className={`font-mono text-muted-foreground ${emphasis ? "text-xs whitespace-normal break-words text-center w-full px-1" : ""}`}
       style={emphasis ? undefined : sublineStyle}
       title={showAlt && altMomDelta ? altMomDelta : momDelta}
     >
