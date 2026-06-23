@@ -386,7 +386,7 @@ const DashboardContent = () => {
   const [showAllTables, setShowAllTables] = useState(false);
   const [invoiceFilter, setInvoiceFilter] = useState<"invoiced" | "to_be_invoiced">("invoiced");
   const [investorScope, setInvestorScope] = useState<"ytd" | "quarter">("ytd");
-  const [winLossView, setWinLossView] = useState<"won" | "lost">("won");
+  
 
   const OPTIONAL_INVESTOR_CARDS = [
     "Revenue Growth",
