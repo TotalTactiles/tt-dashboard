@@ -349,7 +349,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       )}
 
       {/* ROW 2 — Main value */}
-      <div style={{ minWidth: 0, overflow: 'hidden' }} className="my-0.5">
+      <div style={{ minWidth: 0, overflow: 'hidden' }} className={emphasis ? "my-0.5 flex-1 flex flex-col justify-center break-words" : "my-0.5"}>
         {isActual && (editing || isActualNotSet) ? (
           <div className="flex items-center gap-1">
             <span className="text-muted-foreground font-mono" style={{ fontSize: 'clamp(0.75rem, 3cqi, 1.2rem)' }}>$</span>
