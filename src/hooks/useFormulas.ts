@@ -190,6 +190,24 @@ const DEFAULT_FORMULAS: Omit<MetricFormula, "id">[] = [
     description: `What is calculated:\n• End-of-month cash surplus including income from probable pipeline jobs\n\nHow it is calculated:\n• = Anticipated Surplus + Jobs Probable To Be Won − Cost of Probable Jobs\n• Probable jobs = YLW stage deals with high conversion likelihood\n• Adds expected income from verbal confirmation jobs not yet in cashflow\n\nSource: CASHFLOW sheet → Anticipated Cash Surplus/(Deficit) Including Probable Jobs row (row 76)`,
     unit: "$", category: "Financial", dashboardCard: "Forecast With Probable Jobs", dataSource: "Google Sheets", section: "Cashflow & Forecasts",
   },
+  {
+    name: "CBA Opening Balance",
+    expression: "XeroCashOpening",
+    description: "CBA bank account opening balance for current month from Xero Bank Summary report",
+    unit: "$", category: "Financial", dashboardCard: "Cashflow Position", dataSource: "Xero", section: "Cashflow & Forecasts",
+  },
+  {
+    name: "CBA Today Balance",
+    expression: "XeroCashCurrent",
+    description: "Live CBA bank account balance from Xero (falls back to closing balance when live balance unavailable)",
+    unit: "$", category: "Financial", dashboardCard: "Cashflow Today Estimate", dataSource: "Xero", section: "Cashflow & Forecasts",
+  },
+  {
+    name: "CBA MTD Movement",
+    expression: "XeroCashMovement",
+    description: "Net cash movement month-to-date on CBA account (current minus opening)",
+    unit: "$", category: "Financial", dashboardCard: "Cashflow Position", dataSource: "Xero", section: "Cashflow & Forecasts",
+  },
 
   // ── PROJECT EXECUTION ────────────────────────────────────────────────────
   {
