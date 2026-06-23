@@ -41,8 +41,8 @@ interface StatCardProps {
 
 // Unified emphasis figure style — one type scale across every Quick Look Sales card.
 const emphasisFigureStyle: React.CSSProperties = {
-  fontSize: 'clamp(1.5rem, 2vw, 1.875rem)',
-  lineHeight: 1.1,
+  fontSize: 'clamp(1.25rem, 1.8vw, 1.75rem)',
+  lineHeight: 1.15,
   fontWeight: 700,
   fontVariantNumeric: 'tabular-nums',
   letterSpacing: '-0.015em',
@@ -468,37 +468,33 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-5 gap-2" : "gap-0.5"} ${ylwGlowClass}`}
+      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-4 gap-1.5" : "gap-0.5"} ${ylwGlowClass}`}
       style={emphasis
-        ? { minHeight: "200px", containerType: 'inline-size' }
+        ? { minHeight: "170px", containerType: 'inline-size' }
         : { minHeight: "90px", containerType: 'inline-size', padding: "clamp(0.65rem, 1.5vw, 1.1rem)" }}
     >
       {emphasis ? (
         <>
-          {/* TOP — title (reserved height, up to 2 lines) + badges + pills (reserved row) */}
-          <div className="w-full flex flex-col items-center gap-1">
-            <div className="w-full min-h-[2.5rem] flex items-center justify-center gap-1.5 min-w-0 px-1">
-              <p className={emphasisTitleClass} title={label} style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                {label}
-              </p>
-              {badges}
-            </div>
-            <div className="min-h-[1.5rem] flex items-center justify-center">
-              {pillsBlock}
-            </div>
+          {/* HEADER — fixed height, 2-line capable, never truncate */}
+          <div className="w-full min-h-[2.5rem] flex items-center justify-center gap-1.5 min-w-0 px-1">
+            <p className={emphasisTitleClass} title={label} style={{ whiteSpace: 'normal', overflow: 'visible' }}>
+              {label}
+            </p>
+            {badges}
           </div>
-
-          {/* MIDDLE — figure + caption (delta/context/trend) all attached, centred */}
+          {/* PILLS — reserved row even when empty */}
+          <div className="w-full min-h-[1.75rem] flex items-center justify-center">
+            {pillsBlock}
+          </div>
+          {/* BODY — figure + sub-lines centred (trend lives inside as a sub) */}
           <div className="flex-1 flex flex-col items-center justify-center gap-1 w-full min-w-0">
             {valueBlock}
             {momBlock}
             {contextBlock}
             {trendBlock}
           </div>
-
-          {/* BOTTOM — only the progress bar */}
-          {barBlock}
         </>
+
       ) : (
         <>
           {/* ROW 1 — Label + badges */}
