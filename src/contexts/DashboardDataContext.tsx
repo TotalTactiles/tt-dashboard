@@ -298,6 +298,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
   const isLoading = ds.isLoading;
   const isRefreshing = ds.isRefreshing;
   const { formulas, addFormula, updateFormula, deleteFormula } = useFormulas();
+  const { quotingOpp } = useCrmStages();
   const [calendarEventsOverride, setCalendarEventsState] = useState<LiveCalendarEvent[] | null>(null);
 
   const data = useMemo<DashboardData>(() => {
