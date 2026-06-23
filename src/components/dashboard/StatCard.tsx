@@ -312,6 +312,15 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
 
       {/* ROW 2 — Main value */}
       <div style={{ minWidth: 0, overflow: 'hidden' }} className="my-0.5">
+        {process.env.NODE_ENV === 'development' && label === 'Cashflow Position' && (
+          <div style={{ fontSize: '9px', color: 'orange', fontFamily: 'monospace', lineHeight: '1.2', marginBottom: '4px' }}>
+            XeroCashOpening={kpiVariables?.XeroCashOpening ?? 'N/A'} |
+            XeroCashPosition={kpiVariables?.XeroCashPosition ?? 'N/A'} |
+            CashPosition={kpiVariables?.CashPosition ?? 'N/A'} |
+            liveXero_cba={liveData?.xero_cba_opening ?? 'N/A'} |
+            formulaResult={cashflowPositionFormulaResult?.value ?? 'N/A'}
+          </div>
+        )}
         {isActual && (editing || isActualNotSet) ? (
           <div className="flex items-center gap-1">
             <span className="text-muted-foreground font-mono" style={{ fontSize: 'clamp(0.75rem, 3cqi, 1.2rem)' }}>$</span>
