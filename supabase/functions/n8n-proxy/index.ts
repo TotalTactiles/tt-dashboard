@@ -91,6 +91,7 @@ Deno.serve(async (req) => {
       data = { success: true };
     }
 
+    console.log('[n8n-proxy] response keys:', Object.keys(data ?? {}));
     return new Response(JSON.stringify(data), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
