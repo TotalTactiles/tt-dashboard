@@ -357,20 +357,28 @@ export function evaluateExpression(
 
 // Default variable names shown when no live data is available
 const DEFAULT_VARIABLE_NAMES = [
-  "TotalQuoted", "TotalWon", "QuotedRemaining",
-  "ConversionRate", "ConversionRateConfirmed", "NetRevenue", "CashPosition", "MonthlyExpenses",
-  "GrossProfitMargin",
+  // Quotes
+  "TotalQuoted", "TotalWon", "QuotedRemaining", "TotalLost", "TotalYellow",
+  "YLWplusGRN", "ConversionRate", "ConversionRateConfirmed",
+  // Revenue
+  "GrossRevenue", "TotalCOGS", "TotalLabourCost", "NetRevenue",
+  "GrossProfitMargin", "GrossMarginTarget",
+  // Cashflow (Google Sheets)
+  "CashPosition", "TotalIncome_Current", "TotalOutgoings_Current", "GrossProfit_Current",
+  // Cashflow (Xero — live bank data)
+  "XeroCashOpening", "XeroCashCurrent", "XeroCashMovement", "XeroCashPosition",
+  // P&L (Xero)
+  "XeroRevenue", "XeroGrossProfit", "XeroNetProfit", "XeroAR",
+  // Expenses
+  "MonthlyExpenses", "YearlyExpenses",
+  // Project execution (Zoho)
   "onTimeDelivery", "scheduleSlippage", "marginVariance", "labourEfficiency",
-  "XeroCashOpening", "XeroCashCurrent", "XeroCashMovement",
-  "XeroCashPosition", "XeroRevenue", "XeroNetProfit", "XeroAR",
-  "XeroGrossProfit", "GrossProfitMargin", "YLWplusGRN",
 ];
 
 export function getAvailableVariables(kpiVariables?: Record<string, number>): string[] {
-  if (kpiVariables && Object.keys(kpiVariables).length > 0) {
-    return Object.keys(kpiVariables);
-  }
-  return DEFAULT_VARIABLE_NAMES;
+  const live = kpiVariables ? Object.keys(kpiVariables) : [];
+  const merged = Array.from(new Set([...DEFAULT_VARIABLE_NAMES, ...live]));
+  return merged.sort();
 }
 
 function upsertSystemFormula(
