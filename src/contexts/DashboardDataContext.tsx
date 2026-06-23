@@ -319,6 +319,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const xeroPnl  = xeroData?.pnl ?? null;
     const xeroMonthlyCashflow = xeroData?.monthlyCashflow ?? [];
 
+    console.log('[Webhook Top Keys]', Object.keys(webhookRaw ?? {}));
     console.log('[Xero Data]', {
       cbaOpening: xeroCash?.cba?.openingBalance,
       cbaCurrent: xeroCash?.cba?.currentBalance,
