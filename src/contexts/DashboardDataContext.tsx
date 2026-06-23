@@ -339,14 +339,6 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       liveDataKeys: Object.keys(webhookRaw ?? {}).slice(0, 15)
     });
 
-    // Flat Xero cache rows — read directly from liveData top level
-    const flatXero = (liveData as any) ?? {};
-
-    const xeroCbaOpening  = parseFloat(flatXero?.xero_cba_opening  ?? '0') || 0;
-    const xeroCbaCurrent  = parseFloat(flatXero?.xero_cba_current  ?? '0') || 0;
-    const xeroCbaMovement = parseFloat(flatXero?.xero_cba_movement ?? '0') || 0;
-    const xeroRevenueFlt  = parseFloat(flatXero?.xero_revenue      ?? '0') || 0;
-    const xeroNetProfitFlt= parseFloat(flatXero?.xero_net_profit   ?? '0') || 0;
 
 
     const rawQuotes = Array.isArray(webhookResponse?.quotes) ? webhookResponse.quotes : [];
