@@ -339,6 +339,16 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       liveDataKeys: Object.keys(webhookRaw ?? {}).slice(0, 15)
     });
 
+    // Flat Xero cache rows — read directly from liveData top level
+    const flatXero = (liveData as any) ?? {};
+
+    const xeroCbaOpening  = parseFloat(flatXero?.xero_cba_opening  ?? '0') || 0;
+    const xeroCbaCurrent  = parseFloat(flatXero?.xero_cba_current  ?? '0') || 0;
+    const xeroCbaMovement = parseFloat(flatXero?.xero_cba_movement ?? '0') || 0;
+    const xeroRevenueFlt  = parseFloat(flatXero?.xero_revenue      ?? '0') || 0;
+    const xeroNetProfitFlt= parseFloat(flatXero?.xero_net_profit   ?? '0') || 0;
+
+
     const rawQuotes = Array.isArray(webhookResponse?.quotes) ? webhookResponse.quotes : [];
     const rawCashflow = liveData.cashflow ?? [];
     const rawRevenue = liveData.revenue ?? [];
@@ -1172,13 +1182,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const kpiVariables: Record<string, number> = {
       ...baseKpiVariables,
       ...projectExecutionVariables,
-      XeroCashOpening: xeroCash?.cba?.openingBalance ?? 0,
-      XeroCashCurrent: xeroCash?.cba?.openingBalance ?? 0,
-      XeroCashMovement: xeroCash?.cba?.netMovementMTD ?? 0,
-      XeroCashPosition: xeroCash?.cba?.openingBalance ?? 0,
-      XeroRevenue: xeroPnl?.revenue ?? 0,
+      XeroCashOpening: xeroCbaOpening,
+      XeroCashCurrent: xeroCbaCurrent,
+      XeroCashMovement: xeroCbaMovement,
+      XeroCashPosition: xeroCbaOpening,
+      XeroRevenue: xeroRevenueFlt,
       XeroGrossProfit: xeroPnl?.grossProfit ?? 0,
-      XeroNetProfit: xeroPnl?.netProfit ?? 0,
+      XeroNetProfit: xeroNetProfitFlt,
       XeroAR: xeroPnl?.accountsReceivable ?? 0,
     };
 
