@@ -1290,9 +1290,14 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       ? { ...rawInvestorMetrics, ...dsrFields }
       : null;
 
+    const inRunningJobs = quotedJobs.filter((j) => j.status === "pending");
+    const inRunningCount = inRunningJobs.length;
+    const inRunningValue = inRunningJobs.reduce((s, j) => s + (Number(j.value) || 0), 0);
+
     return {
       quotedJobs, revenueProjects, expenseCategories, grandTotalExpense,
       cashflowPositionRaw: cashflowPosition,
+      inRunningCount, inRunningValue,
       kpiStats, incomeOutgoingsData, profitMarginData, forecastChartData, expenseAllocation,
       kpiVariables, dataStore: storeSnapshot, formulaCache: formulaCacheInstance, changedFormulas,
       formulas, addFormula, updateFormula, deleteFormula,
