@@ -251,6 +251,17 @@ export interface DashboardData {
   updateScreenshot: (id: string, url: string) => void;
   removeScreenshot: (id: string) => void;
   changeDetectorMeta: { lastChecked: string | null; lastTriggered: string | null; noChangeCount: number };
+  xeroData: any | null;
+  xeroCash: any | null;
+  xeroPnl: any | null;
+  xeroMonthlyCashflow: Array<{
+    monthKey: string;
+    monthLabel: string;
+    receipts: number;
+    spend: number;
+    net: number;
+    count: number;
+  }>;
 }
 
 const DashboardDataContext = createContext<DashboardData | null>(null);
@@ -296,6 +307,20 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     console.log("quotes type:", typeof webhookResponse?.quotes);
     console.log("quotes length:", webhookResponse?.quotes?.length);
     console.log("quotes[0]:", JSON.stringify(webhookResponse?.quotes?.[0], null, 2));
+
+    const xeroData = (liveData as any)?.xeroData ?? null;
+    const xeroCash = xeroData?.cashPosition ?? null;
+    const xeroPnl = xeroData?.pnl ?? null;
+    const xeroMonthlyCashflow = xeroData?.monthlyCashflow ?? [];
+
+    console.log('[Xero Data]', {
+      cbaOpening: xeroCash?.cba?.openingBalance,
+      cbaCurrent: xeroCash?.cba?.currentBalance,
+      movement: xeroCash?.cba?.netMovementMTD,
+      revenue: xeroPnl?.revenue,
+      netProfit: xeroPnl?.netProfit,
+      source: xeroData?._meta?.source
+    });
 
     const rawQuotes = Array.isArray(webhookResponse?.quotes) ? webhookResponse.quotes : [];
     const rawCashflow = liveData.cashflow ?? [];
@@ -1130,6 +1155,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const kpiVariables: Record<string, number> = {
       ...baseKpiVariables,
       ...projectExecutionVariables,
+      XeroCashOpening: xeroCash?.cba?.openingBalance ?? 0,
+      XeroCashCurrent: xeroCash?.cba?.currentBalance ?? 0,
+      XeroCashMovement: xeroCash?.cba?.netMovementMTD ?? 0,
+      XeroRevenue: xeroPnl?.revenue ?? 0,
+      XeroGrossProfit: xeroPnl?.grossProfit ?? 0,
+      XeroNetProfit: xeroPnl?.netProfit ?? 0,
+      XeroAR: xeroPnl?.accountsReceivable ?? 0,
     };
 
     console.log("[Formula Variable Verification] Project Execution variables", {
@@ -1269,6 +1301,10 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       updateScreenshot: ds.updateScreenshot,
       removeScreenshot: ds.removeScreenshot,
       changeDetectorMeta: ds.changeDetectorMeta ?? { lastChecked: null, lastTriggered: null, noChangeCount: 0 },
+      xeroData,
+      xeroCash,
+      xeroPnl,
+      xeroMonthlyCashflow,
     };
   }, [liveData, hasLiveData, connectedCount, isLoading, isRefreshing, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride, calendarData, projectKPIData]);
 
@@ -1318,6 +1354,10 @@ export function useDashboardData(): DashboardData {
       updateScreenshot: () => {},
       removeScreenshot: () => {},
       changeDetectorMeta: { lastChecked: null, lastTriggered: null, noChangeCount: 0 },
+      xeroData: null,
+      xeroCash: null,
+      xeroPnl: null,
+      xeroMonthlyCashflow: [],
     } as DashboardData;
   }
   return ctx;
