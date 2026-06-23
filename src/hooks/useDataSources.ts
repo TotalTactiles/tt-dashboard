@@ -205,7 +205,16 @@ function loadSavedSources(): DataSourceConfig[] {
 function loadCachedData(): LiveData {
   try {
     const cached = localStorage.getItem(DATA_CACHE_KEY);
-    if (cached) return JSON.parse(cached);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      // Only use cache if it contains xeroData (i.e. was fetched by v14+)
+      if (parsed && !parsed.xeroData) {
+        // Cache is from old v13 — discard it and fetch fresh
+        localStorage.removeItem(DATA_CACHE_KEY);
+        return {};
+      }
+      return parsed;
+    }
   } catch {}
   return {};
 }
