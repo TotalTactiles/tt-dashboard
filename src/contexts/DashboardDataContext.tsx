@@ -297,6 +297,20 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     console.log("quotes length:", webhookResponse?.quotes?.length);
     console.log("quotes[0]:", JSON.stringify(webhookResponse?.quotes?.[0], null, 2));
 
+    const xeroData = (liveData as any)?.xeroData ?? null;
+    const xeroCash = xeroData?.cashPosition ?? null;
+    const xeroPnl = xeroData?.pnl ?? null;
+    const xeroMonthlyCashflow = xeroData?.monthlyCashflow ?? [];
+
+    console.log('[Xero Data]', {
+      cbaOpening: xeroCash?.cba?.openingBalance,
+      cbaCurrent: xeroCash?.cba?.currentBalance,
+      movement: xeroCash?.cba?.netMovementMTD,
+      revenue: xeroPnl?.revenue,
+      netProfit: xeroPnl?.netProfit,
+      source: xeroData?._meta?.source
+    });
+
     const rawQuotes = Array.isArray(webhookResponse?.quotes) ? webhookResponse.quotes : [];
     const rawCashflow = liveData.cashflow ?? [];
     const rawRevenue = liveData.revenue ?? [];
