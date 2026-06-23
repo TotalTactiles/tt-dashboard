@@ -109,12 +109,14 @@ function WinLossSummaryCard({
   quotedJobs: Array<{ status: string; value: number }>;
   index: number;
 }) {
+  const [mode, setMode] = useState<"total" | "avg">("total");
+
   const wonJobs = quotedJobs.filter((j) => j.status === "won");
   const lostJobs = quotedJobs.filter((j) => j.status === "lost");
   const totalJobs = wonJobs.length + lostJobs.length;
 
-  const wonTotal = wonJobs.reduce((s, j) => s + (j.value || 0), 0);
-  const lostTotal = lostJobs.reduce((s, j) => s + (j.value || 0), 0);
+  const wonValue = wonJobs.reduce((s, j) => s + (j.value || 0), 0);
+  const lostValue = lostJobs.reduce((s, j) => s + (j.value || 0), 0);
 
   const wonCount = wonJobs.length;
   const lostCount = lostJobs.length;
@@ -127,6 +129,11 @@ function WinLossSummaryCard({
     if (abs >= 1_000) return `$${(abs / 1_000).toFixed(1)}K`;
     return `$${Math.round(abs).toLocaleString()}`;
   };
+
+  const topVal = mode === "total" ? wonValue : (wonCount ? wonValue / wonCount : 0);
+  const bottomVal = mode === "total" ? lostValue : (lostCount ? lostValue / lostCount : 0);
+  const topLabel = mode === "total" ? "WON" : "AVG WON";
+  const bottomLabel = mode === "total" ? "LOST" : "AVG LOST";
 
   return (
     <motion.div
@@ -155,10 +162,28 @@ function WinLossSummaryCard({
         </p>
       </div>
 
+      {/* Total / Avg toggle pills */}
+      <div className="flex mt-0.5 mb-0.5">
+        <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
+          <button
+            onClick={() => setMode("total")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+              mode === "total" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >Total</button>
+          <button
+            onClick={() => setMode("avg")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+              mode === "avg" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >Avg</button>
+        </div>
+      </div>
+
       {/* Won (top) */}
-      <div className="mt-1">
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">WON</p>
-        <p className="text-xl font-bold font-mono text-chart-green">{fmtCompact(wonTotal)}</p>
+      <div className="mt-0.5">
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">{topLabel}</p>
+        <p className="text-xl font-bold font-mono text-chart-green">{fmtCompact(topVal)}</p>
         <p className="text-[10px] text-muted-foreground font-mono">{wonCount} jobs</p>
       </div>
 
@@ -167,8 +192,8 @@ function WinLossSummaryCard({
 
       {/* Lost (bottom) */}
       <div>
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">LOST</p>
-        <p className="text-xl font-bold font-mono text-chart-red">{fmtCompact(lostTotal)}</p>
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">{bottomLabel}</p>
+        <p className="text-xl font-bold font-mono text-chart-red">{fmtCompact(bottomVal)}</p>
         <p className="text-[10px] text-muted-foreground font-mono">{lostCount} jobs</p>
       </div>
 
@@ -184,6 +209,98 @@ function WinLossSummaryCard({
     </motion.div>
   );
 }
+
+function RevenueProfitCard({
+  grossRevenue,
+  netRevenue,
+  grossProfit,
+  netProfit,
+  index,
+}: {
+  grossRevenue: number;
+  netRevenue: number;
+  grossProfit: number;
+  netProfit: number;
+  index: number;
+}) {
+  const [mode, setMode] = useState<"revenue" | "profit">("revenue");
+
+  const fmtCompact = (n: number) => {
+    const abs = Math.abs(n);
+    const sign = n < 0 ? "-" : "";
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}K`;
+    return `${sign}$${Math.round(abs).toLocaleString()}`;
+  };
+
+  const isRevenue = mode === "revenue";
+  const topVal = isRevenue ? grossRevenue : grossProfit;
+  const bottomVal = isRevenue ? netRevenue : netProfit;
+  const topLabel = isRevenue ? "GROSS REVENUE" : "GROSS PROFIT";
+  const bottomLabel = isRevenue ? "NET REVENUE" : "NET PROFIT";
+
+  // Revenue always positive treatment; profit colored by sign
+  const topColor = isRevenue ? "text-chart-green" : (topVal >= 0 ? "text-chart-green" : "text-chart-red");
+  const bottomColor = isRevenue ? "text-chart-green" : (bottomVal >= 0 ? "text-chart-green" : "text-chart-red");
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+      className="stat-card relative overflow-hidden flex flex-col gap-0.5"
+      style={{ minHeight: "100px", containerType: 'inline-size' }}
+    >
+      <div className="flex items-center justify-between gap-1" style={{ minWidth: 0 }}>
+        <p
+          className="font-mono text-muted-foreground font-medium"
+          style={{
+            fontSize: 'clamp(0.5rem, 1.8cqi, 0.65rem)',
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            minWidth: 0,
+            maxWidth: '100%',
+          }}
+        >
+          REVENUE / PROFIT
+        </p>
+      </div>
+
+      <div className="flex mt-0.5 mb-0.5">
+        <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
+          <button
+            onClick={() => setMode("revenue")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+              mode === "revenue" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >Revenue</button>
+          <button
+            onClick={() => setMode("profit")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+              mode === "profit" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >Profit</button>
+        </div>
+      </div>
+
+      <div className="mt-0.5">
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">{topLabel}</p>
+        <p className={`text-xl font-bold font-mono ${topColor}`}>{fmtCompact(topVal)}</p>
+      </div>
+
+      <div className="h-px bg-white/10 my-1" />
+
+      <div>
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">{bottomLabel}</p>
+        <p className={`text-xl font-bold font-mono ${bottomColor}`}>{fmtCompact(bottomVal)}</p>
+      </div>
+    </motion.div>
+  );
+}
+
 
 
 function RevGpNetDebtChart({
@@ -826,13 +943,27 @@ const DashboardContent = () => {
                   />
                 );
               }
+              if (stat.label === "Revenue / Profit") {
+                const e = stat.extras ?? {};
+                return (
+                  <RevenueProfitCard
+                    key="revenue-profit"
+                    grossRevenue={e.grossRevenue ?? 0}
+                    netRevenue={e.netRevenue ?? 0}
+                    grossProfit={e.grossProfit ?? 0}
+                    netProfit={e.netProfit ?? 0}
+                    index={i}
+                  />
+                );
+              }
+              const formulaInfo = stat.label === "Total Won" ? null : getFormulaInfo(stat.label);
               return (
                 <StatCard
                   key={stat.label}
                   {...stat}
                   value={getCardValue(stat)}
                   index={i}
-                  formulaDriven={getFormulaInfo(stat.label)}
+                  formulaDriven={formulaInfo}
                   altValue={stat.altValue}
                   altChange={stat.altChange}
                   altPositive={stat.altPositive}
