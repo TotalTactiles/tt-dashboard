@@ -404,7 +404,6 @@ function PipelineSummaryCard({
         <div className={`min-w-0 ${emphasis ? "w-full" : ""}`}>
           <p className={labelClass}>QUOTING OPPS</p>
           <p className={`font-bold font-mono text-chart-green break-words ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{noData ? "—" : topCount}</p>
-          <p className={subClass}>{topSub}</p>
         </div>
 
         <div className={`h-px bg-white/10 my-1 ${emphasis ? "w-2/3 mx-auto" : ""}`} />
