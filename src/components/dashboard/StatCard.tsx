@@ -254,7 +254,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
   }, [editing]);
 
   // Shared title style for emphasis cards — more legible than the tiny default
-  const emphasisTitleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-xs truncate";
+  const emphasisTitleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-xs whitespace-normal break-words leading-tight text-center";
 
   // Badges block — same markup whether emphasised or not
   const badges = (
