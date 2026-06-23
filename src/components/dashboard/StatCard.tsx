@@ -118,10 +118,18 @@ const noteStyle: React.CSSProperties = {
 type ToggleMode = "base" | "alt" | "alt2";
 
 const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted, toggleLabelBase, toggleLabelAlt, momDelta, altMomDelta, momContext, altMomContext, greenAltPill, altValue2, altChange2, altPositive2, toggleLabelAlt2 }: StatCardProps) => {
+  const { kpiVariables, liveData, formulaCache, formulas } = useDashboardData();
   const [mode, setMode] = useState<ToggleMode>("base");
   const [editing, setEditing] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const cashflowPositionFormulaResult = useMemo(() => {
+    if (label !== "Cashflow Position") return null;
+    const f = formulas.find((x: any) => x.dashboardCard === "Cashflow Position");
+    return f ? formulaCache.get(f.id) : null;
+  }, [label, formulas, formulaCache]);
+
 
   const [localActualValue, setLocalActualValue] = useState<number | null>(() => {
     try {
