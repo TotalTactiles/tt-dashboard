@@ -290,6 +290,12 @@ const DEFAULT_FORMULAS: Omit<MetricFormula, "id">[] = [
     description: `What is calculated:\n• Annual loan repayments as a percentage of annualised revenue — measures debt burden relative to income\n\nHow it is calculated:\n• DSR = Annual Debt Repayments ÷ Annualised Revenue × 100\n• Annual Debt = (Business Loan $4,318 + Car Loan $1,223) × 12 = $66,492/year\n• Revenue is annualised from YTD: (Revenue YTD ÷ months elapsed) × 12\n• Month scope: monthly repayments ÷ that month's income\n• Lifetime scope: same annual debt ÷ lifetime annualised revenue\n\nBenchmarks:\n• Under 15% = Healthy — debt is well-covered by revenue\n• 15–25% = Monitor — debt is manageable but watch revenue\n• Above 25% = High — debt obligations are a significant burden\n\nCurrent fixed debt obligations:\n• Business Loan Repayment & Monthly Fee: $4,318/month\n• Motor Vehicle Repayments: $1,223/month\n• Total: $5,541/month | $66,492/year\n\nNote: This uses monthly repayment amounts from the CASHFLOW sheet, not outstanding loan principal balances. Once Basiq is connected, actual principal balances will enable a true Debt-to-Equity ratio.\n\nSource: CASHFLOW sheet → Business Loan Repayment (row 57) + Motor Vehicle Repayments (row 58)`,
     unit: "%", category: "Financial Health", dashboardCard: "Debt Service Ratio", dataSource: "Google Sheets", section: "Investor Metrics",
   },
+
+  // ── ADDITIONAL XERO / CASHFLOW ENTRIES ──────────────────────────────────
+  { name: "Cashflow Today (Live)", expression: "XeroCashCurrent", unit: "$", category: "Financial", dashboardCard: "Cashflow Today Estimate", dataSource: "Xero", section: "Business Overview", description: "Live CBA bank balance from Xero (falls back to closing balance)" },
+  { name: "CBA Live Balance", expression: "XeroCashCurrent", unit: "$", category: "Financial", dashboardCard: "Cashflow Today Estimate", dataSource: "Xero", section: "Cashflow & Forecasts", description: "Live CBA balance today — Xero bank accounts endpoint" },
+  { name: "Xero Net Profit", expression: "XeroNetProfit", unit: "$", category: "Financial", dashboardCard: "EBITDA", dataSource: "Xero", section: "Cashflow & Forecasts", description: "Net profit from Xero P&L report YTD" },
+  { name: "Xero Revenue", expression: "XeroRevenue", unit: "$", category: "Financial", dashboardCard: "Revenue Projects Table", dataSource: "Xero", section: "Cashflow & Forecasts", description: "Total revenue from Xero P&L report YTD" },
 ];
 
 // Simple tokenizer and evaluator for arithmetic expressions with named variables
