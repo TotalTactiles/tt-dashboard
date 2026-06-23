@@ -2,6 +2,7 @@ import React, { createContext, useContext, useMemo, useRef, useState, useCallbac
 import { useDataSources, type ProjectKPIData } from "@/hooks/useDataSources";
 import { resolveKpiVariables, createFormulaCache, DataStore, type EvaluationCache } from "@/engine/formulaEngine";
 import { useFormulas } from "@/hooks/useFormulas";
+import { useCrmStages, type QuotingOpp } from "@/hooks/useCrmStages";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 
 // Module-level formula cache singleton — survives re-renders
@@ -297,6 +298,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
   const isLoading = ds.isLoading;
   const isRefreshing = ds.isRefreshing;
   const { formulas, addFormula, updateFormula, deleteFormula } = useFormulas();
+  const { quotingOpp } = useCrmStages();
   const [calendarEventsOverride, setCalendarEventsState] = useState<LiveCalendarEvent[] | null>(null);
 
   const data = useMemo<DashboardData>(() => {
@@ -1031,21 +1033,38 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const qjWonCount = quotedJobs.filter(j => j.status === "won").length;
     const qjYlwCount = quotedJobs.filter(j => j.status === "yellow").length;
 
-    // Confirmed-only: Won jobs ÷ total quoted
-    const confirmedConvRate = qjTotal > 0 ? (qjWonCount / qjTotal) * 100 : 0;
+    // ===== WIN RATE (industry standard: won / (won + lost), decided deals only) =====
+    const wrWon  = quotedJobs.filter(j => j.status === "won").length;
+    const wrLost = quotedJobs.filter(j => j.status === "lost").length;
+    const wrYlw  = quotedJobs.filter(j => j.status === "yellow").length;
+    const winRateConfirmed = (wrWon + wrLost) > 0 ? (wrWon / (wrWon + wrLost)) * 100 : 0;
+    const winRateWithYlw   = (wrWon + wrYlw + wrLost) > 0 ? ((wrWon + wrYlw) / (wrWon + wrYlw + wrLost)) * 100 : 0;
 
-    // With YLWs: (Won + YLW) ÷ total quoted
-    const combinedConvCount = qjWonCount + qjYlwCount;
-    const combinedConvRate = qjTotal > 0 ? (combinedConvCount / qjTotal) * 100 : 0;
+    // ===== GROSS / NET revenue & profit =====
+    const rsAny        = (liveData?.revenueSummary as any) || {};
+    const grossRevenue = parseNum(rsAny.totalValue ?? 0);          // incl GST (top line)
+    const netRevenue4  = grossRevenue / 1.1;                        // ex GST
+    const grossProfitVal = netRevenue4 - parseNum(rsAny.totalCOGS ?? 0); // ex-GST revenue − COGS
+
+    // ===== Investor Net Profit (YTD, matches the Investor "Profitability" card YTD default) =====
+    const ytdMonthKeys: string[] = [];
+    for (let i = 0; i <= currentMonthIdx; i++) {
+      ytdMonthKeys.push(`${MONTH_ABBR_LIST[i]}-${String(currentYear).slice(-2)}`);
+    }
+    const revenueExGSTYTD = currentYearRevenueProjects.reduce((s, rp) => s + rp.valueExclGST, 0);
+    const totalExpensesYTD = ytdMonthKeys.reduce(
+      (s, mk) => s + Math.abs(parseNum(totalOpExInclSalariesRow?.[mk] ?? 0)),
+      0
+    );
+    const investorNetProfitYTD = revenueExGSTYTD - totalExpensesYTD;
 
     const kpiStats: KPIStat[] = [
+      // 1. Quotes (Active / Total) — unchanged
       {
         label: "Quotes",
-        // BASE = Active (remaining/open pipeline)
         value: noData ? "--" : fmtAUD(parseNum(qs?.remaining?.value ?? 0)),
         change: noData ? "--" : `${parseNum(qs?.remaining?.count ?? 0)} active jobs`,
         positive: true, noData,
-        // ALT = Total quoted (all stages)
         altValue: noData ? "--" : fmtAUD(parseNum(qs?.totalQuoted?.value ?? 0)),
         altChange: noData ? "--" : `${totalQuotedCount} jobs`,
         altPositive: true,
@@ -1055,6 +1074,17 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         momDelta: noData ? undefined : (hasPrevMon ? fmtDelta(curMon.totalVal, prevMon.totalVal, "currency") : noMomText),
         momContext: noData ? undefined : (curMon.totalCount > 0 ? `+${curMon.totalCount} jobs this month` : undefined),
       },
+      // 2. Current Quoting Opportunities — single value, no toggle (from CRM second-fetch)
+      {
+        label: "Current Quoting Opportunities",
+        value: quotingOpp ? String(quotingOpp.count) : "—",
+        change: quotingOpp && quotingOpp.value > 0
+          ? `${fmtAUD(quotingOpp.value)} in pipeline`
+          : (quotingOpp ? "active opportunities" : "awaiting CRM feed"),
+        positive: true,
+        noData: !quotingOpp,
+      },
+      // 3. Total Won (Confirmed / With YLWs) — unchanged
       {
         label: "Total Won",
         value: noData ? "--" : fmtAUD(baseWonValue),
@@ -1067,86 +1097,42 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         momDelta: noData ? undefined : (hasPrevMon ? fmtDelta(curMon.wonVal, prevMon.wonVal, "currency") : noMomText),
         momContext: noData ? undefined : (curMon.wonCount > 0 ? `+${curMon.wonCount} jobs this month` : undefined),
       },
+      // 4. Win / Loss Summary — rendered by dedicated WinLossSummaryCard in Index.tsx (no toggle)
       {
-        label: "Avg Days to Close",
-        value: noData ? "--" : (() => {
-          const wonJobs = quotedJobs.filter(j => j.status === "won" && (j as any).dateCreated && (j as any).closingDate);
-          if (wonJobs.length === 0) return "N/A";
-          const totalDays = wonJobs.reduce((sum, j) => {
-            const created = new Date((j as any).dateCreated);
-            const closed = new Date((j as any).closingDate);
-            const days = Math.round((closed.getTime() - created.getTime()) / 86400000);
-            return sum + (days > 0 ? days : 0);
-          }, 0);
-          return `${Math.round(totalDays / wonJobs.length)}d`;
-        })(),
-        change: noData ? "--" : `across ${quotedJobs.filter(j => j.status === "won").length} won jobs`,
+        label: "Win / Loss Summary",
+        value: "—",
+        change: "",
         positive: true,
         noData,
-        momDelta: undefined,
-        momContext: "Quote to close cycle",
       },
+      // 5. Win Rate — Confirmed (default) / With YLWs
       {
-        label: "Net Revenue",
-        value: noData ? "--" : fmtAUD(netRevenue),
-        change: "--",
-        positive: netRevenue >= 0, noData,
-        momDelta: noData ? undefined : (prevMonRev.count > 0 ? fmtDelta(curMonRev.netRevenue, prevMonRev.netRevenue, "currency") : noMomText),
-        momContext: noData ? undefined : (curMonRev.count > 0 ? `${curMonRev.count} revenue items this month` : `${currentYear4Digit} YTD`),
+        label: "Win Rate",
+        value: noData ? "--" : `${winRateConfirmed.toFixed(1)}%`,
+        change: noData ? "--" : `${wrWon} won / ${wrLost} lost`,
+        positive: winRateConfirmed >= 20, noData,
+        altValue: noData ? "--" : `${winRateWithYlw.toFixed(1)}%`,
+        altChange: noData ? "--" : `${wrWon + wrYlw} won incl YLW / ${wrLost} lost`,
+        altPositive: winRateWithYlw >= 20,
+        toggleLabelBase: "Confirmed",
+        toggleLabelAlt: "With YLWs",
+        momContext: "Won ÷ (Won + Lost) · benchmark ~16–20%",
       },
-      (() => {
-        // Read manual actual balance from localStorage
-        const manualActualBalance = (() => {
-          try {
-            const stored = localStorage.getItem('tt_actual_bank_balance');
-            if (!stored) return null;
-            const parsed = JSON.parse(stored);
-            return typeof parsed.value === 'number' ? parsed : null;
-          } catch { return null; }
-        })();
-        const cfActualValue = manualActualBalance?.value ?? null;
-        const cfActualDate = manualActualBalance?.date ?? null;
-        const cfActualLabel = cfActualDate
-          ? `Actual · ${cfActualDate}`
-          : 'Actual · not set';
-
-        return {
-          label: "Cashflow Position",
-          value: noData ? "--" : fmtAUD(cfOpeningBal),
-          change: "--",
-          positive: cfOpeningBal >= 10000, noData,
-          altValue: noData ? "--" : fmtAUD(cfToDateValue),
-          altChange: "--",
-          altPositive: cfToDateValue >= 10000,
-          toggleLabelBase: "Open",
-          toggleLabelAlt: "Today",
-          greenAltPill: true,
-          momDelta: noData ? undefined : (hasPrevCashflow ? fmtDelta(cfOpeningBal, prevOpeningBal, "currency") : noMomText),
-          altMomDelta: noData ? undefined : (hasPrevCashflow ? fmtDelta(cfToDateValue, prevToDateValue, "currency") : noMomText),
-          momContext: noData ? undefined : `Opening balance · ${cfMonthLabel}`,
-          altMomContext: noData ? undefined : `Pre-invoice · day ${dayOfMonth}/${daysInMonth} · ${cfMonthLabel}`,
-          altValue2: cfActualValue !== null ? (noData ? "--" : fmtAUD(cfActualValue)) : "Tap to set",
-          altChange2: cfActualLabel,
-          altPositive2: (cfActualValue ?? 0) >= 0,
-          toggleLabelAlt2: "Actual",
-        };
-      })(),
+      // 6. Revenue / Profit — Gross (default) / Net
       {
-        label: "Conversion Rate",
-        value: noData ? "--" : `${confirmedConvRate.toFixed(1)}%`,
-        change: noData ? "--" : `${qjWonCount} won of ${qjTotal}`,
-        positive: confirmedConvRate >= 20, noData,
-        altValue: noData ? "--" : `${combinedConvRate.toFixed(1)}%`,
-        altChange: noData ? "--" : `${combinedConvCount} won incl YLW of ${qjTotal}`,
-        altPositive: combinedConvRate > 0,
-        momDelta: noData ? undefined : (() => {
-          if (!hasPrevMon) return noMomText;
-          const prevConvRate = prevMon.totalCount > 0 ? (prevMon.wonCount / prevMon.totalCount) * 100 : 0;
-          return fmtDelta(confirmedConvRate, prevConvRate, "pp");
-        })(),
-        momContext: noData ? undefined : `${qjWonCount} won of ${qjTotal}`,
+        label: "Revenue / Profit",
+        value: noData ? "--" : fmtAUD(grossRevenue),
+        change: noData ? "--" : `Gross Profit ${fmtAUD(grossProfitVal)}`,
+        positive: grossProfitVal >= 0, noData,
+        altValue: noData ? "--" : fmtAUD(netRevenue4),
+        altChange: noData ? "--" : `Net Profit ${fmtAUD(investorNetProfitYTD)}`,
+        altPositive: investorNetProfitYTD >= 0,
+        toggleLabelBase: "Gross",
+        toggleLabelAlt: "Net",
+        greenAltPill: true,
       },
     ];
+
 
     // KPI variables via formula engine
     const storeSnapshot: DataStore = {
@@ -1326,7 +1312,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       xeroPnl,
       xeroMonthlyCashflow,
     };
-  }, [liveData, hasLiveData, connectedCount, isLoading, isRefreshing, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride, calendarData, projectKPIData]);
+  }, [liveData, hasLiveData, connectedCount, isLoading, isRefreshing, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride, calendarData, projectKPIData, quotingOpp]);
 
   return <DashboardDataContext.Provider value={data}>{children}</DashboardDataContext.Provider>;
 }
