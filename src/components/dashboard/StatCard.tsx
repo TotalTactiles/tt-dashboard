@@ -40,8 +40,8 @@ interface StatCardProps {
 }
 
 const emphasisValueShortStyle: React.CSSProperties = {
-  fontSize: 'clamp(2rem, 3.2vw, 3.25rem)',
-  lineHeight: 1.05,
+  fontSize: 'clamp(1.75rem, 2.4vw, 2.5rem)',
+  lineHeight: 1.1,
   fontWeight: 700,
   fontVariantNumeric: 'tabular-nums',
   letterSpacing: '-0.02em',
@@ -52,8 +52,8 @@ const emphasisValueShortStyle: React.CSSProperties = {
 };
 
 const emphasisValueLongStyle: React.CSSProperties = {
-  fontSize: 'clamp(1.65rem, 2.8vw, 2.75rem)',
-  lineHeight: 1.05,
+  fontSize: 'clamp(1.5rem, 2.1vw, 2.15rem)',
+  lineHeight: 1.1,
   fontWeight: 700,
   fontVariantNumeric: 'tabular-nums',
   letterSpacing: '-0.015em',
