@@ -39,20 +39,9 @@ interface StatCardProps {
   emphasis?: boolean;
 }
 
-const emphasisValueShortStyle: React.CSSProperties = {
-  fontSize: 'clamp(1.75rem, 2.4vw, 2.5rem)',
-  lineHeight: 1.1,
-  fontWeight: 700,
-  fontVariantNumeric: 'tabular-nums',
-  letterSpacing: '-0.02em',
-  minWidth: 0,
-  maxWidth: '100%',
-  display: 'block',
-  wordBreak: 'break-word',
-};
-
-const emphasisValueLongStyle: React.CSSProperties = {
-  fontSize: 'clamp(1.5rem, 2.1vw, 2.15rem)',
+// Unified emphasis figure style — one type scale across every Quick Look Sales card.
+const emphasisFigureStyle: React.CSSProperties = {
+  fontSize: 'clamp(1.5rem, 2vw, 1.875rem)',
   lineHeight: 1.1,
   fontWeight: 700,
   fontVariantNumeric: 'tabular-nums',
@@ -62,6 +51,8 @@ const emphasisValueLongStyle: React.CSSProperties = {
   display: 'block',
   wordBreak: 'break-word',
 };
+const emphasisValueShortStyle = emphasisFigureStyle;
+const emphasisValueLongStyle = emphasisFigureStyle;
 
 function timeAgo(ts: number | null): string {
   if (!ts) return "never";
@@ -384,7 +375,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
 
   const momBlock = !isActual && !noData && (showAlt && altMomDelta ? altMomDelta : momDelta) ? (
     <p
-      className={`font-mono text-muted-foreground ${emphasis ? "text-xs truncate w-full" : ""}`}
+      className={`font-mono text-muted-foreground ${emphasis ? "text-xs whitespace-normal break-words text-center w-full px-1" : ""}`}
       style={emphasis ? undefined : sublineStyle}
       title={showAlt && altMomDelta ? altMomDelta : momDelta}
     >
@@ -433,7 +424,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
     const ctx = showAlt && altMomContext ? altMomContext : momContext;
     return ctx ? (
       <p
-        className={`font-mono text-muted-foreground/80 ${emphasis ? "text-xs truncate w-full" : ""}`}
+        className={`font-mono text-muted-foreground/80 ${emphasis ? "text-xs whitespace-normal break-words text-center w-full px-1" : ""}`}
         style={emphasis ? undefined : noteStyle}
         title={ctx}
       >

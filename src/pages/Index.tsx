@@ -138,15 +138,15 @@ function WinLossSummaryCard({
   const bottomLabel = mode === "total" ? "LOST" : "AVG LOST";
 
   const figureStyle: React.CSSProperties = emphasis
-    ? { fontSize: 'clamp(1.25rem, 1.9vw, 1.75rem)', lineHeight: 1.1, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }
+    ? { fontSize: 'clamp(1.5rem, 2vw, 1.875rem)', lineHeight: 1.1, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' }
     : {};
 
   const titleClass = emphasis
     ? "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-xs whitespace-normal break-words leading-tight text-center"
     : "font-mono text-muted-foreground font-medium";
 
-  const subClass = emphasis ? "text-xs text-muted-foreground font-mono" : "text-[10px] text-muted-foreground font-mono";
-  const labelClass = "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
+  const subClass = emphasis ? "text-xs text-muted-foreground font-mono whitespace-normal break-words text-center" : "text-[10px] text-muted-foreground font-mono";
+  const labelClass = emphasis ? "text-xs font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center" : "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
 
   return (
     <motion.div
@@ -259,13 +259,13 @@ function RevenueProfitCard({
   const bottomColor = isRevenue ? "text-chart-green" : (bottomVal >= 0 ? "text-chart-green" : "text-chart-red");
 
   const figureStyle: React.CSSProperties = emphasis
-    ? { fontSize: 'clamp(1.25rem, 1.9vw, 1.75rem)', lineHeight: 1.1, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }
+    ? { fontSize: 'clamp(1.5rem, 2vw, 1.875rem)', lineHeight: 1.1, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' }
     : {};
 
   const titleClass = emphasis
     ? "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-xs whitespace-normal break-words leading-tight text-center"
     : "font-mono text-muted-foreground font-medium";
-  const labelClass = "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
+  const labelClass = emphasis ? "text-xs font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center" : "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
 
   return (
     <motion.div
@@ -359,14 +359,14 @@ function PipelineSummaryCard({
   };
 
   const figureStyle: React.CSSProperties = emphasis
-    ? { fontSize: 'clamp(1.25rem, 1.9vw, 1.75rem)', lineHeight: 1.1, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }
+    ? { fontSize: 'clamp(1.5rem, 2vw, 1.875rem)', lineHeight: 1.1, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' }
     : {};
 
   const titleClass = emphasis
     ? "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-xs whitespace-normal break-words leading-tight text-center"
     : "font-mono text-muted-foreground font-medium";
-  const subClass = emphasis ? "text-xs text-muted-foreground font-mono" : "text-[10px] text-muted-foreground font-mono";
-  const labelClass = "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
+  const subClass = emphasis ? "text-xs text-muted-foreground font-mono whitespace-normal break-words text-center" : "text-[10px] text-muted-foreground font-mono";
+  const labelClass = emphasis ? "text-xs font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center" : "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
 
   return (
     <motion.div
@@ -404,7 +404,6 @@ function PipelineSummaryCard({
         <div className={`min-w-0 ${emphasis ? "w-full" : ""}`}>
           <p className={labelClass}>QUOTING OPPS</p>
           <p className={`font-bold font-mono text-chart-green break-words ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{noData ? "—" : topCount}</p>
-          <p className={subClass}>{topSub}</p>
         </div>
 
         <div className={`h-px bg-white/10 my-1 ${emphasis ? "w-2/3 mx-auto" : ""}`} />
@@ -1094,10 +1093,9 @@ const DashboardContent = () => {
                 );
               }
               const formulaInfo = stat.label === "Total Won" ? null : getFormulaInfo(stat.label);
-              // Win Rate caption: keep a single short centred line on the card face;
-              // the longer benchmark text is retained as a hover tooltip.
+              // Win Rate: remove the "Won ÷ (Won + Lost)" caption from the card face entirely.
               const captionOverride = stat.label === "Win Rate"
-                ? { momContext: "Won ÷ (Won + Lost)", altMomContext: "Won ÷ (Won + Lost)" }
+                ? { momContext: undefined, altMomContext: undefined }
                 : null;
               return (
                 <StatCard
