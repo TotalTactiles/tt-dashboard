@@ -17,18 +17,25 @@ export const DASHBOARD_CARDS = [
   "Total Quoted",
   "Total Won",
   "Quoted Remaining",
+  "Conversion Rate",
   "Net Revenue",
   "Cashflow Position",
-  "Conversion Rate",
+  "Cashflow Today Estimate",
+  "Monthly Expenses",
+  "Gross Profit Margin",
+  // Business Overview charts/tables
+  "Forecast Chart",
+  "Deal Pipeline",
+  "Revenue Projects Table",
+  "Expense Breakdown",
+  "Win / Loss Summary",
   // Cashflow & Forecasts
   "Cashflow Opening Balance",
-  "Cashflow Today Estimate",
   "Cashflow Actual (Manual)",
   "Forecast Anticipated Surplus",
   "Forecast With Probable Jobs",
   // Investor Metrics
   "Profitability",
-  "Gross Profit Margin",
   "Revenue Growth",
   "Pipeline Coverage",
   "Avg Contract Value",
@@ -49,7 +56,7 @@ export const DATA_SOURCES = [
 
 const STORAGE_KEY = "meridian_formulas";
 const SEED_KEY = "meridian_formulas_seeded";
-const FORMULA_MIGRATION_KEY = "meridian_formulas_v10_debt_service_ratio";
+const FORMULA_MIGRATION_KEY = "meridian_formulas_v8_xero_cashflow";
 
 const GROSS_PROFIT_MARGIN_DESCRIPTION = `What is calculated:
 • Gross Profit Margin % for each month shown in the chart
@@ -110,10 +117,40 @@ const DEFAULT_FORMULAS: Omit<MetricFormula, "id">[] = [
     unit: "$", category: "Financial", dashboardCard: "Net Revenue", dataSource: "Google Sheets", section: "Business Overview",
   },
   {
-    name: "Cashflow Position (Opening)",
-    expression: "CashPosition",
-    description: `What is calculated:\n• The opening bank balance for the current month as recorded in the cashflow sheet\n\nHow it is calculated:\n• Reads OPENING BALANCES row (row 2) for the current month column\n• This is the closing balance carried forward from the prior month\n• Represents what the business started the month with\n• Toggle "Today" to see the estimated pre-invoice position after costs paid so far\n• Toggle "Actual" to manually enter the real CBA bank balance\n\nNote: Opening balances are forecast projections until Basiq (CBA open banking) is connected.\n\nSource: CASHFLOW sheet → OPENING BALANCES row → current month column`,
-    unit: "$", category: "Financial", dashboardCard: "Cashflow Position", dataSource: "Google Sheets", section: "Business Overview",
+    name: "Cashflow Position (Open)",
+    expression: "XeroCashOpening",
+    description: `What is calculated:\n• Live opening bank balance for the current month from Xero (CBA account)\n\nSource: Xero Bank Summary report → CBA opening balance`,
+    unit: "$", category: "Financial", dashboardCard: "Cashflow Position", dataSource: "Xero", section: "Business Overview",
+  },
+  {
+    name: "Cashflow Today Estimate",
+    expression: "XeroCashCurrent",
+    description: `What is calculated:\n• Live current CBA bank account balance from Xero\n\nSource: Xero Bank Summary report → CBA current balance`,
+    unit: "$", category: "Financial", dashboardCard: "Cashflow Today Estimate", dataSource: "Xero", section: "Business Overview",
+  },
+  {
+    name: "Monthly Expenses",
+    expression: "MonthlyExpenses",
+    description: `What is calculated:\n• Total monthly operating expenses for the current month\n\nSource: EXPENSES sheet — current month column`,
+    unit: "$", category: "Financial", dashboardCard: "Monthly Expenses", dataSource: "Google Sheets", section: "Business Overview",
+  },
+  {
+    name: "Gross Profit Margin",
+    expression: "GrossProfitMargin",
+    description: `What is calculated:\n• Weighted gross profit margin % for the current period\n\nHow it is calculated:\n• GP% = (Revenue ex GST − Total COGS) ÷ Revenue ex GST × 100\n\nSource: REVENUE sheet — Value ex GST and Total COGS columns`,
+    unit: "%", category: "Profitability", dashboardCard: "Gross Profit Margin", dataSource: "Google Sheets", section: "Business Overview",
+  },
+  {
+    name: "Total Won",
+    expression: "TotalWon",
+    description: `What is calculated:\n• Total value of confirmed won jobs — PO Received (GRN) + Completed stages\n\nSource: Zoho CRM → QUOTES sheet`,
+    unit: "$", category: "Financial", dashboardCard: "Total Won", dataSource: "Google Sheets", section: "Business Overview",
+  },
+  {
+    name: "Conversion Rate",
+    expression: "ConversionRate",
+    description: `What is calculated:\n• Conversion rate including Verbal Confirmation (YLW) jobs as wins\n\nSource: QUOTES sheet → QTS SMMRY tab`,
+    unit: "%", category: "Growth", dashboardCard: "Conversion Rate", dataSource: "Google Sheets", section: "Business Overview",
   },
   {
     name: "Conversion Rate (Confirmed)",
@@ -152,6 +189,24 @@ const DEFAULT_FORMULAS: Omit<MetricFormula, "id">[] = [
     expression: "CashPosition",
     description: `What is calculated:\n• End-of-month cash surplus including income from probable pipeline jobs\n\nHow it is calculated:\n• = Anticipated Surplus + Jobs Probable To Be Won − Cost of Probable Jobs\n• Probable jobs = YLW stage deals with high conversion likelihood\n• Adds expected income from verbal confirmation jobs not yet in cashflow\n\nSource: CASHFLOW sheet → Anticipated Cash Surplus/(Deficit) Including Probable Jobs row (row 76)`,
     unit: "$", category: "Financial", dashboardCard: "Forecast With Probable Jobs", dataSource: "Google Sheets", section: "Cashflow & Forecasts",
+  },
+  {
+    name: "CBA Opening Balance",
+    expression: "XeroCashOpening",
+    description: "CBA bank account opening balance for current month from Xero Bank Summary report",
+    unit: "$", category: "Financial", dashboardCard: "Cashflow Position", dataSource: "Xero", section: "Cashflow & Forecasts",
+  },
+  {
+    name: "CBA Today Balance",
+    expression: "XeroCashCurrent",
+    description: "Live CBA bank account balance from Xero (falls back to closing balance when live balance unavailable)",
+    unit: "$", category: "Financial", dashboardCard: "Cashflow Today Estimate", dataSource: "Xero", section: "Cashflow & Forecasts",
+  },
+  {
+    name: "CBA MTD Movement",
+    expression: "XeroCashMovement",
+    description: "Net cash movement month-to-date on CBA account (current minus opening)",
+    unit: "$", category: "Financial", dashboardCard: "Cashflow Position", dataSource: "Xero", section: "Cashflow & Forecasts",
   },
 
   // ── PROJECT EXECUTION ────────────────────────────────────────────────────
@@ -318,6 +373,9 @@ const DEFAULT_VARIABLE_NAMES = [
   "ConversionRate", "ConversionRateConfirmed", "NetRevenue", "CashPosition", "MonthlyExpenses",
   "GrossProfitMargin",
   "onTimeDelivery", "scheduleSlippage", "marginVariance", "labourEfficiency",
+  "XeroCashOpening", "XeroCashCurrent", "XeroCashMovement",
+  "XeroCashPosition", "XeroRevenue", "XeroNetProfit", "XeroAR",
+  "XeroGrossProfit", "GrossProfitMargin", "YLWplusGRN",
 ];
 
 export function getAvailableVariables(kpiVariables?: Record<string, number>): string[] {
@@ -366,6 +424,13 @@ function migrateStoredFormulas(formulas: MetricFormula[]): MetricFormula[] {
   const targetIdx = next.findIndex((f) => f.name === "Gross Margin Target");
   if (targetIdx !== -1) {
     next.splice(targetIdx, 1);
+    changed = true;
+  }
+
+  // Remove deprecated "Cashflow Position (Opening)" — replaced by "Cashflow Position (Open)"
+  const oldCashIdx = next.findIndex((f) => f.name === "Cashflow Position (Opening)");
+  if (oldCashIdx !== -1) {
+    next.splice(oldCashIdx, 1);
     changed = true;
   }
 
