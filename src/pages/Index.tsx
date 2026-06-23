@@ -1055,6 +1055,20 @@ const DashboardContent = () => {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 items-stretch mb-4 md:mb-6" style={{ gap: "clamp(8px, 1vw, 16px)" }}>
             {adjustedKpiStats.map((stat, i) => {
+              if (stat.label === "Pipeline") {
+                return (
+                  <PipelineSummaryCard
+                    key="pipeline"
+                    topCount={String(stat.value ?? "—")}
+                    topSub={String(stat.change ?? "")}
+                    bottomCount={inRunningCount}
+                    bottomValue={inRunningValue}
+                    index={i}
+                    emphasis
+                    noData={stat.noData}
+                  />
+                );
+              }
               if (stat.label === "Win / Loss Summary") {
                 return (
                   <WinLossSummaryCard
