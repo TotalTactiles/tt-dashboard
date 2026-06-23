@@ -379,7 +379,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
               <TooltipTrigger asChild>
                 <span
                   className={`font-mono font-bold ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}
-                  style={isShort ? valueShortStyle : valueLongStyle}
+                  style={emphasis ? (isShort ? emphasisValueShortStyle : emphasisValueLongStyle) : (isShort ? valueShortStyle : valueLongStyle)}
                   title={displayValue}
                 >
                   {abbreviatedDisplay}
