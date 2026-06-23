@@ -257,21 +257,27 @@ function RevenueProfitCard({
   const bottomColor = isRevenue ? "text-chart-green" : (bottomVal >= 0 ? "text-chart-green" : "text-chart-red");
 
   const figureStyle: React.CSSProperties = emphasis
-    ? { fontSize: 'clamp(1.5rem, 2.6vw, 2.5rem)', lineHeight: 1.1, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }
+    ? { fontSize: 'clamp(1.25rem, 1.9vw, 1.75rem)', lineHeight: 1.1, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }
     : {};
+
+  const titleClass = emphasis
+    ? "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-xs truncate"
+    : "font-mono text-muted-foreground font-medium";
+  const labelClass = "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className={`stat-card relative overflow-hidden flex flex-col gap-0.5 ${emphasis ? 'h-full' : ''}`}
-      style={{ minHeight: emphasis ? "180px" : "100px", containerType: 'inline-size' }}
+      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-5 gap-2" : "gap-0.5"}`}
+      style={{ minHeight: emphasis ? "200px" : "100px", containerType: 'inline-size' }}
     >
-      <div className="flex items-center justify-between gap-1" style={{ minWidth: 0 }}>
+      {/* TOP — title + pills */}
+      <div className="w-full flex flex-col items-center gap-1 min-w-0">
         <p
-          className="font-mono text-muted-foreground font-medium"
-          style={{
+          className={titleClass}
+          style={emphasis ? undefined : {
             fontSize: 'clamp(0.5rem, 1.8cqi, 0.65rem)',
             letterSpacing: '0.05em',
             textTransform: 'uppercase',
@@ -284,38 +290,41 @@ function RevenueProfitCard({
         >
           REVENUE / PROFIT
         </p>
-      </div>
-
-      <div className="flex mt-0.5 mb-0.5">
-        <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
-          <button
-            onClick={() => setMode("revenue")}
-            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
-              mode === "revenue" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >Revenue</button>
-          <button
-            onClick={() => setMode("profit")}
-            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
-              mode === "profit" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >Profit</button>
+        <div className={`flex ${emphasis ? "justify-center" : ""} mt-0.5 mb-0.5`}>
+          <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
+            <button
+              onClick={() => setMode("revenue")}
+              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+                mode === "revenue" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >Revenue</button>
+            <button
+              onClick={() => setMode("profit")}
+              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+                mode === "profit" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >Profit</button>
+          </div>
         </div>
       </div>
 
-      <div className={emphasis ? "flex-1 flex flex-col justify-center min-w-0" : ""}>
-        <div className="min-w-0">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">{topLabel}</p>
+      {/* MIDDLE — figures centred */}
+      <div className={`${emphasis ? "flex-1 flex flex-col items-center justify-center gap-1" : ""} w-full min-w-0`}>
+        <div className={`min-w-0 ${emphasis ? "w-full" : ""}`}>
+          <p className={labelClass}>{topLabel}</p>
           <p className={`font-bold font-mono break-words ${topColor} ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{fmtCompact(topVal)}</p>
         </div>
 
-        <div className="h-px bg-white/10 my-1" />
+        <div className={`h-px bg-white/10 my-1 ${emphasis ? "w-2/3 mx-auto" : ""}`} />
 
-        <div className="min-w-0">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">{bottomLabel}</p>
+        <div className={`min-w-0 ${emphasis ? "w-full" : ""}`}>
+          <p className={labelClass}>{bottomLabel}</p>
           <p className={`font-bold font-mono break-words ${bottomColor} ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{fmtCompact(bottomVal)}</p>
         </div>
       </div>
+
+      {/* BOTTOM — spacer to keep footer parity with other cards */}
+      {emphasis && <div className="mt-auto pt-1.5 h-[3px] w-full" />}
     </motion.div>
   );
 }
