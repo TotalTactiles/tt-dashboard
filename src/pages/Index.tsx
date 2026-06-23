@@ -1115,6 +1115,20 @@ const DashboardContent = () => {
             })}
           </div>
 
+          {(() => {
+            const rpStat = adjustedKpiStats.find((s) => s.label === "Revenue / Profit");
+            const currentRevenue = (rpStat?.extras as any)?.grossRevenue ?? 0;
+            const wonJobs = quotedJobs.filter((j) => j.status === "won");
+            const wonValueTotal = wonJobs.reduce((s, j) => s + (j.value || 0), 0);
+            return (
+              <TargetsGoalsSection
+                currentRevenue={currentRevenue}
+                wonValueTotal={wonValueTotal}
+                wonCount={wonJobs.length}
+              />
+            );
+          })()}
+
           {investorMetrics && (() => {
             const sd = scopedInvestorData;
             const { yr, mo, ABBR } = investorDateWindows;
