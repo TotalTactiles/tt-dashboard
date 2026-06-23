@@ -259,13 +259,13 @@ function RevenueProfitCard({
   const bottomColor = isRevenue ? "text-chart-green" : (bottomVal >= 0 ? "text-chart-green" : "text-chart-red");
 
   const figureStyle: React.CSSProperties = emphasis
-    ? { fontSize: 'clamp(1.25rem, 1.9vw, 1.75rem)', lineHeight: 1.1, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }
+    ? { fontSize: 'clamp(1.5rem, 2vw, 1.875rem)', lineHeight: 1.1, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' }
     : {};
 
   const titleClass = emphasis
     ? "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-xs whitespace-normal break-words leading-tight text-center"
     : "font-mono text-muted-foreground font-medium";
-  const labelClass = "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
+  const labelClass = emphasis ? "text-xs font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center" : "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
 
   return (
     <motion.div
