@@ -142,7 +142,7 @@ function WinLossSummaryCard({
     : {};
 
   const titleClass = emphasis
-    ? "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-xs truncate"
+    ? "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-xs whitespace-normal break-words leading-tight text-center"
     : "font-mono text-muted-foreground font-medium";
 
   const subClass = emphasis ? "text-xs text-muted-foreground font-mono" : "text-[10px] text-muted-foreground font-mono";
