@@ -334,6 +334,95 @@ function RevenueProfitCard({
 }
 
 
+function PipelineSummaryCard({
+  topCount,
+  topSub,
+  bottomCount,
+  bottomValue,
+  index,
+  emphasis,
+  noData,
+}: {
+  topCount: string;
+  topSub: string;
+  bottomCount: number;
+  bottomValue: number;
+  index: number;
+  emphasis?: boolean;
+  noData?: boolean;
+}) {
+  const fmtCompact = (n: number) => {
+    const abs = Math.abs(n);
+    if (abs >= 1_000_000) return `$${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `$${(abs / 1_000).toFixed(1)}K`;
+    return `$${Math.round(abs).toLocaleString()}`;
+  };
+
+  const figureStyle: React.CSSProperties = emphasis
+    ? { fontSize: 'clamp(1.25rem, 1.9vw, 1.75rem)', lineHeight: 1.1, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }
+    : {};
+
+  const titleClass = emphasis
+    ? "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-xs whitespace-normal break-words leading-tight text-center"
+    : "font-mono text-muted-foreground font-medium";
+  const subClass = emphasis ? "text-xs text-muted-foreground font-mono" : "text-[10px] text-muted-foreground font-mono";
+  const labelClass = "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-5 gap-2" : "gap-0.5"}`}
+      style={{ minHeight: emphasis ? "200px" : "100px", containerType: 'inline-size' }}
+    >
+      {/* TOP — title (reserved 2-line height) + pill spacer to match siblings */}
+      <div className="w-full flex flex-col items-center gap-1 min-w-0">
+        <div className={emphasis ? "w-full min-h-[2.5rem] flex items-center justify-center px-1" : "w-full"}>
+          <p
+            className={titleClass}
+            style={emphasis ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {
+              fontSize: 'clamp(0.5rem, 1.8cqi, 0.65rem)',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              minWidth: 0,
+              maxWidth: '100%',
+            }}
+          >
+            PIPELINE
+          </p>
+        </div>
+        {/* Reserved pill-row spacer so figures align with toggled siblings */}
+        <div className={`${emphasis ? "min-h-[1.5rem]" : ""} mt-0.5 mb-0.5`} />
+      </div>
+
+      {/* MIDDLE — two figures, both positive (no red) */}
+      <div className={`${emphasis ? "flex-1 flex flex-col items-center justify-center gap-1" : ""} w-full min-w-0`}>
+        <div className={`min-w-0 ${emphasis ? "w-full" : ""}`}>
+          <p className={labelClass}>QUOTING OPPS</p>
+          <p className={`font-bold font-mono text-chart-green break-words ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{noData ? "—" : topCount}</p>
+          <p className={subClass}>{topSub}</p>
+        </div>
+
+        <div className={`h-px bg-white/10 my-1 ${emphasis ? "w-2/3 mx-auto" : ""}`} />
+
+        <div className={`min-w-0 ${emphasis ? "w-full" : ""}`}>
+          <p className={labelClass}>IN THE RUNNING</p>
+          <p className={`font-bold font-mono text-chart-green break-words ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{String(bottomCount)}</p>
+          <p className={subClass}>{`${fmtCompact(bottomValue)} · active quotes`}</p>
+        </div>
+      </div>
+
+      {/* BOTTOM — footer parity spacer */}
+      {emphasis && <div className="mt-auto pt-1.5 h-[3px] w-full" />}
+    </motion.div>
+  );
+}
+
+
 
 function RevGpNetDebtChart({
   incomeOutgoingsData,
@@ -477,7 +566,7 @@ function loadActiveGoalIds(allGoals: {id: string;merge?: boolean;}[]): Set<strin
 
 const DashboardContent = () => {
   const { goals, updateGoal } = useGoals();
-  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData, forecastChartData, quotedJobs, investorMetrics, isOffline, lastCachedAt, revenueProjects, dataStore, liveData } = useDashboardData();
+  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData, forecastChartData, quotedJobs, investorMetrics, isOffline, lastCachedAt, revenueProjects, dataStore, liveData, inRunningCount, inRunningValue } = useDashboardData();
 
   // ── Shared period state — resets to current month on every mount/data change ──
   const periodOptions = useMemo(() => buildPeriodOptions(quotedJobs, revenueProjects), [quotedJobs, revenueProjects]);
@@ -966,6 +1055,20 @@ const DashboardContent = () => {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 items-stretch mb-4 md:mb-6" style={{ gap: "clamp(8px, 1vw, 16px)" }}>
             {adjustedKpiStats.map((stat, i) => {
+              if (stat.label === "Pipeline") {
+                return (
+                  <PipelineSummaryCard
+                    key="pipeline"
+                    topCount={String(stat.value ?? "—")}
+                    topSub={String(stat.change ?? "")}
+                    bottomCount={inRunningCount}
+                    bottomValue={inRunningValue}
+                    index={i}
+                    emphasis
+                    noData={stat.noData}
+                  />
+                );
+              }
               if (stat.label === "Win / Loss Summary") {
                 return (
                   <WinLossSummaryCard
