@@ -156,24 +156,26 @@ function WinLossSummaryCard({
       className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-5 gap-2" : "gap-0.5"}`}
       style={{ minHeight: emphasis ? "200px" : "100px", containerType: 'inline-size' }}
     >
-      {/* TOP — title + pills */}
+      {/* TOP — title (reserved 2-line height) + pills (reserved row) */}
       <div className="w-full flex flex-col items-center gap-1 min-w-0">
-        <p
-          className={titleClass}
-          style={emphasis ? undefined : {
-            fontSize: 'clamp(0.5rem, 1.8cqi, 0.65rem)',
-            letterSpacing: '0.05em',
-            textTransform: 'uppercase',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            minWidth: 0,
-            maxWidth: '100%',
-          }}
-        >
-          WIN / LOSS SUMMARY
-        </p>
-        <div className={`flex ${emphasis ? "justify-center" : ""} mt-0.5 mb-0.5`}>
+        <div className={emphasis ? "w-full min-h-[2.5rem] flex items-center justify-center px-1" : "w-full"}>
+          <p
+            className={titleClass}
+            style={emphasis ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {
+              fontSize: 'clamp(0.5rem, 1.8cqi, 0.65rem)',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              minWidth: 0,
+              maxWidth: '100%',
+            }}
+          >
+            WIN / LOSS SUMMARY
+          </p>
+        </div>
+        <div className={`${emphasis ? "min-h-[1.5rem]" : ""} flex ${emphasis ? "justify-center items-center" : ""} mt-0.5 mb-0.5`}>
           <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
             <button
               onClick={() => setMode("total")}
