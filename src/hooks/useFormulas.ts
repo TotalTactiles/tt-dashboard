@@ -13,37 +13,27 @@ export interface MetricFormula {
 }
 
 export const DASHBOARD_CARDS = [
-  // Business Overview KPI cards
-  "Total Quoted",
-  "Total Won",
-  "Quoted Remaining",
-  "Conversion Rate",
-  "Net Revenue",
-  "Cashflow Position",
-  "Cashflow Today Estimate",
-  "Monthly Expenses",
-  "Gross Profit Margin",
-  // Business Overview charts/tables
-  "Forecast Chart",
-  "Deal Pipeline",
-  "Revenue Projects Table",
-  "Expense Breakdown",
+  // Business Overview
+  "Total Quoted", "Total Won", "Quoted Remaining",
+  "Conversion Rate", "Net Revenue",
+  "Cashflow Position", "Cashflow Today Estimate",
+  "Monthly Expenses", "Gross Profit Margin",
   "Win / Loss Summary",
+  // Project Execution
+  "On-Time Delivery", "Schedule Slippage",
+  "Margin Variance", "Labour Efficiency",
   // Cashflow & Forecasts
-  "Cashflow Opening Balance",
-  "Cashflow Actual (Manual)",
-  "Forecast Anticipated Surplus",
-  "Forecast With Probable Jobs",
+  "Forecast Chart", "Cashflow Chart",
+  // Deal Flow
+  "Deal Pipeline", "Deal Flow",
+  // Revenue
+  "Revenue Projects Table",
+  // Expenses
+  "Expense Breakdown",
   // Investor Metrics
-  "Profitability",
-  "Revenue Growth",
-  "Pipeline Coverage",
-  "Avg Contract Value",
-  "Operating Expense Ratio",
-  "Labour Cost Ratio",
-  "Revenue Per Job",
-  "CAC Per Client",
-  "Debt Service Ratio",
+  "EBITDA", "Gross Margin %", "Pipeline Coverage",
+  "Revenue Growth", "Operating Expense Ratio",
+  "Labour Cost Ratio", "Revenue Per Job",
 ];
 
 export const DATA_SOURCES = [
@@ -55,8 +45,6 @@ export const DATA_SOURCES = [
 ];
 
 const STORAGE_KEY = "meridian_formulas";
-const SEED_KEY = "meridian_formulas_seeded";
-const FORMULA_MIGRATION_KEY = "meridian_formulas_v8_xero_cashflow";
 
 const GROSS_PROFIT_MARGIN_DESCRIPTION = `What is calculated:
 • Gross Profit Margin % for each month shown in the chart
