@@ -442,33 +442,34 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
     ) : null;
   })();
 
-  const footerBlock = (
-    <>
-      <div style={{ minWidth: 0 }} className={`${emphasis ? "w-full flex flex-col items-center" : ""} mt-auto pt-1`}>
-        {showAlt && altDiff && !noData && (
-          <p className={`font-mono text-amber-400/80 ${emphasis ? "text-xs" : ""}`} style={emphasis ? undefined : sublineStyle} title={`${altDiff} with YLWs`}>
-            ↑ {altDiff} with YLWs
-          </p>
-        )}
-        {!isActual && !noData && displayChange !== "--" && (
-          <div
-            className={`flex items-center gap-0.5 font-mono ${emphasis ? "justify-center text-xs" : ""} ${accentColor}`}
-            style={emphasis ? undefined : { ...sublineStyle, display: 'flex', WebkitLineClamp: undefined, WebkitBoxOrient: undefined }}
-          >
-            {displayPositive ? <TrendingUp className="w-3 h-3 shrink-0" /> : <TrendingDown className="w-3 h-3 shrink-0" />}
-            <span className="truncate" title={displayChange}>{displayChange}</span>
-          </div>
-        )}
-      </div>
-      <div className="mt-1.5 h-[3px] bg-secondary rounded-full overflow-hidden w-full">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: noData ? "0%" : displayPositive ? "72%" : "45%" }}
-          transition={{ duration: 1, delay: 0.5 + index * 0.1 }}
-          className={`h-full rounded-full ${barColor}`}
-        />
-      </div>
-    </>
+  const trendBlock = (
+    <div style={{ minWidth: 0 }} className={`${emphasis ? "w-full flex flex-col items-center" : "mt-auto pt-1"}`}>
+      {showAlt && altDiff && !noData && (
+        <p className={`font-mono text-amber-400/80 ${emphasis ? "text-xs" : ""}`} style={emphasis ? undefined : sublineStyle} title={`${altDiff} with YLWs`}>
+          ↑ {altDiff} with YLWs
+        </p>
+      )}
+      {!isActual && !noData && displayChange !== "--" && (
+        <div
+          className={`flex items-center gap-0.5 font-mono ${emphasis ? "justify-center text-xs" : ""} ${accentColor}`}
+          style={emphasis ? undefined : { ...sublineStyle, display: 'flex', WebkitLineClamp: undefined, WebkitBoxOrient: undefined }}
+        >
+          {displayPositive ? <TrendingUp className="w-3 h-3 shrink-0" /> : <TrendingDown className="w-3 h-3 shrink-0" />}
+          <span className={emphasis ? "" : "truncate"} title={displayChange}>{displayChange}</span>
+        </div>
+      )}
+    </div>
+  );
+
+  const barBlock = (
+    <div className={`mt-1.5 h-[3px] bg-secondary rounded-full overflow-hidden w-full ${emphasis ? "mt-auto" : ""}`}>
+      <motion.div
+        initial={{ width: 0 }}
+        animate={{ width: noData ? "0%" : displayPositive ? "72%" : "45%" }}
+        transition={{ duration: 1, delay: 0.5 + index * 0.1 }}
+        className={`h-full rounded-full ${barColor}`}
+      />
+    </div>
   );
 
   return (
@@ -483,24 +484,29 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
     >
       {emphasis ? (
         <>
-          {/* TOP — title + badges + pills */}
+          {/* TOP — title (reserved height, up to 2 lines) + badges + pills (reserved row) */}
           <div className="w-full flex flex-col items-center gap-1">
-            <div className="flex items-center justify-center gap-1.5 w-full min-w-0">
-              <p className={emphasisTitleClass} title={label}>{label}</p>
+            <div className="w-full min-h-[2.5rem] flex items-center justify-center gap-1.5 min-w-0 px-1">
+              <p className={emphasisTitleClass} title={label} style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                {label}
+              </p>
               {badges}
             </div>
-            {pillsBlock}
+            <div className="min-h-[1.5rem] flex items-center justify-center">
+              {pillsBlock}
+            </div>
           </div>
 
-          {/* MIDDLE — figure(s) + sub deltas, centred */}
+          {/* MIDDLE — figure + caption (delta/context/trend) all attached, centred */}
           <div className="flex-1 flex flex-col items-center justify-center gap-1 w-full min-w-0">
             {valueBlock}
             {momBlock}
             {contextBlock}
+            {trendBlock}
           </div>
 
-          {/* BOTTOM — trend + bar */}
-          {footerBlock}
+          {/* BOTTOM — only the progress bar */}
+          {barBlock}
         </>
       ) : (
         <>
@@ -517,7 +523,8 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
           {valueBlock}
           {momBlock}
           {contextBlock}
-          {footerBlock}
+          {trendBlock}
+          {barBlock}
         </>
       )}
     </motion.div>
