@@ -105,9 +105,11 @@ const GpBarTooltip = ({ active, payload, label }: any) => {
 function WinLossSummaryCard({
   quotedJobs,
   index,
+  emphasis,
 }: {
   quotedJobs: Array<{ status: string; value: number }>;
   index: number;
+  emphasis?: boolean;
 }) {
   const [mode, setMode] = useState<"total" | "avg">("total");
 
@@ -135,13 +137,17 @@ function WinLossSummaryCard({
   const topLabel = mode === "total" ? "WON" : "AVG WON";
   const bottomLabel = mode === "total" ? "LOST" : "AVG LOST";
 
+  const figureStyle: React.CSSProperties = emphasis
+    ? { fontSize: 'clamp(1.5rem, 2.6vw, 2.5rem)', lineHeight: 1.1, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }
+    : {};
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className="stat-card relative overflow-hidden flex flex-col gap-0.5"
-      style={{ minHeight: "100px", containerType: 'inline-size' }}
+      className={`stat-card relative overflow-hidden flex flex-col gap-0.5 ${emphasis ? 'h-full' : ''}`}
+      style={{ minHeight: emphasis ? "180px" : "100px", containerType: 'inline-size' }}
     >
       {/* Header row */}
       <div className="flex items-center justify-between gap-1" style={{ minWidth: 0 }}>
@@ -180,21 +186,24 @@ function WinLossSummaryCard({
         </div>
       </div>
 
-      {/* Won (top) */}
-      <div className="mt-0.5">
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">{topLabel}</p>
-        <p className="text-xl font-bold font-mono text-chart-green">{fmtCompact(topVal)}</p>
-        <p className="text-[10px] text-muted-foreground font-mono">{wonCount} jobs</p>
-      </div>
+      {/* Figures stack — centres in available vertical space when emphasis */}
+      <div className={emphasis ? "flex-1 flex flex-col justify-center min-w-0" : ""}>
+        {/* Won (top) */}
+        <div className="min-w-0">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">{topLabel}</p>
+          <p className={`font-bold font-mono text-chart-green break-words ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{fmtCompact(topVal)}</p>
+          <p className={`text-muted-foreground font-mono ${emphasis ? 'text-sm' : 'text-[10px]'}`}>{wonCount} jobs</p>
+        </div>
 
-      {/* Divider */}
-      <div className="h-px bg-white/10 my-1" />
+        {/* Divider */}
+        <div className="h-px bg-white/10 my-1" />
 
-      {/* Lost (bottom) */}
-      <div>
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">{bottomLabel}</p>
-        <p className="text-xl font-bold font-mono text-chart-red">{fmtCompact(bottomVal)}</p>
-        <p className="text-[10px] text-muted-foreground font-mono">{lostCount} jobs</p>
+        {/* Lost (bottom) */}
+        <div className="min-w-0">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">{bottomLabel}</p>
+          <p className={`font-bold font-mono text-chart-red break-words ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{fmtCompact(bottomVal)}</p>
+          <p className={`text-muted-foreground font-mono ${emphasis ? 'text-sm' : 'text-[10px]'}`}>{lostCount} jobs</p>
+        </div>
       </div>
 
       {/* Progress bar — proportion won of decided deals */}
@@ -210,18 +219,21 @@ function WinLossSummaryCard({
   );
 }
 
+
 function RevenueProfitCard({
   grossRevenue,
   netRevenue,
   grossProfit,
   netProfit,
   index,
+  emphasis,
 }: {
   grossRevenue: number;
   netRevenue: number;
   grossProfit: number;
   netProfit: number;
   index: number;
+  emphasis?: boolean;
 }) {
   const [mode, setMode] = useState<"revenue" | "profit">("revenue");
 
@@ -239,17 +251,20 @@ function RevenueProfitCard({
   const topLabel = isRevenue ? "GROSS REVENUE" : "GROSS PROFIT";
   const bottomLabel = isRevenue ? "NET REVENUE" : "NET PROFIT";
 
-  // Revenue always positive treatment; profit colored by sign
   const topColor = isRevenue ? "text-chart-green" : (topVal >= 0 ? "text-chart-green" : "text-chart-red");
   const bottomColor = isRevenue ? "text-chart-green" : (bottomVal >= 0 ? "text-chart-green" : "text-chart-red");
+
+  const figureStyle: React.CSSProperties = emphasis
+    ? { fontSize: 'clamp(1.5rem, 2.6vw, 2.5rem)', lineHeight: 1.1, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }
+    : {};
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className="stat-card relative overflow-hidden flex flex-col gap-0.5"
-      style={{ minHeight: "100px", containerType: 'inline-size' }}
+      className={`stat-card relative overflow-hidden flex flex-col gap-0.5 ${emphasis ? 'h-full' : ''}`}
+      style={{ minHeight: emphasis ? "180px" : "100px", containerType: 'inline-size' }}
     >
       <div className="flex items-center justify-between gap-1" style={{ minWidth: 0 }}>
         <p
@@ -286,16 +301,18 @@ function RevenueProfitCard({
         </div>
       </div>
 
-      <div className="mt-0.5">
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">{topLabel}</p>
-        <p className={`text-xl font-bold font-mono ${topColor}`}>{fmtCompact(topVal)}</p>
-      </div>
+      <div className={emphasis ? "flex-1 flex flex-col justify-center min-w-0" : ""}>
+        <div className="min-w-0">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">{topLabel}</p>
+          <p className={`font-bold font-mono break-words ${topColor} ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{fmtCompact(topVal)}</p>
+        </div>
 
-      <div className="h-px bg-white/10 my-1" />
+        <div className="h-px bg-white/10 my-1" />
 
-      <div>
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">{bottomLabel}</p>
-        <p className={`text-xl font-bold font-mono ${bottomColor}`}>{fmtCompact(bottomVal)}</p>
+        <div className="min-w-0">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono">{bottomLabel}</p>
+          <p className={`font-bold font-mono break-words ${bottomColor} ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{fmtCompact(bottomVal)}</p>
+        </div>
       </div>
     </motion.div>
   );
@@ -940,6 +957,7 @@ const DashboardContent = () => {
                     key="win-loss-summary"
                     quotedJobs={quotedJobs}
                     index={i}
+                    emphasis
                   />
                 );
               }
@@ -953,6 +971,7 @@ const DashboardContent = () => {
                     grossProfit={e.grossProfit ?? 0}
                     netProfit={e.netProfit ?? 0}
                     index={i}
+                    emphasis
                   />
                 );
               }
@@ -967,6 +986,7 @@ const DashboardContent = () => {
                   altValue={stat.altValue}
                   altChange={stat.altChange}
                   altPositive={stat.altPositive}
+                  emphasis
                 />
               );
             })}

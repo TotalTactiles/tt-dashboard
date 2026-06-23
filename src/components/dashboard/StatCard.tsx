@@ -36,7 +36,32 @@ interface StatCardProps {
   altChange2?: string;
   altPositive2?: boolean;
   toggleLabelAlt2?: string;
+  emphasis?: boolean;
 }
+
+const emphasisValueShortStyle: React.CSSProperties = {
+  fontSize: 'clamp(2rem, 3.2vw, 3.25rem)',
+  lineHeight: 1.05,
+  fontWeight: 700,
+  fontVariantNumeric: 'tabular-nums',
+  letterSpacing: '-0.02em',
+  minWidth: 0,
+  maxWidth: '100%',
+  display: 'block',
+  wordBreak: 'break-word',
+};
+
+const emphasisValueLongStyle: React.CSSProperties = {
+  fontSize: 'clamp(1.65rem, 2.8vw, 2.75rem)',
+  lineHeight: 1.05,
+  fontWeight: 700,
+  fontVariantNumeric: 'tabular-nums',
+  letterSpacing: '-0.015em',
+  minWidth: 0,
+  maxWidth: '100%',
+  display: 'block',
+  wordBreak: 'break-word',
+};
 
 function timeAgo(ts: number | null): string {
   if (!ts) return "never";
@@ -120,7 +145,7 @@ const noteStyle: React.CSSProperties = {
 
 type ToggleMode = "base" | "alt" | "alt2";
 
-const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted, toggleLabelBase, toggleLabelAlt, momDelta, altMomDelta, momContext, altMomContext, greenAltPill, altValue2, altChange2, altPositive2, toggleLabelAlt2 }: StatCardProps) => {
+const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted, toggleLabelBase, toggleLabelAlt, momDelta, altMomDelta, momContext, altMomContext, greenAltPill, altValue2, altChange2, altPositive2, toggleLabelAlt2, emphasis }: StatCardProps) => {
   const { kpiVariables, formulaCache, formulas } = useDashboardData();
   const [mode, setMode] = useState<ToggleMode>("base");
   const [editing, setEditing] = useState(false);
@@ -233,8 +258,8 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className={`stat-card relative overflow-hidden flex flex-col gap-0.5 ${ylwGlowClass}`}
-      style={{ minHeight: "90px", containerType: 'inline-size', padding: "clamp(0.65rem, 1.5vw, 1.1rem)" }}
+      className={`stat-card relative overflow-hidden flex flex-col gap-0.5 ${emphasis ? 'h-full' : ''} ${ylwGlowClass}`}
+      style={{ minHeight: emphasis ? "180px" : "90px", containerType: 'inline-size', padding: "clamp(0.65rem, 1.5vw, 1.1rem)" }}
     >
       {/* ROW 1 — Label + badges */}
       <div className="flex items-start justify-between gap-1" style={{ minWidth: 0, overflow: 'hidden' }}>
@@ -324,7 +349,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       )}
 
       {/* ROW 2 — Main value */}
-      <div style={{ minWidth: 0, overflow: 'hidden' }} className="my-0.5">
+      <div style={{ minWidth: 0, overflow: 'hidden' }} className={emphasis ? "my-0.5 flex-1 flex flex-col justify-center break-words" : "my-0.5"}>
         {isActual && (editing || isActualNotSet) ? (
           <div className="flex items-center gap-1">
             <span className="text-muted-foreground font-mono" style={{ fontSize: 'clamp(0.75rem, 3cqi, 1.2rem)' }}>$</span>
@@ -354,7 +379,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
               <TooltipTrigger asChild>
                 <span
                   className={`font-mono font-bold ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}
-                  style={isShort ? valueShortStyle : valueLongStyle}
+                  style={emphasis ? (isShort ? emphasisValueShortStyle : emphasisValueLongStyle) : (isShort ? valueShortStyle : valueLongStyle)}
                   title={displayValue}
                 >
                   {abbreviatedDisplay}
