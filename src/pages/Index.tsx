@@ -18,6 +18,7 @@ import RevenueProjectsTable from "@/components/dashboard/RevenueProjectsTable";
 import ExpenseBreakdown from "@/components/dashboard/ExpenseBreakdown";
 import DashboardLayout from "@/components/DashboardLayout";
 import GoalsDashboardWidgets from "@/components/goals/GoalsDashboardWidgets";
+import TargetsGoalsSection from "@/components/goals/TargetsGoalsSection";
 import GoalScenarioBar from "@/components/dashboard/GoalScenarioBar";
 import { useGoals } from "@/hooks/useGoals";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
@@ -1113,6 +1114,20 @@ const DashboardContent = () => {
               );
             })}
           </div>
+
+          {(() => {
+            const rpStat = adjustedKpiStats.find((s) => s.label === "Revenue / Profit");
+            const currentRevenue = (rpStat?.extras as any)?.grossRevenue ?? 0;
+            const wonJobs = quotedJobs.filter((j) => j.status === "won");
+            const wonValueTotal = wonJobs.reduce((s, j) => s + (j.value || 0), 0);
+            return (
+              <TargetsGoalsSection
+                currentRevenue={currentRevenue}
+                wonValueTotal={wonValueTotal}
+                wonCount={wonJobs.length}
+              />
+            );
+          })()}
 
           {investorMetrics && (() => {
             const sd = scopedInvestorData;
