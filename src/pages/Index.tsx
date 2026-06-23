@@ -139,62 +139,61 @@ function WinLossSummaryCard({
   const bottomLabel = mode === "total" ? "LOST" : "AVG LOST";
 
   const figureStyle: React.CSSProperties = emphasis
-    ? { fontSize: 'clamp(1.5rem, 2vw, 1.875rem)', lineHeight: 1.1, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' }
+    ? { fontSize: 'clamp(1.25rem, 1.8vw, 1.75rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' }
     : {};
 
   const titleClass = emphasis
     ? "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-xs whitespace-normal break-words leading-tight text-center"
     : "font-mono text-muted-foreground font-medium";
 
-  const subClass = emphasis ? "text-xs text-muted-foreground font-mono whitespace-normal break-words text-center" : "text-[10px] text-muted-foreground font-mono";
-  const labelClass = emphasis ? "text-xs font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center" : "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
+  const subClass = emphasis ? "text-[0.7rem] text-muted-foreground font-mono whitespace-normal break-words text-center" : "text-[10px] text-muted-foreground font-mono";
+  const labelClass = emphasis ? "text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center" : "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-5 gap-2" : "gap-0.5"}`}
-      style={{ minHeight: emphasis ? "200px" : "100px", containerType: 'inline-size' }}
+      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-4 gap-1.5" : "gap-0.5"}`}
+      style={{ minHeight: emphasis ? "170px" : "100px", containerType: 'inline-size' }}
     >
-      {/* TOP — title (reserved 2-line height) + pills (reserved row) */}
-      <div className="w-full flex flex-col items-center gap-1 min-w-0">
-        <div className={emphasis ? "w-full min-h-[2.5rem] flex items-center justify-center px-1" : "w-full"}>
-          <p
-            className={titleClass}
-            style={emphasis ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {
-              fontSize: 'clamp(0.5rem, 1.8cqi, 0.65rem)',
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              minWidth: 0,
-              maxWidth: '100%',
-            }}
-          >
-            WIN / LOSS SUMMARY
-          </p>
-        </div>
-        <div className={`${emphasis ? "min-h-[1.5rem]" : ""} flex ${emphasis ? "justify-center items-center" : ""} mt-0.5 mb-0.5`}>
-          <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
-            <button
-              onClick={() => setMode("total")}
-              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
-                mode === "total" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >Total</button>
-            <button
-              onClick={() => setMode("avg")}
-              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
-                mode === "avg" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >Avg</button>
-          </div>
+      {/* HEADER — fixed height, 2-line capable, never truncate */}
+      <div className={emphasis ? "w-full min-h-[2.5rem] flex items-center justify-center px-1" : "w-full"}>
+        <p
+          className={titleClass}
+          style={emphasis ? { whiteSpace: 'normal', overflow: 'visible' } : {
+            fontSize: 'clamp(0.5rem, 1.8cqi, 0.65rem)',
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            minWidth: 0,
+            maxWidth: '100%',
+          }}
+        >
+          WIN / LOSS SUMMARY
+        </p>
+      </div>
+      {/* PILLS — reserved row */}
+      <div className={`${emphasis ? "min-h-[1.75rem]" : ""} flex ${emphasis ? "justify-center items-center" : ""}`}>
+        <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
+          <button
+            onClick={() => setMode("total")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+              mode === "total" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >Total</button>
+          <button
+            onClick={() => setMode("avg")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+              mode === "avg" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >Avg</button>
         </div>
       </div>
 
-      {/* MIDDLE — figures centred in the available band */}
+      {/* BODY — figures + subs, divider, centred */}
       <div className={`${emphasis ? "flex-1 flex flex-col items-center justify-center gap-1" : ""} w-full min-w-0`}>
         <div className={`min-w-0 ${emphasis ? "w-full" : ""}`}>
           <p className={labelClass}>{topLabel}</p>
@@ -210,19 +209,10 @@ function WinLossSummaryCard({
           <p className={subClass}>{lostCount} jobs</p>
         </div>
       </div>
-
-      {/* BOTTOM — progress bar */}
-      <div className="mt-auto pt-1.5 h-[3px] bg-chart-red/40 rounded-full overflow-hidden w-full">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: wonBarWidth }}
-          transition={{ duration: 1, delay: 0.5 + index * 0.1 }}
-          className="h-full rounded-full bg-chart-green"
-        />
-      </div>
     </motion.div>
   );
 }
+
 
 
 function RevenueProfitCard({
