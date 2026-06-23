@@ -125,6 +125,7 @@ export interface KPIStat {
   altChange2?: string;
   altPositive2?: boolean;
   toggleLabelAlt2?: string;
+  extras?: Record<string, number>;
 }
 
 export interface IncomeOutgoingsPoint {
