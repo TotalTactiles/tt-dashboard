@@ -226,12 +226,14 @@ function RevenueProfitCard({
   grossProfit,
   netProfit,
   index,
+  emphasis,
 }: {
   grossRevenue: number;
   netRevenue: number;
   grossProfit: number;
   netProfit: number;
   index: number;
+  emphasis?: boolean;
 }) {
   const [mode, setMode] = useState<"revenue" | "profit">("revenue");
 
