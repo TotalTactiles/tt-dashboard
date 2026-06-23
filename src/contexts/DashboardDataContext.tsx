@@ -2,6 +2,7 @@ import React, { createContext, useContext, useMemo, useRef, useState, useCallbac
 import { useDataSources, type ProjectKPIData } from "@/hooks/useDataSources";
 import { resolveKpiVariables, createFormulaCache, DataStore, type EvaluationCache } from "@/engine/formulaEngine";
 import { useFormulas } from "@/hooks/useFormulas";
+import { useCrmStages, type QuotingOpp } from "@/hooks/useCrmStages";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 
 // Module-level formula cache singleton — survives re-renders
