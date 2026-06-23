@@ -987,10 +987,16 @@ const DashboardContent = () => {
                 );
               }
               const formulaInfo = stat.label === "Total Won" ? null : getFormulaInfo(stat.label);
+              // Win Rate caption: keep a single short centred line on the card face;
+              // the longer benchmark text is retained as a hover tooltip.
+              const captionOverride = stat.label === "Win Rate"
+                ? { momContext: "Won ÷ (Won + Lost)", altMomContext: "Won ÷ (Won + Lost)" }
+                : null;
               return (
                 <StatCard
                   key={stat.label}
                   {...stat}
+                  {...(captionOverride ?? {})}
                   value={getCardValue(stat)}
                   index={i}
                   formulaDriven={formulaInfo}
