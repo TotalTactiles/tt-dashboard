@@ -347,47 +347,45 @@ function PipelineSummaryCard({
   };
 
   const figureStyle: React.CSSProperties = emphasis
-    ? { fontSize: 'clamp(1.5rem, 2vw, 1.875rem)', lineHeight: 1.1, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' }
+    ? { fontSize: 'clamp(1.25rem, 1.8vw, 1.75rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' }
     : {};
 
   const titleClass = emphasis
     ? "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-xs whitespace-normal break-words leading-tight text-center"
     : "font-mono text-muted-foreground font-medium";
-  const subClass = emphasis ? "text-xs text-muted-foreground font-mono whitespace-normal break-words text-center" : "text-[10px] text-muted-foreground font-mono";
-  const labelClass = emphasis ? "text-xs font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center" : "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
+  const subClass = emphasis ? "text-[0.7rem] text-muted-foreground font-mono whitespace-normal break-words text-center" : "text-[10px] text-muted-foreground font-mono";
+  const labelClass = emphasis ? "text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center" : "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-5 gap-2" : "gap-0.5"}`}
-      style={{ minHeight: emphasis ? "200px" : "100px", containerType: 'inline-size' }}
+      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-4 gap-1.5" : "gap-0.5"}`}
+      style={{ minHeight: emphasis ? "170px" : "100px", containerType: 'inline-size' }}
     >
-      {/* TOP — title (reserved 2-line height) + pill spacer to match siblings */}
-      <div className="w-full flex flex-col items-center gap-1 min-w-0">
-        <div className={emphasis ? "w-full min-h-[2.5rem] flex items-center justify-center px-1" : "w-full"}>
-          <p
-            className={titleClass}
-            style={emphasis ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {
-              fontSize: 'clamp(0.5rem, 1.8cqi, 0.65rem)',
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              minWidth: 0,
-              maxWidth: '100%',
-            }}
-          >
-            PIPELINE
-          </p>
-        </div>
-        {/* Reserved pill-row spacer so figures align with toggled siblings */}
-        <div className={`${emphasis ? "min-h-[1.5rem]" : ""} mt-0.5 mb-0.5`} />
+      {/* HEADER */}
+      <div className={emphasis ? "w-full min-h-[2.5rem] flex items-center justify-center px-1" : "w-full"}>
+        <p
+          className={titleClass}
+          style={emphasis ? { whiteSpace: 'normal', overflow: 'visible' } : {
+            fontSize: 'clamp(0.5rem, 1.8cqi, 0.65rem)',
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            minWidth: 0,
+            maxWidth: '100%',
+          }}
+        >
+          PIPELINE
+        </p>
       </div>
+      {/* PILLS — reserved spacer (no toggle on this card) */}
+      <div className={`${emphasis ? "min-h-[1.75rem]" : ""}`} />
 
-      {/* MIDDLE — two figures, both positive (no red) */}
+      {/* BODY */}
       <div className={`${emphasis ? "flex-1 flex flex-col items-center justify-center gap-1" : ""} w-full min-w-0`}>
         <div className={`min-w-0 ${emphasis ? "w-full" : ""}`}>
           <p className={labelClass}>QUOTING OPPS</p>
@@ -402,12 +400,10 @@ function PipelineSummaryCard({
           <p className={subClass}>{`${fmtCompact(bottomValue)} · active quotes`}</p>
         </div>
       </div>
-
-      {/* BOTTOM — footer parity spacer */}
-      {emphasis && <div className="mt-auto pt-1.5 h-[3px] w-full" />}
     </motion.div>
   );
 }
+
 
 
 
