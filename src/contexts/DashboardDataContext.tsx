@@ -1119,7 +1119,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         toggleLabelAlt: "With YLWs",
         momContext: "Won ÷ (Won + Lost) · benchmark ~16–20%",
       },
-      // 6. Revenue / Profit — Gross (default) / Net
+      // 6. Revenue / Profit — dual-split card (Revenue / Profit pills) rendered in Index.tsx
       {
         label: "Revenue / Profit",
         value: noData ? "--" : fmtAUD(grossRevenue),
@@ -1131,6 +1131,12 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         toggleLabelBase: "Gross",
         toggleLabelAlt: "Net",
         greenAltPill: true,
+        extras: {
+          grossRevenue,
+          netRevenue: netRevenue4,
+          grossProfit: grossProfitVal,
+          netProfit: investorNetProfitYTD,
+        },
       },
     ];
 
