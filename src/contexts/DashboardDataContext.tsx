@@ -308,26 +308,35 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     console.log("quotes length:", webhookResponse?.quotes?.length);
     console.log("quotes[0]:", JSON.stringify(webhookResponse?.quotes?.[0], null, 2));
 
-    // xeroData — try multiple locations since webhook envelope varies
     const webhookRaw: any = liveData;
+
+
+
+    // Search every possible envelope layer
+
     const xeroData: any =
       webhookRaw?.xeroData ??
       webhookRaw?.[0]?.xeroData ??
       webhookRaw?.json?.xeroData ??
+      webhookRaw?.data?.xeroData ??
+      webhookRaw?.body?.xeroData ??
       null;
+
     const xeroCash = xeroData?.cashPosition ?? null;
+
     const xeroPnl  = xeroData?.pnl ?? null;
+
     const xeroMonthlyCashflow = xeroData?.monthlyCashflow ?? [];
 
-    console.log('[Webhook Top Keys]', Object.keys(webhookRaw ?? {}));
     console.log('[Xero Data]', {
-      cbaOpening: xeroCash?.cba?.openingBalance,
-      cbaCurrent: xeroCash?.cba?.currentBalance,
-      movement:   xeroCash?.cba?.netMovementMTD,
-      revenue:    xeroPnl?.revenue,
-      netProfit:  xeroPnl?.netProfit,
-      source:     xeroData?._meta?.source,
-      xeroDataKeys: xeroData ? Object.keys(xeroData) : 'NULL'
+      cbaOpening:   xeroCash?.cba?.openingBalance,
+      cbaCurrent:   xeroCash?.cba?.currentBalance,
+      movement:     xeroCash?.cba?.netMovementMTD,
+      revenue:      xeroPnl?.revenue,
+      netProfit:    xeroPnl?.netProfit,
+      source:       xeroData?._meta?.source,
+      xeroDataKeys: xeroData ? Object.keys(xeroData) : 'NULL',
+      liveDataKeys: Object.keys(webhookRaw ?? {}).slice(0, 15)
     });
 
     const rawQuotes = Array.isArray(webhookResponse?.quotes) ? webhookResponse.quotes : [];
