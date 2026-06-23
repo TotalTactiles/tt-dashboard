@@ -250,60 +250,59 @@ function RevenueProfitCard({
   const bottomColor = isRevenue ? "text-chart-green" : (bottomVal >= 0 ? "text-chart-green" : "text-chart-red");
 
   const figureStyle: React.CSSProperties = emphasis
-    ? { fontSize: 'clamp(1.5rem, 2vw, 1.875rem)', lineHeight: 1.1, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' }
+    ? { fontSize: 'clamp(1.25rem, 1.8vw, 1.75rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' }
     : {};
 
   const titleClass = emphasis
     ? "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-xs whitespace-normal break-words leading-tight text-center"
     : "font-mono text-muted-foreground font-medium";
-  const labelClass = emphasis ? "text-xs font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center" : "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
+  const labelClass = emphasis ? "text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center" : "text-[10px] text-muted-foreground uppercase tracking-wider font-mono";
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-5 gap-2" : "gap-0.5"}`}
-      style={{ minHeight: emphasis ? "200px" : "100px", containerType: 'inline-size' }}
+      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-4 gap-1.5" : "gap-0.5"}`}
+      style={{ minHeight: emphasis ? "170px" : "100px", containerType: 'inline-size' }}
     >
-      {/* TOP — title (reserved 2-line height) + pills (reserved row) */}
-      <div className="w-full flex flex-col items-center gap-1 min-w-0">
-        <div className={emphasis ? "w-full min-h-[2.5rem] flex items-center justify-center px-1" : "w-full"}>
-          <p
-            className={titleClass}
-            style={emphasis ? { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {
-              fontSize: 'clamp(0.5rem, 1.8cqi, 0.65rem)',
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              minWidth: 0,
-              maxWidth: '100%',
-            }}
-          >
-            REVENUE / PROFIT
-          </p>
-        </div>
-        <div className={`${emphasis ? "min-h-[1.5rem]" : ""} flex ${emphasis ? "justify-center items-center" : ""} mt-0.5 mb-0.5`}>
-          <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
-            <button
-              onClick={() => setMode("revenue")}
-              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
-                mode === "revenue" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >Revenue</button>
-            <button
-              onClick={() => setMode("profit")}
-              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
-                mode === "profit" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >Profit</button>
-          </div>
+      {/* HEADER */}
+      <div className={emphasis ? "w-full min-h-[2.5rem] flex items-center justify-center px-1" : "w-full"}>
+        <p
+          className={titleClass}
+          style={emphasis ? { whiteSpace: 'normal', overflow: 'visible' } : {
+            fontSize: 'clamp(0.5rem, 1.8cqi, 0.65rem)',
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            minWidth: 0,
+            maxWidth: '100%',
+          }}
+        >
+          REVENUE / PROFIT
+        </p>
+      </div>
+      {/* PILLS */}
+      <div className={`${emphasis ? "min-h-[1.75rem]" : ""} flex ${emphasis ? "justify-center items-center" : ""}`}>
+        <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
+          <button
+            onClick={() => setMode("revenue")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+              mode === "revenue" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >Revenue</button>
+          <button
+            onClick={() => setMode("profit")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+              mode === "profit" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >Profit</button>
         </div>
       </div>
 
-      {/* MIDDLE — figures centred */}
+      {/* BODY */}
       <div className={`${emphasis ? "flex-1 flex flex-col items-center justify-center gap-1" : ""} w-full min-w-0`}>
         <div className={`min-w-0 ${emphasis ? "w-full" : ""}`}>
           <p className={labelClass}>{topLabel}</p>
@@ -317,12 +316,10 @@ function RevenueProfitCard({
           <p className={`font-bold font-mono break-words ${bottomColor} ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>{fmtCompact(bottomVal)}</p>
         </div>
       </div>
-
-      {/* BOTTOM — spacer to keep footer parity with other cards */}
-      {emphasis && <div className="mt-auto pt-1.5 h-[3px] w-full" />}
     </motion.div>
   );
 }
+
 
 
 function PipelineSummaryCard({
