@@ -13,37 +13,27 @@ export interface MetricFormula {
 }
 
 export const DASHBOARD_CARDS = [
-  // Business Overview KPI cards
-  "Total Quoted",
-  "Total Won",
-  "Quoted Remaining",
-  "Conversion Rate",
-  "Net Revenue",
-  "Cashflow Position",
-  "Cashflow Today Estimate",
-  "Monthly Expenses",
-  "Gross Profit Margin",
-  // Business Overview charts/tables
-  "Forecast Chart",
-  "Deal Pipeline",
-  "Revenue Projects Table",
-  "Expense Breakdown",
+  // Business Overview
+  "Total Quoted", "Total Won", "Quoted Remaining",
+  "Conversion Rate", "Net Revenue",
+  "Cashflow Position", "Cashflow Today Estimate",
+  "Monthly Expenses", "Gross Profit Margin",
   "Win / Loss Summary",
+  // Project Execution
+  "On-Time Delivery", "Schedule Slippage",
+  "Margin Variance", "Labour Efficiency",
   // Cashflow & Forecasts
-  "Cashflow Opening Balance",
-  "Cashflow Actual (Manual)",
-  "Forecast Anticipated Surplus",
-  "Forecast With Probable Jobs",
+  "Forecast Chart", "Cashflow Chart",
+  // Deal Flow
+  "Deal Pipeline", "Deal Flow",
+  // Revenue
+  "Revenue Projects Table",
+  // Expenses
+  "Expense Breakdown",
   // Investor Metrics
-  "Profitability",
-  "Revenue Growth",
-  "Pipeline Coverage",
-  "Avg Contract Value",
-  "Operating Expense Ratio",
-  "Labour Cost Ratio",
-  "Revenue Per Job",
-  "CAC Per Client",
-  "Debt Service Ratio",
+  "EBITDA", "Gross Margin %", "Pipeline Coverage",
+  "Revenue Growth", "Operating Expense Ratio",
+  "Labour Cost Ratio", "Revenue Per Job",
 ];
 
 export const DATA_SOURCES = [
@@ -55,8 +45,6 @@ export const DATA_SOURCES = [
 ];
 
 const STORAGE_KEY = "meridian_formulas";
-const SEED_KEY = "meridian_formulas_seeded";
-const FORMULA_MIGRATION_KEY = "meridian_formulas_v8_xero_cashflow";
 
 const GROSS_PROFIT_MARGIN_DESCRIPTION = `What is calculated:
 • Gross Profit Margin % for each month shown in the chart
@@ -302,6 +290,12 @@ const DEFAULT_FORMULAS: Omit<MetricFormula, "id">[] = [
     description: `What is calculated:\n• Annual loan repayments as a percentage of annualised revenue — measures debt burden relative to income\n\nHow it is calculated:\n• DSR = Annual Debt Repayments ÷ Annualised Revenue × 100\n• Annual Debt = (Business Loan $4,318 + Car Loan $1,223) × 12 = $66,492/year\n• Revenue is annualised from YTD: (Revenue YTD ÷ months elapsed) × 12\n• Month scope: monthly repayments ÷ that month's income\n• Lifetime scope: same annual debt ÷ lifetime annualised revenue\n\nBenchmarks:\n• Under 15% = Healthy — debt is well-covered by revenue\n• 15–25% = Monitor — debt is manageable but watch revenue\n• Above 25% = High — debt obligations are a significant burden\n\nCurrent fixed debt obligations:\n• Business Loan Repayment & Monthly Fee: $4,318/month\n• Motor Vehicle Repayments: $1,223/month\n• Total: $5,541/month | $66,492/year\n\nNote: This uses monthly repayment amounts from the CASHFLOW sheet, not outstanding loan principal balances. Once Basiq is connected, actual principal balances will enable a true Debt-to-Equity ratio.\n\nSource: CASHFLOW sheet → Business Loan Repayment (row 57) + Motor Vehicle Repayments (row 58)`,
     unit: "%", category: "Financial Health", dashboardCard: "Debt Service Ratio", dataSource: "Google Sheets", section: "Investor Metrics",
   },
+
+  // ── ADDITIONAL XERO / CASHFLOW ENTRIES ──────────────────────────────────
+  { name: "Cashflow Today (Live)", expression: "XeroCashCurrent", unit: "$", category: "Financial", dashboardCard: "Cashflow Today Estimate", dataSource: "Xero", section: "Business Overview", description: "Live CBA bank balance from Xero (falls back to closing balance)" },
+  { name: "CBA Live Balance", expression: "XeroCashCurrent", unit: "$", category: "Financial", dashboardCard: "Cashflow Today Estimate", dataSource: "Xero", section: "Cashflow & Forecasts", description: "Live CBA balance today — Xero bank accounts endpoint" },
+  { name: "Xero Net Profit", expression: "XeroNetProfit", unit: "$", category: "Financial", dashboardCard: "EBITDA", dataSource: "Xero", section: "Cashflow & Forecasts", description: "Net profit from Xero P&L report YTD" },
+  { name: "Xero Revenue", expression: "XeroRevenue", unit: "$", category: "Financial", dashboardCard: "Revenue Projects Table", dataSource: "Xero", section: "Cashflow & Forecasts", description: "Total revenue from Xero P&L report YTD" },
 ];
 
 // Simple tokenizer and evaluator for arithmetic expressions with named variables
@@ -369,20 +363,28 @@ export function evaluateExpression(
 
 // Default variable names shown when no live data is available
 const DEFAULT_VARIABLE_NAMES = [
-  "TotalQuoted", "TotalWon", "QuotedRemaining",
-  "ConversionRate", "ConversionRateConfirmed", "NetRevenue", "CashPosition", "MonthlyExpenses",
-  "GrossProfitMargin",
+  // Quotes
+  "TotalQuoted", "TotalWon", "QuotedRemaining", "TotalLost", "TotalYellow",
+  "YLWplusGRN", "ConversionRate", "ConversionRateConfirmed",
+  // Revenue
+  "GrossRevenue", "TotalCOGS", "TotalLabourCost", "NetRevenue",
+  "GrossProfitMargin", "GrossMarginTarget",
+  // Cashflow (Google Sheets)
+  "CashPosition", "TotalIncome_Current", "TotalOutgoings_Current", "GrossProfit_Current",
+  // Cashflow (Xero — live bank data)
+  "XeroCashOpening", "XeroCashCurrent", "XeroCashMovement", "XeroCashPosition",
+  // P&L (Xero)
+  "XeroRevenue", "XeroGrossProfit", "XeroNetProfit", "XeroAR",
+  // Expenses
+  "MonthlyExpenses", "YearlyExpenses",
+  // Project execution (Zoho)
   "onTimeDelivery", "scheduleSlippage", "marginVariance", "labourEfficiency",
-  "XeroCashOpening", "XeroCashCurrent", "XeroCashMovement",
-  "XeroCashPosition", "XeroRevenue", "XeroNetProfit", "XeroAR",
-  "XeroGrossProfit", "GrossProfitMargin", "YLWplusGRN",
 ];
 
 export function getAvailableVariables(kpiVariables?: Record<string, number>): string[] {
-  if (kpiVariables && Object.keys(kpiVariables).length > 0) {
-    return Object.keys(kpiVariables);
-  }
-  return DEFAULT_VARIABLE_NAMES;
+  const live = kpiVariables ? Object.keys(kpiVariables) : [];
+  const merged = Array.from(new Set([...DEFAULT_VARIABLE_NAMES, ...live]));
+  return merged.sort();
 }
 
 function upsertSystemFormula(
@@ -449,25 +451,18 @@ function loadFormulas(): MetricFormula[] {
     const raw = localStorage.getItem(STORAGE_KEY);
 
     if (!raw) {
-      const seeded = DEFAULT_FORMULAS.map((formula) => ({ ...formula, id: crypto.randomUUID() }));
+      const seeded = DEFAULT_FORMULAS.map((f) => ({ ...f, id: crypto.randomUUID() }));
       localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
-      localStorage.setItem(SEED_KEY, "true");
-      localStorage.setItem(FORMULA_MIGRATION_KEY, "true");
       return seeded;
     }
 
     const parsed = JSON.parse(raw) as MetricFormula[];
-
-    if (!localStorage.getItem(FORMULA_MIGRATION_KEY)) {
-      const migrated = migrateStoredFormulas(parsed);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-      localStorage.setItem(FORMULA_MIGRATION_KEY, "true");
-      return migrated;
-    }
-
-    return parsed;
+    // Always sync — upsertSystemFormula is idempotent (no-op if unchanged)
+    const synced = migrateStoredFormulas(parsed);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(synced));
+    return synced;
   } catch {
-    return [];
+    return DEFAULT_FORMULAS.map((f) => ({ ...f, id: crypto.randomUUID() }));
   }
 }
 

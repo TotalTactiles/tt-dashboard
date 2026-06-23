@@ -58,7 +58,7 @@ const Formulas = () => {
     result.push({
       key: "Cashflow & Forecasts",
       title: "Cashflow & Forecasts",
-      subtitle: "Live Xero bank data + Google Sheets cashflow forecasts",
+      subtitle: "Live Xero bank data + Google Sheets cashflow projections",
       formulas: grouped["Cashflow & Forecasts"] || [],
     });
 
