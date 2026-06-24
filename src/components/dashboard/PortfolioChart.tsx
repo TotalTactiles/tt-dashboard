@@ -203,7 +203,6 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
         <div className="min-w-0">
           <h3 className="text-sm font-medium text-muted-foreground">Income vs Outgoings</h3>
           <p className="text-xl font-mono font-bold text-foreground">Monthly Cash Flow</p>
-          
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {hasMultipleYears && (
