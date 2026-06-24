@@ -1,4 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { filterByPeriod, availableYearsFrom, type QuarterFilter } from "@/lib/periodFilter";
+
 import { motion } from "framer-motion";
 import { RefreshCw } from "lucide-react";
 import {
