@@ -1014,26 +1014,24 @@ function MonthlyInvoicesVsTargetChart({
   monthlyInvoicesData,
   invoicesTarget,
   onInvoicesTargetChange,
+  year,
+  quarter,
 }: {
   monthlyInvoicesData: Array<{ month: string; invoiced: number; revenueCheck: number }>;
   invoicesTarget: number;
   onInvoicesTargetChange: (v: number) => void;
-
+  year: string;
+  quarter: QuarterFilter;
 }) {
-  const now = new Date();
-  const curYearShort = String(now.getFullYear()).slice(-2);
-  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const curMonthIdx = now.getMonth();
-  const data = monthlyInvoicesData.filter((d) => {
-    const m = d.month.match(/^([A-Za-z]{3})-(\d{2})$/);
-    if (!m) return false;
-    const idx = MONTHS.indexOf(m[1]);
-    return m[2] === curYearShort && idx <= curMonthIdx;
-  });
+  const data = useMemo(
+    () => filterByPeriod(monthlyInvoicesData, year, quarter),
+    [monthlyInvoicesData, year, quarter],
+  );
 
   const handleTargetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onInvoicesTargetChange(Number(e.target.value) || 0);
   };
+
 
   return (
     <div className="chart-container">
