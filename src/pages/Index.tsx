@@ -1148,10 +1148,14 @@ function MonthlyNetProfitChart({
   monthlyNetProfitData,
   year,
   quarter,
+  isOverridden,
+  onOverrideQuarter,
 }: {
   monthlyNetProfitData: Array<{ month: string; netProfit: number }>;
   year: string;
   quarter: QuarterFilter;
+  isOverridden: boolean;
+  onOverrideQuarter: (q: QuarterFilter) => void;
 }) {
   const data = useMemo(() => {
     let cumulative = 0;
@@ -1185,6 +1189,23 @@ function MonthlyNetProfitChart({
           <p className="text-xs text-muted-foreground mt-0.5">
             Profit each month after all expenses and debt.
           </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {isOverridden && (
+            <span className="text-[10px] font-mono text-muted-foreground">• custom</span>
+          )}
+          <Select value={quarter} onValueChange={(v) => onOverrideQuarter(v as QuarterFilter)}>
+            <SelectTrigger className="h-7 w-[90px] text-xs bg-white/5 border-white/10">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="Q1">Q1</SelectItem>
+              <SelectItem value="Q2">Q2</SelectItem>
+              <SelectItem value="Q3">Q3</SelectItem>
+              <SelectItem value="Q4">Q4</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <div className="mb-3">
