@@ -1641,6 +1641,8 @@ const DashboardContent = () => {
               </div>
             </div>
           </div>
+
+          <DataIntegrityPanel />
         </>
       }
     </DashboardLayout>);
