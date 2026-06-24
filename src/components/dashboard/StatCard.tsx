@@ -341,14 +341,17 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
             onChange={(e) => setInputValue(e.target.value)}
             onBlur={() => {
               if (inputValue.trim()) saveActualBalance(inputValue);
-              else setEditing(false);
+              else { clearActualBalance(); }
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && inputValue.trim()) saveActualBalance(inputValue);
+              if (e.key === "Enter") {
+                if (inputValue.trim()) saveActualBalance(inputValue);
+                else clearActualBalance();
+              }
               if (e.key === "Escape") setEditing(false);
             }}
-            placeholder="Enter bank balance..."
-            className={`bg-transparent border-b border-primary/40 outline-none font-mono font-bold text-foreground w-full ${emphasis ? "text-center" : ""}`}
+            placeholder="Enter amount"
+            className={`bg-transparent border-b border-primary/40 outline-none font-mono font-bold text-foreground placeholder:text-muted-foreground placeholder:font-normal w-full ${emphasis ? "text-center" : ""}`}
             style={{ fontSize: 'clamp(0.75rem, 3.5cqi, 1.4rem)', lineHeight: '1.2' }}
             autoFocus
           />
