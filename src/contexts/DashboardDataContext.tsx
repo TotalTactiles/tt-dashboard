@@ -1084,6 +1084,11 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     const totalOpps = totalOppsFY;
     const pipelineConversion = totalOpps > 0 ? (wrWon / totalOpps) * 100 : 0;
+    const convRate = pipelineConversion / 100;
+    const getLeadsToGoal = useCallback(
+      (jobsToGoal: number) => (convRate > 0 ? Math.ceil(jobsToGoal / convRate) : 0),
+      [convRate]
+    );
 
 
     // ===== GROSS / NET revenue & profit =====
