@@ -109,6 +109,7 @@ function RevenueGoalCard({
   withYlw,
   setWithYlw,
   ylwValue,
+  className,
 }: {
   target: number;
   setTarget: (n: number) => void;
@@ -121,6 +122,7 @@ function RevenueGoalCard({
   withYlw: boolean;
   setWithYlw: (v: boolean) => void;
   ylwValue: number;
+  className?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<string>(String(target || ""));
