@@ -1018,7 +1018,16 @@ function MonthlyInvoicesVsTargetChart({
   onInvoicesTargetChange: (v: number) => void;
 
 }) {
-  const data = monthlyInvoicesData;
+  const now = new Date();
+  const curYearShort = String(now.getFullYear()).slice(-2);
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const curMonthIdx = now.getMonth();
+  const data = monthlyInvoicesData.filter((d) => {
+    const m = d.month.match(/^([A-Za-z]{3})-(\d{2})$/);
+    if (!m) return false;
+    const idx = MONTHS.indexOf(m[1]);
+    return m[2] === curYearShort && idx <= curMonthIdx;
+  });
 
   const handleTargetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onInvoicesTargetChange(Number(e.target.value) || 0);
