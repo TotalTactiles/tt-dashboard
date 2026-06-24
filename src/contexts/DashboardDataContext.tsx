@@ -237,8 +237,9 @@ export interface DashboardData {
 
   incomeOutgoingsData: IncomeOutgoingsPoint[];
   profitMarginData: ProfitMarginPoint[];
-  monthlyInvoicesData: { month: string; invoiced: number }[];
+  monthlyInvoicesData: { month: string; invoiced: number; revenueCheck: number }[];
   forecastChartData: ForecastChartPoint[];
+
   expenseAllocation: ExpenseAllocationItem[];
   kpiVariables: Record<string, number>;
   dataStore: DataStore;
