@@ -116,8 +116,8 @@ interface RevenueProjectsTableProps {
   showAll?: boolean;
   onAllToggle?: (allOn: boolean) => void;
   invoiceFilter?: "invoiced" | "to_be_invoiced";
-  /** Externally-driven month filter (full label e.g. "May 2026"). Applied whenever externalMonthFilterToken changes. */
-  externalMonthFilter?: string | null;
+  /** Externally-driven canonical month filter ({year, monthIndex 0-11, label}). Applied whenever externalMonthFilterToken changes. */
+  externalMonthFilter?: { year: number; month: number; label: string } | null;
   externalMonthFilterToken?: number;
 }
 
@@ -132,6 +132,9 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
   const [companySearch, setCompanySearch] = useState("");
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
+  // Canonical externally-driven month filter (matches by parsed year+monthIndex; format-agnostic).
+  const [externalActive, setExternalActive] = useState<{ year: number; month: number; label: string } | null>(null);
+
   // Column visibility
   const [visibleColumns, setVisibleColumns] = useState<ColumnKey[]>(loadVisibleColumns);
   const [showColumnPicker, setShowColumnPicker] = useState(false);
@@ -141,11 +144,14 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
     sessionStorage.setItem(LS_KEY, JSON.stringify(visibleColumns));
   }, [visibleColumns]);
 
-  // Apply an externally-driven month filter (e.g. clicking Invoices subtexts on the dashboard).
+  // Apply an externally-driven canonical month filter (e.g. clicking Invoices subtexts on the dashboard).
   // Re-applies on every token bump so repeat clicks still work.
   useEffect(() => {
     if (externalMonthFilter && externalMonthFilterToken > 0) {
-      setMonthFilter(externalMonthFilter);
+      setExternalActive(externalMonthFilter);
+      setMonthFilter("all");
+      setStatusFilter("all");
+      setStageFilter("all");
       setPage(1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -170,7 +176,7 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
 
   const isColVisible = (key: ColumnKey) => visibleColumns.includes(key);
 
-  const hasActiveFilters = sortBy !== "date-closest" || statusFilter !== "all" || stageFilter !== "all" || monthFilter !== "all" || companySearch.length > 0;
+  const hasActiveFilters = sortBy !== "date-closest" || statusFilter !== "all" || stageFilter !== "all" || monthFilter !== "all" || companySearch.length > 0 || externalActive !== null;
 
   const clearFilters = useCallback(() => {
     setSortBy("date-closest");
@@ -178,6 +184,7 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
     setStageFilter("all");
     setMonthFilter("all");
     setCompanySearch("");
+    setExternalActive(null);
     setPage(1);
   }, []);
 
@@ -219,8 +226,30 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
     let projects = [...revenueProjects];
     const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-    // Invoice filter from Cash Expected card overrides normal period filtering
-    if (!showAll && periodFilter && periodFilter.months.length > 0) {
+    // Canonical externally-driven month filter takes precedence — match by parsed year+monthIndex
+    // of the row's invoiceDate. Format-agnostic; works for any month/year.
+    if (externalActive) {
+      const before = projects.length;
+      projects = projects.filter((p) => {
+        const d = parseDateForSort(p.invoiceDate);
+        if (!d) return false;
+        return d.getFullYear() === externalActive.year && d.getMonth() === externalActive.month;
+      });
+      if (projects.length === 0 && before > 0) {
+        const keys = Array.from(new Set(revenueProjects.map(p => {
+          const d = parseDateForSort(p.invoiceDate);
+          return d ? `${d.getFullYear()}-${d.getMonth()}` : "unparseable";
+        })));
+        // eslint-disable-next-line no-console
+        console.warn("[RevenueProjectsTable] External month filter matched 0 rows", {
+          target: { year: externalActive.year, monthIndex: externalActive.month, label: externalActive.label },
+          presentInvoiceMonthKeys: keys,
+        });
+      }
+    }
+
+    // Invoice filter from Cash Expected card overrides normal period filtering (skipped when external filter is active)
+    if (!externalActive && !showAll && periodFilter && periodFilter.months.length > 0) {
       const monthSet = new Set(periodFilter.months);
       const priorSet = new Set(periodFilter.priorMonths ?? []);
 
@@ -284,7 +313,7 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
       }
     });
     return projects;
-  }, [revenueProjects, statusFilter, stageFilter, monthFilter, companySearch, sortBy, showAll, periodFilter, invoiceFilter]);
+  }, [revenueProjects, statusFilter, stageFilter, monthFilter, companySearch, sortBy, showAll, periodFilter, invoiceFilter, externalActive]);
 
   /* ── Totals ── */
   const totalRevenue = filteredProjects.reduce((sum, p) => sum + p.valueExclGST, 0);
@@ -469,11 +498,25 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
               All
             </button>
           )}
-          {!showAll && periodFilter && (
+          {!showAll && periodFilter && !externalActive && (
             <span className="text-[10px] font-mono text-muted-foreground/70">
               {periodFilter.label}
             </span>
           )}
+          {externalActive && (() => {
+            const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+            const chip = `${MONTH_ABBR[externalActive.month]} ${String(externalActive.year).slice(-2)}`;
+            return (
+              <button
+                onClick={() => setExternalActive(null)}
+                className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full border bg-chart-green/15 text-chart-green border-chart-green/40 font-mono hover:bg-chart-green/25 transition-colors"
+                title="Clear month filter"
+              >
+                {chip}
+                <X className="h-3 w-3" />
+              </button>
+            );
+          })()}
         </div>
         <div className="flex items-center gap-2">
           {filteredProjects.length > 0 && (
@@ -644,10 +687,12 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
                   {visibleColDefs.map((col, idx) => {
                     if (idx === 0) {
                       return (
-                        <td key={col.key} className="py-3 pr-4 pl-1" colSpan={1}>
-                          <div className="flex items-center gap-2 text-foreground">
+                        <td key={col.key} className="py-3 pr-4 pl-1 sticky left-0 z-10 bg-[hsl(var(--card))]" colSpan={1}>
+                          <div className="flex items-center gap-2 text-foreground whitespace-nowrap">
                             <Table2 className="h-4 w-4" />
-                            <span>Total ({filteredProjects.length} projects)</span>
+                            <span>Total ({filteredProjects.length} {filteredProjects.length === 1 ? "project" : "projects"})</span>
+                            <span className="text-muted-foreground">·</span>
+                            <span className="text-chart-green">{fmtCompactDollar(totalValueInclGST)} incl GST</span>
                           </div>
                         </td>
                       );
@@ -663,24 +708,6 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
                     );
                   })}
                 </tr>
-                {(() => {
-                  const exclIdx = visibleColDefs.findIndex(c => c.key === "valueExclGST");
-                  const afterSpan = visibleColDefs.length - exclIdx - 1;
-                  return exclIdx > 0 ? (
-                    <tr className="bg-chart-green/[0.08] font-mono text-xs text-muted-foreground border-t border-chart-green/10">
-                      <td className="py-2 pr-4 text-right" colSpan={exclIdx}>Incl. GST</td>
-                      <td className="py-2 pr-4 text-right">{fmtDollar(totalValueInclGST)}</td>
-                      {afterSpan > 0 && <td className="py-2 pr-4" colSpan={afterSpan}></td>}
-                    </tr>
-                  ) : (
-                    <tr className="bg-chart-green/[0.08] font-mono text-xs text-muted-foreground border-t border-chart-green/10">
-                      <td className="py-2 pr-4 text-right" colSpan={visibleColDefs.length}>
-                        <span className="mr-2">Incl. GST</span>
-                        {fmtDollar(totalValueInclGST)}
-                      </td>
-                    </tr>
-                  );
-                })()}
               </tfoot>
             </table>
           </div>
@@ -764,13 +791,13 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
                   Total ({filteredProjects.length})
                 </span>
                 <span className="font-mono font-bold text-sm text-chart-green">
-                  {fmtDollar(totalRevenue)}
-                  <span className="text-[10px] text-muted-foreground ml-1 font-normal">(ex GST)</span>
+                  {fmtDollar(totalValueInclGST)}
+                  <span className="text-[10px] text-muted-foreground ml-1 font-normal">incl GST</span>
                 </span>
               </div>
               <div className="flex items-center justify-between font-mono text-xs text-muted-foreground mt-1">
-                <span>Incl. GST</span>
-                <span>{fmtDollar(totalValueInclGST)}</span>
+                <span>Ex GST</span>
+                <span>{fmtDollar(totalRevenue)}</span>
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs font-mono">
                 <div className="flex justify-between">

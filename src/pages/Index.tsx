@@ -221,7 +221,7 @@ function WinLossSummaryCard({
 // Paid (top)        = last calendar month's invoices (received THIS month)
 // To be paid (bot.) = this calendar month's invoices (received NEXT month)
 // Source: revenueProjects (REVENUE tab), valueInclGST, invoiceDate.
-function InvoicesPaidCard({ index, onJumpToMonth }: { index: number; onJumpToMonth?: (monthLabel: string) => void }) {
+function InvoicesPaidCard({ index, onJumpToMonth }: { index: number; onJumpToMonth?: (target: { year: number; month: number; label: string }) => void }) {
   const { revenueProjects } = useDashboardData();
 
   const { paid, toBePaid, paidCount, toBePaidCount } = useMemo(() => {
@@ -289,7 +289,7 @@ function InvoicesPaidCard({ index, onJumpToMonth }: { index: number; onJumpToMon
             <span className="font-bold font-mono text-chart-green" style={figureStyle}>{fmtCompact(paid)}</span>
             <button
               type="button"
-              onClick={() => onJumpToMonth?.(paidJumpLabel)}
+              onClick={() => onJumpToMonth?.({ year: prev.getFullYear(), month: prev.getMonth(), label: paidJumpLabel })}
               className={subLinkClass}
               title={`Filter Revenue & COGS to ${paidJumpLabel}`}
             >· {paidCount} inv · {paidCtx}</button>
@@ -302,7 +302,7 @@ function InvoicesPaidCard({ index, onJumpToMonth }: { index: number; onJumpToMon
             <span className="font-bold font-mono text-foreground/90" style={figureStyle}>{fmtCompact(toBePaid)}</span>
             <button
               type="button"
-              onClick={() => onJumpToMonth?.(toBeJumpLabel)}
+              onClick={() => onJumpToMonth?.({ year: now.getFullYear(), month: now.getMonth(), label: toBeJumpLabel })}
               className={subLinkClass}
               title={`Filter Revenue & COGS to ${toBeJumpLabel}`}
             >· {toBePaidCount} inv · {toBeCtx}</button>
@@ -941,11 +941,12 @@ const DashboardContent = () => {
   const [showAllTables, setShowAllTables] = useState(false);
   const [invoiceFilter, setInvoiceFilter] = useState<"invoiced" | "to_be_invoiced">("invoiced");
   const [investorScope, setInvestorScope] = useState<"ytd" | "quarter">("ytd");
-  const [revenueTableMonth, setRevenueTableMonth] = useState<string | null>(null);
+  const [revenueTableMonth, setRevenueTableMonth] = useState<{ year: number; month: number; label: string } | null>(null);
   const [revenueTableJumpToken, setRevenueTableJumpToken] = useState(0);
   const revenueCogsRef = useRef<HTMLDivElement | null>(null);
-  const jumpToRevenueCogsMonth = useCallback((monthLabel: string) => {
-    setRevenueTableMonth(monthLabel);
+  const jumpToRevenueCogsMonth = useCallback((target: { year: number; month: number; label: string }) => {
+    setShowAllTables(true);
+    setRevenueTableMonth(target);
     setRevenueTableJumpToken((t) => t + 1);
     requestAnimationFrame(() => {
       revenueCogsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
