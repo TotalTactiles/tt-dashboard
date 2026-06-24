@@ -221,11 +221,11 @@ export interface DashboardData {
   ylwCount: number;
   pipelineConversion: number;
   winRateConfirmed: number;
-  convRate: number;
   getLeadsToGoal: (jobsToGoal: number) => number;
   totalOpps: number;
   totalLeads: number;
   getLeadsToGoalTrue: (jobsToGoal: number) => number;
+
 
   wrWonFY: number;
   wrLostFY: number;
@@ -1383,11 +1383,11 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       ylwCount: ylwCountFY || ylwCount_quoted,
       pipelineConversion,
       winRateConfirmed,
-      convRate,
       getLeadsToGoal,
       totalOpps,
       totalLeads,
       getLeadsToGoalTrue,
+
 
       wrWonFY: wonCountFY,
       wrLostFY: lostCountFY,
@@ -1437,8 +1437,9 @@ export function useDashboardData(): DashboardData {
       cashflowPositionRaw: 0,
       inRunningCount: 0, inRunningValue: 0,
       ylwValue: 0, ylwCount: 0,
-      pipelineConversion: 0, winRateConfirmed: 0, convRate: 0, getLeadsToGoal: () => 0, totalOpps: 0,
+      pipelineConversion: 0, winRateConfirmed: 0, getLeadsToGoal: () => 0, totalOpps: 0,
       totalLeads: 0, getLeadsToGoalTrue: () => 0,
+
 
       wrWonFY: 0, wrLostFY: 0, wrYlwFY: 0, wonValueFY: 0, lostValueFY: 0,
       kpiStats: [], incomeOutgoingsData: [], profitMarginData: [],

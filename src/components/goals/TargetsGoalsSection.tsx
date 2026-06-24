@@ -30,9 +30,9 @@ export default function TargetsGoalsSection(_props: Props) {
     getLeadsToGoal,
     getLeadsToGoalTrue,
     pipelineConversion,
-    leadToWonRate,
-    totalLeads,
+    winRateConfirmed,
   } = useDashboardData();
+
   const [withYlw, setWithYlw] = useState(false);
 
   // Goal tracks SECURED WORK (won contract value) — identical basis to Win/Loss WON.
