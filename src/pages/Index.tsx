@@ -1047,7 +1047,7 @@ function MonthlyInvoicesVsTargetChart({
       : `${quarter} ${year}`;
 
   return (
-    <div className="chart-container h-full">
+    <div className="chart-container h-full min-h-[340px]">
       <div className="flex flex-col h-full">
         <div className="flex items-start justify-between gap-3 mb-3 flex-shrink-0">
           <div>
@@ -1090,7 +1090,7 @@ function MonthlyInvoicesVsTargetChart({
         ) : (
           <div
             className={`flex-1 flex flex-col ${
-              data.length > 6 ? "justify-start gap-2 overflow-hidden" : "justify-around"
+              data.length > 6 ? "justify-start gap-3 overflow-hidden" : "justify-evenly"
             }`}
           >
             {data.map((d) => {
@@ -1099,7 +1099,7 @@ function MonthlyInvoicesVsTargetChart({
               const targetPct = Math.min(100, (invoicesTarget / scaleMax) * 100);
               const hitTarget = invoiced >= invoicesTarget;
               return (
-                <div key={d.month} className="flex items-center gap-3 min-h-[40px]">
+                <div key={d.month} className="flex items-center gap-3 min-h-[44px] px-1">
                   <span
                     className="text-[11px] font-mono text-muted-foreground text-left shrink-0"
                     style={{ width: 60 }}
@@ -1130,7 +1130,7 @@ function MonthlyInvoicesVsTargetChart({
                   </div>
                   <span
                     className="text-[11px] font-mono text-foreground text-right shrink-0 tabular-nums"
-                    style={{ width: 90 }}
+                    style={{ width: 80 }}
                   >
                     {fmtMoney(invoiced)}
                   </span>
