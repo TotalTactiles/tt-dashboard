@@ -313,7 +313,7 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
       }
     });
     return projects;
-  }, [revenueProjects, statusFilter, stageFilter, monthFilter, companySearch, sortBy, showAll, periodFilter, invoiceFilter]);
+  }, [revenueProjects, statusFilter, stageFilter, monthFilter, companySearch, sortBy, showAll, periodFilter, invoiceFilter, externalActive]);
 
   /* ── Totals ── */
   const totalRevenue = filteredProjects.reduce((sum, p) => sum + p.valueExclGST, 0);
