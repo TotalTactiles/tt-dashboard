@@ -1203,6 +1203,10 @@ const DashboardContent = () => {
                     netRevenue={e.netRevenue ?? 0}
                     grossProfit={e.grossProfit ?? 0}
                     netProfit={e.netProfit ?? 0}
+                    rev2026={e.rev2026}
+                    revYTD={e.revYTD}
+                    netProfit2026={e.netProfit2026}
+                    netProfitYTD={e.netProfitYTD}
                     index={i}
                     emphasis
                   />
