@@ -777,22 +777,30 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     }
     console.log("[GP Chart Proof] === END VERIFICATION ===");
 
-    // Forecast chart — 2 series only: Anticipated Surplus + Actual Cash Balance
-    // Actual Cash Balance = CASHFLOW Row 73 "Actual Bank Balance"
-    // Row 73 has real values only for past months; future months are 0 (not yet entered).
-    // We convert 0 → null so the line terminates at the last real entry rather than dropping to zero.
-    const actualBankBalanceRow = rawCashflow.find((r: any) => {
-      const lbl = getCashflowRowLabel(r).toUpperCase().trim();
-      return lbl === "ACTUAL BANK BALANCE" || lbl.includes("ACTUAL BANK");
-    }) ?? null;
-
-    console.log("[ForecastChart] actualBankBalanceRow found:", !!actualBankBalanceRow, getCashflowRowLabel(actualBankBalanceRow ?? {}));
+    // Forecast chart — 3 series: Total Outgoings + Anticipated Surplus + Actual Cash Balance
+    // Actual Cash Balance rule per visible month:
+    //   - Future months (after currentMonthKey) → null (dashed line stops at the current month)
+    //   - Current/past months → use Actual Bank Balance (row 73) if non-zero,
+    //     otherwise fall back to Opening Balance (row 2) for the very start of the month.
+    const parsedCurrent = parseMonthLabel(currentMonthKey);
 
     const forecastChartData: ForecastChartPoint[] = months.map((m) => {
       const totalOut = totalOutgoingsRow ? Math.abs(parseNum(totalOutgoingsRow[m] ?? 0)) : 0;
       const anticipated = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[m] ?? 0) : sv(cs?.anticipatedSurplus, m);
-      const rawActual = actualBankBalanceRow ? parseNum(actualBankBalanceRow[m] ?? 0) : 0;
-      const actualCashBalance = rawActual !== 0 ? rawActual : null;
+
+      const parsedM = parseMonthLabel(m);
+      const isAfterCurrent = parsedM && parsedCurrent && (
+        parsedM.year > parsedCurrent.year ||
+        (parsedM.year === parsedCurrent.year && parsedM.month > parsedCurrent.month)
+      );
+
+      let actualCashBalance: number | null = null;
+      if (!isAfterCurrent) {
+        const actual = parseNum(cs?.actualBankBalance?.[m] ?? 0);
+        const opening = parseNum(cs?.openingBalance?.[m] ?? 0);
+        actualCashBalance = (actual !== 0) ? actual : opening;
+      }
+
       return { month: m, totalOutgoings: totalOut, anticipatedSurplus: anticipated, actualCashBalance };
     });
 
