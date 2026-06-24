@@ -222,6 +222,10 @@ export interface DashboardData {
   pipelineConversion: number;
   convRate: number;
   getLeadsToGoal: (jobsToGoal: number) => number;
+  getLeadsToGoalTrue: (jobsToGoal: number) => number;
+  oppConvRate: number;
+  leadToWonRate: number;
+  totalLeads: number;
   totalOpps: number;
   wrWonFY: number;
   wrLostFY: number;
@@ -313,7 +317,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
   const isLoading = ds.isLoading;
   const isRefreshing = ds.isRefreshing;
   const { formulas, addFormula, updateFormula, deleteFormula } = useFormulas();
-  const { quotingOpp } = useCrmStages();
+  const { quotingOpp, totalLeads } = useCrmStages();
   const [calendarEventsOverride, setCalendarEventsState] = useState<LiveCalendarEvent[] | null>(null);
 
   const data = useMemo<DashboardData>(() => {
@@ -1084,11 +1088,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     const totalOpps = totalOppsFY;
     const pipelineConversion = totalOpps > 0 ? (wrWon / totalOpps) * 100 : 0;
-    const convRate = pipelineConversion / 100;
-    const getLeadsToGoal = useCallback(
-      (jobsToGoal: number) => (convRate > 0 ? Math.ceil(jobsToGoal / convRate) : 0),
-      [convRate]
-    );
+    const oppConvRate = pipelineConversion / 100;
+    const convRate = oppConvRate;
+    const leadToWonRate = totalLeads > 0 ? (wonCountFY / totalLeads) : 0;
+    const getLeadsToGoal = (jobsToGoal: number) =>
+      oppConvRate > 0 ? Math.ceil(jobsToGoal / oppConvRate) : 0;
+    const getLeadsToGoalTrue = (jobsToGoal: number) =>
+      leadToWonRate > 0 ? Math.ceil(jobsToGoal / leadToWonRate) : 0;
 
 
     // ===== GROSS / NET revenue & profit =====
@@ -1354,6 +1360,10 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       pipelineConversion,
       convRate,
       getLeadsToGoal,
+      getLeadsToGoalTrue,
+      oppConvRate,
+      leadToWonRate,
+      totalLeads,
       totalOpps,
       wrWonFY: wonCountFY,
       wrLostFY: lostCountFY,
@@ -1403,7 +1413,7 @@ export function useDashboardData(): DashboardData {
       cashflowPositionRaw: 0,
       inRunningCount: 0, inRunningValue: 0,
       ylwValue: 0, ylwCount: 0,
-      pipelineConversion: 0, convRate: 0, getLeadsToGoal: () => 0, totalOpps: 0,
+      pipelineConversion: 0, convRate: 0, getLeadsToGoal: () => 0, getLeadsToGoalTrue: () => 0, oppConvRate: 0, leadToWonRate: 0, totalLeads: 0, totalOpps: 0,
       wrWonFY: 0, wrLostFY: 0, wrYlwFY: 0, wonValueFY: 0, lostValueFY: 0,
       kpiStats: [], incomeOutgoingsData: [], profitMarginData: [],
 

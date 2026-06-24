@@ -29,7 +29,7 @@ export default function TargetsGoalsSection({
   wonCount,
 }: Props) {
   const { target, setTarget } = useRevenueTarget();
-  const { ylwValue, getLeadsToGoal, pipelineConversion } = useDashboardData();
+  const { ylwValue, getLeadsToGoal, getLeadsToGoalTrue, pipelineConversion, leadToWonRate, totalLeads } = useDashboardData();
   const [withYlw, setWithYlw] = useState(false);
 
   const avgWonDeal = wonCount > 0 ? wonValueTotal / wonCount : 0;
@@ -44,7 +44,8 @@ export default function TargetsGoalsSection({
   const remaining = Math.max(0, target - effectiveCurrent);
   const jobsToGoal =
     avgWonDeal > 0 && remaining > 0 ? Math.ceil(remaining / avgWonDeal) : 0;
-  const leadsToGoal = getLeadsToGoal(jobsToGoal);
+  const oppsToGoal = getLeadsToGoal(jobsToGoal);
+  const leadsToGoalTrue = getLeadsToGoalTrue(jobsToGoal);
 
   return (
     <>
@@ -85,9 +86,12 @@ export default function TargetsGoalsSection({
         />
         <LeadsToGoalCard
           target={target}
-          leadsToGoal={leadsToGoal}
+          oppsToGoal={oppsToGoal}
+          leadsToGoalTrue={leadsToGoalTrue}
           avgWonDeal={avgWonDeal}
           pipelineConversion={pipelineConversion}
+          leadToWonRate={leadToWonRate}
+          totalLeads={totalLeads}
           remaining={remaining}
           withYlw={withYlw}
           setWithYlw={setWithYlw}
@@ -412,26 +416,54 @@ function JobsToGoalCard({
 
 function LeadsToGoalCard({
   target,
-  leadsToGoal,
+  oppsToGoal,
+  leadsToGoalTrue,
   avgWonDeal,
   pipelineConversion,
+  leadToWonRate,
+  totalLeads,
   remaining,
   withYlw,
   setWithYlw,
   className,
 }: {
   target: number;
-  leadsToGoal: number;
+  oppsToGoal: number;
+  leadsToGoalTrue: number;
   avgWonDeal: number;
   pipelineConversion: number;
+  leadToWonRate: number;
+  totalLeads: number;
   remaining: number;
   withYlw: boolean;
   setWithYlw: (v: boolean) => void;
   className?: string;
 }) {
-  const convRate = pipelineConversion / 100;
-  const empty = target === 0 || convRate === 0;
+  const [mode, setMode] = useState<"opps" | "leads">("opps");
+  const oppConvRate = pipelineConversion / 100;
+  const empty = target === 0 || oppConvRate === 0;
   const met = !empty && remaining === 0;
+  const leadsLive = totalLeads > 0 && leadToWonRate > 0;
+
+  const isLeads = mode === "leads";
+  const headline = isLeads
+    ? (leadsLive ? leadsToGoalTrue : "—")
+    : (empty ? "—" : met ? "Goal met 🎉" : oppsToGoal);
+
+  const PillBtn = ({ active, onClick, children, disabled }: { active: boolean; onClick: () => void; children: React.ReactNode; disabled?: boolean }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-full transition-colors ${
+        active
+          ? "bg-[#4F8BC9] text-white"
+          : "bg-secondary/60 text-muted-foreground hover:text-foreground"
+      } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
+    >
+      {children}
+    </button>
+  );
 
   return (
     <motion.div
@@ -447,27 +479,44 @@ function LeadsToGoalCard({
         <ConfirmedYlwToggle withYlw={withYlw} setWithYlw={setWithYlw} />
       </div>
 
+      <div className="flex items-center gap-1.5 mb-2">
+        <PillBtn active={!isLeads} onClick={() => setMode("opps")}>Opportunities</PillBtn>
+        <PillBtn active={isLeads} onClick={() => setMode("leads")} disabled={!leadsLive}>Leads</PillBtn>
+        {isLeads && !leadsLive && (
+          <span className="text-[10px] text-muted-foreground italic ml-1">awaiting lead feed</span>
+        )}
+      </div>
+
       <div className="flex-1 flex flex-row items-center justify-center text-center gap-3 min-w-0">
         <div className="flex-1 flex flex-col items-center justify-center min-w-0">
           <span
             className="font-mono tabular-nums font-semibold text-chart-green"
             style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", letterSpacing: "-0.02em", lineHeight: 1 }}
           >
-            {empty ? "—" : met ? "Goal met 🎉" : leadsToGoal}
+            {headline}
           </span>
-          {!empty && !met && (
+          {!empty && !met && headline !== "—" && (
             <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-              Leads to Goal
+              {isLeads ? "Leads to Goal" : "Opps to Goal"}
             </span>
           )}
         </div>
         <div className="flex-1 flex flex-col items-center justify-center text-[15px] uppercase tracking-wider space-y-0.5 min-w-0 break-words">
-          <div className="text-muted-foreground">
-            <span>Conv rate</span>{" "}
-            <span className="font-mono tabular-nums text-foreground">
-              {convRate > 0 ? `${pipelineConversion.toFixed(1)}%` : "—"}
-            </span>
-          </div>
+          {isLeads ? (
+            <div className="text-muted-foreground">
+              <span>Lead→Won</span>{" "}
+              <span className="font-mono tabular-nums text-foreground">
+                {leadsLive ? `${(leadToWonRate * 100).toFixed(1)}%` : "—"}
+              </span>
+            </div>
+          ) : (
+            <div className="text-muted-foreground">
+              <span>Conv rate</span>{" "}
+              <span className="font-mono tabular-nums text-foreground">
+                {oppConvRate > 0 ? `${pipelineConversion.toFixed(1)}%` : "—"}
+              </span>
+            </div>
+          )}
           <div className="text-muted-foreground">
             <span>Avg won</span>{" "}
             <span className="font-mono tabular-nums text-foreground">
