@@ -1186,7 +1186,7 @@ function MonthlyNetProfitChart({
     };
 
     return data.map((d) => {
-      const p = parseMonthKey(d.month);
+      const p = parseShortMonthKey(d.month);
       if (!p) return { month: d.month, remaining: 0 };
       const yr = 2000 + parseInt(p.yy, 10);
       const total = debts.reduce((s, f) => s + balanceAt(f, yr, p.idx), 0);
