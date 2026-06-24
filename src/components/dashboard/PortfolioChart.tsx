@@ -192,6 +192,22 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
     { key: "Q4", label: "Q4" },
   ];
 
+  // === TEMP DEBUG — remove after diagnosis ===
+  if (typeof window !== "undefined") {
+    console.log("=== CASHFLOW SURPLUS DEBUG ===");
+    console.table(
+      filteredData.map((d) => ({
+        month: d.month,
+        income: Math.round(d.income),
+        outgoings: Math.round(d.outgoings),
+        surplus: Math.round(d.surplus),
+        probableIncome: Math.round(d.probableIncome ?? 0),
+        isFuture: d.isFuture,
+      }))
+    );
+  }
+  // === END TEMP DEBUG ===
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
