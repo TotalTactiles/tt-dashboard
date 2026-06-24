@@ -222,6 +222,10 @@ export interface DashboardData {
   pipelineConversion: number;
   convRate: number;
   getLeadsToGoal: (jobsToGoal: number) => number;
+  getLeadsToGoalTrue: (jobsToGoal: number) => number;
+  oppConvRate: number;
+  leadToWonRate: number;
+  totalLeads: number;
   totalOpps: number;
   wrWonFY: number;
   wrLostFY: number;
