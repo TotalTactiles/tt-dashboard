@@ -219,7 +219,10 @@ export interface DashboardData {
   inRunningValue: number;
   ylwValue: number;
   ylwCount: number;
+  pipelineConversion: number;
+  totalOpps: number;
   kpiStats: KPIStat[];
+
   incomeOutgoingsData: IncomeOutgoingsPoint[];
   profitMarginData: ProfitMarginPoint[];
   forecastChartData: ForecastChartPoint[];
