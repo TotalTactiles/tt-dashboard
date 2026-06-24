@@ -872,9 +872,6 @@ function PipelineSummaryCard({
           PIPELINE
         </p>
       </div>
-      {/* PILLS — reserved spacer (no toggle on this card) */}
-      <div className={`${emphasis ? "min-h-[1.5rem]" : ""}`} />
-
       {/* BODY */}
       <div className={`${emphasis ? "flex-1 flex flex-col items-center justify-center gap-0.5" : ""} w-full min-w-0`}>
         <div className={`min-w-0 ${emphasis ? "w-full" : ""}`}>
