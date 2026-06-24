@@ -9,6 +9,7 @@ import {
 } from "recharts";
 import StatCard from "@/components/dashboard/StatCard";
 import { chartColors } from "@/lib/chartTheme";
+import { formatMetricValue } from "@/lib/formatMetricValue";
 import PortfolioChart from "@/components/dashboard/PortfolioChart";
 import SectorAllocationChart from "@/components/dashboard/SectorAllocationChart";
 import DealPipeline from "@/components/dashboard/DealPipeline";
