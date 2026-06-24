@@ -1117,19 +1117,14 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         positive: true,
         noData,
       },
-      // 5. Win Rate — Confirmed (default) / With YLWs
+      // 5. Conversion Rates — rendered by dedicated ConversionRatesCard in Index.tsx
       {
-        label: "Win Rate",
+        label: "CONVERSION RATES",
         value: noData ? "--" : `${winRateConfirmed.toFixed(1)}%`,
         change: noData ? "--" : `${wrWon} won / ${wrLost} lost`,
         positive: winRateConfirmed >= 20, noData,
-        altValue: noData ? "--" : `${winRateWithYlw.toFixed(1)}%`,
-        altChange: noData ? "--" : `${wrWon + wrYlw} won incl YLW / ${wrLost} lost`,
-        altPositive: winRateWithYlw >= 20,
-        toggleLabelBase: "Confirmed",
-        toggleLabelAlt: "With YLWs",
-        momContext: "Won ÷ (Won + Lost) · benchmark ~16–20%",
       },
+
       // 6. Revenue / Profit — dual-split card (Revenue / Profit pills) rendered in Index.tsx
       {
         label: "Revenue / Profit",
