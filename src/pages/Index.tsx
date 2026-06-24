@@ -25,6 +25,7 @@ import { useGoals } from "@/hooks/useGoals";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { applyGoalMerge } from "@/lib/goalMerge";
 import { buildPeriodOptions, getCurrentMonthKey } from "@/lib/projectExecutionKpis";
+import { parseMonthKey } from "@/lib/reportDataAssembler";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Unplug, Loader2 } from "lucide-react";
