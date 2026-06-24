@@ -1053,7 +1053,6 @@ function MonthlyInvoicesVsTargetChart({
         <div className="flex items-start justify-between gap-3 mb-3 flex-shrink-0">
           <div>
             <h3 className="text-sm font-medium text-foreground">Monthly Invoices</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Invoices being paid per month vs target</p>
           </div>
 
           <label className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
