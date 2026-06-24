@@ -781,7 +781,8 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     // Actual Cash Balance rule per visible month:
     //   - Future months (after currentMonthKey) → null (dashed line stops at the current month)
     //   - Current/past months → use Actual Bank Balance (row 73) if non-zero,
-    //     otherwise fall back to Opening Balance (row 2) for the very start of the month.
+    //     otherwise fall back to True Closing Balance (row 74) for a like-for-like
+    //     comparison with the Anticipated Cash Surplus line.
     const parsedCurrent = parseMonthLabel(currentMonthKey);
 
     const forecastChartData: ForecastChartPoint[] = months.map((m) => {
@@ -797,8 +798,8 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       let actualCashBalance: number | null = null;
       if (!isAfterCurrent) {
         const actual = parseNum(cs?.actualBankBalance?.[m] ?? 0);
-        const opening = parseNum(cs?.openingBalance?.[m] ?? 0);
-        actualCashBalance = (actual !== 0) ? actual : opening;
+        const closing = parseNum(cs?.trueClosingBalance?.[m] ?? 0);
+        actualCashBalance = (actual !== 0) ? actual : closing;
       }
 
       return { month: m, totalOutgoings: totalOut, anticipatedSurplus: anticipated, actualCashBalance };
