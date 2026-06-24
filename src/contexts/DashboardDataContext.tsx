@@ -1328,8 +1328,11 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       : null;
 
     const inRunningJobs = quotedJobs.filter((j) => j.status === "pending");
-    const inRunningCount = inRunningJobs.length;
-    const inRunningValue = inRunningJobs.reduce((s, j) => s + (Number(j.value) || 0), 0);
+    const _legacyInRunningCount = inRunningJobs.length;
+    const _legacyInRunningValue = inRunningJobs.reduce((s, j) => s + (Number(j.value) || 0), 0);
+    // Prefer FY-scoped qtsSmmry; fall back to legacy quotedJobs derivation if missing
+    const inRunningCount = inRunCountFY || _legacyInRunningCount;
+    const inRunningValue = inRunValueFY || _legacyInRunningValue;
 
     const ylwJobs_quoted = quotedJobs.filter((j) => j.status === "yellow");
     const ylwValue_quoted = ylwJobs_quoted.reduce((s, j) => s + (Number(j.value) || 0), 0);
@@ -1339,10 +1342,16 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       quotedJobs, revenueProjects, expenseCategories, grandTotalExpense,
       cashflowPositionRaw: cashflowPosition,
       inRunningCount, inRunningValue,
-      ylwValue: ylwValue_quoted,
-      ylwCount: ylwCount_quoted,
+      ylwValue: ylwValueFY || ylwValue_quoted,
+      ylwCount: ylwCountFY || ylwCount_quoted,
       pipelineConversion,
       totalOpps,
+      wrWonFY: wonCountFY,
+      wrLostFY: lostCountFY,
+      wrYlwFY: ylwCountFY,
+      wonValueFY,
+      lostValueFY,
+
       kpiStats, incomeOutgoingsData, profitMarginData, forecastChartData, expenseAllocation,
 
       kpiVariables, dataStore: storeSnapshot, formulaCache: formulaCacheInstance, changedFormulas,
