@@ -339,26 +339,30 @@ function JobsToGoalCard({
       </div>
 
       {/* Composition: AVG WON line + colour-coded breakdown */}
-      <div className="mt-2 text-center text-xs space-y-0.5 whitespace-normal break-words">
+      <div className="mt-2 text-center text-[15px] uppercase tracking-wider whitespace-normal break-words space-y-0.5">
         {empty ? (
           <div className="text-muted-foreground">Set a revenue goal to compute jobs needed</div>
         ) : (
           <>
             <div className="text-muted-foreground">
-              <span className="uppercase tracking-wider">Avg won</span>{" "}
+              <span>Avg won</span>{" "}
               <span className="font-mono tabular-nums text-foreground">
                 {avgWonDeal > 0 ? fmtAUD(avgWonDeal) : "—"}
               </span>
             </div>
             {withYlw ? (
               <>
-                <div>
+                <div className="min-w-0 break-words">
                   <span className="font-mono tabular-nums text-chart-green">
                     {fmtAUD(currentRevenue)}
                   </span>
                   <span className="text-muted-foreground"> + </span>
                   <span className="font-mono tabular-nums" style={{ color: YLW_COLOR }}>
                     {fmtAUD(ylwValue)} YLW
+                  </span>
+                  <span className="text-muted-foreground"> = </span>
+                  <span className="font-mono tabular-nums text-foreground">
+                    {fmtAUD(effectiveCurrent)}
                   </span>
                 </div>
                 {!met && (
@@ -372,7 +376,11 @@ function JobsToGoalCard({
               </>
             ) : (
               !met && (
-                <div>
+                <div className="min-w-0 break-words">
+                  <span className="font-mono tabular-nums text-chart-green">
+                    {fmtAUD(currentRevenue)}
+                  </span>
+                  <span className="text-muted-foreground"> · </span>
                   <span className="font-mono tabular-nums text-chart-red">
                     {fmtAUD(remaining)}
                   </span>{" "}
