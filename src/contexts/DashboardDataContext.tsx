@@ -626,7 +626,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         const parsed = parseMonthLabel(m);
         const isFuture = parsed ? (parsed.year > currentYear || (parsed.year === currentYear && parsed.month > currentMonthIdx)) : false;
         // Surplus = Row 71 directly — the anticipated cumulative cash position from the cashflow model
-        const surplus = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[m] ?? 0) : sv(cs?.anticipatedSurplus, m);
+        const surplus = inc - out;
         // Probable income for future months = Row 11 (cashflow model forecast), not derived from surplus
         const probableIncome = isFuture ? Math.max(0, inc) : 0;
         const openingBalance = openingBalancesRow
