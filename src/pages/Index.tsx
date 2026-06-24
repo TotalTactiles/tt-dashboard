@@ -1013,9 +1013,10 @@ function MonthlyInvoicesVsTargetChart({
   invoicesTarget,
   onInvoicesTargetChange,
 }: {
-  monthlyInvoicesData: Array<{ month: string; invoiced: number }>;
+  monthlyInvoicesData: Array<{ month: string; invoiced: number; revenueCheck: number }>;
   invoicesTarget: number;
   onInvoicesTargetChange: (v: number) => void;
+
 }) {
   const data = monthlyInvoicesData;
 
@@ -1028,8 +1029,9 @@ function MonthlyInvoicesVsTargetChart({
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <h3 className="text-sm font-medium text-foreground">Monthly Invoices</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Invoiced revenue per month vs target</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Invoices being paid per month vs target</p>
         </div>
+
         <label className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
           Monthly Invoice Target $
           <input
