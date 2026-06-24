@@ -261,7 +261,7 @@ function InvoicesPaidCard({ index }: { index: number }) {
   const toBeCtx = MONTHS[now.getMonth()];
 
   const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
-  const labelClass = "text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center";
+  const labelClass = "text-[0.7rem] font-semibold tracking-wide text-foreground/80 font-mono text-center";
   const subClass = "text-[0.65rem] leading-tight text-muted-foreground font-mono whitespace-normal break-words text-center";
   const figureStyle: React.CSSProperties = { fontSize: 'clamp(1.25rem, 1.6vw, 1.5rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' };
 
@@ -278,17 +278,21 @@ function InvoicesPaidCard({ index }: { index: number }) {
       </div>
       {/* reserved pills row for parity with siblings */}
       <div className="w-full min-h-[1.5rem]" />
-      <div className="flex-1 flex flex-col items-center justify-center gap-0.5 w-full min-w-0">
+      <div className="flex-1 flex flex-col items-center justify-center gap-1.5 w-full min-w-0 text-center">
         <div className="w-full min-w-0">
-          <p className={labelClass}>PAID</p>
-          <p className="font-bold font-mono text-chart-green break-words leading-tight" style={figureStyle}>{fmtCompact(paid)}</p>
-          <p className={subClass}>{paidCount} inv · {paidCtx}</p>
+          <p className={labelClass}>To be Paid</p>
+          <p className="leading-tight break-words flex items-baseline justify-center gap-1.5 flex-wrap">
+            <span className="font-bold font-mono text-chart-green" style={figureStyle}>{fmtCompact(paid)}</span>
+            <span className={subClass}>· {paidCount} inv · {paidCtx}</span>
+          </p>
         </div>
         <div className="h-px bg-white/10 my-1 w-2/3 mx-auto" />
         <div className="w-full min-w-0">
-          <p className={labelClass}>TO BE PAID</p>
-          <p className="font-bold font-mono text-foreground/90 break-words leading-tight" style={figureStyle}>{fmtCompact(toBePaid)}</p>
-          <p className={subClass}>{toBePaidCount} inv · {toBeCtx}</p>
+          <p className={labelClass}>To be Invoiced</p>
+          <p className="leading-tight break-words flex items-baseline justify-center gap-1.5 flex-wrap">
+            <span className="font-bold font-mono text-foreground/90" style={figureStyle}>{fmtCompact(toBePaid)}</span>
+            <span className={subClass}>· {toBePaidCount} inv · {toBeCtx}</span>
+          </p>
         </div>
       </div>
     </motion.div>
@@ -854,7 +858,6 @@ const DashboardContent = () => {
     "Op. Expense Ratio",
     "Labour Cost Ratio",
     "Revenue Per Job",
-    "CAC Per Client",
   ] as const;
   type OptionalCard = typeof OPTIONAL_INVESTOR_CARDS[number];
   const [visibleOptionalCards, setVisibleOptionalCards] = useState<Set<OptionalCard>>(new Set());
@@ -1635,15 +1638,6 @@ const DashboardContent = () => {
                       toggleLabelBase="Won"
                       toggleLabelAlt="Quoted"
                       greenAltPill={true}
-                    />
-                  )}
-                  {visibleOptionalCards.has("CAC Per Client") && (
-                    <StatCard
-                      label="CAC Per Client"
-                      value="N/A (no ad spend)"
-                      change="$0/mo ads"
-                      positive={true}
-                      index={18}
                     />
                   )}
                 </div>

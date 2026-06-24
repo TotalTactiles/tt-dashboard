@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Pencil } from "lucide-react";
+import { TrendingUp, TrendingDown, Pencil, X } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatMetricValue } from "@/lib/formatMetricValue";
@@ -180,6 +180,14 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
     setEditing(false);
   };
 
+  const clearActualBalance = () => {
+    localStorage.removeItem('tt_actual_bank_balance');
+    setLocalActualValue(null);
+    setLocalActualDate(null);
+    setInputValue("");
+    setEditing(false);
+  };
+
   const hasToggle = !!altValue;
   const hasThirdToggle = !!toggleLabelAlt2;
 
@@ -187,11 +195,11 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
   const showAlt = mode === "alt";
 
   // Use local state for Actual if available (instant update without reload)
-  const resolvedActualValue = localActualValue !== null
-    ? `$${localActualValue >= 1_000_000 ? (localActualValue / 1_000_000).toFixed(2) + 'M' : localActualValue >= 1000 ? (localActualValue / 1000).toFixed(1) + 'K' : localActualValue.toFixed(0)}`
-    : altValue2 ?? "Tap to set";
-  const resolvedActualDate = localActualDate ? `Actual · ${localActualDate}` : (altChange2 ?? 'Actual · not set');
-  const isActualNotSet = resolvedActualValue === "Tap to set";
+  const isActualNotSet = localActualValue === null;
+  const resolvedActualValue = !isActualNotSet
+    ? `$${localActualValue! >= 1_000_000 ? (localActualValue! / 1_000_000).toFixed(2) + 'M' : localActualValue! >= 1000 ? (localActualValue! / 1000).toFixed(1) + 'K' : localActualValue!.toFixed(0)}`
+    : "Enter amount";
+  const resolvedActualDate = localActualDate ? `Actual · ${localActualDate}` : "";
 
   const isCashflowPosition = label === "Cashflow Position";
   const openValue = isCashflowPosition && kpiVariables?.XeroCashOpening && kpiVariables.XeroCashOpening !== 0
@@ -333,14 +341,17 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
             onChange={(e) => setInputValue(e.target.value)}
             onBlur={() => {
               if (inputValue.trim()) saveActualBalance(inputValue);
-              else setEditing(false);
+              else { clearActualBalance(); }
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && inputValue.trim()) saveActualBalance(inputValue);
+              if (e.key === "Enter") {
+                if (inputValue.trim()) saveActualBalance(inputValue);
+                else clearActualBalance();
+              }
               if (e.key === "Escape") setEditing(false);
             }}
-            placeholder="Enter bank balance..."
-            className={`bg-transparent border-b border-primary/40 outline-none font-mono font-bold text-foreground w-full ${emphasis ? "text-center" : ""}`}
+            placeholder="Enter amount"
+            className={`bg-transparent border-b border-primary/40 outline-none font-mono font-bold text-foreground placeholder:text-muted-foreground placeholder:font-normal w-full ${emphasis ? "text-center" : ""}`}
             style={{ fontSize: 'clamp(0.75rem, 3.5cqi, 1.4rem)', lineHeight: '1.2' }}
             autoFocus
           />
@@ -362,13 +373,22 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
             </TooltipContent>
           </Tooltip>
           {isActual && !isActualNotSet && (
-            <button
-              onClick={handleEditClick}
-              className="text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded"
-              title="Edit actual balance"
-            >
-              <Pencil className="w-3 h-3" />
-            </button>
+            <>
+              <button
+                onClick={handleEditClick}
+                className="text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded"
+                title="Edit actual balance"
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
+              <button
+                onClick={clearActualBalance}
+                className="text-muted-foreground hover:text-chart-red transition-colors p-0.5 rounded"
+                title="Clear actual balance"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </>
           )}
         </div>
       )}
