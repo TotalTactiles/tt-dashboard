@@ -386,14 +386,10 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
                   }}
                 />
               )}
+              <Bar yAxisId="bars" dataKey="openingBalance" radius={[3, 3, 0, 0]} animationDuration={800} fill="#3D89DA" />
               <Bar yAxisId="bars" dataKey="income" radius={[3, 3, 0, 0]} animationDuration={800}>
                 {filteredData.map((entry, index) => (
                   <Cell key={`income-${index}`} fill="#22C55E" fillOpacity={entry.isFuture ? 0 : 1} />
-                ))}
-              </Bar>
-              <Bar yAxisId="bars" dataKey="probableIncome" radius={[3, 3, 0, 0]} animationDuration={800}>
-                {filteredData.map((entry, index) => (
-                  <Cell key={`probable-${index}`} fill="#22C55E" fillOpacity={entry.isFuture ? 0.4 : 0} />
                 ))}
               </Bar>
               <Bar yAxisId="bars" dataKey="outgoings" radius={[3, 3, 0, 0]} animationDuration={800}>
@@ -406,6 +402,13 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
                   <Cell key={`net-${index}`} fill={(entry as any).netSurplus >= 0 ? "#15803D" : "#7F1D1D"} />
                 ))}
               </Bar>
+              {filteredData.some((d) => d.isFuture) && (
+                <Bar yAxisId="bars" dataKey="probableIncome" radius={[3, 3, 0, 0]} animationDuration={800}>
+                  {filteredData.map((entry, index) => (
+                    <Cell key={`probable-${index}`} fill="#22C55E" fillOpacity={entry.isFuture ? 0.4 : 0} />
+                  ))}
+                </Bar>
+              )}
               <ReferenceLine yAxisId="bars" y={0} stroke="#ffffff30" />
             </ComposedChart>
           </ResponsiveContainer>
