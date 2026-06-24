@@ -1236,7 +1236,7 @@ function MonthlyNetProfitChart({
               );
             }}
           />
-          <ReferenceLine y={0} stroke="#ffffff30" strokeDasharray="2 2" />
+          <ReferenceLine yAxisId="left" y={0} stroke="#ffffff30" strokeDasharray="2 2" />
           <Bar dataKey="netProfit" name="Net Profit" yAxisId="left">
             {data.map((d, i) => (
               <Cell key={i} fill={d.netProfit >= 0 ? "#15803D" : "#7F1D1D"} />
