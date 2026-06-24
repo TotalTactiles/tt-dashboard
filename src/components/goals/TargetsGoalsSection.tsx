@@ -90,6 +90,7 @@ function RevenueGoalCard({
   target,
   setTarget,
   currentRevenue,
+  effectiveCurrent,
   pctConfirmed,
   pctYlw,
   pctTotal,
@@ -101,6 +102,7 @@ function RevenueGoalCard({
   target: number;
   setTarget: (n: number) => void;
   currentRevenue: number;
+  effectiveCurrent: number;
   pctConfirmed: number;
   pctYlw: number;
   pctTotal: number;
