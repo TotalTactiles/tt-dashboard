@@ -687,18 +687,13 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
                   {visibleColDefs.map((col, idx) => {
                     if (idx === 0) {
                       return (
-                        <td key={col.key} className="py-3 pr-4 pl-1 sticky left-0 z-10 bg-[hsl(var(--card))]" colSpan={1}>
+                        <td key={col.key} className="py-3 pr-4 pl-1">
                           <div className="flex items-center gap-2 text-foreground whitespace-nowrap">
                             <Table2 className="h-4 w-4" />
                             <span>Total ({filteredProjects.length} {filteredProjects.length === 1 ? "project" : "projects"})</span>
-                            <span className="text-muted-foreground">·</span>
-                            <span className="text-chart-green">{fmtCompactDollar(totalValueInclGST)} incl GST</span>
                           </div>
                         </td>
                       );
-                    }
-                    if (idx === 1) {
-                      return <td key={col.key} className="py-3 pr-4"></td>;
                     }
                     const content = renderTotalCell(col.key);
                     return (
