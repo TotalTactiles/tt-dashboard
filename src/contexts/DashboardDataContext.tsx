@@ -821,15 +821,12 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     console.log("[Net Revenue] YTD scoped to:", currentYear4Digit, "| projects:", currentYearRevenueProjects.length, "| value:", netRevenue);
 
-    // Card 5: Cashflow Position = current month's OPENING BALANCES value
-    // Generate current month key in stable Mon-YY format (locale-independent)
-    const currentMonthKey = `${MONTH_ABBR_LIST[currentMonthIdx]}-${String(currentYear).slice(-2)}`;
-
     console.log('[CF DEBUG] currentMonthKey:', currentMonthKey);
     console.log('[CF DEBUG] openingBal:', openingBalancesRow?.[currentMonthKey]);
     console.log('[CF DEBUG] totalIncome:', totalIncomeRow?.[currentMonthKey]);
     console.log('[CF DEBUG] totalCostOfSales:', totalCostOfSalesRow?.[currentMonthKey]);
     console.log('[CF DEBUG] fixedOpEx:', totalOpExInclSalariesRow?.[currentMonthKey]);
+
 
     // Normalize a month key to uppercase trimmed for comparison
     const normalizeKey = (k: string) => k.trim().toUpperCase();
