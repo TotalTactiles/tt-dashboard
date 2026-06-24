@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 const CRM_STAGES_WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-crm-stages";
 
 export interface QuotingOpp { count: number; value: number; }
-export interface CrmStages { quotingOpp: QuotingOpp | null; }
+export interface CrmStages { quotingOpp: QuotingOpp | null; totalLeads: number; }
 
 export function useCrmStages(): CrmStages {
-  const [data, setData] = useState<CrmStages>({ quotingOpp: null });
+  const [data, setData] = useState<CrmStages>({ quotingOpp: null, totalLeads: 0 });
   useEffect(() => {
     let alive = true;
     const load = async () => {
@@ -17,8 +17,14 @@ export function useCrmStages(): CrmStages {
         if (!res.ok) return;
         const json = await res.json();
         const qo = json?.crmStages?.quotingOpp;
-        if (alive && qo && typeof qo.count === "number") {
-          setData({ quotingOpp: { count: qo.count, value: Number(qo.value) || 0 } });
+        const totalLeads = Number(json?.crmStages?.totalLeads) || 0;
+        if (alive) {
+          setData({
+            quotingOpp: qo && typeof qo.count === "number"
+              ? { count: qo.count, value: Number(qo.value) || 0 }
+              : null,
+            totalLeads,
+          });
         }
       } catch { /* swallow — card shows "—" */ }
     };
