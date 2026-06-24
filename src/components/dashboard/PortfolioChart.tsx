@@ -337,17 +337,17 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
                       <p style={{ color: tc.tooltipText, marginBottom: 4 }}>{label}</p>
                       {isFuture ? (
                         <>
-                          <p style={{ color: tc.blue }}>Income (Probable): {formatMetricValue(point.probableIncome, "currency")}</p>
-                          <p style={{ color: tc.red }}>Outgoings (Estimated): {formatMetricValue(point.outgoings, "currency")}</p>
-                          <p style={{ color: isNeg ? tc.red : tc.green, marginTop: 4, borderTop: `1px solid ${tc.tooltipBorder}`, paddingTop: 4 }}>
+                          <p style={{ color: "#22C55E", opacity: 0.7 }}>Income (Probable): {formatMetricValue(point.probableIncome, "currency")}</p>
+                          <p style={{ color: "#EF4444" }}>Outgoings (Estimated): {formatMetricValue(point.outgoings, "currency")}</p>
+                          <p style={{ color: isNeg ? "#7F1D1D" : "#15803D", marginTop: 4, borderTop: `1px solid ${tc.tooltipBorder}`, paddingTop: 4 }}>
                             Projected {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
                           </p>
                         </>
                       ) : (
                         <>
-                          <p style={{ color: tc.blue }}>Income: {formatMetricValue(point.income, "currency")}</p>
-                          <p style={{ color: tc.red }}>Outgoings: {formatMetricValue(point.outgoings, "currency")}</p>
-                          <p style={{ color: isNeg ? tc.red : tc.green, marginTop: 4, borderTop: `1px solid ${tc.tooltipBorder}`, paddingTop: 4 }}>
+                          <p style={{ color: "#22C55E" }}>Income: {formatMetricValue(point.income, "currency")}</p>
+                          <p style={{ color: "#EF4444" }}>Outgoings: {formatMetricValue(point.outgoings, "currency")}</p>
+                          <p style={{ color: isNeg ? "#7F1D1D" : "#15803D", marginTop: 4, borderTop: `1px solid ${tc.tooltipBorder}`, paddingTop: 4 }}>
                             {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
                           </p>
                         </>
