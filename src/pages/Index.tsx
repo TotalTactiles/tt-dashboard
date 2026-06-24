@@ -1047,7 +1047,7 @@ function MonthlyInvoicesVsTargetChart({
       : `${quarter} ${year}`;
 
   return (
-    <div className="chart-container h-full">
+    <div className="chart-container h-full min-h-[340px]">
       <div className="flex flex-col h-full">
         <div className="flex items-start justify-between gap-3 mb-3 flex-shrink-0">
           <div>
