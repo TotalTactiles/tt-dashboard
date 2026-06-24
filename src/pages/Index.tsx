@@ -1773,7 +1773,7 @@ const DashboardContent = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" style={{ containerType: 'inline-size' }}>
                 {/* 1. Cash Position — relocated. StatCard internals detect label and wire Open/Today/Actual */}
                 <StatCard
-                  label="Cashflow Position"
+                  label="Cash Position"
                   value="—"
                   change=""
                   positive={true}
