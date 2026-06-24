@@ -1989,12 +1989,30 @@ const DashboardContent = () => {
 
           {/* Charts */}
           <div className="grid grid-cols-1 gap-3 md:gap-4 mb-4 md:mb-6">
-            <PortfolioChart adjustedData={adjustedData} adjustments={adjustments} />
+            <PortfolioChart
+              adjustedData={adjustedData}
+              adjustments={adjustments}
+              year={periodYear}
+              quarter={periodQuarter}
+              onYearChange={setPeriodYear}
+              onQuarterChange={setPeriodQuarter}
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
-            <MonthlyInvoicesVsTargetChart monthlyInvoicesData={monthlyInvoicesData} invoicesTarget={invoicesTarget} onInvoicesTargetChange={setInvoicesTarget} />
-            <MonthlyNetProfitChart monthlyNetProfitData={monthlyNetProfitData} />
+            <MonthlyInvoicesVsTargetChart
+              monthlyInvoicesData={monthlyInvoicesData}
+              invoicesTarget={invoicesTarget}
+              onInvoicesTargetChange={setInvoicesTarget}
+              year={periodYear}
+              quarter={periodQuarter}
+            />
+            <MonthlyNetProfitChart
+              monthlyNetProfitData={monthlyNetProfitData}
+              year={periodYear}
+              quarter={periodQuarter}
+            />
+
 
           </div>
 
