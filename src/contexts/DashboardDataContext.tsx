@@ -619,6 +619,10 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       return { month: MONTH_ABBR_LIST.indexOf(match[1]), year: 2000 + parseInt(match[2]) };
     };
 
+    // Generate current month key in stable Mon-YY format (locale-independent)
+    const currentMonthKey = `${MONTH_ABBR_LIST[currentMonthIdx]}-${String(currentYear).slice(-2)}`;
+
+
     // Income vs Outgoings bar chart
     // Income bar  = Row 11 (Total Income) — what landed in the bank
     // Outgoings bar = Row 18 (Total Cost of Sales) + Row 48 (Total OpEx incl. Salaries)
