@@ -1308,7 +1308,10 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       inRunningCount, inRunningValue,
       ylwValue: ylwValue_quoted,
       ylwCount: ylwCount_quoted,
+      pipelineConversion,
+      totalOpps,
       kpiStats, incomeOutgoingsData, profitMarginData, forecastChartData, expenseAllocation,
+
       kpiVariables, dataStore: storeSnapshot, formulaCache: formulaCacheInstance, changedFormulas,
       formulas, addFormula, updateFormula, deleteFormula,
       dataHealth, quotesDebug, isLoading, isRefreshing, hasLiveData, connectedCount, lastUpdated,
