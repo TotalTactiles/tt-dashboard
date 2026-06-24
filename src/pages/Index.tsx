@@ -1317,6 +1317,23 @@ const DashboardContent = () => {
     return q as QuarterFilter;
   });
 
+  // Independent override for the lower pair (Invoices + Net Profit). Not persisted.
+  const [lowerOverride, setLowerOverride] = useState<{ year: string; quarter: QuarterFilter } | null>(null);
+  const lowerPeriod = lowerOverride ?? { year: periodYear, quarter: periodQuarter };
+
+  // Cash-flow pills re-link the lower pair on use.
+  const handleSharedYearChange = useCallback((y: string) => {
+    setPeriodYear(y);
+    setLowerOverride(null);
+  }, []);
+  const handleSharedQuarterChange = useCallback((q: QuarterFilter) => {
+    setPeriodQuarter(q);
+    setLowerOverride(null);
+  }, []);
+  const handleLowerOverrideQuarter = useCallback((q: QuarterFilter) => {
+    setLowerOverride({ year: String(new Date().getFullYear()), quarter: q });
+  }, []);
+
 
   // ── Shared period state — resets to current month on every mount/data change ──
   const periodOptions = useMemo(() => buildPeriodOptions(quotedJobs, revenueProjects), [quotedJobs, revenueProjects]);
