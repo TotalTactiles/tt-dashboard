@@ -4,8 +4,12 @@ import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from "
 import { useRevenueTarget } from "@/hooks/useRevenueTarget";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatMetricValue } from "@/lib/formatMetricValue";
+import ConfirmedYlwToggle from "@/components/ui/ConfirmedYlwToggle";
 
 const fmtAUD = (n: number) => formatMetricValue(n, "currency");
+
+const YLW_COLOR = "#E8B931";
+const GREEN_COLOR = "hsl(var(--chart-green, 142 71% 45%))";
 
 type Props = {
   /** YTD actual revenue (gross). Swap to netRevenue for ex-GST comparison. */
@@ -19,47 +23,6 @@ type Props = {
 const cardBase =
   "relative bg-card border border-border rounded-lg p-4 md:p-5 flex flex-col";
 
-function PillToggle({
-  withYlw,
-  setWithYlw,
-}: {
-  withYlw: boolean;
-  setWithYlw: (v: boolean) => void;
-}) {
-  const base =
-    "px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-semibold transition-colors border";
-  return (
-    <div className="inline-flex items-center gap-1">
-      <button
-        type="button"
-        onClick={() => setWithYlw(false)}
-        className={
-          base +
-          " " +
-          (!withYlw
-            ? "bg-secondary text-foreground border-border"
-            : "bg-transparent text-muted-foreground border-transparent hover:text-foreground")
-        }
-      >
-        Confirmed
-      </button>
-      <button
-        type="button"
-        onClick={() => setWithYlw(true)}
-        className={
-          base +
-          " " +
-          (withYlw
-            ? "bg-secondary text-foreground border-border"
-            : "bg-transparent text-muted-foreground border-transparent hover:text-foreground")
-        }
-      >
-        With YLWs
-      </button>
-    </div>
-  );
-}
-
 export default function TargetsGoalsSection({
   currentRevenue,
   wonValueTotal,
@@ -70,10 +33,17 @@ export default function TargetsGoalsSection({
   const [withYlw, setWithYlw] = useState(false);
 
   const avgWonDeal = wonCount > 0 ? wonValueTotal / wonCount : 0;
+
+  // Stacked gauge composition.
+  const pctConfirmed = target > 0 ? Math.min(100, (currentRevenue / target) * 100) : 0;
+  const pctYlw =
+    target > 0 && withYlw ? Math.min(100 - pctConfirmed, (ylwValue / target) * 100) : 0;
+  const pctTotal = Math.min(100, pctConfirmed + pctYlw);
+
   const effectiveCurrent = withYlw ? currentRevenue + ylwValue : currentRevenue;
-  const pct = target > 0 ? Math.min(100, (effectiveCurrent / target) * 100) : 0;
   const remaining = Math.max(0, target - effectiveCurrent);
-  const jobsToGoal = avgWonDeal > 0 && remaining > 0 ? Math.ceil(remaining / avgWonDeal) : 0;
+  const jobsToGoal =
+    avgWonDeal > 0 && remaining > 0 ? Math.ceil(remaining / avgWonDeal) : 0;
 
   return (
     <>
@@ -91,7 +61,9 @@ export default function TargetsGoalsSection({
           target={target}
           setTarget={setTarget}
           currentRevenue={currentRevenue}
-          pct={pct}
+          pctConfirmed={pctConfirmed}
+          pctYlw={pctYlw}
+          pctTotal={pctTotal}
           remaining={remaining}
           withYlw={withYlw}
           setWithYlw={setWithYlw}
@@ -101,6 +73,7 @@ export default function TargetsGoalsSection({
           target={target}
           jobsToGoal={jobsToGoal}
           avgWonDeal={avgWonDeal}
+          currentRevenue={currentRevenue}
           remaining={remaining}
           withYlw={withYlw}
           setWithYlw={setWithYlw}
@@ -115,7 +88,9 @@ function RevenueGoalCard({
   target,
   setTarget,
   currentRevenue,
-  pct,
+  pctConfirmed,
+  pctYlw,
+  pctTotal,
   remaining,
   withYlw,
   setWithYlw,
@@ -124,7 +99,9 @@ function RevenueGoalCard({
   target: number;
   setTarget: (n: number) => void;
   currentRevenue: number;
-  pct: number;
+  pctConfirmed: number;
+  pctYlw: number;
+  pctTotal: number;
   remaining: number;
   withYlw: boolean;
   setWithYlw: (v: boolean) => void;
@@ -149,7 +126,8 @@ function RevenueGoalCard({
     setEditing(false);
   };
 
-  const chartData = [{ name: "pct", value: pct, fill: "hsl(var(--chart-green, 142 71% 45%))" }];
+  // Single data point with two stacked dataKeys (confirmed + ylw).
+  const chartData = [{ confirmed: pctConfirmed, ylw: pctYlw }];
 
   return (
     <motion.div
@@ -162,7 +140,7 @@ function RevenueGoalCard({
         <span className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground/70">
           Revenue Goal
         </span>
-        <PillToggle withYlw={withYlw} setWithYlw={setWithYlw} />
+        <ConfirmedYlwToggle withYlw={withYlw} setWithYlw={setWithYlw} />
       </div>
 
       {/* Editable target — prominent */}
@@ -200,7 +178,7 @@ function RevenueGoalCard({
         )}
       </div>
 
-      {/* Gauge */}
+      {/* Stacked gauge: green confirmed + yellow YLW top-up over grey track */}
       <div className="relative flex-1 flex items-center justify-center" style={{ minHeight: 160 }}>
         {target > 0 ? (
           <>
@@ -212,12 +190,21 @@ function RevenueGoalCard({
                 startAngle={90}
                 endAngle={-270}
               >
-                <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+                <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
                 <RadialBar
-                  background={{ fill: "hsl(var(--muted))" }}
-                  dataKey="value"
-                  cornerRadius={8}
-                  fill="hsl(var(--chart-green, 142 71% 45%))"
+                  background={{ fill: "rgba(229,233,234,0.08)" }}
+                  dataKey="confirmed"
+                  stackId="a"
+                  cornerRadius={2}
+                  fill={GREEN_COLOR}
+                  angleAxisId={0}
+                />
+                <RadialBar
+                  dataKey="ylw"
+                  stackId="a"
+                  cornerRadius={2}
+                  fill={YLW_COLOR}
+                  angleAxisId={0}
                 />
               </RadialBarChart>
             </ResponsiveContainer>
@@ -226,7 +213,7 @@ function RevenueGoalCard({
                 className="font-mono tabular-nums font-semibold"
                 style={{ fontSize: "clamp(1.5rem, 2.4vw, 2rem)", letterSpacing: "-0.02em" }}
               >
-                {pct.toFixed(0)}%
+                {pctTotal.toFixed(0)}%
               </span>
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
                 of goal
@@ -240,22 +227,49 @@ function RevenueGoalCard({
         )}
       </div>
 
-      {/* Footer caption */}
+      {/* Composition: colour-coded breakdown mirroring the gauge */}
       {target > 0 && (
-        <div className="mt-2 text-center text-[15px] uppercase tracking-wider text-muted-foreground whitespace-normal break-words">
-          <span className="font-mono tabular-nums text-chart-green">{fmtAUD(currentRevenue)}</span>{" "}
-          of <span className="font-mono tabular-nums text-foreground">{fmtAUD(target)}</span>
-          {remaining > 0 ? (
+        <div className="mt-2 text-center text-[15px] uppercase tracking-wider whitespace-normal break-words space-y-0.5">
+          {withYlw ? (
             <>
-              {" · "}
-              <span className="font-mono tabular-nums text-chart-red">{fmtAUD(remaining)}</span> to go
+              <div>
+                <span className="font-mono tabular-nums text-chart-green">
+                  {fmtAUD(currentRevenue)}
+                </span>
+                <span className="text-muted-foreground"> + </span>
+                <span className="font-mono tabular-nums" style={{ color: YLW_COLOR }}>
+                  {fmtAUD(ylwValue)} YLW
+                </span>
+              </div>
+              <div>
+                {remaining > 0 ? (
+                  <>
+                    <span className="font-mono tabular-nums text-chart-red">
+                      {fmtAUD(remaining)}
+                    </span>{" "}
+                    <span className="text-muted-foreground">to go</span>
+                  </>
+                ) : (
+                  <span className="text-chart-green">Goal met 🎉</span>
+                )}
+              </div>
             </>
           ) : (
-            <> · <span className="text-chart-green">Goal met 🎉</span></>
-          )}
-          {withYlw && ylwValue > 0 && (
-            <div className="mt-1 text-[11px] normal-case tracking-normal text-muted-foreground/80">
-              incl. <span className="font-mono tabular-nums">{fmtAUD(ylwValue)}</span> YLW
+            <div>
+              <span className="font-mono tabular-nums text-chart-green">
+                {fmtAUD(currentRevenue)}
+              </span>
+              {remaining > 0 ? (
+                <>
+                  <span className="text-muted-foreground"> · </span>
+                  <span className="font-mono tabular-nums text-chart-red">
+                    {fmtAUD(remaining)}
+                  </span>{" "}
+                  <span className="text-muted-foreground">to go</span>
+                </>
+              ) : (
+                <> · <span className="text-chart-green">Goal met 🎉</span></>
+              )}
             </div>
           )}
         </div>
@@ -268,6 +282,7 @@ function JobsToGoalCard({
   target,
   jobsToGoal,
   avgWonDeal,
+  currentRevenue,
   remaining,
   withYlw,
   setWithYlw,
@@ -276,6 +291,7 @@ function JobsToGoalCard({
   target: number;
   jobsToGoal: number;
   avgWonDeal: number;
+  currentRevenue: number;
   remaining: number;
   withYlw: boolean;
   setWithYlw: (v: boolean) => void;
@@ -295,7 +311,7 @@ function JobsToGoalCard({
         <span className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground/70">
           Jobs to Goal
         </span>
-        <PillToggle withYlw={withYlw} setWithYlw={setWithYlw} />
+        <ConfirmedYlwToggle withYlw={withYlw} setWithYlw={setWithYlw} />
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
@@ -312,27 +328,47 @@ function JobsToGoalCard({
         )}
       </div>
 
-      <div className="mt-2 text-center text-xs text-muted-foreground space-y-0.5 whitespace-normal break-words">
+      {/* Composition: AVG WON line + colour-coded breakdown */}
+      <div className="mt-2 text-center text-xs space-y-0.5 whitespace-normal break-words">
         {empty ? (
-          <div>Set a revenue goal to compute jobs needed</div>
+          <div className="text-muted-foreground">Set a revenue goal to compute jobs needed</div>
         ) : (
           <>
-            <div>
-              at avg won{" "}
+            <div className="text-muted-foreground">
+              <span className="uppercase tracking-wider">Avg won</span>{" "}
               <span className="font-mono tabular-nums text-foreground">
                 {avgWonDeal > 0 ? fmtAUD(avgWonDeal) : "—"}
               </span>
             </div>
-            {!met && (
-              <div>
-                <span className="font-mono tabular-nums text-foreground">{fmtAUD(remaining)}</span>{" "}
-                remaining
-              </div>
-            )}
-            {withYlw && ylwValue > 0 && (
-              <div className="text-[11px] text-muted-foreground/80">
-                incl. <span className="font-mono tabular-nums">{fmtAUD(ylwValue)}</span> YLW
-              </div>
+            {withYlw ? (
+              <>
+                <div>
+                  <span className="font-mono tabular-nums text-chart-green">
+                    {fmtAUD(currentRevenue)}
+                  </span>
+                  <span className="text-muted-foreground"> + </span>
+                  <span className="font-mono tabular-nums" style={{ color: YLW_COLOR }}>
+                    {fmtAUD(ylwValue)} YLW
+                  </span>
+                </div>
+                {!met && (
+                  <div>
+                    <span className="font-mono tabular-nums text-chart-red">
+                      {fmtAUD(remaining)}
+                    </span>{" "}
+                    <span className="text-muted-foreground">remaining</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              !met && (
+                <div>
+                  <span className="font-mono tabular-nums text-chart-red">
+                    {fmtAUD(remaining)}
+                  </span>{" "}
+                  <span className="text-muted-foreground">remaining</span>
+                </div>
+              )
             )}
           </>
         )}
