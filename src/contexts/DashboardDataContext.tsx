@@ -888,6 +888,33 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     console.log("[Total Won Debug] grnRow:", !!grnRow, "ylwRow:", !!ylwRow, "ylwGrnRow:", !!ylwGrnRow,
       "base:", baseWonValue, baseWonCount, "ylw:", directYlwValue, directYlwCount, "combined:", combinedValue, combinedCount);
 
+    // ===== FY-SCOPED quote metrics from qtsSmmry (matches the sheet exactly) =====
+    const _qtsNum = (v: any) => Number(String(v ?? 0).replace(/[$,]/g, "")) || 0;
+    const _qtsByFlag = (flag: string) => rawQtsSmmry.find((r: any) => r?.[flag]);
+    const _qtsByStage = (name: string) =>
+      rawQtsSmmry.find((r: any) => String(r?.["Jobs Stages"] ?? "").trim() === name);
+    const _qtsVal = (r: any) => _qtsNum(r?._label_dollarValue ?? r?.["Total Value ($)"]);
+
+    const _grnRowFY  = _qtsByFlag("_label_isPOReceived");
+    const _compRowFY = _qtsByFlag("_label_isCompleted");
+    const _lostRowFY = _qtsByFlag("_label_isLostDead");
+    const _ylwRowFY  = _qtsByFlag("_label_isVerbalYellow");
+    const _gtRowFY   = _qtsByFlag("_label_isGrandTotal");
+    const _qsRowFY   = _qtsByStage("Quote Sent");
+    const _negRowFY  = _qtsByStage("Negotiation/Review");
+
+    const wonCountFY   = _qtsNum(_grnRowFY?.Count) + _qtsNum(_compRowFY?.Count);
+    const wonValueFY   = _qtsVal(_grnRowFY) + _qtsVal(_compRowFY);
+    const lostCountFY  = _qtsNum(_lostRowFY?.Count);
+    const lostValueFY  = _qtsVal(_lostRowFY);
+    const ylwCountFY   = _qtsNum(_ylwRowFY?.Count);
+    const ylwValueFY   = _qtsVal(_ylwRowFY);
+    const inRunCountFY = _qtsNum(_qsRowFY?.Count) + _qtsNum(_negRowFY?.Count);
+    const inRunValueFY = _qtsVal(_qsRowFY) + _qtsVal(_negRowFY);
+    const totalOppsFY  = _qtsNum(_gtRowFY?.Count);
+
+
+
     // ===== MONTH-ON-MONTH CALCULATIONS =====
     const MONTH_ABBR_LOCAL = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     const curMonIdx = now.getMonth();
