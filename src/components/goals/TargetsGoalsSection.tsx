@@ -507,7 +507,7 @@ function LeadsToGoalCard({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`px-1.5 py-0.5 rounded-full font-mono whitespace-nowrap transition-colors ${
+      className={`px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wider whitespace-nowrap transition-colors ${
         disabled
           ? "bg-muted/30 text-muted-foreground/40 cursor-not-allowed"
           : active
