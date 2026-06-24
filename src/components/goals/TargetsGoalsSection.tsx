@@ -421,6 +421,7 @@ function JobsToGoalCard({
                 <span className="font-mono tabular-nums text-chart-green">
                   {fmtAUD(goalConfirmed)}
                 </span>
+                <span className="text-muted-foreground"> WON</span>
                 {withYlw ? (
                   <>
                     <span className="text-muted-foreground"> + </span>
@@ -506,7 +507,7 @@ function LeadsToGoalCard({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+      className={`px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wider whitespace-nowrap transition-colors ${
         disabled
           ? "bg-muted/30 text-muted-foreground/40 cursor-not-allowed"
           : active
@@ -530,7 +531,7 @@ function LeadsToGoalCard({
         withYlw={withYlw}
         setWithYlw={setWithYlw}
         extra={
-          <div className="flex items-center gap-1.5">
+          <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
             <PillBtn active={mode === "opps"} onClick={() => setMode("opps")}>
               Opportunities
             </PillBtn>
