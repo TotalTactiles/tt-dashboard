@@ -219,7 +219,10 @@ export interface DashboardData {
   inRunningValue: number;
   ylwValue: number;
   ylwCount: number;
+  pipelineConversion: number;
+  totalOpps: number;
   kpiStats: KPIStat[];
+
   incomeOutgoingsData: IncomeOutgoingsPoint[];
   profitMarginData: ProfitMarginPoint[];
   forecastChartData: ForecastChartPoint[];
@@ -1045,7 +1048,11 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const winRateConfirmed = (wrWon + wrLost) > 0 ? (wrWon / (wrWon + wrLost)) * 100 : 0;
     const winRateWithYlw   = (wrWon + wrYlw + wrLost) > 0 ? ((wrWon + wrYlw) / (wrWon + wrYlw + wrLost)) * 100 : 0;
 
+    const totalOpps = quotedJobs.length;
+    const pipelineConversion = totalOpps > 0 ? (wrWon / totalOpps) * 100 : 0;
+
     // ===== GROSS / NET revenue & profit =====
+
     const rsAny        = (liveData?.revenueSummary as any) || {};
     const grossRevenue = parseNum(rsAny.totalValue ?? 0);          // incl GST (top line)
     const netRevenue4  = grossRevenue / 1.1;                        // ex GST
@@ -1110,19 +1117,14 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         positive: true,
         noData,
       },
-      // 5. Win Rate — Confirmed (default) / With YLWs
+      // 5. Conversion Rates — rendered by dedicated ConversionRatesCard in Index.tsx
       {
-        label: "Win Rate",
+        label: "CONVERSION RATES",
         value: noData ? "--" : `${winRateConfirmed.toFixed(1)}%`,
         change: noData ? "--" : `${wrWon} won / ${wrLost} lost`,
         positive: winRateConfirmed >= 20, noData,
-        altValue: noData ? "--" : `${winRateWithYlw.toFixed(1)}%`,
-        altChange: noData ? "--" : `${wrWon + wrYlw} won incl YLW / ${wrLost} lost`,
-        altPositive: winRateWithYlw >= 20,
-        toggleLabelBase: "Confirmed",
-        toggleLabelAlt: "With YLWs",
-        momContext: "Won ÷ (Won + Lost) · benchmark ~16–20%",
       },
+
       // 6. Revenue / Profit — dual-split card (Revenue / Profit pills) rendered in Index.tsx
       {
         label: "Revenue / Profit",
@@ -1306,7 +1308,10 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       inRunningCount, inRunningValue,
       ylwValue: ylwValue_quoted,
       ylwCount: ylwCount_quoted,
+      pipelineConversion,
+      totalOpps,
       kpiStats, incomeOutgoingsData, profitMarginData, forecastChartData, expenseAllocation,
+
       kpiVariables, dataStore: storeSnapshot, formulaCache: formulaCacheInstance, changedFormulas,
       formulas, addFormula, updateFormula, deleteFormula,
       dataHealth, quotesDebug, isLoading, isRefreshing, hasLiveData, connectedCount, lastUpdated,
@@ -1347,7 +1352,9 @@ export function useDashboardData(): DashboardData {
       cashflowPositionRaw: 0,
       inRunningCount: 0, inRunningValue: 0,
       ylwValue: 0, ylwCount: 0,
+      pipelineConversion: 0, totalOpps: 0,
       kpiStats: [], incomeOutgoingsData: [], profitMarginData: [],
+
       forecastChartData: [], expenseAllocation: [], kpiVariables: {},
       dataStore: { quotes: [], qtsSmmry: [], cashflow: [], revenue: [], expenses: [], labour: [], stock: [], quotesSummary: {}, cashflowSummary: {}, revenueSummary: {}, expensesSummary: {} },
       formulaCache: formulaCacheInstance,
