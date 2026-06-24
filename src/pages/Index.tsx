@@ -221,7 +221,7 @@ function WinLossSummaryCard({
 // Paid (top)        = last calendar month's invoices (received THIS month)
 // To be paid (bot.) = this calendar month's invoices (received NEXT month)
 // Source: revenueProjects (REVENUE tab), valueInclGST, invoiceDate.
-function InvoicesPaidCard({ index, onJumpToMonth }: { index: number; onJumpToMonth?: (monthLabel: string) => void }) {
+function InvoicesPaidCard({ index, onJumpToMonth }: { index: number; onJumpToMonth?: (target: { year: number; month: number; label: string }) => void }) {
   const { revenueProjects } = useDashboardData();
 
   const { paid, toBePaid, paidCount, toBePaidCount } = useMemo(() => {
