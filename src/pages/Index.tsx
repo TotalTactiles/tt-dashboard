@@ -1156,7 +1156,7 @@ function loadActiveGoalIds(allGoals: {id: string;merge?: boolean;}[]): Set<strin
 
 const DashboardContent = () => {
   const { goals, updateGoal } = useGoals();
-  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData, forecastChartData, quotedJobs, investorMetrics, isOffline, lastCachedAt, revenueProjects, dataStore, liveData, inRunningCount, inRunningValue } = useDashboardData();
+  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData, forecastChartData, quotedJobs, investorMetrics, isOffline, lastCachedAt, revenueProjects, dataStore, liveData, inRunningCount, inRunningValue, monthlyInvoicesData } = useDashboardData();
 
   // ── Shared period state — resets to current month on every mount/data change ──
   const periodOptions = useMemo(() => buildPeriodOptions(quotedJobs, revenueProjects), [quotedJobs, revenueProjects]);
@@ -1911,7 +1911,7 @@ const DashboardContent = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
-            <RevGpNetDebtChart incomeOutgoingsData={incomeOutgoingsData} forecastChartData={forecastChartData} />
+            <MonthlyInvoicesVsTargetChart monthlyInvoicesData={monthlyInvoicesData} invoicesTarget={invoicesTarget} onInvoicesTargetChange={setInvoicesTarget} />
             <MonthlyGpVsTargetChart incomeOutgoingsData={incomeOutgoingsData} gpTarget={gpTarget} onGpTargetChange={setGpTarget} />
           </div>
 
