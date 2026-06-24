@@ -531,7 +531,7 @@ function LeadsToGoalCard({
         withYlw={withYlw}
         setWithYlw={setWithYlw}
         extra={
-          <div className="flex items-center gap-1.5">
+          <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
             <PillBtn active={mode === "opps"} onClick={() => setMode("opps")}>
               Opportunities
             </PillBtn>
