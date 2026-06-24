@@ -1425,7 +1425,8 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       wonValueFY,
       lostValueFY,
 
-      kpiStats, incomeOutgoingsData, profitMarginData, monthlyInvoicesData, forecastChartData, expenseAllocation,
+      kpiStats, incomeOutgoingsData, profitMarginData, monthlyInvoicesData, monthlyNetProfitData, forecastChartData, expenseAllocation,
+
 
       kpiVariables, dataStore: storeSnapshot, formulaCache: formulaCacheInstance, changedFormulas,
       formulas, addFormula, updateFormula, deleteFormula,
@@ -1472,7 +1473,8 @@ export function useDashboardData(): DashboardData {
 
 
       wrWonFY: 0, wrLostFY: 0, wrYlwFY: 0, wonValueFY: 0, lostValueFY: 0,
-      kpiStats: [], incomeOutgoingsData: [], profitMarginData: [], monthlyInvoicesData: [],
+      kpiStats: [], incomeOutgoingsData: [], profitMarginData: [], monthlyInvoicesData: [], monthlyNetProfitData: [],
+
 
 
       forecastChartData: [], expenseAllocation: [], kpiVariables: {},
