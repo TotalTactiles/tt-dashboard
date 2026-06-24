@@ -727,6 +727,15 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       revenueCheck: Math.round(gpByMonth[m]?.totalRevenue ?? 0), // revenue-tab ex-GST cross-check
     }));
 
+    const monthlyNetProfitData = months.map((m) => {
+      const inc = totalIncomeRow ? parseNum(totalIncomeRow[m] ?? 0) : 0;
+      const out = totalOutgoingsRow ? Math.abs(parseNum(totalOutgoingsRow[m] ?? 0)) : 0;
+      const loan = businessLoanRow ? Math.abs(parseNum(businessLoanRow[m] ?? 0)) : 0;
+      const vehicle = vehicleRepayRow ? Math.abs(parseNum(vehicleRepayRow[m] ?? 0)) : 0;
+      return { month: m, netProfit: inc - out - loan - vehicle };
+    });
+
+
 
     console.log("[GP Chart Proof] === GROSS / NET PROFIT MARGIN VERIFICATION ===");
     console.log(`[GP Chart Proof] Net Profit source: CASHFLOW → "Anticipated Cash Surplus/(Deficit)" row (found: ${hasNetProfitSource})`);
