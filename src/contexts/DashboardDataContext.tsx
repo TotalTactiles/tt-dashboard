@@ -629,12 +629,16 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         const surplus = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[m] ?? 0) : sv(cs?.anticipatedSurplus, m);
         // Probable income for future months = Row 11 (cashflow model forecast), not derived from surplus
         const probableIncome = isFuture ? Math.max(0, inc) : 0;
+        const openingBalance = openingBalancesRow
+          ? parseNum(openingBalancesRow[m] ?? 0)
+          : sv(cs?.openingBalance, m);
         return {
           month: m,
           income: inc,
           outgoings: out,
           surplus,
           probableIncome,
+          openingBalance,
           isFuture,
         };
       });
