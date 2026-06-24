@@ -531,6 +531,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
           {/* BODY — figure + sub-lines centred (trend lives inside as a sub) */}
           <div className="flex-1 flex flex-col items-center justify-center gap-0.5 w-full min-w-0">
             {valueBlock}
+            {cashPositionSubtextBlock}
             {momBlock}
             {contextBlock}
             {trendBlock}
