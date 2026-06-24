@@ -260,6 +260,10 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono mb-3">
         <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#3D89DA" }} />
+          <span className="text-muted-foreground">Opening Cash</span>
+        </div>
+        <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#22C55E" }} />
           <span className="text-muted-foreground">Income</span>
         </div>
