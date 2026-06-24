@@ -236,13 +236,17 @@ function RevenueGoalCard({
         <div className="mt-2 text-center text-[15px] uppercase tracking-wider whitespace-normal break-words space-y-0.5">
           {withYlw ? (
             <>
-              <div>
+              <div className="min-w-0 break-words">
                 <span className="font-mono tabular-nums text-chart-green">
                   {fmtAUD(currentRevenue)}
                 </span>
                 <span className="text-muted-foreground"> + </span>
                 <span className="font-mono tabular-nums" style={{ color: YLW_COLOR }}>
                   {fmtAUD(ylwValue)} YLW
+                </span>
+                <span className="text-muted-foreground"> = </span>
+                <span className="font-mono tabular-nums text-foreground">
+                  {fmtAUD(effectiveCurrent)}
                 </span>
               </div>
               <div>
@@ -259,7 +263,7 @@ function RevenueGoalCard({
               </div>
             </>
           ) : (
-            <div>
+            <div className="min-w-0 break-words">
               <span className="font-mono tabular-nums text-chart-green">
                 {fmtAUD(currentRevenue)}
               </span>
