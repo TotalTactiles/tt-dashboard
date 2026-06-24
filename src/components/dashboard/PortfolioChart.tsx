@@ -286,7 +286,7 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
       ) : (
         <div className="relative">
           <ResponsiveContainer width="100%" height={220} minHeight={180}>
-            <ComposedChart data={filteredData} barGap={2}>
+            <ComposedChart data={filteredData} barGap={0}>
               <CartesianGrid strokeDasharray="3 3" stroke={tc.grid} strokeOpacity={0.6} />
               <XAxis dataKey="month" stroke={tc.axis} fontSize={11} fontFamily="JetBrains Mono" />
               <YAxis
