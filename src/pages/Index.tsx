@@ -1726,51 +1726,7 @@ const DashboardContent = () => {
                 />
                 {/* 2. Invoices Paid / To-be-paid — relocated/built from REVENUE tab */}
                 <InvoicesPaidCard index={10} onJumpToMonth={jumpToRevenueCogsMonth} />
-                <StatCard
-                  label="Gross Margin %"
-                  value={`${gmPct}%`}
-                  change={`avg ${gmPct}%`}
-                  positive={sd.grossMarginPct >= 30}
-                  index={11}
-                  momContext={scopeLabel}
-                />
-                {(() => {
-                  const allJobs = (liveData?.quotes ?? []) as any[];
-
-                  const getVal = (j: any): number =>
-                    parseFloat(String(j["Contract Value ($)"] ?? j._value ?? "0").replace(/[^0-9.-]/g, "")) || 0;
-
-                  const isWon = (j: any) => j["Current Status"] === "PO Received (GRN)";
-                  const isCompleted = (j: any) => j["Current Status"] === "Completed";
-
-                  const wonAndCompleted = allJobs.filter(j => isWon(j) || isCompleted(j));
-                  const allWithValue = allJobs.filter(j => getVal(j) > 0);
-
-                  const avgWon = wonAndCompleted.length > 0
-                    ? wonAndCompleted.reduce((s, j) => s + getVal(j), 0) / wonAndCompleted.length
-                    : 0;
-
-                  const avgQuoted = allWithValue.length > 0
-                    ? allWithValue.reduce((s, j) => s + getVal(j), 0) / allWithValue.length
-                    : 0;
-
-                  return (
-                    <StatCard
-                      label="Avg Contract Value"
-                      value={fmtAUD(avgWon)}
-                      change={`${wonAndCompleted.length} jobs won`}
-                      positive={true}
-                      index={14}
-                      altValue={fmtAUD(avgQuoted)}
-                      altChange={`${allWithValue.length} jobs quoted`}
-                      altPositive={true}
-                      toggleLabelBase="Won"
-                      toggleLabelAlt="Quoted"
-                      greenAltPill={true}
-                    />
-                  );
-                })()}
-                {/* 5. PER JOB — merged Revenue/Profit per-job card (Revenue|Profit toggle, no own period filter) */}
+                {/* 3. PER JOB — merged Revenue/Profit per-job card */}
                 {(() => {
                   const wc = sd.wonCount;
                   const grossRevPerJob = wc > 0 ? sd.revenueInclGST / wc : 0;
@@ -1784,25 +1740,52 @@ const DashboardContent = () => {
                       grossProfitPerJob={grossProfitPerJob}
                       netProfitPerJob={netProfitPerJob}
                       wonCount={wc}
-                      index={13}
+                      index={11}
                     />
                   );
                 })()}
-                {/* Always-rendered formerly-optional metrics */}
+                {/* 4. Avg Contract Value — split (Won top / Quoted bottom) */}
+                {(() => {
+                  const allJobs = (liveData?.quotes ?? []) as any[];
+                  const getVal = (j: any): number =>
+                    parseFloat(String(j["Contract Value ($)"] ?? j._value ?? "0").replace(/[^0-9.-]/g, "")) || 0;
+                  const isWon = (j: any) => j["Current Status"] === "PO Received (GRN)";
+                  const isCompleted = (j: any) => j["Current Status"] === "Completed";
+                  const wonAndCompleted = allJobs.filter(j => isWon(j) || isCompleted(j));
+                  const allWithValue = allJobs.filter(j => getVal(j) > 0);
+                  const avgWon = wonAndCompleted.length > 0
+                    ? wonAndCompleted.reduce((s, j) => s + getVal(j), 0) / wonAndCompleted.length
+                    : 0;
+                  const avgQuoted = allWithValue.length > 0
+                    ? allWithValue.reduce((s, j) => s + getVal(j), 0) / allWithValue.length
+                    : 0;
+                  return (
+                    <AvgContractCard
+                      avgWon={avgWon}
+                      wonCount={wonAndCompleted.length}
+                      avgQuoted={avgQuoted}
+                      quotedCount={allWithValue.length}
+                      index={12}
+                    />
+                  );
+                })()}
+                {/* 5. Revenue Growth — scope-aware (YTD avg MoM% w/ sparkline, or QoQ%) */}
+                <RevenueGrowthCard scope={investorScope} index={13} />
+                {/* Row 2 */}
                 <StatCard
-                  label="Revenue Growth"
-                  value={fmtVal(sd.revenueExGST)}
-                  change={scopeLabel}
-                  positive={true}
-                  index={12}
-                  momContext={`${sd.wonCount} jobs won`}
+                  label="Gross Margin %"
+                  value={`${gmPct}%`}
+                  change={`avg ${gmPct}%`}
+                  positive={sd.grossMarginPct >= 30}
+                  index={14}
+                  momContext={scopeLabel}
                 />
                 <StatCard
                   label="Pipeline Coverage"
                   value={`${sd.pipelineCoverage.toFixed(1)}x`}
                   change={fmtVal(sd.pipelineVal) + " pipeline"}
                   positive={sd.pipelineCoverage >= 2}
-                  index={13}
+                  index={15}
                   momContext="vs YTD revenue run rate"
                 />
                 <StatCard
@@ -1810,7 +1793,7 @@ const DashboardContent = () => {
                   value={`${sd.opExpRatio.toFixed(1)}%`}
                   change="Expenses / Revenue"
                   positive={sd.opExpRatio < 60}
-                  index={15}
+                  index={16}
                   altValue={fmtVal(sd.totalExpenses)}
                   altChange={`${scopeLabel} expenses`}
                   altPositive={sd.opExpRatio < 60}
@@ -1818,6 +1801,7 @@ const DashboardContent = () => {
                   toggleLabelAlt="$"
                   greenAltPill={true}
                 />
+
                 <StatCard
                   label="Labour Cost Ratio"
                   value={`${sd.labourRatio.toFixed(1)}%`}
