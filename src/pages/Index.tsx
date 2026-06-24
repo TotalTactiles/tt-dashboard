@@ -1207,7 +1207,10 @@ const DashboardContent = () => {
 
   // ── Shared period selector across PortfolioChart / MonthlyInvoices / MonthlyNetProfit ──
   const [periodYear, setPeriodYear] = useState<string>(() => String(new Date().getFullYear()));
-  const [periodQuarter, setPeriodQuarter] = useState<QuarterFilter>("all");
+  const [periodQuarter, setPeriodQuarter] = useState<QuarterFilter>(() => {
+    const q = ["Q1","Q1","Q1","Q2","Q2","Q2","Q3","Q3","Q3","Q4","Q4","Q4"][new Date().getMonth()];
+    return q as QuarterFilter;
+  });
 
 
   // ── Shared period state — resets to current month on every mount/data change ──
