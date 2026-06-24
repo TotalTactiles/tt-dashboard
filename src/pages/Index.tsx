@@ -221,7 +221,7 @@ function WinLossSummaryCard({
 // Paid (top)        = last calendar month's invoices (received THIS month)
 // To be paid (bot.) = this calendar month's invoices (received NEXT month)
 // Source: revenueProjects (REVENUE tab), valueInclGST, invoiceDate.
-function InvoicesPaidCard({ index }: { index: number }) {
+function InvoicesPaidCard({ index, onJumpToMonth }: { index: number; onJumpToMonth?: (monthLabel: string) => void }) {
   const { revenueProjects } = useDashboardData();
 
   const { paid, toBePaid, paidCount, toBePaidCount } = useMemo(() => {
@@ -255,14 +255,18 @@ function InvoicesPaidCard({ index }: { index: number }) {
   };
 
   const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const MONTHS_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   const now = new Date();
   const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const paidCtx = MONTHS[prev.getMonth()];
   const toBeCtx = MONTHS[now.getMonth()];
+  const paidJumpLabel = `${MONTHS_FULL[prev.getMonth()]} ${prev.getFullYear()}`;
+  const toBeJumpLabel = `${MONTHS_FULL[now.getMonth()]} ${now.getFullYear()}`;
 
   const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
   const labelClass = "text-[0.7rem] font-semibold tracking-wide text-foreground/80 font-mono text-center";
   const subClass = "text-[0.65rem] leading-tight text-muted-foreground font-mono whitespace-normal break-words text-center";
+  const subLinkClass = subClass + " cursor-pointer hover:text-foreground hover:underline underline-offset-2 transition-colors";
   const figureStyle: React.CSSProperties = { fontSize: 'clamp(1.25rem, 1.6vw, 1.5rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' };
 
   return (
@@ -283,7 +287,12 @@ function InvoicesPaidCard({ index }: { index: number }) {
           <p className={labelClass}>To be Paid</p>
           <p className="leading-tight break-words flex items-baseline justify-center gap-1.5 flex-wrap">
             <span className="font-bold font-mono text-chart-green" style={figureStyle}>{fmtCompact(paid)}</span>
-            <span className={subClass}>· {paidCount} inv · {paidCtx}</span>
+            <button
+              type="button"
+              onClick={() => onJumpToMonth?.(paidJumpLabel)}
+              className={subLinkClass}
+              title={`Filter Revenue & COGS to ${paidJumpLabel}`}
+            >· {paidCount} inv · {paidCtx}</button>
           </p>
         </div>
         <div className="h-px bg-white/10 my-1 w-2/3 mx-auto" />
@@ -291,13 +300,19 @@ function InvoicesPaidCard({ index }: { index: number }) {
           <p className={labelClass}>To be Invoiced</p>
           <p className="leading-tight break-words flex items-baseline justify-center gap-1.5 flex-wrap">
             <span className="font-bold font-mono text-foreground/90" style={figureStyle}>{fmtCompact(toBePaid)}</span>
-            <span className={subClass}>· {toBePaidCount} inv · {toBeCtx}</span>
+            <button
+              type="button"
+              onClick={() => onJumpToMonth?.(toBeJumpLabel)}
+              className={subLinkClass}
+              title={`Filter Revenue & COGS to ${toBeJumpLabel}`}
+            >· {toBePaidCount} inv · {toBeCtx}</button>
           </p>
         </div>
       </div>
     </motion.div>
   );
 }
+
 
 
 
