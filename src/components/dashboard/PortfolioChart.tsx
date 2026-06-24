@@ -213,7 +213,7 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
         <div className="min-w-0">
           <h3 className="text-sm font-medium text-muted-foreground">Income vs Outgoings</h3>
           <p className="text-xl font-mono font-bold text-foreground">Monthly Cash Flow</p>
-          <p className="text-[10px] text-muted-foreground font-mono mt-0.5">Blue = opening cash · Green = income · Red = outgoings · Dark green = surplus · Maroon = deficit</p>
+          <p className="text-[10px] text-muted-foreground font-mono mt-0.5">Green = income · Red = outgoings · Dark green = surplus · Maroon = deficit</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {hasMultipleYears && (
@@ -259,10 +259,12 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
       </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono mb-3">
+        {/* Hidden: Opening Cash legend
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#3D89DA" }} />
           <span className="text-muted-foreground">Opening Cash</span>
         </div>
+        */}
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#22C55E" }} />
           <span className="text-muted-foreground">Income</span>
@@ -339,7 +341,7 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
                       boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
                     }}>
                       <p style={{ color: tc.tooltipText, marginBottom: 4 }}>{label}</p>
-                      <p style={{ color: "#3D89DA" }}>Opening Cash: {formatMetricValue(point.openingBalance, "currency")}</p>
+                      {/* <p style={{ color: "#3D89DA" }}>Opening Cash: {formatMetricValue(point.openingBalance, "currency")}</p> */}
                       {isFuture ? (
                         <>
                           <p style={{ color: "#22C55E", opacity: 0.7 }}>Income (Probable): {formatMetricValue(point.probableIncome, "currency")}</p>
@@ -386,7 +388,7 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
                   }}
                 />
               )}
-              <Bar yAxisId="bars" dataKey="openingBalance" radius={[3, 3, 0, 0]} animationDuration={800} fill="#3D89DA" />
+              {/* Hidden opening-cash bar: <Bar yAxisId="bars" dataKey="openingBalance" radius={[3, 3, 0, 0]} animationDuration={800} fill="#3D89DA" /> */}
               <Bar yAxisId="bars" dataKey="income" radius={[3, 3, 0, 0]} animationDuration={800}>
                 {filteredData.map((entry, index) => (
                   <Cell key={`income-${index}`} fill="#22C55E" fillOpacity={entry.isFuture ? 0 : 1} />
