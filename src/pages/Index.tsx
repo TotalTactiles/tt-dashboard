@@ -1065,7 +1065,6 @@ function MonthlyInvoicesVsTargetChart({
               if (!active || !payload?.length) return null;
               const point = payload[0]?.payload;
               const invoiced = point?.invoiced ?? 0;
-              const revenueCheck = point?.revenueCheck ?? 0;
               return (
                 <div style={{
                   backgroundColor: "#0f172a",
@@ -1073,14 +1072,11 @@ function MonthlyInvoicesVsTargetChart({
                   borderRadius: "10px",
                   padding: "10px 16px",
                   boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
-                  minWidth: "180px"
+                  minWidth: "160px"
                 }}>
                   <p style={{ color: "#94a3b8", fontSize: "11px", fontFamily: "monospace", margin: "0 0 6px 0" }}>{label}</p>
                   <p style={{ color: "#22c55e", fontSize: "14px", fontWeight: 700, margin: 0, fontFamily: "monospace" }}>
                     Invoiced: ${invoiced.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                  <p style={{ color: "#64748b", fontSize: "11px", margin: "4px 0 0 0" }}>
-                    Revenue tab (ex GST): ${revenueCheck.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
               );
