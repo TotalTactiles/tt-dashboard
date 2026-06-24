@@ -427,7 +427,12 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
     switch (key) {
       case "stageValue": return <span className="text-foreground whitespace-nowrap">{$d(totalStageValue)}</span>;
       case "valueInclGST": return <span className="text-foreground whitespace-nowrap">{$d(totalValueInclGST)}</span>;
-      case "valueExclGST": return <span className="text-foreground whitespace-nowrap">{$d(totalRevenue)}</span>;
+      case "valueExclGST": return (
+        <span className="text-foreground whitespace-nowrap">
+          {$d(totalRevenue)}
+          <span className="text-[10px] text-muted-foreground ml-1 font-normal">(ex GST)</span>
+        </span>
+      );
       case "labour": return <span className="text-chart-red whitespace-nowrap">{$d(totalLabour)}</span>;
       case "tactile": return <span className="text-chart-red whitespace-nowrap">{$d(totalTactile)}</span>;
       case "other": return <span className="text-chart-red whitespace-nowrap">{$d(totalOther)}</span>;
