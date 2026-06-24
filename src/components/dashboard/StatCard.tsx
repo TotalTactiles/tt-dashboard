@@ -458,7 +458,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
 
 
 
-  const cashPositionSubtextBlock = isCashPosition ? (
+  const cashPositionSubtextBlock = isCashflowPosition ? (
     <p
       className="font-mono text-muted-foreground/80 leading-tight text-center w-full px-1 whitespace-nowrap overflow-hidden text-ellipsis"
       style={{ fontSize: "clamp(9px, 0.75vw, 11px)" }}
