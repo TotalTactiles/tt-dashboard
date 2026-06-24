@@ -941,11 +941,12 @@ const DashboardContent = () => {
   const [showAllTables, setShowAllTables] = useState(false);
   const [invoiceFilter, setInvoiceFilter] = useState<"invoiced" | "to_be_invoiced">("invoiced");
   const [investorScope, setInvestorScope] = useState<"ytd" | "quarter">("ytd");
-  const [revenueTableMonth, setRevenueTableMonth] = useState<string | null>(null);
+  const [revenueTableMonth, setRevenueTableMonth] = useState<{ year: number; month: number; label: string } | null>(null);
   const [revenueTableJumpToken, setRevenueTableJumpToken] = useState(0);
   const revenueCogsRef = useRef<HTMLDivElement | null>(null);
-  const jumpToRevenueCogsMonth = useCallback((monthLabel: string) => {
-    setRevenueTableMonth(monthLabel);
+  const jumpToRevenueCogsMonth = useCallback((target: { year: number; month: number; label: string }) => {
+    setShowAllTables(true);
+    setRevenueTableMonth(target);
     setRevenueTableJumpToken((t) => t + 1);
     requestAnimationFrame(() => {
       revenueCogsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
