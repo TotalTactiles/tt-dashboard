@@ -1091,9 +1091,14 @@ function MonthlyInvoicesVsTargetChart({
           />
           <Bar dataKey="invoiced" name="Invoiced">
             {data.map((d, i) => (
-              <Cell key={i} fill={d.invoiced >= invoicesTarget ? "#22C55E" : "#3D89DA"} />
+              <Cell
+                key={i}
+                fill="#22C55E"
+                fillOpacity={d.invoiced >= invoicesTarget ? 1 : 0.4}
+              />
             ))}
           </Bar>
+
         </BarChart>
       </ResponsiveContainer>
     </div>
