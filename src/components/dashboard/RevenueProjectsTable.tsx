@@ -116,8 +116,8 @@ interface RevenueProjectsTableProps {
   showAll?: boolean;
   onAllToggle?: (allOn: boolean) => void;
   invoiceFilter?: "invoiced" | "to_be_invoiced";
-  /** Externally-driven month filter (full label e.g. "May 2026"). Applied whenever externalMonthFilterToken changes. */
-  externalMonthFilter?: string | null;
+  /** Externally-driven canonical month filter ({year, monthIndex 0-11, label}). Applied whenever externalMonthFilterToken changes. */
+  externalMonthFilter?: { year: number; month: number; label: string } | null;
   externalMonthFilterToken?: number;
 }
 
@@ -132,6 +132,9 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
   const [companySearch, setCompanySearch] = useState("");
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
+  // Canonical externally-driven month filter (matches by parsed year+monthIndex; format-agnostic).
+  const [externalActive, setExternalActive] = useState<{ year: number; month: number; label: string } | null>(null);
+
   // Column visibility
   const [visibleColumns, setVisibleColumns] = useState<ColumnKey[]>(loadVisibleColumns);
   const [showColumnPicker, setShowColumnPicker] = useState(false);
@@ -141,11 +144,14 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
     sessionStorage.setItem(LS_KEY, JSON.stringify(visibleColumns));
   }, [visibleColumns]);
 
-  // Apply an externally-driven month filter (e.g. clicking Invoices subtexts on the dashboard).
+  // Apply an externally-driven canonical month filter (e.g. clicking Invoices subtexts on the dashboard).
   // Re-applies on every token bump so repeat clicks still work.
   useEffect(() => {
     if (externalMonthFilter && externalMonthFilterToken > 0) {
-      setMonthFilter(externalMonthFilter);
+      setExternalActive(externalMonthFilter);
+      setMonthFilter("all");
+      setStatusFilter("all");
+      setStageFilter("all");
       setPage(1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
