@@ -219,11 +219,17 @@ function WinLossSummaryCard({
 
 
 
+type RevPeriodData = { gross: number; net: number; cogs: number; grossProfit: number };
+
 function RevenueProfitCard({
   grossRevenue,
   netRevenue,
   grossProfit,
   netProfit,
+  rev2026,
+  revYTD,
+  netProfit2026,
+  netProfitYTD,
   index,
   emphasis,
 }: {
@@ -231,10 +237,15 @@ function RevenueProfitCard({
   netRevenue: number;
   grossProfit: number;
   netProfit: number;
+  rev2026?: RevPeriodData;
+  revYTD?: RevPeriodData;
+  netProfit2026?: number;
+  netProfitYTD?: number;
   index: number;
   emphasis?: boolean;
 }) {
   const [mode, setMode] = useState<"revenue" | "profit">("revenue");
+  const [period, setPeriod] = useState<"2026" | "ytd">("2026");
 
   const fmtCompact = (n: number) => {
     const abs = Math.abs(n);
@@ -244,9 +255,15 @@ function RevenueProfitCard({
     return `${sign}$${Math.round(abs).toLocaleString()}`;
   };
 
+  // Resolve period-scoped figures (fallback to legacy props if extras absent)
+  const fallback2026: RevPeriodData = { gross: grossRevenue, net: netRevenue, cogs: 0, grossProfit };
+  const fallbackYTD: RevPeriodData = { gross: grossRevenue, net: netRevenue, cogs: 0, grossProfit };
+  const periodData = period === "ytd" ? (revYTD ?? fallbackYTD) : (rev2026 ?? fallback2026);
+  const periodNetProfit = period === "ytd" ? (netProfitYTD ?? netProfit) : (netProfit2026 ?? netProfit);
+
   const isRevenue = mode === "revenue";
-  const topVal = isRevenue ? grossRevenue : grossProfit;
-  const bottomVal = isRevenue ? netRevenue : netProfit;
+  const topVal = isRevenue ? periodData.gross : periodData.grossProfit;
+  const bottomVal = isRevenue ? periodData.net : periodNetProfit;
   const topLabel = isRevenue ? "GROSS REVENUE" : "GROSS PROFIT";
   const bottomLabel = isRevenue ? "NET REVENUE" : "NET PROFIT";
 
