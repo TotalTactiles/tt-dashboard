@@ -1200,15 +1200,10 @@ const DashboardContent = () => {
                 );
               }
               const formulaInfo = stat.label === "Total Won" ? null : getFormulaInfo(stat.label);
-              // Win Rate: remove the "Won ÷ (Won + Lost)" caption from the card face entirely.
-              const captionOverride = stat.label === "Win Rate"
-                ? { momContext: undefined, altMomContext: undefined }
-                : null;
               return (
                 <StatCard
                   key={stat.label}
                   {...stat}
-                  {...(captionOverride ?? {})}
                   value={getCardValue(stat)}
                   index={i}
                   formulaDriven={formulaInfo}
@@ -1218,6 +1213,7 @@ const DashboardContent = () => {
                   emphasis
                 />
               );
+
             })}
           </div>
 
