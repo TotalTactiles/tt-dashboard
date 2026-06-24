@@ -289,7 +289,7 @@ function InvoicesPaidCard({ index, onJumpToMonth }: { index: number; onJumpToMon
             <span className="font-bold font-mono text-chart-green" style={figureStyle}>{fmtCompact(paid)}</span>
             <button
               type="button"
-              onClick={() => onJumpToMonth?.(paidJumpLabel)}
+              onClick={() => onJumpToMonth?.({ year: prev.getFullYear(), month: prev.getMonth(), label: paidJumpLabel })}
               className={subLinkClass}
               title={`Filter Revenue & COGS to ${paidJumpLabel}`}
             >· {paidCount} inv · {paidCtx}</button>
@@ -302,7 +302,7 @@ function InvoicesPaidCard({ index, onJumpToMonth }: { index: number; onJumpToMon
             <span className="font-bold font-mono text-foreground/90" style={figureStyle}>{fmtCompact(toBePaid)}</span>
             <button
               type="button"
-              onClick={() => onJumpToMonth?.(toBeJumpLabel)}
+              onClick={() => onJumpToMonth?.({ year: now.getFullYear(), month: now.getMonth(), label: toBeJumpLabel })}
               className={subLinkClass}
               title={`Filter Revenue & COGS to ${toBeJumpLabel}`}
             >· {toBePaidCount} inv · {toBeCtx}</button>
