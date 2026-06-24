@@ -821,6 +821,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     console.log("[Net Revenue] YTD scoped to:", currentYear4Digit, "| projects:", currentYearRevenueProjects.length, "| value:", netRevenue);
 
+    // Card 5: Cashflow Position = current month's OPENING BALANCES value
     console.log('[CF DEBUG] currentMonthKey:', currentMonthKey);
     console.log('[CF DEBUG] openingBal:', openingBalancesRow?.[currentMonthKey]);
     console.log('[CF DEBUG] totalIncome:', totalIncomeRow?.[currentMonthKey]);
