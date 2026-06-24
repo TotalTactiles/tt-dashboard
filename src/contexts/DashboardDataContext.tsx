@@ -237,8 +237,9 @@ export interface DashboardData {
 
   incomeOutgoingsData: IncomeOutgoingsPoint[];
   profitMarginData: ProfitMarginPoint[];
-  monthlyInvoicesData: { month: string; invoiced: number }[];
+  monthlyInvoicesData: { month: string; invoiced: number; revenueCheck: number }[];
   forecastChartData: ForecastChartPoint[];
+
   expenseAllocation: ExpenseAllocationItem[];
   kpiVariables: Record<string, number>;
   dataStore: DataStore;
@@ -582,6 +583,8 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const totalIncomeRow = findCashflowRowExact("Total Income");
     const totalCostOfSalesRow = findCashflowRowExact("Total Cost of Sales");
     const totalOpExInclSalariesRow = findCashflowRowExact("Total Operating Expenses (incl. Salaries)");
+    const invoicesBeingPaidRow = findCashflowRowExact("Invoices Being Paid");
+
     // For "Anticipated Cash Surplus/(Deficit)" — must NOT match the "Including Probable Jobs" variant
     const anticipatedSurplusRow = (() => {
       const label = "Anticipated Cash Surplus/(Deficit)";
@@ -715,10 +718,12 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       return { month: mk, grossMargin, netProfitMargin };
     });
 
-    const monthlyInvoicesData = comparisonMonths.map((mk) => ({
-      month: mk,
-      invoiced: Math.round(gpByMonth[mk]?.totalRevenue ?? 0),
+    const monthlyInvoicesData = months.map((m) => ({
+      month: m,
+      invoiced: invoicesBeingPaidRow ? Math.abs(parseNum(invoicesBeingPaidRow[m] ?? 0)) : 0,
+      revenueCheck: Math.round(gpByMonth[m]?.totalRevenue ?? 0), // revenue-tab ex-GST cross-check
     }));
+
 
     console.log("[GP Chart Proof] === GROSS / NET PROFIT MARGIN VERIFICATION ===");
     console.log(`[GP Chart Proof] Net Profit source: CASHFLOW → "Anticipated Cash Surplus/(Deficit)" row (found: ${hasNetProfitSource})`);
@@ -1454,6 +1459,7 @@ export function useDashboardData(): DashboardData {
 
       wrWonFY: 0, wrLostFY: 0, wrYlwFY: 0, wonValueFY: 0, lostValueFY: 0,
       kpiStats: [], incomeOutgoingsData: [], profitMarginData: [], monthlyInvoicesData: [],
+
 
       forecastChartData: [], expenseAllocation: [], kpiVariables: {},
       dataStore: { quotes: [], qtsSmmry: [], cashflow: [], revenue: [], expenses: [], labour: [], stock: [], quotesSummary: {}, cashflowSummary: {}, revenueSummary: {}, expensesSummary: {} },

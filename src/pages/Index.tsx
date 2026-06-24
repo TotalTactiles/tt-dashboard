@@ -1013,9 +1013,10 @@ function MonthlyInvoicesVsTargetChart({
   invoicesTarget,
   onInvoicesTargetChange,
 }: {
-  monthlyInvoicesData: Array<{ month: string; invoiced: number }>;
+  monthlyInvoicesData: Array<{ month: string; invoiced: number; revenueCheck: number }>;
   invoicesTarget: number;
   onInvoicesTargetChange: (v: number) => void;
+
 }) {
   const data = monthlyInvoicesData;
 
@@ -1028,8 +1029,9 @@ function MonthlyInvoicesVsTargetChart({
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <h3 className="text-sm font-medium text-foreground">Monthly Invoices</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Invoiced revenue per month vs target</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Invoices being paid per month vs target</p>
         </div>
+
         <label className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
           Monthly Invoice Target $
           <input
@@ -1050,9 +1052,32 @@ function MonthlyInvoicesVsTargetChart({
             domain={[0, (dataMax: number) => Math.ceil((dataMax * 1.12) / 1000) * 1000]}
           />
           <Tooltip
-            contentStyle={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 6, color: "#111827", fontSize: 12 }}
-            formatter={(v: any) => [`$${Number(v).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, "Invoiced"]}
+            content={({ active, payload, label }: any) => {
+              if (!active || !payload?.length) return null;
+              const point = payload[0]?.payload;
+              const invoiced = point?.invoiced ?? 0;
+              const revenueCheck = point?.revenueCheck ?? 0;
+              return (
+                <div style={{
+                  backgroundColor: "#0f172a",
+                  border: "1px solid rgba(255,255,255,0.3)",
+                  borderRadius: "10px",
+                  padding: "10px 16px",
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+                  minWidth: "180px"
+                }}>
+                  <p style={{ color: "#94a3b8", fontSize: "11px", fontFamily: "monospace", margin: "0 0 6px 0" }}>{label}</p>
+                  <p style={{ color: "#22c55e", fontSize: "14px", fontWeight: 700, margin: 0, fontFamily: "monospace" }}>
+                    Invoiced: ${invoiced.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <p style={{ color: "#64748b", fontSize: "11px", margin: "4px 0 0 0" }}>
+                    Revenue tab (ex GST): ${revenueCheck.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+              );
+            }}
           />
+
           <ReferenceLine
             y={invoicesTarget}
             stroke="#f59e0b"
