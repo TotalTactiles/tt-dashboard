@@ -1971,7 +1971,8 @@ const DashboardContent = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
             <MonthlyInvoicesVsTargetChart monthlyInvoicesData={monthlyInvoicesData} invoicesTarget={invoicesTarget} onInvoicesTargetChange={setInvoicesTarget} />
-            <MonthlyGpVsTargetChart incomeOutgoingsData={incomeOutgoingsData} gpTarget={gpTarget} onGpTargetChange={setGpTarget} />
+            <MonthlyNetProfitChart monthlyNetProfitData={monthlyNetProfitData} />
+
           </div>
 
           <div className="mb-4 md:mb-6">
