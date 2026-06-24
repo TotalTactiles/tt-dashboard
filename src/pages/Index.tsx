@@ -261,7 +261,7 @@ function InvoicesPaidCard({ index }: { index: number }) {
   const toBeCtx = MONTHS[now.getMonth()];
 
   const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
-  const labelClass = "text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center";
+  const labelClass = "text-[0.7rem] font-semibold tracking-wide text-foreground/80 font-mono text-center";
   const subClass = "text-[0.65rem] leading-tight text-muted-foreground font-mono whitespace-normal break-words text-center";
   const figureStyle: React.CSSProperties = { fontSize: 'clamp(1.25rem, 1.6vw, 1.5rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' };
 
