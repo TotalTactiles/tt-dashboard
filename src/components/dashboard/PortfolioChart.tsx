@@ -213,7 +213,7 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
         <div className="min-w-0">
           <h3 className="text-sm font-medium text-muted-foreground">Income vs Outgoings</h3>
           <p className="text-xl font-mono font-bold text-foreground">Monthly Cash Flow</p>
-          <p className="text-[10px] text-muted-foreground font-mono mt-0.5">Green = income · Red = outgoings · Yellow/Orange = net position</p>
+          <p className="text-[10px] text-muted-foreground font-mono mt-0.5">Green = income · Red = outgoings · Dark green = surplus · Maroon = deficit</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {hasMultipleYears && (
@@ -260,20 +260,20 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono mb-3">
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#22c55e", opacity: 0.85 }} />
+          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#22C55E" }} />
           <span className="text-muted-foreground">Income</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#22c55e", opacity: 0.35 }} />
-          <span className="text-muted-foreground">Income (Probable)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#ef4444", opacity: 0.85 }} />
+          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#EF4444" }} />
           <span className="text-muted-foreground">Outgoings</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#a3e635" }} />
+          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#15803D" }} />
           <span className="text-muted-foreground">Net Surplus / Deficit</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#22C55E", opacity: 0.4 }} />
+          <span className="text-muted-foreground">Income (Probable)</span>
         </div>
       </div>
 
@@ -337,17 +337,17 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
                       <p style={{ color: tc.tooltipText, marginBottom: 4 }}>{label}</p>
                       {isFuture ? (
                         <>
-                          <p style={{ color: tc.blue }}>Income (Probable): {formatMetricValue(point.probableIncome, "currency")}</p>
-                          <p style={{ color: tc.red }}>Outgoings (Estimated): {formatMetricValue(point.outgoings, "currency")}</p>
-                          <p style={{ color: isNeg ? tc.red : tc.green, marginTop: 4, borderTop: `1px solid ${tc.tooltipBorder}`, paddingTop: 4 }}>
+                          <p style={{ color: "#22C55E", opacity: 0.7 }}>Income (Probable): {formatMetricValue(point.probableIncome, "currency")}</p>
+                          <p style={{ color: "#EF4444" }}>Outgoings (Estimated): {formatMetricValue(point.outgoings, "currency")}</p>
+                          <p style={{ color: isNeg ? "#7F1D1D" : "#15803D", marginTop: 4, borderTop: `1px solid ${tc.tooltipBorder}`, paddingTop: 4 }}>
                             Projected {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
                           </p>
                         </>
                       ) : (
                         <>
-                          <p style={{ color: tc.blue }}>Income: {formatMetricValue(point.income, "currency")}</p>
-                          <p style={{ color: tc.red }}>Outgoings: {formatMetricValue(point.outgoings, "currency")}</p>
-                          <p style={{ color: isNeg ? tc.red : tc.green, marginTop: 4, borderTop: `1px solid ${tc.tooltipBorder}`, paddingTop: 4 }}>
+                          <p style={{ color: "#22C55E" }}>Income: {formatMetricValue(point.income, "currency")}</p>
+                          <p style={{ color: "#EF4444" }}>Outgoings: {formatMetricValue(point.outgoings, "currency")}</p>
+                          <p style={{ color: isNeg ? "#7F1D1D" : "#15803D", marginTop: 4, borderTop: `1px solid ${tc.tooltipBorder}`, paddingTop: 4 }}>
                             {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
                           </p>
                         </>
@@ -383,22 +383,22 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
               )}
               <Bar yAxisId="bars" dataKey="income" radius={[3, 3, 0, 0]} animationDuration={800}>
                 {filteredData.map((entry, index) => (
-                  <Cell key={`income-${index}`} fill="#22c55e" fillOpacity={entry.isFuture ? 0 : 0.85} />
+                  <Cell key={`income-${index}`} fill="#22C55E" fillOpacity={entry.isFuture ? 0 : 1} />
                 ))}
               </Bar>
               <Bar yAxisId="bars" dataKey="probableIncome" radius={[3, 3, 0, 0]} animationDuration={800}>
                 {filteredData.map((entry, index) => (
-                  <Cell key={`probable-${index}`} fill="#22c55e" fillOpacity={entry.isFuture ? 0.35 : 0} />
+                  <Cell key={`probable-${index}`} fill="#22C55E" fillOpacity={entry.isFuture ? 0.4 : 0} />
                 ))}
               </Bar>
               <Bar yAxisId="bars" dataKey="outgoings" radius={[3, 3, 0, 0]} animationDuration={800}>
                 {filteredData.map((entry, index) => (
-                  <Cell key={`out-${index}`} fill="#ef4444" fillOpacity={0.85} />
+                  <Cell key={`out-${index}`} fill="#EF4444" fillOpacity={1} />
                 ))}
               </Bar>
               <Bar yAxisId="bars" dataKey="netSurplus" radius={[3, 3, 0, 0]} animationDuration={800} name="Net Surplus / Deficit">
                 {filteredData.map((entry, index) => (
-                  <Cell key={`net-${index}`} fill={(entry as any).netSurplus >= 0 ? "#a3e635" : "#f97316"} />
+                  <Cell key={`net-${index}`} fill={(entry as any).netSurplus >= 0 ? "#15803D" : "#7F1D1D"} />
                 ))}
               </Bar>
               <ReferenceLine yAxisId="bars" y={0} stroke="#ffffff30" />
