@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { RefreshCw } from "lucide-react";
 import {
-  ComposedChart, Bar, Line, ReferenceLine, XAxis, YAxis,
+  ComposedChart, BarChart, Bar, Line, ReferenceLine, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
   AreaChart, Area,
 } from "recharts";
