@@ -315,6 +315,82 @@ function InvoicesPaidCard({ index, onJumpToMonth }: { index: number; onJumpToMon
 
 
 
+function PerJobCard({
+  grossRevPerJob,
+  netRevPerJob,
+  grossProfitPerJob,
+  netProfitPerJob,
+  wonCount,
+  index,
+}: {
+  grossRevPerJob: number;
+  netRevPerJob: number;
+  grossProfitPerJob: number;
+  netProfitPerJob: number;
+  wonCount: number;
+  index: number;
+}) {
+  const [mode, setMode] = useState<"revenue" | "profit">("revenue");
+
+  const fmtCompact = (n: number) => {
+    const abs = Math.abs(n);
+    const sign = n < 0 ? "-" : "";
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}K`;
+    return `${sign}$${Math.round(abs).toLocaleString()}`;
+  };
+
+  const isRevenue = mode === "revenue";
+  const topVal = isRevenue ? grossRevPerJob : grossProfitPerJob;
+  const bottomVal = isRevenue ? netRevPerJob : netProfitPerJob;
+  const topLabel = isRevenue ? "GROSS REV / JOB" : "GROSS PROFIT / JOB";
+  const bottomLabel = isRevenue ? "NET REV / JOB" : "NET PROFIT / JOB";
+  const topColor = isRevenue ? "text-chart-green" : (topVal >= 0 ? "text-chart-green" : "text-chart-red");
+  const bottomColor = isRevenue ? "text-chart-green" : (bottomVal >= 0 ? "text-chart-green" : "text-chart-red");
+
+  const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
+  const labelClass = "text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center";
+  const subClass = "text-[0.65rem] leading-tight text-muted-foreground font-mono text-center";
+  const figureStyle: React.CSSProperties = { fontSize: 'clamp(1.25rem, 1.6vw, 1.5rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+      className="stat-card relative overflow-hidden flex flex-col items-center text-center h-full p-3 gap-1"
+      style={{ containerType: 'inline-size' }}
+    >
+      <div className="w-full min-h-[1.5rem] flex items-center justify-center px-1">
+        <p className={titleClass}>PER JOB</p>
+      </div>
+      <div className="min-h-[1.5rem] flex justify-center items-center">
+        <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
+          <button
+            onClick={() => setMode("revenue")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${mode === "revenue" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >Revenue</button>
+          <button
+            onClick={() => setMode("profit")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${mode === "profit" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >Profit</button>
+        </div>
+      </div>
+      <div className="flex-1 flex flex-col items-center justify-center gap-0.5 w-full min-w-0 text-center">
+        <div className="w-full min-w-0">
+          <p className={labelClass}>{topLabel}</p>
+          <p className={`font-bold font-mono break-words leading-tight ${topColor}`} style={figureStyle}>{fmtCompact(topVal)}</p>
+        </div>
+        <div className="h-px bg-white/10 my-1 w-2/3 mx-auto" />
+        <div className="w-full min-w-0">
+          <p className={labelClass}>{bottomLabel}</p>
+          <p className={`font-bold font-mono break-words leading-tight ${bottomColor}`} style={figureStyle}>{fmtCompact(bottomVal)}</p>
+        </div>
+        <p className={subClass + " mt-1"}>{wonCount} jobs won</p>
+      </div>
+    </motion.div>
+  );
+}
 
 
 type RevPeriodData = { gross: number; net: number; cogs: number; grossProfit: number };
