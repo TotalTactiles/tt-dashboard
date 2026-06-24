@@ -48,20 +48,30 @@ function loadPref<T>(key: string, fallback: T): T {
 interface PortfolioChartProps {
   adjustedData?: IncomeOutgoingsPoint[];
   adjustments?: GoalAdjustment[];
+  year?: string;
+  quarter?: QuarterFilter;
+  onYearChange?: (year: string) => void;
+  onQuarterChange?: (quarter: QuarterFilter) => void;
 }
 
-const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartProps) => {
+const PortfolioChartInner = ({ adjustedData, adjustments = [], year: yearProp, quarter: quarterProp, onYearChange, onQuarterChange }: PortfolioChartProps) => {
   const { incomeOutgoingsData, dataHealth } = useDashboardData();
   const sourceData = useMemo(() => adjustedData ?? incomeOutgoingsData, [adjustedData, incomeOutgoingsData]);
   const [exportOpen, setExportOpen] = useState(false);
   const { resolvedTheme } = useTheme();
 
-  const [quarter, setQuarter] = useState<QuarterFilter>(getCurrentQuarter());
+  const [internalQuarter, setInternalQuarter] = useState<QuarterFilter>(getCurrentQuarter());
+  const quarter = quarterProp ?? internalQuarter;
 
   const setQuarterFilter = useCallback((q: QuarterFilter) => {
-    setQuarter(q);
+    if (onQuarterChange) {
+      onQuarterChange(q);
+    } else {
+      setInternalQuarter(q);
+    }
     localStorage.setItem("cashflow_quarter_filter", JSON.stringify(q));
-  }, []);
+  }, [onQuarterChange]);
+
 
   // Derive available years from data
   const availableYears = useMemo(() => {
@@ -75,7 +85,7 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
 
   const hasMultipleYears = availableYears.length > 1;
 
-  const [selectedYear, setSelectedYear] = useState<number | null>(() => {
+  const [internalSelectedYear, setInternalSelectedYear] = useState<number | null>(() => {
     if (availableYears.length <= 1) return null;
     const now = new Date();
     const thisYear = now.getFullYear();
@@ -83,15 +93,33 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
     return availableYears[availableYears.length - 1]; // latest year fallback
   });
 
-  // Keep selectedYear in sync when data changes
-  useMemo(() => {
-    if (hasMultipleYears && (selectedYear === null || !availableYears.includes(selectedYear))) {
-      const thisYear = new Date().getFullYear();
-      setSelectedYear(availableYears.includes(thisYear) ? thisYear : availableYears[availableYears.length - 1]);
-    } else if (!hasMultipleYears) {
-      setSelectedYear(null);
+  // Bridge prop year ("2026" | "26" | "all") to internal number|null
+  const propYearAsNum: number | null | undefined = yearProp === undefined
+    ? undefined
+    : yearProp === "all"
+      ? null
+      : Number(yearProp.length === 2 ? "20" + yearProp : yearProp);
+  const selectedYear = propYearAsNum !== undefined ? propYearAsNum : internalSelectedYear;
+
+  const setSelectedYear = useCallback((yr: number | null) => {
+    if (onYearChange) {
+      onYearChange(yr === null ? "all" : String(yr));
+    } else {
+      setInternalSelectedYear(yr);
     }
-  }, [availableYears, hasMultipleYears]);
+  }, [onYearChange]);
+
+  // Keep internal year in sync when data changes (only when not controlled)
+  useMemo(() => {
+    if (yearProp !== undefined) return;
+    if (hasMultipleYears && (internalSelectedYear === null || !availableYears.includes(internalSelectedYear))) {
+      const thisYear = new Date().getFullYear();
+      setInternalSelectedYear(availableYears.includes(thisYear) ? thisYear : availableYears[availableYears.length - 1]);
+    } else if (!hasMultipleYears) {
+      setInternalSelectedYear(null);
+    }
+  }, [availableYears, hasMultipleYears, yearProp]);
+
 
   const now = new Date();
   const currentYear = now.getFullYear();

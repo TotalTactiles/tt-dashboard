@@ -1,4 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { filterByPeriod, availableYearsFrom, type QuarterFilter } from "@/lib/periodFilter";
+
 import { motion } from "framer-motion";
 import { RefreshCw } from "lucide-react";
 import {
@@ -1012,26 +1014,24 @@ function MonthlyInvoicesVsTargetChart({
   monthlyInvoicesData,
   invoicesTarget,
   onInvoicesTargetChange,
+  year,
+  quarter,
 }: {
   monthlyInvoicesData: Array<{ month: string; invoiced: number; revenueCheck: number }>;
   invoicesTarget: number;
   onInvoicesTargetChange: (v: number) => void;
-
+  year: string;
+  quarter: QuarterFilter;
 }) {
-  const now = new Date();
-  const curYearShort = String(now.getFullYear()).slice(-2);
-  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const curMonthIdx = now.getMonth();
-  const data = monthlyInvoicesData.filter((d) => {
-    const m = d.month.match(/^([A-Za-z]{3})-(\d{2})$/);
-    if (!m) return false;
-    const idx = MONTHS.indexOf(m[1]);
-    return m[2] === curYearShort && idx <= curMonthIdx;
-  });
+  const data = useMemo(
+    () => filterByPeriod(monthlyInvoicesData, year, quarter),
+    [monthlyInvoicesData, year, quarter],
+  );
 
   const handleTargetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onInvoicesTargetChange(Number(e.target.value) || 0);
   };
+
 
   return (
     <div className="chart-container">
@@ -1091,9 +1091,14 @@ function MonthlyInvoicesVsTargetChart({
           />
           <Bar dataKey="invoiced" name="Invoiced">
             {data.map((d, i) => (
-              <Cell key={i} fill={d.invoiced >= invoicesTarget ? "#22C55E" : "#3D89DA"} />
+              <Cell
+                key={i}
+                fill="#22C55E"
+                fillOpacity={d.invoiced >= invoicesTarget ? 1 : 0.4}
+              />
             ))}
           </Bar>
+
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -1102,13 +1107,21 @@ function MonthlyInvoicesVsTargetChart({
 
 function MonthlyNetProfitChart({
   monthlyNetProfitData,
+  year,
+  quarter,
 }: {
   monthlyNetProfitData: Array<{ month: string; netProfit: number }>;
+  year: string;
+  quarter: QuarterFilter;
 }) {
-  const data = monthlyNetProfitData;
+  const data = useMemo(
+    () => filterByPeriod(monthlyNetProfitData, year, quarter),
+    [monthlyNetProfitData, year, quarter],
+  );
   const dataMin = Math.min(0, ...data.map((d) => d.netProfit));
   const dataMax = Math.max(0, ...data.map((d) => d.netProfit));
   const yDomain = [Math.min(0, dataMin), Math.ceil((dataMax * 1.12) / 1000) * 1000];
+
 
   return (
     <div className="chart-container">
@@ -1159,7 +1172,7 @@ function MonthlyNetProfitChart({
           <ReferenceLine y={0} stroke="#ffffff30" strokeDasharray="2 2" />
           <Bar dataKey="netProfit" name="Net Profit">
             {data.map((d, i) => (
-              <Cell key={i} fill={d.netProfit >= 0 ? "#22C55E" : "#7F1D1D"} />
+              <Cell key={i} fill={d.netProfit >= 0 ? "#15803D" : "#7F1D1D"} />
             ))}
           </Bar>
         </BarChart>
@@ -1191,6 +1204,11 @@ function loadActiveGoalIds(allGoals: {id: string;merge?: boolean;}[]): Set<strin
 const DashboardContent = () => {
   const { goals, updateGoal } = useGoals();
   const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData, forecastChartData, quotedJobs, investorMetrics, isOffline, lastCachedAt, revenueProjects, dataStore, liveData, inRunningCount, inRunningValue, monthlyInvoicesData, monthlyNetProfitData } = useDashboardData();
+
+  // ── Shared period selector across PortfolioChart / MonthlyInvoices / MonthlyNetProfit ──
+  const [periodYear, setPeriodYear] = useState<string>(() => String(new Date().getFullYear()));
+  const [periodQuarter, setPeriodQuarter] = useState<QuarterFilter>("all");
+
 
   // ── Shared period state — resets to current month on every mount/data change ──
   const periodOptions = useMemo(() => buildPeriodOptions(quotedJobs, revenueProjects), [quotedJobs, revenueProjects]);
@@ -1971,12 +1989,30 @@ const DashboardContent = () => {
 
           {/* Charts */}
           <div className="grid grid-cols-1 gap-3 md:gap-4 mb-4 md:mb-6">
-            <PortfolioChart adjustedData={adjustedData} adjustments={adjustments} />
+            <PortfolioChart
+              adjustedData={adjustedData}
+              adjustments={adjustments}
+              year={periodYear}
+              quarter={periodQuarter}
+              onYearChange={setPeriodYear}
+              onQuarterChange={setPeriodQuarter}
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
-            <MonthlyInvoicesVsTargetChart monthlyInvoicesData={monthlyInvoicesData} invoicesTarget={invoicesTarget} onInvoicesTargetChange={setInvoicesTarget} />
-            <MonthlyNetProfitChart monthlyNetProfitData={monthlyNetProfitData} />
+            <MonthlyInvoicesVsTargetChart
+              monthlyInvoicesData={monthlyInvoicesData}
+              invoicesTarget={invoicesTarget}
+              onInvoicesTargetChange={setInvoicesTarget}
+              year={periodYear}
+              quarter={periodQuarter}
+            />
+            <MonthlyNetProfitChart
+              monthlyNetProfitData={monthlyNetProfitData}
+              year={periodYear}
+              quarter={periodQuarter}
+            />
+
 
           </div>
 
