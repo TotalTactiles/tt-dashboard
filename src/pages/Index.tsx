@@ -1491,34 +1491,24 @@ const DashboardContent = () => {
                   : `${investorDateWindows.qLabel} · ${investorDateWindows.qMonths.length} months to date`}
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" style={{ containerType: 'inline-size' }}>
-                {(() => {
-                  const revenueExGST = sd.revenueExGST;
-                  const totalExpenses = sd.totalExpenses;
-                  let grossProfit = revenueExGST * ((sd.grossMarginPct ?? 0) / 100);
-                  let netProfit = revenueExGST - totalExpenses;
-                  if (grossProfit < netProfit && sd.totalCOGS !== undefined) {
-                    grossProfit = revenueExGST - sd.totalCOGS;
-                  }
-                  const gpMargin = revenueExGST > 0 ? ((grossProfit / revenueExGST) * 100).toFixed(1) : "0.0";
-                  const netMargin = revenueExGST > 0 ? ((netProfit / revenueExGST) * 100).toFixed(1) : "0.0";
-                  return (
-                    <StatCard
-                      label="Profitability"
-                      value={fmtVal(netProfit)}
-                      change={`${netMargin}% net margin`}
-                      positive={netProfit >= 0}
-                      index={10}
-                      momContext={scopeLabel}
-                      altValue={fmtVal(grossProfit)}
-                      altChange={`${gpMargin}% GP margin`}
-                      altPositive={grossProfit >= 0}
-                      altMomContext={scopeLabel}
-                      toggleLabelBase="Net Profit"
-                      toggleLabelAlt="Gross Profit"
-                      greenAltPill={true}
-                    />
-                  );
-                })()}
+                {/* 1. Cash Position — relocated. StatCard internals detect label and wire Open/Today/Actual */}
+                <StatCard
+                  label="Cashflow Position"
+                  value="—"
+                  change=""
+                  positive={true}
+                  index={9}
+                  altValue="—"
+                  altChange=""
+                  altPositive={true}
+                  toggleLabelBase="Open"
+                  toggleLabelAlt="Today"
+                  toggleLabelAlt2="Actual"
+                  greenAltPill={true}
+                  emphasis
+                />
+                {/* 2. Invoices Paid / To-be-paid — relocated/built from REVENUE tab */}
+                <InvoicesPaidCard index={10} />
                 <StatCard
                   label="Gross Margin %"
                   value={`${gmPct}%`}
@@ -1579,14 +1569,6 @@ const DashboardContent = () => {
                     />
                   );
                 })()}
-                <StatCard
-                  label="Debt Service Ratio"
-                  value={`${sd.dsrValue.toFixed(1)}%`}
-                  change={`$${((sd.bizLoan + sd.carLoan) * 12 / 1000).toFixed(1)}K/yr annualised`}
-                  positive={sd.dsrValue <= 25}
-                  index={19}
-                  momContext={sd.dsrValue <= 15 ? "Healthy — under 15%" : sd.dsrValue > 25 ? "High — above 25%" : "Monitor — 15–25%"}
-                />
               </div>
               {visibleOptionalCards.size > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-3" style={{ containerType: 'inline-size' }}>
