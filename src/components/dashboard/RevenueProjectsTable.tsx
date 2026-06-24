@@ -141,6 +141,17 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
     sessionStorage.setItem(LS_KEY, JSON.stringify(visibleColumns));
   }, [visibleColumns]);
 
+  // Apply an externally-driven month filter (e.g. clicking Invoices subtexts on the dashboard).
+  // Re-applies on every token bump so repeat clicks still work.
+  useEffect(() => {
+    if (externalMonthFilter && externalMonthFilterToken > 0) {
+      setMonthFilter(externalMonthFilter);
+      setPage(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalMonthFilterToken]);
+
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (columnPickerRef.current && !columnPickerRef.current.contains(e.target as Node)) {
