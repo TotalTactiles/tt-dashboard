@@ -339,6 +339,7 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
                       boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
                     }}>
                       <p style={{ color: tc.tooltipText, marginBottom: 4 }}>{label}</p>
+                      <p style={{ color: "#3D89DA" }}>Opening Cash: {formatMetricValue(point.openingBalance, "currency")}</p>
                       {isFuture ? (
                         <>
                           <p style={{ color: "#22C55E", opacity: 0.7 }}>Income (Probable): {formatMetricValue(point.probableIncome, "currency")}</p>
