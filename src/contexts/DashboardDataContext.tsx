@@ -221,6 +221,11 @@ export interface DashboardData {
   ylwCount: number;
   pipelineConversion: number;
   totalOpps: number;
+  wrWonFY: number;
+  wrLostFY: number;
+  wrYlwFY: number;
+  wonValueFY: number;
+  lostValueFY: number;
   kpiStats: KPIStat[];
 
   incomeOutgoingsData: IncomeOutgoingsPoint[];
@@ -888,6 +893,33 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     console.log("[Total Won Debug] grnRow:", !!grnRow, "ylwRow:", !!ylwRow, "ylwGrnRow:", !!ylwGrnRow,
       "base:", baseWonValue, baseWonCount, "ylw:", directYlwValue, directYlwCount, "combined:", combinedValue, combinedCount);
 
+    // ===== FY-SCOPED quote metrics from qtsSmmry (matches the sheet exactly) =====
+    const _qtsNum = (v: any) => Number(String(v ?? 0).replace(/[$,]/g, "")) || 0;
+    const _qtsByFlag = (flag: string) => rawQtsSmmry.find((r: any) => r?.[flag]);
+    const _qtsByStage = (name: string) =>
+      rawQtsSmmry.find((r: any) => String(r?.["Jobs Stages"] ?? "").trim() === name);
+    const _qtsVal = (r: any) => _qtsNum(r?._label_dollarValue ?? r?.["Total Value ($)"]);
+
+    const _grnRowFY  = _qtsByFlag("_label_isPOReceived");
+    const _compRowFY = _qtsByFlag("_label_isCompleted");
+    const _lostRowFY = _qtsByFlag("_label_isLostDead");
+    const _ylwRowFY  = _qtsByFlag("_label_isVerbalYellow");
+    const _gtRowFY   = _qtsByFlag("_label_isGrandTotal");
+    const _qsRowFY   = _qtsByStage("Quote Sent");
+    const _negRowFY  = _qtsByStage("Negotiation/Review");
+
+    const wonCountFY   = _qtsNum(_grnRowFY?.Count) + _qtsNum(_compRowFY?.Count);
+    const wonValueFY   = _qtsVal(_grnRowFY) + _qtsVal(_compRowFY);
+    const lostCountFY  = _qtsNum(_lostRowFY?.Count);
+    const lostValueFY  = _qtsVal(_lostRowFY);
+    const ylwCountFY   = _qtsNum(_ylwRowFY?.Count);
+    const ylwValueFY   = _qtsVal(_ylwRowFY);
+    const inRunCountFY = _qtsNum(_qsRowFY?.Count) + _qtsNum(_negRowFY?.Count);
+    const inRunValueFY = _qtsVal(_qsRowFY) + _qtsVal(_negRowFY);
+    const totalOppsFY  = _qtsNum(_gtRowFY?.Count);
+
+
+
     // ===== MONTH-ON-MONTH CALCULATIONS =====
     const MONTH_ABBR_LOCAL = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     const curMonIdx = now.getMonth();
@@ -1041,15 +1073,16 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const qjWonCount = quotedJobs.filter(j => j.status === "won").length;
     const qjYlwCount = quotedJobs.filter(j => j.status === "yellow").length;
 
-    // ===== WIN RATE (industry standard: won / (won + lost), decided deals only) =====
-    const wrWon  = quotedJobs.filter(j => j.status === "won").length;
-    const wrLost = quotedJobs.filter(j => j.status === "lost").length;
-    const wrYlw  = quotedJobs.filter(j => j.status === "yellow").length;
+    // ===== WIN RATE — FY-scoped from qtsSmmry (matches sheet) =====
+    const wrWon  = wonCountFY;
+    const wrLost = lostCountFY;
+    const wrYlw  = ylwCountFY;
     const winRateConfirmed = (wrWon + wrLost) > 0 ? (wrWon / (wrWon + wrLost)) * 100 : 0;
     const winRateWithYlw   = (wrWon + wrYlw + wrLost) > 0 ? ((wrWon + wrYlw) / (wrWon + wrYlw + wrLost)) * 100 : 0;
 
-    const totalOpps = quotedJobs.length;
+    const totalOpps = totalOppsFY;
     const pipelineConversion = totalOpps > 0 ? (wrWon / totalOpps) * 100 : 0;
+
 
     // ===== GROSS / NET revenue & profit =====
 
@@ -1295,8 +1328,11 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       : null;
 
     const inRunningJobs = quotedJobs.filter((j) => j.status === "pending");
-    const inRunningCount = inRunningJobs.length;
-    const inRunningValue = inRunningJobs.reduce((s, j) => s + (Number(j.value) || 0), 0);
+    const _legacyInRunningCount = inRunningJobs.length;
+    const _legacyInRunningValue = inRunningJobs.reduce((s, j) => s + (Number(j.value) || 0), 0);
+    // Prefer FY-scoped qtsSmmry; fall back to legacy quotedJobs derivation if missing
+    const inRunningCount = inRunCountFY || _legacyInRunningCount;
+    const inRunningValue = inRunValueFY || _legacyInRunningValue;
 
     const ylwJobs_quoted = quotedJobs.filter((j) => j.status === "yellow");
     const ylwValue_quoted = ylwJobs_quoted.reduce((s, j) => s + (Number(j.value) || 0), 0);
@@ -1306,10 +1342,16 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       quotedJobs, revenueProjects, expenseCategories, grandTotalExpense,
       cashflowPositionRaw: cashflowPosition,
       inRunningCount, inRunningValue,
-      ylwValue: ylwValue_quoted,
-      ylwCount: ylwCount_quoted,
+      ylwValue: ylwValueFY || ylwValue_quoted,
+      ylwCount: ylwCountFY || ylwCount_quoted,
       pipelineConversion,
       totalOpps,
+      wrWonFY: wonCountFY,
+      wrLostFY: lostCountFY,
+      wrYlwFY: ylwCountFY,
+      wonValueFY,
+      lostValueFY,
+
       kpiStats, incomeOutgoingsData, profitMarginData, forecastChartData, expenseAllocation,
 
       kpiVariables, dataStore: storeSnapshot, formulaCache: formulaCacheInstance, changedFormulas,
@@ -1353,6 +1395,7 @@ export function useDashboardData(): DashboardData {
       inRunningCount: 0, inRunningValue: 0,
       ylwValue: 0, ylwCount: 0,
       pipelineConversion: 0, totalOpps: 0,
+      wrWonFY: 0, wrLostFY: 0, wrYlwFY: 0, wonValueFY: 0, lostValueFY: 0,
       kpiStats: [], incomeOutgoingsData: [], profitMarginData: [],
 
       forecastChartData: [], expenseAllocation: [], kpiVariables: {},

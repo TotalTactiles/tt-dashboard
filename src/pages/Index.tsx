@@ -114,15 +114,18 @@ function WinLossSummaryCard({
 }) {
   const [mode, setMode] = useState<"total" | "avg">("total");
 
+  // FY-scoped from qtsSmmry (matches sheet); fall back to quotedJobs derivation
+  const ctx = useDashboardData();
   const wonJobs = quotedJobs.filter((j) => j.status === "won");
   const lostJobs = quotedJobs.filter((j) => j.status === "lost");
-  const totalJobs = wonJobs.length + lostJobs.length;
 
-  const wonValue = wonJobs.reduce((s, j) => s + (j.value || 0), 0);
-  const lostValue = lostJobs.reduce((s, j) => s + (j.value || 0), 0);
+  const wonValue = ctx.wonValueFY || wonJobs.reduce((s, j) => s + (j.value || 0), 0);
+  const lostValue = ctx.lostValueFY || lostJobs.reduce((s, j) => s + (j.value || 0), 0);
 
-  const wonCount = wonJobs.length;
-  const lostCount = lostJobs.length;
+  const wonCount = ctx.wrWonFY || wonJobs.length;
+  const lostCount = ctx.wrLostFY || lostJobs.length;
+  const totalJobs = wonCount + lostCount;
+
 
   const wonBarWidth = totalJobs > 0 ? `${(wonCount / totalJobs) * 100}%` : "0%";
 
@@ -421,14 +424,20 @@ function ConversionRatesCard({
 }) {
   const [mode, setMode] = useState<"confirmed" | "ylw" | "pipeline">("confirmed");
 
-  const wrWon = quotedJobs.filter((j) => j.status === "won").length;
-  const wrLost = quotedJobs.filter((j) => j.status === "lost").length;
-  const wrYlw = quotedJobs.filter((j) => j.status === "yellow").length;
-  const totalOpps = quotedJobs.length;
+  // FY-scoped from qtsSmmry (matches sheet); fall back to legacy quotedJobs derivation
+  const ctx = useDashboardData();
+  const legacyWon  = quotedJobs.filter((j) => j.status === "won").length;
+  const legacyLost = quotedJobs.filter((j) => j.status === "lost").length;
+  const legacyYlw  = quotedJobs.filter((j) => j.status === "yellow").length;
+  const wrWon  = ctx.wrWonFY  || legacyWon;
+  const wrLost = ctx.wrLostFY || legacyLost;
+  const wrYlw  = ctx.wrYlwFY  || legacyYlw;
+  const totalOpps = ctx.totalOpps || quotedJobs.length;
 
   const winRateConfirmed = (wrWon + wrLost) > 0 ? (wrWon / (wrWon + wrLost)) * 100 : 0;
   const winRateWithYlw = (wrWon + wrYlw + wrLost) > 0 ? ((wrWon + wrYlw) / (wrWon + wrYlw + wrLost)) * 100 : 0;
   const pipelineConversion = totalOpps > 0 ? (wrWon / totalOpps) * 100 : 0;
+
 
   let figure: string;
   let sub: string;
