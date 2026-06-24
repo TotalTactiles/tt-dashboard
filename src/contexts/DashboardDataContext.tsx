@@ -217,6 +217,8 @@ export interface DashboardData {
   cashflowPositionRaw: number;
   inRunningCount: number;
   inRunningValue: number;
+  ylwValue: number;
+  ylwCount: number;
   kpiStats: KPIStat[];
   incomeOutgoingsData: IncomeOutgoingsPoint[];
   profitMarginData: ProfitMarginPoint[];
@@ -1294,10 +1296,16 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const inRunningCount = inRunningJobs.length;
     const inRunningValue = inRunningJobs.reduce((s, j) => s + (Number(j.value) || 0), 0);
 
+    const ylwJobs_quoted = quotedJobs.filter((j) => j.status === "yellow");
+    const ylwValue_quoted = ylwJobs_quoted.reduce((s, j) => s + (Number(j.value) || 0), 0);
+    const ylwCount_quoted = ylwJobs_quoted.length;
+
     return {
       quotedJobs, revenueProjects, expenseCategories, grandTotalExpense,
       cashflowPositionRaw: cashflowPosition,
       inRunningCount, inRunningValue,
+      ylwValue: ylwValue_quoted,
+      ylwCount: ylwCount_quoted,
       kpiStats, incomeOutgoingsData, profitMarginData, forecastChartData, expenseAllocation,
       kpiVariables, dataStore: storeSnapshot, formulaCache: formulaCacheInstance, changedFormulas,
       formulas, addFormula, updateFormula, deleteFormula,
