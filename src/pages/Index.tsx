@@ -247,7 +247,7 @@ function RevenueProfitCard({
 }) {
   const [mode, setMode] = useState<"revenue" | "profit">("revenue");
   const [period, setPeriod] = useState<"2026" | "ytd">("ytd");
-  const showAll = period === "ytd";
+  
 
   const fmtCompact = (n: number) => {
     const abs = Math.abs(n);
@@ -310,20 +310,25 @@ function RevenueProfitCard({
       {/* Quoted-Jobs-style period filter (top-right) */}
       <div className="absolute top-2 right-2 flex items-center gap-2 z-10">
         <button
-          onClick={() => setPeriod(showAll ? "2026" : "ytd")}
-          className={`text-[11px] px-2.5 py-1 rounded-full border font-mono transition-colors ${
-            showAll
-              ? "bg-chart-green/20 text-chart-green border-chart-green/40"
-              : "border-border text-muted-foreground hover:bg-secondary/50"
+          onClick={() => setPeriod("ytd")}
+          className={`text-[11px] font-mono transition-colors ${
+            period === "ytd"
+              ? "px-2.5 py-1 rounded-full border bg-chart-green/20 text-chart-green border-chart-green/40"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          All
+          YTD
         </button>
-        {!showAll && (
-          <span className="text-[10px] font-mono text-muted-foreground/70">
-            2026
-          </span>
-        )}
+        <button
+          onClick={() => setPeriod("2026")}
+          className={`text-[11px] font-mono transition-colors ${
+            period === "2026"
+              ? "px-2.5 py-1 rounded-full border bg-chart-green/20 text-chart-green border-chart-green/40"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          2026
+        </button>
       </div>
       {/* PILLS */}
       <div className={`${emphasis ? "min-h-[1.5rem]" : ""} flex ${emphasis ? "justify-center items-center" : ""} gap-1 flex-wrap`}>
