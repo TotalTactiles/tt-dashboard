@@ -281,8 +281,6 @@ function InvoicesPaidCard({ index, onJumpToMonth }: { index: number; onJumpToMon
       <div className="w-full min-h-[1.5rem] flex items-center justify-center px-1">
         <p className={titleClass}>INVOICES</p>
       </div>
-      {/* reserved pills row for parity with siblings */}
-      <div className="w-full min-h-[1.5rem]" />
       <div className="flex-1 flex flex-col items-center justify-center gap-1.5 w-full min-w-0 text-center">
         <div className="w-full min-w-0">
           <p className={labelClass}>To be Paid</p>
@@ -352,7 +350,6 @@ function AvgContractCard({
       <div className="w-full min-h-[1.5rem] flex items-center justify-center px-1">
         <p className={titleClass}>AVG CONTRACT VALUE</p>
       </div>
-      <div className="w-full min-h-[1.5rem]" />
       <div className="flex-1 flex flex-col items-center justify-center gap-1.5 w-full min-w-0 text-center">
         <div className="w-full min-w-0">
           <p className={labelClass}>Won</p>
