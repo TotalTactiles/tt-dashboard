@@ -2119,8 +2119,8 @@ const DashboardContent = () => {
               adjustments={adjustments}
               year={periodYear}
               quarter={periodQuarter}
-              onYearChange={setPeriodYear}
-              onQuarterChange={setPeriodQuarter}
+              onYearChange={handleSharedYearChange}
+              onQuarterChange={handleSharedQuarterChange}
             />
           </div>
 
@@ -2129,14 +2129,17 @@ const DashboardContent = () => {
               monthlyInvoicesData={monthlyInvoicesData}
               invoicesTarget={invoicesTarget}
               onInvoicesTargetChange={setInvoicesTarget}
-              year={periodYear}
-              quarter={periodQuarter}
+              year={lowerPeriod.year}
+              quarter={lowerPeriod.quarter}
             />
             <MonthlyNetProfitChart
               monthlyNetProfitData={monthlyNetProfitData}
-              year={periodYear}
-              quarter={periodQuarter}
+              year={lowerPeriod.year}
+              quarter={lowerPeriod.quarter}
+              isOverridden={lowerOverride !== null}
+              onOverrideQuarter={handleLowerOverrideQuarter}
             />
+
 
 
           </div>
