@@ -223,6 +223,9 @@ export interface DashboardData {
   convRate: number;
   getLeadsToGoal: (jobsToGoal: number) => number;
   totalOpps: number;
+  totalLeads: number;
+  leadToWonRate: number;
+  getLeadsToGoalTrue: (jobsToGoal: number) => number;
   wrWonFY: number;
   wrLostFY: number;
   wrYlwFY: number;
@@ -313,7 +316,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
   const isLoading = ds.isLoading;
   const isRefreshing = ds.isRefreshing;
   const { formulas, addFormula, updateFormula, deleteFormula } = useFormulas();
-  const { quotingOpp } = useCrmStages();
+  const { quotingOpp, totalLeads } = useCrmStages();
   const [calendarEventsOverride, setCalendarEventsState] = useState<LiveCalendarEvent[] | null>(null);
 
   const data = useMemo<DashboardData>(() => {
@@ -1087,6 +1090,10 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const convRate = pipelineConversion / 100;
     const getLeadsToGoal = (jobsToGoal: number) =>
       convRate > 0 ? Math.ceil(jobsToGoal / convRate) : 0;
+    // LEADS module (CRM Leads): true lead → won conversion
+    const leadToWonRate = totalLeads > 0 ? (wrWon / totalLeads) : 0;
+    const getLeadsToGoalTrue = (jobsToGoal: number) =>
+      leadToWonRate > 0 ? Math.ceil(jobsToGoal / leadToWonRate) : 0;
 
 
     // ===== GROSS / NET revenue & profit =====
