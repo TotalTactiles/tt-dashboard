@@ -1,7 +1,8 @@
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from "recharts";
 import { useRevenueTarget } from "@/hooks/useRevenueTarget";
+import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 
 const fmtAUD = (n: number) => formatMetricValue(n, "currency");
@@ -18,16 +19,60 @@ type Props = {
 const cardBase =
   "relative bg-card border border-border rounded-lg p-4 md:p-5 flex flex-col";
 
+function PillToggle({
+  withYlw,
+  setWithYlw,
+}: {
+  withYlw: boolean;
+  setWithYlw: (v: boolean) => void;
+}) {
+  const base =
+    "px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-semibold transition-colors border";
+  return (
+    <div className="inline-flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => setWithYlw(false)}
+        className={
+          base +
+          " " +
+          (!withYlw
+            ? "bg-secondary text-foreground border-border"
+            : "bg-transparent text-muted-foreground border-transparent hover:text-foreground")
+        }
+      >
+        Confirmed
+      </button>
+      <button
+        type="button"
+        onClick={() => setWithYlw(true)}
+        className={
+          base +
+          " " +
+          (withYlw
+            ? "bg-secondary text-foreground border-border"
+            : "bg-transparent text-muted-foreground border-transparent hover:text-foreground")
+        }
+      >
+        With YLWs
+      </button>
+    </div>
+  );
+}
+
 export default function TargetsGoalsSection({
   currentRevenue,
   wonValueTotal,
   wonCount,
 }: Props) {
   const { target, setTarget } = useRevenueTarget();
+  const { ylwValue } = useDashboardData();
+  const [withYlw, setWithYlw] = useState(false);
 
   const avgWonDeal = wonCount > 0 ? wonValueTotal / wonCount : 0;
-  const pct = target > 0 ? Math.min(100, (currentRevenue / target) * 100) : 0;
-  const remaining = Math.max(0, target - currentRevenue);
+  const effectiveCurrent = withYlw ? currentRevenue + ylwValue : currentRevenue;
+  const pct = target > 0 ? Math.min(100, (effectiveCurrent / target) * 100) : 0;
+  const remaining = Math.max(0, target - effectiveCurrent);
   const jobsToGoal = avgWonDeal > 0 && remaining > 0 ? Math.ceil(remaining / avgWonDeal) : 0;
 
   return (
@@ -48,12 +93,18 @@ export default function TargetsGoalsSection({
           currentRevenue={currentRevenue}
           pct={pct}
           remaining={remaining}
+          withYlw={withYlw}
+          setWithYlw={setWithYlw}
+          ylwValue={ylwValue}
         />
         <JobsToGoalCard
           target={target}
           jobsToGoal={jobsToGoal}
           avgWonDeal={avgWonDeal}
           remaining={remaining}
+          withYlw={withYlw}
+          setWithYlw={setWithYlw}
+          ylwValue={ylwValue}
         />
       </div>
     </>
@@ -66,12 +117,18 @@ function RevenueGoalCard({
   currentRevenue,
   pct,
   remaining,
+  withYlw,
+  setWithYlw,
+  ylwValue,
 }: {
   target: number;
   setTarget: (n: number) => void;
   currentRevenue: number;
   pct: number;
   remaining: number;
+  withYlw: boolean;
+  setWithYlw: (v: boolean) => void;
+  ylwValue: number;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<string>(String(target || ""));
@@ -101,13 +158,11 @@ function RevenueGoalCard({
       transition={{ duration: 0.25 }}
       className={cardBase}
     >
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-2 gap-2">
         <span className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground/70">
           Revenue Goal
         </span>
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-          YTD
-        </span>
+        <PillToggle withYlw={withYlw} setWithYlw={setWithYlw} />
       </div>
 
       {/* Editable target — prominent */}
@@ -198,6 +253,11 @@ function RevenueGoalCard({
           ) : (
             <> · <span className="text-chart-green">Goal met 🎉</span></>
           )}
+          {withYlw && ylwValue > 0 && (
+            <div className="mt-1 text-[11px] normal-case tracking-normal text-muted-foreground/80">
+              incl. <span className="font-mono tabular-nums">{fmtAUD(ylwValue)}</span> YLW
+            </div>
+          )}
         </div>
       )}
     </motion.div>
@@ -209,11 +269,17 @@ function JobsToGoalCard({
   jobsToGoal,
   avgWonDeal,
   remaining,
+  withYlw,
+  setWithYlw,
+  ylwValue,
 }: {
   target: number;
   jobsToGoal: number;
   avgWonDeal: number;
   remaining: number;
+  withYlw: boolean;
+  setWithYlw: (v: boolean) => void;
+  ylwValue: number;
 }) {
   const empty = target === 0;
   const met = !empty && remaining === 0;
@@ -225,13 +291,11 @@ function JobsToGoalCard({
       transition={{ duration: 0.25, delay: 0.05 }}
       className={cardBase}
     >
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-2 gap-2">
         <span className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground/70">
           Jobs to Goal
         </span>
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-          at avg won
-        </span>
+        <PillToggle withYlw={withYlw} setWithYlw={setWithYlw} />
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
@@ -263,6 +327,11 @@ function JobsToGoalCard({
               <div>
                 <span className="font-mono tabular-nums text-foreground">{fmtAUD(remaining)}</span>{" "}
                 remaining
+              </div>
+            )}
+            {withYlw && ylwValue > 0 && (
+              <div className="text-[11px] text-muted-foreground/80">
+                incl. <span className="font-mono tabular-nums">{fmtAUD(ylwValue)}</span> YLW
               </div>
             )}
           </>
