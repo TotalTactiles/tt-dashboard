@@ -1157,134 +1157,124 @@ function MonthlyNetProfitChart({
   isOverridden: boolean;
   onOverrideQuarter: (q: QuarterFilter) => void;
 }) {
-  const data = useMemo(() => {
-    let cumulative = 0;
-    return filterByPeriod(monthlyNetProfitData, year, quarter).map((d) => {
-      cumulative += d.netProfit;
-      return { ...d, cumulative };
-    });
-  }, [monthlyNetProfitData, year, quarter]);
-
-  const dataMin = Math.min(0, ...data.map((d) => d.netProfit));
-  const dataMax = Math.max(0, ...data.map((d) => d.netProfit));
-  const yDomain = data.length === 0
-    ? [-1000, 1000]
-    : [Math.min(0, dataMin), Math.ceil((Math.max(dataMax, 1) * 1.12) / 1000) * 1000];
-
-  const cumMin = Math.min(0, ...data.map((d) => d.cumulative));
-  const cumMax = Math.max(0, ...data.map((d) => d.cumulative));
-  const yDomainRight = data.length === 0
-    ? [0, 1000]
-    : [Math.min(0, cumMin), Math.ceil((Math.max(cumMax, 1) * 1.12) / 1000) * 1000];
+  const data = useMemo(
+    () => filterByPeriod(monthlyNetProfitData, year, quarter),
+    [monthlyNetProfitData, year, quarter],
+  );
 
   const periodLabel =
     quarter === "all" ? (year === "all" ? "All periods" : year) : `${quarter} ${year}`;
   const periodTotal = data.reduce((sum, d) => sum + d.netProfit, 0);
 
+  const scaleMax = Math.max(1, ...data.map((d) => Math.abs(d.netProfit || 0)));
+  const hasNegative = data.some((d) => (d.netProfit || 0) < 0);
+  const fmtMoney = (n: number) =>
+    `${n < 0 ? "-" : ""}$${Math.abs(Math.round(n)).toLocaleString("en-AU")}`;
+
   return (
-    <div className="chart-container">
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div>
-          <h3 className="text-sm font-medium text-foreground">Monthly Net Profit</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Profit each month after all expenses and debt.
+    <div className="chart-container h-full">
+      <div className="flex flex-col h-full">
+        <div className="flex items-start justify-between gap-3 mb-3 flex-shrink-0">
+          <div>
+            <h3 className="text-sm font-medium text-foreground">Monthly Net Profit</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Profit each month after all expenses and debt.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {isOverridden && (
+              <span className="text-[10px] font-mono text-muted-foreground">• custom</span>
+            )}
+            <Select value={quarter} onValueChange={(v) => onOverrideQuarter(v as QuarterFilter)}>
+              <SelectTrigger className="h-7 w-[90px] text-xs bg-white/5 border-white/10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="Q1">Q1</SelectItem>
+                <SelectItem value="Q2">Q2</SelectItem>
+                <SelectItem value="Q3">Q3</SelectItem>
+                <SelectItem value="Q4">Q4</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="mb-3 flex-shrink-0">
+          <p className="text-xs font-mono text-muted-foreground">
+            <span className="text-foreground">{periodLabel}</span> net profit:{" "}
+            <span className="text-foreground">{fmtMoney(periodTotal)}</span>
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {isOverridden && (
-            <span className="text-[10px] font-mono text-muted-foreground">• custom</span>
-          )}
-          <Select value={quarter} onValueChange={(v) => onOverrideQuarter(v as QuarterFilter)}>
-            <SelectTrigger className="h-7 w-[90px] text-xs bg-white/5 border-white/10">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="Q1">Q1</SelectItem>
-              <SelectItem value="Q2">Q2</SelectItem>
-              <SelectItem value="Q3">Q3</SelectItem>
-              <SelectItem value="Q4">Q4</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="mb-3">
-        <p className="text-xs font-mono text-muted-foreground">
-          <span className="text-foreground">{periodLabel}</span> net profit:{" "}
-          <span className="text-foreground">{fmtAUD(periodTotal)}</span>
-        </p>
-      </div>
-      <ResponsiveContainer width="100%" height={220}>
-        <ComposedChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-          <XAxis dataKey="month" tick={{ fill: "#6b7280", fontSize: 11 }} />
-          <YAxis
-            yAxisId="left"
-            tickFormatter={fmtKAxis}
-            tick={{ fill: "#6b7280", fontSize: 11 }}
-            domain={yDomain}
-          />
-          <YAxis
-            yAxisId="right"
-            orientation="right"
-            tickFormatter={fmtKAxis}
-            tick={{ fill: "#6b7280", fontSize: 11 }}
-            domain={yDomainRight}
-          />
-          <Tooltip
-            content={({ active, payload, label }: any) => {
-              if (!active || !payload?.length) return null;
-              const p = payload[0];
-              const value = p?.value ?? 0;
-              const isNetProfit = p?.dataKey === "netProfit";
-              const isPositive = value >= 0;
+
+        {data.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-sm text-muted-foreground font-mono">No data for this period</p>
+          </div>
+        ) : (
+          <div
+            className={`flex-1 flex flex-col ${
+              data.length > 6 ? "justify-start gap-2 overflow-hidden" : "justify-around"
+            }`}
+          >
+            {data.map((d) => {
+              const v = d.netProfit || 0;
+              const isPos = v >= 0;
+              const widthPct = Math.min(100, (Math.abs(v) / scaleMax) * 100);
+              const color = isPos ? "#15803D" : "#7F1D1D";
               return (
-                <div style={{
-                  backgroundColor: "#0f172a",
-                  border: "1px solid rgba(255,255,255,0.3)",
-                  borderRadius: "10px",
-                  padding: "10px 16px",
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
-                  minWidth: "160px"
-                }}>
-                  <p style={{ color: "#94a3b8", fontSize: "11px", fontFamily: "monospace", margin: "0 0 6px 0" }}>{label}</p>
-                  <p style={{
-                    color: isNetProfit ? (isPositive ? "#22c55e" : "#ef4444") : "#3D89DA",
-                    fontSize: "15px",
-                    fontWeight: 700,
-                    margin: 0,
-                    fontFamily: "monospace"
-                  }}>
-                    {value < 0 ? "-" : ""}${Math.abs(value).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                  <p style={{ color: "#64748b", fontSize: "10px", margin: "4px 0 0 0" }}>
-                    {isNetProfit ? "Net Profit" : "Cumulative"}
-                  </p>
+                <div key={d.month} className="flex items-center gap-3 min-h-[40px]">
+                  <span
+                    className="text-[11px] font-mono text-muted-foreground text-left shrink-0"
+                    style={{ width: 60 }}
+                  >
+                    {d.month}
+                  </span>
+                  <div className="relative flex-1 h-full rounded-sm bg-white/[0.04] overflow-hidden">
+                    {hasNegative ? (
+                      <>
+                        {/* centered zero baseline */}
+                        <div
+                          className="absolute inset-y-0"
+                          style={{
+                            left: "50%",
+                            width: 1,
+                            backgroundColor: "#ffffff30",
+                            transform: "translateX(-0.5px)",
+                          }}
+                        />
+                        <div
+                          className="absolute inset-y-0 rounded-sm transition-all"
+                          style={{
+                            left: isPos ? "50%" : `${50 - widthPct / 2}%`,
+                            width: `${widthPct / 2}%`,
+                            backgroundColor: color,
+                          }}
+                        />
+                      </>
+                    ) : (
+                      <div
+                        className="absolute inset-y-0 left-0 rounded-sm transition-all"
+                        style={{ width: `${widthPct}%`, backgroundColor: color }}
+                      />
+                    )}
+                  </div>
+                  <span
+                    className="text-[11px] font-mono text-foreground text-right shrink-0 tabular-nums"
+                    style={{ width: 90 }}
+                  >
+                    {fmtMoney(v)}
+                  </span>
                 </div>
               );
-            }}
-          />
-          <ReferenceLine yAxisId="left" y={0} stroke="#ffffff30" strokeDasharray="2 2" />
-          <Bar dataKey="netProfit" name="Net Profit" yAxisId="left">
-            {data.map((d, i) => (
-              <Cell key={i} fill={d.netProfit >= 0 ? "#15803D" : "#7F1D1D"} />
-            ))}
-          </Bar>
-          <Line
-            type="monotone"
-            dataKey="cumulative"
-            name="Cumulative"
-            yAxisId="right"
-            stroke="#3D89DA"
-            strokeWidth={2}
-            dot={false}
-            activeDot={{ r: 4, fill: "#3D89DA", stroke: "#fff", strokeWidth: 1 }}
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
+
 
 
 
