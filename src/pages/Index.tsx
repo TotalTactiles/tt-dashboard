@@ -1636,15 +1636,6 @@ const DashboardContent = () => {
                       greenAltPill={true}
                     />
                   )}
-                  {visibleOptionalCards.has("CAC Per Client") && (
-                    <StatCard
-                      label="CAC Per Client"
-                      value="N/A (no ad spend)"
-                      change="$0/mo ads"
-                      positive={true}
-                      index={18}
-                    />
-                  )}
                 </div>
               )}
             </div>
