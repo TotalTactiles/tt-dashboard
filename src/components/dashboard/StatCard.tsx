@@ -201,13 +201,8 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
     : "Enter amount";
   const resolvedActualDate = localActualDate ? `Actual · ${localActualDate}` : "";
 
-  const isCashflowPosition = label === "Cashflow Position";
-  const openValue = isCashflowPosition && kpiVariables?.XeroCashOpening && kpiVariables.XeroCashOpening !== 0
-    ? kpiVariables.XeroCashOpening
-    : null;
-  const todayValue = isCashflowPosition && kpiVariables?.XeroCashCurrent && kpiVariables.XeroCashCurrent !== 0
-    ? kpiVariables.XeroCashCurrent
-    : null;
+  const isCashflowPosition = label === "Cashflow Position" || label === "Cash Position";
+  const isCashPosition = isCashflowPosition;
 
   const displayValue = (() => {
     if (mode === "alt2") return resolvedActualValue;
