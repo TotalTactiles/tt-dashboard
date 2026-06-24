@@ -48,20 +48,30 @@ function loadPref<T>(key: string, fallback: T): T {
 interface PortfolioChartProps {
   adjustedData?: IncomeOutgoingsPoint[];
   adjustments?: GoalAdjustment[];
+  year?: string;
+  quarter?: QuarterFilter;
+  onYearChange?: (year: string) => void;
+  onQuarterChange?: (quarter: QuarterFilter) => void;
 }
 
-const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartProps) => {
+const PortfolioChartInner = ({ adjustedData, adjustments = [], year: yearProp, quarter: quarterProp, onYearChange, onQuarterChange }: PortfolioChartProps) => {
   const { incomeOutgoingsData, dataHealth } = useDashboardData();
   const sourceData = useMemo(() => adjustedData ?? incomeOutgoingsData, [adjustedData, incomeOutgoingsData]);
   const [exportOpen, setExportOpen] = useState(false);
   const { resolvedTheme } = useTheme();
 
-  const [quarter, setQuarter] = useState<QuarterFilter>(getCurrentQuarter());
+  const [internalQuarter, setInternalQuarter] = useState<QuarterFilter>(getCurrentQuarter());
+  const quarter = quarterProp ?? internalQuarter;
 
   const setQuarterFilter = useCallback((q: QuarterFilter) => {
-    setQuarter(q);
+    if (onQuarterChange) {
+      onQuarterChange(q);
+    } else {
+      setInternalQuarter(q);
+    }
     localStorage.setItem("cashflow_quarter_filter", JSON.stringify(q));
-  }, []);
+  }, [onQuarterChange]);
+
 
   // Derive available years from data
   const availableYears = useMemo(() => {
