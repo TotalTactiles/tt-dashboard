@@ -1048,7 +1048,11 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const winRateConfirmed = (wrWon + wrLost) > 0 ? (wrWon / (wrWon + wrLost)) * 100 : 0;
     const winRateWithYlw   = (wrWon + wrYlw + wrLost) > 0 ? ((wrWon + wrYlw) / (wrWon + wrYlw + wrLost)) * 100 : 0;
 
+    const totalOpps = quotedJobs.length;
+    const pipelineConversion = totalOpps > 0 ? (wrWon / totalOpps) * 100 : 0;
+
     // ===== GROSS / NET revenue & profit =====
+
     const rsAny        = (liveData?.revenueSummary as any) || {};
     const grossRevenue = parseNum(rsAny.totalValue ?? 0);          // incl GST (top line)
     const netRevenue4  = grossRevenue / 1.1;                        // ex GST
