@@ -53,7 +53,8 @@ export default function TargetsGoalsSection(_props: Props) {
   const jobsToGoal =
     avgWonDeal > 0 && remaining > 0 ? Math.ceil(remaining / avgWonDeal) : 0;
   const oppsToGoal = getLeadsToGoal(jobsToGoal);
-  const leadsToGoalTrue = getLeadsToGoalTrue(jobsToGoal);
+  const leadsToGoal = getLeadsToGoalTrue(jobsToGoal);
+
 
   return (
     <>
@@ -95,15 +96,15 @@ export default function TargetsGoalsSection(_props: Props) {
         <LeadsToGoalCard
           target={target}
           oppsToGoal={oppsToGoal}
-          leadsToGoalTrue={leadsToGoalTrue}
+          leadsToGoal={leadsToGoal}
           avgWonDeal={avgWonDeal}
           pipelineConversion={pipelineConversion}
-          leadToWonRate={leadToWonRate}
-          totalLeads={totalLeads}
+          winRateConfirmed={winRateConfirmed}
           remaining={remaining}
           withYlw={withYlw}
           setWithYlw={setWithYlw}
         />
+
       </div>
     </>
   );
@@ -420,11 +421,10 @@ function JobsToGoalCard({
 function LeadsToGoalCard({
   target,
   oppsToGoal,
-  leadsToGoalTrue,
+  leadsToGoal,
   avgWonDeal,
   pipelineConversion,
-  leadToWonRate,
-  totalLeads,
+  winRateConfirmed,
   remaining,
   withYlw,
   setWithYlw,
@@ -432,16 +432,16 @@ function LeadsToGoalCard({
 }: {
   target: number;
   oppsToGoal: number;
-  leadsToGoalTrue: number;
+  leadsToGoal: number;
   avgWonDeal: number;
   pipelineConversion: number;
-  leadToWonRate: number;
-  totalLeads: number;
+  winRateConfirmed: number;
   remaining: number;
   withYlw: boolean;
   setWithYlw: (v: boolean) => void;
   className?: string;
 }) {
+
   const [mode, setMode] = useState<"opps" | "leads">("opps");
   const oppConvRate = pipelineConversion / 100;
   const leadsAvailable = totalLeads > 0;
