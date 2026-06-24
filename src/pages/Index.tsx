@@ -371,16 +371,27 @@ function AvgContractCard({
   );
 }
 
-// ── REVENUE GROWTH — scope-aware (YTD avg MoM% + sparkline, or QoQ%) ─────────────────
+// ── REVENUE GROWTH — scope-aware (% growth or $ total) ─────────────────
 function RevenueGrowthCard({ scope, index }: { scope: "ytd" | "quarter"; index: number }) {
   const { incomeOutgoingsData } = useDashboardData();
+  const [view, setView] = useState<"pct" | "dollar">("pct");
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
-  const { headline, sub, positive, isNA, spark, q1Total, q2Total } = useMemo(() => {
+  const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+  const fmtCompact = (n: number) => {
+    const abs = Math.abs(n);
+    const sign = n < 0 ? "-" : "";
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}K`;
+    return `${sign}$${Math.round(abs).toLocaleString()}`;
+  };
+
+  const data = useMemo(() => {
     const now = new Date();
     const curYear = now.getFullYear();
     const curMonth = now.getMonth();
 
-    // Current-year monthly income series up to (and including) current month
     const monthly: { monthIdx: number; income: number }[] = [];
     for (const pt of incomeOutgoingsData) {
       const k = parseMonthKey(pt.month);
@@ -391,105 +402,149 @@ function RevenueGrowthCard({ scope, index }: { scope: "ytd" | "quarter"; index: 
     }
     monthly.sort((a, b) => a.monthIdx - b.monthIdx);
 
-    if (scope === "ytd") {
-      // Avg MoM growth across consecutive non-zero months
-      const rates: number[] = [];
-      for (let i = 1; i < monthly.length; i++) {
-        const prev = monthly[i - 1].income;
-        const cur = monthly[i].income;
-        if (prev > 0 && cur > 0) rates.push(((cur - prev) / prev) * 100);
-      }
-      const isNA = rates.length === 0;
-      const avg = isNA ? 0 : rates.reduce((s, r) => s + r, 0) / rates.length;
-      const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-      const firstM = monthly[0]?.monthIdx ?? 0;
-      const lastM = monthly[monthly.length - 1]?.monthIdx ?? curMonth;
-      return {
-        headline: isNA ? "—" : `${avg >= 0 ? "+" : ""}${avg.toFixed(1)}%`,
-        sub: `${MONTH_ABBR[firstM]}–${MONTH_ABBR[lastM]} · avg MoM`,
-        positive: avg >= 0,
-        isNA,
-        spark: monthly.map(m => m.income),
-        q1Total: 0,
-        q2Total: 0,
-      };
+    // YTD pct
+    const rates: number[] = [];
+    for (let i = 1; i < monthly.length; i++) {
+      const prev = monthly[i - 1].income;
+      const cur = monthly[i].income;
+      if (prev > 0 && cur > 0) rates.push(((cur - prev) / prev) * 100);
     }
+    const ytdPctNA = rates.length === 0;
+    const ytdPct = ytdPctNA ? 0 : rates.reduce((s, r) => s + r, 0) / rates.length;
+    const ytdTotal = monthly.reduce((s, m) => s + m.income, 0);
+    const firstM = monthly[0]?.monthIdx ?? 0;
+    const lastM = monthly[monthly.length - 1]?.monthIdx ?? curMonth;
 
-    // Quarter scope — Q of current month
-    const qIdx = Math.floor(curMonth / 3); // 0..3
+    // Quarter
+    const qIdx = Math.floor(curMonth / 3);
     const qStart = qIdx * 3;
     const prevQStart = qStart - 3;
     const qTotal = monthly.filter(m => m.monthIdx >= qStart && m.monthIdx < qStart + 3).reduce((s, m) => s + m.income, 0);
     const prevTotal = prevQStart >= 0
       ? monthly.filter(m => m.monthIdx >= prevQStart && m.monthIdx < prevQStart + 3).reduce((s, m) => s + m.income, 0)
       : 0;
-    const isNA = prevTotal <= 0;
-    const pct = isNA ? 0 : ((qTotal - prevTotal) / prevTotal) * 100;
-    const delta = qTotal - prevTotal;
-    const fmtCompact = (n: number) => {
-      const abs = Math.abs(n);
-      const sign = n < 0 ? "-" : "";
-      if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
-      if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}K`;
-      return `${sign}$${Math.round(abs).toLocaleString()}`;
-    };
-    const prevQName = prevQStart >= 0 ? `Q${qIdx}` : "—";
+    const qPctNA = prevTotal <= 0;
+    const qPct = qPctNA ? 0 : ((qTotal - prevTotal) / prevTotal) * 100;
+    const qDelta = qTotal - prevTotal;
+
     return {
-      headline: isNA ? "—" : `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`,
-      sub: isNA ? `Q${qIdx + 1} vs ${prevQName}` : `${delta >= 0 ? "+" : ""}${fmtCompact(delta)} vs ${prevQName}`,
-      positive: pct >= 0,
-      isNA,
-      spark: [],
-      q1Total: prevTotal,
-      q2Total: qTotal,
+      monthly,
+      ytdPct, ytdPctNA, ytdTotal,
+      firstM, lastM,
+      qIdx, qPct, qPctNA, qTotal, prevTotal, qDelta,
     };
-  }, [incomeOutgoingsData, scope]);
+  }, [incomeOutgoingsData]);
+
+  const isYTD = scope === "ytd";
+  const isPct = view === "pct";
+
+  // Headline + sub + color
+  let headline = "—";
+  let sub = "";
+  let positive = true;
+  let isNA = false;
+
+  if (isYTD && isPct) {
+    isNA = data.ytdPctNA;
+    positive = data.ytdPct >= 0;
+    headline = isNA ? "—" : `${data.ytdPct >= 0 ? "+" : ""}${data.ytdPct.toFixed(1)}%`;
+    sub = `${MONTH_ABBR[data.firstM]}–${MONTH_ABBR[data.lastM]} · avg MoM`;
+  } else if (isYTD && !isPct) {
+    positive = true;
+    isNA = data.ytdTotal <= 0;
+    headline = isNA ? "—" : fmtCompact(data.ytdTotal);
+    sub = `${MONTH_ABBR[data.firstM]}–${MONTH_ABBR[data.lastM]} YTD`;
+  } else if (!isYTD && isPct) {
+    isNA = data.qPctNA;
+    positive = data.qPct >= 0;
+    const prevQName = data.qIdx > 0 ? `Q${data.qIdx}` : "—";
+    headline = isNA ? "—" : `${data.qPct >= 0 ? "+" : ""}${data.qPct.toFixed(1)}%`;
+    sub = isNA ? `Q${data.qIdx + 1} vs ${prevQName}` : `Q${data.qIdx + 1} vs ${prevQName}`;
+  } else {
+    positive = data.qDelta >= 0;
+    isNA = data.qTotal <= 0;
+    const prevQName = data.qIdx > 0 ? `Q${data.qIdx}` : "—";
+    headline = isNA ? "—" : fmtCompact(data.qTotal);
+    sub = data.qIdx > 0
+      ? `Q${data.qIdx + 1} · ${data.qDelta >= 0 ? "+" : ""}${fmtCompact(data.qDelta)} vs ${prevQName}`
+      : `Q${data.qIdx + 1} total`;
+  }
 
   const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
   const subClass = "text-[0.65rem] leading-tight text-muted-foreground font-mono whitespace-normal break-words text-center";
   const figureStyle: React.CSSProperties = { fontSize: 'clamp(1.35rem, 1.9vw, 1.7rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' };
   const colorClass = isNA ? "text-muted-foreground" : positive ? "text-chart-green" : "text-chart-red";
 
-  // sparkline svg
-  const sparkSvg = (() => {
-    if (scope !== "ytd" || spark.length === 0) return null;
-    const W = 120, H = 24, P = 1;
-    const max = Math.max(...spark, 1);
-    const bw = (W - P * 2) / spark.length;
-    return (
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-6 mt-1" preserveAspectRatio="none">
-        {spark.map((v, i) => {
-          const h = max > 0 ? (v / max) * (H - 2) : 0;
-          return (
-            <rect
-              key={i}
-              x={P + i * bw + bw * 0.15}
-              y={H - h - 1}
-              width={Math.max(1, bw * 0.7)}
-              height={Math.max(1, h)}
-              className={positive ? "fill-chart-green/70" : "fill-chart-red/70"}
-            />
-          );
-        })}
-      </svg>
-    );
-  })();
+  // Chart: in YTD scope show monthly bars; in Quarter scope show prev-Q vs cur-Q bars
+  const chartBars: { label: string; value: number }[] = isYTD
+    ? data.monthly.map(m => ({ label: MONTH_ABBR[m.monthIdx], value: m.income }))
+    : (() => {
+        const prevQName = data.qIdx > 0 ? `Q${data.qIdx}` : "—";
+        return [
+          { label: prevQName, value: data.prevTotal },
+          { label: `Q${data.qIdx + 1}`, value: data.qTotal },
+        ];
+      })();
 
-  const qBars = (() => {
-    if (scope !== "quarter") return null;
-    const max = Math.max(q1Total, q2Total, 1);
-    const h1 = (q1Total / max) * 22;
-    const h2 = (q2Total / max) * 22;
+  const chartCaption = isYTD
+    ? "Monthly revenue — the months making up this growth"
+    : "Quarterly revenue — current quarter vs prior quarter";
+
+  const chartTitle = hoverIdx != null && chartBars[hoverIdx]
+    ? `${chartBars[hoverIdx].label} • ${fmtCompact(chartBars[hoverIdx].value)}`
+    : chartCaption;
+
+  const chartSvg = (() => {
+    if (chartBars.length === 0) return null;
+    const W = 120, H = 28, P = 1;
+    const max = Math.max(...chartBars.map(b => b.value), 1);
+    const bw = (W - P * 2) / chartBars.length;
     return (
-      <div className="flex items-end justify-center gap-2 h-6 mt-1">
-        <div className="flex flex-col items-center gap-0.5">
-          <div className="w-3 bg-muted-foreground/40 rounded-sm" style={{ height: Math.max(1, h1) }} />
-          <span className="text-[8px] font-mono text-muted-foreground leading-none">Q{Math.floor(new Date().getMonth() / 3)}</span>
-        </div>
-        <div className="flex flex-col items-center gap-0.5">
-          <div className={`w-3 rounded-sm ${positive ? "bg-chart-green/70" : "bg-chart-red/70"}`} style={{ height: Math.max(1, h2) }} />
-          <span className="text-[8px] font-mono text-muted-foreground leading-none">Q{Math.floor(new Date().getMonth() / 3) + 1}</span>
-        </div>
+      <div className="w-full mt-1 cursor-pointer" title={chartTitle}>
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="w-full h-7"
+          preserveAspectRatio="none"
+          onMouseLeave={() => setHoverIdx(null)}
+        >
+          {chartBars.map((b, i) => {
+            const h = max > 0 ? (b.value / max) * (H - 2) : 0;
+            const fill = isYTD
+              ? (positive ? "fill-chart-green/70" : "fill-chart-red/70")
+              : (i === chartBars.length - 1
+                  ? (positive ? "fill-chart-green/70" : "fill-chart-red/70")
+                  : "fill-muted-foreground/40");
+            return (
+              <g key={i}>
+                <rect
+                  x={P + i * bw + bw * 0.15}
+                  y={H - h - 1}
+                  width={Math.max(1, bw * 0.7)}
+                  height={Math.max(1, h)}
+                  className={`${fill} ${hoverIdx === i ? "opacity-100" : "opacity-90"}`}
+                />
+                {/* hover hit area covering full column height */}
+                <rect
+                  x={P + i * bw}
+                  y={0}
+                  width={bw}
+                  height={H}
+                  fill="transparent"
+                  onMouseEnter={() => setHoverIdx(i)}
+                  onTouchStart={() => setHoverIdx(i)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <title>{`${b.label} • ${fmtCompact(b.value)}`}</title>
+                </rect>
+              </g>
+            );
+          })}
+        </svg>
+        <p className={subClass + " mt-0.5"} style={{ minHeight: '0.85rem' }}>
+          {hoverIdx != null && chartBars[hoverIdx]
+            ? `${chartBars[hoverIdx].label} • ${fmtCompact(chartBars[hoverIdx].value)}`
+            : ""}
+        </p>
       </div>
     );
   })();
@@ -505,12 +560,23 @@ function RevenueGrowthCard({ scope, index }: { scope: "ytd" | "quarter"; index: 
       <div className="w-full min-h-[1.5rem] flex items-center justify-center px-1">
         <p className={titleClass}>REVENUE GROWTH</p>
       </div>
-      <div className="w-full min-h-[1.5rem]" />
+      {/* % | $ toggle — same styling as PerJob/Op.Expense pill */}
+      <div className="min-h-[1.5rem] flex justify-center items-center">
+        <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
+          <button
+            onClick={() => setView("pct")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${view === "pct" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >%</button>
+          <button
+            onClick={() => setView("dollar")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${view === "dollar" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >$</button>
+        </div>
+      </div>
       <div className="flex-1 flex flex-col items-center justify-center w-full min-w-0 text-center gap-0.5">
         <span className={`font-bold font-mono ${colorClass}`} style={figureStyle}>{headline}</span>
         <span className={subClass}>{sub}</span>
-        {sparkSvg}
-        {qBars}
+        {chartSvg}
       </div>
     </motion.div>
   );
