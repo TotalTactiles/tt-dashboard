@@ -59,6 +59,7 @@ export default function TargetsGoalsSection({
         style={{ gap: "clamp(8px, 1vw, 16px)" }}
       >
         <RevenueGoalCard
+          className="md:col-span-2"
           target={target}
           setTarget={setTarget}
           currentRevenue={currentRevenue}
@@ -81,6 +82,15 @@ export default function TargetsGoalsSection({
           withYlw={withYlw}
           setWithYlw={setWithYlw}
           ylwValue={ylwValue}
+        />
+        <LeadsToGoalCard
+          target={target}
+          leadsToGoal={leadsToGoal}
+          avgWonDeal={avgWonDeal}
+          pipelineConversion={pipelineConversion}
+          remaining={remaining}
+          withYlw={withYlw}
+          setWithYlw={setWithYlw}
         />
       </div>
     </>
