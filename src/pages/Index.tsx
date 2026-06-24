@@ -217,6 +217,84 @@ function WinLossSummaryCard({
   );
 }
 
+// ── INVOICES PAID / TO-BE-PAID CARD ────────────────────────────────
+// Paid (top)        = last calendar month's invoices (received THIS month)
+// To be paid (bot.) = this calendar month's invoices (received NEXT month)
+// Source: revenueProjects (REVENUE tab), valueInclGST, invoiceDate.
+function InvoicesPaidCard({ index }: { index: number }) {
+  const { revenueProjects } = useDashboardData();
+
+  const { paid, toBePaid, paidCount, toBePaidCount } = useMemo(() => {
+    const now = new Date();
+    const curY = now.getFullYear();
+    const curM = now.getMonth();
+    const prev = new Date(curY, curM - 1, 1);
+    const prevY = prev.getFullYear();
+    const prevM = prev.getMonth();
+
+    let paid = 0, toBePaid = 0, paidCount = 0, toBePaidCount = 0;
+    for (const rp of revenueProjects) {
+      if (!rp.invoiceDate) continue;
+      const d = new Date(rp.invoiceDate);
+      if (isNaN(d.getTime())) continue;
+      const y = d.getFullYear();
+      const m = d.getMonth();
+      const v = rp.valueInclGST || 0;
+      if (y === prevY && m === prevM) { paid += v; paidCount++; }
+      else if (y === curY && m === curM) { toBePaid += v; toBePaidCount++; }
+    }
+    return { paid, toBePaid, paidCount, toBePaidCount };
+  }, [revenueProjects]);
+
+  const fmtCompact = (n: number) => {
+    const abs = Math.abs(n);
+    const sign = n < 0 ? "-" : "";
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}K`;
+    return `${sign}$${Math.round(abs).toLocaleString()}`;
+  };
+
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const now = new Date();
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const paidCtx = MONTHS[prev.getMonth()];
+  const toBeCtx = MONTHS[now.getMonth()];
+
+  const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
+  const labelClass = "text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center";
+  const subClass = "text-[0.65rem] leading-tight text-muted-foreground font-mono whitespace-normal break-words text-center";
+  const figureStyle: React.CSSProperties = { fontSize: 'clamp(1.25rem, 1.6vw, 1.5rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+      className="stat-card relative overflow-hidden flex flex-col items-center text-center h-full p-3 gap-1"
+      style={{ containerType: 'inline-size' }}
+    >
+      <div className="w-full min-h-[1.5rem] flex items-center justify-center px-1">
+        <p className={titleClass}>INVOICES</p>
+      </div>
+      {/* reserved pills row for parity with siblings */}
+      <div className="w-full min-h-[1.5rem]" />
+      <div className="flex-1 flex flex-col items-center justify-center gap-0.5 w-full min-w-0">
+        <div className="w-full min-w-0">
+          <p className={labelClass}>PAID</p>
+          <p className="font-bold font-mono text-chart-green break-words leading-tight" style={figureStyle}>{fmtCompact(paid)}</p>
+          <p className={subClass}>{paidCount} inv · {paidCtx}</p>
+        </div>
+        <div className="h-px bg-white/10 my-1 w-2/3 mx-auto" />
+        <div className="w-full min-w-0">
+          <p className={labelClass}>TO BE PAID</p>
+          <p className="font-bold font-mono text-foreground/90 break-words leading-tight" style={figureStyle}>{fmtCompact(toBePaid)}</p>
+          <p className={subClass}>{toBePaidCount} inv · {toBeCtx}</p>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 
 
 
@@ -1413,34 +1491,24 @@ const DashboardContent = () => {
                   : `${investorDateWindows.qLabel} · ${investorDateWindows.qMonths.length} months to date`}
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" style={{ containerType: 'inline-size' }}>
-                {(() => {
-                  const revenueExGST = sd.revenueExGST;
-                  const totalExpenses = sd.totalExpenses;
-                  let grossProfit = revenueExGST * ((sd.grossMarginPct ?? 0) / 100);
-                  let netProfit = revenueExGST - totalExpenses;
-                  if (grossProfit < netProfit && sd.totalCOGS !== undefined) {
-                    grossProfit = revenueExGST - sd.totalCOGS;
-                  }
-                  const gpMargin = revenueExGST > 0 ? ((grossProfit / revenueExGST) * 100).toFixed(1) : "0.0";
-                  const netMargin = revenueExGST > 0 ? ((netProfit / revenueExGST) * 100).toFixed(1) : "0.0";
-                  return (
-                    <StatCard
-                      label="Profitability"
-                      value={fmtVal(netProfit)}
-                      change={`${netMargin}% net margin`}
-                      positive={netProfit >= 0}
-                      index={10}
-                      momContext={scopeLabel}
-                      altValue={fmtVal(grossProfit)}
-                      altChange={`${gpMargin}% GP margin`}
-                      altPositive={grossProfit >= 0}
-                      altMomContext={scopeLabel}
-                      toggleLabelBase="Net Profit"
-                      toggleLabelAlt="Gross Profit"
-                      greenAltPill={true}
-                    />
-                  );
-                })()}
+                {/* 1. Cash Position — relocated. StatCard internals detect label and wire Open/Today/Actual */}
+                <StatCard
+                  label="Cashflow Position"
+                  value="—"
+                  change=""
+                  positive={true}
+                  index={9}
+                  altValue="—"
+                  altChange=""
+                  altPositive={true}
+                  toggleLabelBase="Open"
+                  toggleLabelAlt="Today"
+                  toggleLabelAlt2="Actual"
+                  greenAltPill={true}
+                  emphasis
+                />
+                {/* 2. Invoices Paid / To-be-paid — relocated/built from REVENUE tab */}
+                <InvoicesPaidCard index={10} />
                 <StatCard
                   label="Gross Margin %"
                   value={`${gmPct}%`}
@@ -1501,14 +1569,6 @@ const DashboardContent = () => {
                     />
                   );
                 })()}
-                <StatCard
-                  label="Debt Service Ratio"
-                  value={`${sd.dsrValue.toFixed(1)}%`}
-                  change={`$${((sd.bizLoan + sd.carLoan) * 12 / 1000).toFixed(1)}K/yr annualised`}
-                  positive={sd.dsrValue <= 25}
-                  index={19}
-                  momContext={sd.dsrValue <= 15 ? "Healthy — under 15%" : sd.dsrValue > 25 ? "High — above 25%" : "Monitor — 15–25%"}
-                />
               </div>
               {visibleOptionalCards.size > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-3" style={{ containerType: 'inline-size' }}>
