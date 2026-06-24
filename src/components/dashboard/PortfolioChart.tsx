@@ -192,7 +192,6 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
     { key: "Q4", label: "Q4" },
   ];
 
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
