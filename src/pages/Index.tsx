@@ -408,9 +408,117 @@ function PipelineSummaryCard({
 
 
 
+function ConversionRatesCard({
+  quotedJobs,
+  noData,
+  index,
+  emphasis,
+}: {
+  quotedJobs: Array<{ status: string }>;
+  noData?: boolean;
+  index: number;
+  emphasis?: boolean;
+}) {
+  const [mode, setMode] = useState<"confirmed" | "ylw" | "pipeline">("confirmed");
+
+  const wrWon = quotedJobs.filter((j) => j.status === "won").length;
+  const wrLost = quotedJobs.filter((j) => j.status === "lost").length;
+  const wrYlw = quotedJobs.filter((j) => j.status === "yellow").length;
+  const totalOpps = quotedJobs.length;
+
+  const winRateConfirmed = (wrWon + wrLost) > 0 ? (wrWon / (wrWon + wrLost)) * 100 : 0;
+  const winRateWithYlw = (wrWon + wrYlw + wrLost) > 0 ? ((wrWon + wrYlw) / (wrWon + wrYlw + wrLost)) * 100 : 0;
+  const pipelineConversion = totalOpps > 0 ? (wrWon / totalOpps) * 100 : 0;
+
+  let figure: string;
+  let sub: string;
+  let figureColor: string;
+
+  if (mode === "confirmed") {
+    figure = noData ? "--" : `${winRateConfirmed.toFixed(1)}%`;
+    sub = noData ? "" : `${wrWon} won / ${wrLost} lost`;
+    figureColor = "text-chart-green";
+  } else if (mode === "ylw") {
+    figure = noData ? "--" : `${winRateWithYlw.toFixed(1)}%`;
+    sub = noData ? "" : `${wrWon + wrYlw} won incl YLW / ${wrLost} lost`;
+    figureColor = "text-amber-400";
+  } else {
+    figure = noData ? "--" : `${pipelineConversion.toFixed(1)}%`;
+    sub = noData ? "" : `${wrWon} won of ${totalOpps} total`;
+    figureColor = "text-chart-green";
+  }
+
+  const figureStyle: React.CSSProperties = emphasis
+    ? { fontSize: 'clamp(1.25rem, 1.6vw, 1.5rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' }
+    : {};
+
+  const titleClass = emphasis
+    ? "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center"
+    : "font-mono text-muted-foreground font-medium";
+
+  const pillClass = (active: boolean, color: "blue" | "yellow") =>
+    `px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+      active ? (color === "yellow" ? "text-black shadow-sm" : "text-white shadow-sm") : "text-muted-foreground hover:text-foreground"
+    }`;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-3 gap-1" : "gap-0.5"}`}
+      style={{ minHeight: emphasis ? undefined : "100px", containerType: 'inline-size' }}
+    >
+      {/* HEADER */}
+      <div className={emphasis ? "w-full min-h-[1.5rem] flex items-center justify-center px-1" : "w-full"}>
+        <p className={titleClass} style={emphasis ? { whiteSpace: 'normal', overflow: 'visible' } : undefined}>
+          CONVERSION RATES
+        </p>
+      </div>
+      {/* PILLS */}
+      <div className={`${emphasis ? "min-h-[1.5rem]" : ""} flex ${emphasis ? "justify-center items-center" : ""}`}>
+        <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
+          <button
+            onClick={() => setMode("confirmed")}
+            className={pillClass(mode === "confirmed", "blue")}
+            style={mode === "confirmed" ? { backgroundColor: "#3D89DA" } : undefined}
+          >
+            Confirmed
+          </button>
+          <button
+            onClick={() => setMode("ylw")}
+            className={pillClass(mode === "ylw", "yellow")}
+            style={mode === "ylw" ? { backgroundColor: "#E8B931" } : undefined}
+          >
+            With YLWs
+          </button>
+          <button
+            onClick={() => setMode("pipeline")}
+            className={pillClass(mode === "pipeline", "blue")}
+            style={mode === "pipeline" ? { backgroundColor: "#3D89DA" } : undefined}
+          >
+            Pipeline
+          </button>
+        </div>
+      </div>
+
+      {/* BODY */}
+      <div className={`${emphasis ? "flex-1 flex flex-col items-center justify-center gap-0.5" : ""} w-full min-w-0`}>
+        <p className={`font-mono font-bold break-words leading-tight ${figureColor} ${emphasis ? '' : 'text-xl'}`} style={figureStyle}>
+          {figure}
+        </p>
+        <p className="text-[0.65rem] leading-tight text-muted-foreground font-mono whitespace-normal break-words text-center">
+          {sub}
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
 
 
 function RevGpNetDebtChart({
+
   incomeOutgoingsData,
   forecastChartData,
 }: {
