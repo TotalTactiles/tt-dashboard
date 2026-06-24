@@ -180,6 +180,14 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
     setEditing(false);
   };
 
+  const clearActualBalance = () => {
+    localStorage.removeItem('tt_actual_bank_balance');
+    setLocalActualValue(null);
+    setLocalActualDate(null);
+    setInputValue("");
+    setEditing(false);
+  };
+
   const hasToggle = !!altValue;
   const hasThirdToggle = !!toggleLabelAlt2;
 
@@ -187,11 +195,11 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
   const showAlt = mode === "alt";
 
   // Use local state for Actual if available (instant update without reload)
-  const resolvedActualValue = localActualValue !== null
-    ? `$${localActualValue >= 1_000_000 ? (localActualValue / 1_000_000).toFixed(2) + 'M' : localActualValue >= 1000 ? (localActualValue / 1000).toFixed(1) + 'K' : localActualValue.toFixed(0)}`
-    : altValue2 ?? "Tap to set";
-  const resolvedActualDate = localActualDate ? `Actual · ${localActualDate}` : (altChange2 ?? 'Actual · not set');
-  const isActualNotSet = resolvedActualValue === "Tap to set";
+  const isActualNotSet = localActualValue === null;
+  const resolvedActualValue = !isActualNotSet
+    ? `$${localActualValue! >= 1_000_000 ? (localActualValue! / 1_000_000).toFixed(2) + 'M' : localActualValue! >= 1000 ? (localActualValue! / 1000).toFixed(1) + 'K' : localActualValue!.toFixed(0)}`
+    : "Enter amount";
+  const resolvedActualDate = localActualDate ? `Actual · ${localActualDate}` : "";
 
   const isCashflowPosition = label === "Cashflow Position";
   const openValue = isCashflowPosition && kpiVariables?.XeroCashOpening && kpiVariables.XeroCashOpening !== 0
