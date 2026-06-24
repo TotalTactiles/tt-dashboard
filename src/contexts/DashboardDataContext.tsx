@@ -220,6 +220,8 @@ export interface DashboardData {
   ylwValue: number;
   ylwCount: number;
   pipelineConversion: number;
+  convRate: number;
+  getLeadsToGoal: (jobsToGoal: number) => number;
   totalOpps: number;
   wrWonFY: number;
   wrLostFY: number;
@@ -1082,6 +1084,11 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     const totalOpps = totalOppsFY;
     const pipelineConversion = totalOpps > 0 ? (wrWon / totalOpps) * 100 : 0;
+    const convRate = pipelineConversion / 100;
+    const getLeadsToGoal = useCallback(
+      (jobsToGoal: number) => (convRate > 0 ? Math.ceil(jobsToGoal / convRate) : 0),
+      [convRate]
+    );
 
 
     // ===== GROSS / NET revenue & profit =====
@@ -1345,6 +1352,8 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       ylwValue: ylwValueFY || ylwValue_quoted,
       ylwCount: ylwCountFY || ylwCount_quoted,
       pipelineConversion,
+      convRate,
+      getLeadsToGoal,
       totalOpps,
       wrWonFY: wonCountFY,
       wrLostFY: lostCountFY,
@@ -1394,7 +1403,7 @@ export function useDashboardData(): DashboardData {
       cashflowPositionRaw: 0,
       inRunningCount: 0, inRunningValue: 0,
       ylwValue: 0, ylwCount: 0,
-      pipelineConversion: 0, totalOpps: 0,
+      pipelineConversion: 0, convRate: 0, getLeadsToGoal: () => 0, totalOpps: 0,
       wrWonFY: 0, wrLostFY: 0, wrYlwFY: 0, wonValueFY: 0, lostValueFY: 0,
       kpiStats: [], incomeOutgoingsData: [], profitMarginData: [],
 

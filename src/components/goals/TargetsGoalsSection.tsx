@@ -29,7 +29,7 @@ export default function TargetsGoalsSection({
   wonCount,
 }: Props) {
   const { target, setTarget } = useRevenueTarget();
-  const { ylwValue } = useDashboardData();
+  const { ylwValue, getLeadsToGoal, pipelineConversion } = useDashboardData();
   const [withYlw, setWithYlw] = useState(false);
 
   const avgWonDeal = wonCount > 0 ? wonValueTotal / wonCount : 0;
@@ -44,6 +44,7 @@ export default function TargetsGoalsSection({
   const remaining = Math.max(0, target - effectiveCurrent);
   const jobsToGoal =
     avgWonDeal > 0 && remaining > 0 ? Math.ceil(remaining / avgWonDeal) : 0;
+  const leadsToGoal = getLeadsToGoal(jobsToGoal);
 
   return (
     <>
@@ -58,6 +59,7 @@ export default function TargetsGoalsSection({
         style={{ gap: "clamp(8px, 1vw, 16px)" }}
       >
         <RevenueGoalCard
+          className="md:col-span-2"
           target={target}
           setTarget={setTarget}
           currentRevenue={currentRevenue}
@@ -81,6 +83,15 @@ export default function TargetsGoalsSection({
           setWithYlw={setWithYlw}
           ylwValue={ylwValue}
         />
+        <LeadsToGoalCard
+          target={target}
+          leadsToGoal={leadsToGoal}
+          avgWonDeal={avgWonDeal}
+          pipelineConversion={pipelineConversion}
+          remaining={remaining}
+          withYlw={withYlw}
+          setWithYlw={setWithYlw}
+        />
       </div>
     </>
   );
@@ -98,6 +109,7 @@ function RevenueGoalCard({
   withYlw,
   setWithYlw,
   ylwValue,
+  className,
 }: {
   target: number;
   setTarget: (n: number) => void;
@@ -110,6 +122,7 @@ function RevenueGoalCard({
   withYlw: boolean;
   setWithYlw: (v: boolean) => void;
   ylwValue: number;
+  className?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<string>(String(target || ""));
@@ -138,7 +151,7 @@ function RevenueGoalCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className={cardBase}
+      className={`${cardBase} ${className ?? ""}`}
     >
       <div className="flex items-center justify-between mb-2 gap-2">
         <span className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground/70">
@@ -296,6 +309,7 @@ function JobsToGoalCard({
   withYlw,
   setWithYlw,
   ylwValue,
+  className,
 }: {
   target: number;
   jobsToGoal: number;
@@ -306,6 +320,7 @@ function JobsToGoalCard({
   withYlw: boolean;
   setWithYlw: (v: boolean) => void;
   ylwValue: number;
+  className?: string;
 }) {
   const empty = target === 0;
   const met = !empty && remaining === 0;
@@ -315,7 +330,7 @@ function JobsToGoalCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, delay: 0.05 }}
-      className={cardBase}
+      className={`${cardBase} ${className ?? ""}`}
     >
       <div className="flex items-center justify-between mb-2 gap-2">
         <span className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground/70">
@@ -390,6 +405,84 @@ function JobsToGoalCard({
             )}
           </>
         )}
+      </div>
+    </motion.div>
+  );
+}
+
+function LeadsToGoalCard({
+  target,
+  leadsToGoal,
+  avgWonDeal,
+  pipelineConversion,
+  remaining,
+  withYlw,
+  setWithYlw,
+  className,
+}: {
+  target: number;
+  leadsToGoal: number;
+  avgWonDeal: number;
+  pipelineConversion: number;
+  remaining: number;
+  withYlw: boolean;
+  setWithYlw: (v: boolean) => void;
+  className?: string;
+}) {
+  const convRate = pipelineConversion / 100;
+  const empty = target === 0 || convRate === 0;
+  const met = !empty && remaining === 0;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, delay: 0.1 }}
+      className={`${cardBase} ${className ?? ""}`}
+    >
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <span className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground/70">
+          Leads to Goal
+        </span>
+        <ConfirmedYlwToggle withYlw={withYlw} setWithYlw={setWithYlw} />
+      </div>
+
+      <div className="flex-1 flex flex-row items-center justify-center text-center gap-3 min-w-0">
+        <div className="flex-1 flex flex-col items-center justify-center min-w-0">
+          <span
+            className="font-mono tabular-nums font-semibold text-chart-green"
+            style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", letterSpacing: "-0.02em", lineHeight: 1 }}
+          >
+            {empty ? "—" : met ? "Goal met 🎉" : leadsToGoal}
+          </span>
+          {!empty && !met && (
+            <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+              Leads to Goal
+            </span>
+          )}
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center text-[15px] uppercase tracking-wider space-y-0.5 min-w-0 break-words">
+          <div className="text-muted-foreground">
+            <span>Conv rate</span>{" "}
+            <span className="font-mono tabular-nums text-foreground">
+              {convRate > 0 ? `${pipelineConversion.toFixed(1)}%` : "—"}
+            </span>
+          </div>
+          <div className="text-muted-foreground">
+            <span>Avg won</span>{" "}
+            <span className="font-mono tabular-nums text-foreground">
+              {avgWonDeal > 0 ? fmtAUD(avgWonDeal) : "—"}
+            </span>
+          </div>
+          {!empty && !met && (
+            <div>
+              <span className="font-mono tabular-nums text-chart-red">
+                {fmtAUD(remaining)}
+              </span>{" "}
+              <span className="text-muted-foreground">remaining</span>
+            </div>
+          )}
+        </div>
       </div>
     </motion.div>
   );
