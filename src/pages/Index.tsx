@@ -1173,6 +1173,18 @@ const DashboardContent = () => {
                   />
                 );
               }
+              if (stat.label === "CONVERSION RATES") {
+                return (
+                  <ConversionRatesCard
+                    key="conversion-rates"
+                    quotedJobs={quotedJobs}
+                    noData={stat.noData}
+                    index={i}
+                    emphasis
+                  />
+                );
+              }
+
               if (stat.label === "Revenue / Profit") {
                 const e = stat.extras ?? {};
                 return (
