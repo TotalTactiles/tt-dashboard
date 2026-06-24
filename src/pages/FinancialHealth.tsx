@@ -13,7 +13,7 @@ import {
 type DebtType = "Term Loan" | "Asset Finance" | "Credit Card" | "Director Loan" | "Other";
 type DebtPurpose = "Vehicle" | "Equipment" | "Working Capital" | "Property" | "Other";
 
-interface DebtFacility {
+export interface DebtFacility {
   id: string;
   name: string;
   lender: string;
@@ -27,8 +27,8 @@ interface DebtFacility {
   purpose: DebtPurpose;
 }
 
-const DEBT_CACHE_KEY = "tt_debt_register";
-const CACHE_WEBHOOK_GET = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
+export const DEBT_CACHE_KEY = "tt_debt_register";
+export const CACHE_WEBHOOK_GET = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
 const CACHE_WEBHOOK_POST = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
 
 const readCache = async (): Promise<Record<string, string>> => {
