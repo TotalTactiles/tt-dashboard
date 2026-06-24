@@ -114,15 +114,18 @@ function WinLossSummaryCard({
 }) {
   const [mode, setMode] = useState<"total" | "avg">("total");
 
+  // FY-scoped from qtsSmmry (matches sheet); fall back to quotedJobs derivation
+  const ctx = useDashboardData();
   const wonJobs = quotedJobs.filter((j) => j.status === "won");
   const lostJobs = quotedJobs.filter((j) => j.status === "lost");
-  const totalJobs = wonJobs.length + lostJobs.length;
 
-  const wonValue = wonJobs.reduce((s, j) => s + (j.value || 0), 0);
-  const lostValue = lostJobs.reduce((s, j) => s + (j.value || 0), 0);
+  const wonValue = ctx.wonValueFY || wonJobs.reduce((s, j) => s + (j.value || 0), 0);
+  const lostValue = ctx.lostValueFY || lostJobs.reduce((s, j) => s + (j.value || 0), 0);
 
-  const wonCount = wonJobs.length;
-  const lostCount = lostJobs.length;
+  const wonCount = ctx.wrWonFY || wonJobs.length;
+  const lostCount = ctx.wrLostFY || lostJobs.length;
+  const totalJobs = wonCount + lostCount;
+
 
   const wonBarWidth = totalJobs > 0 ? `${(wonCount / totalJobs) * 100}%` : "0%";
 
