@@ -287,6 +287,7 @@ function JobsToGoalCard({
   jobsToGoal,
   avgWonDeal,
   currentRevenue,
+  effectiveCurrent,
   remaining,
   withYlw,
   setWithYlw,
@@ -296,6 +297,7 @@ function JobsToGoalCard({
   jobsToGoal: number;
   avgWonDeal: number;
   currentRevenue: number;
+  effectiveCurrent: number;
   remaining: number;
   withYlw: boolean;
   setWithYlw: (v: boolean) => void;
