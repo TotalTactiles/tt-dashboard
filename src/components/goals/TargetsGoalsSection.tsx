@@ -419,26 +419,73 @@ function JobsToGoalCard({
 
 function LeadsToGoalCard({
   target,
-  leadsToGoal,
+  oppsToGoal,
+  leadsToGoalTrue,
   avgWonDeal,
   pipelineConversion,
+  leadToWonRate,
+  totalLeads,
   remaining,
   withYlw,
   setWithYlw,
   className,
 }: {
   target: number;
-  leadsToGoal: number;
+  oppsToGoal: number;
+  leadsToGoalTrue: number;
   avgWonDeal: number;
   pipelineConversion: number;
+  leadToWonRate: number;
+  totalLeads: number;
   remaining: number;
   withYlw: boolean;
   setWithYlw: (v: boolean) => void;
   className?: string;
 }) {
-  const convRate = pipelineConversion / 100;
-  const empty = target === 0 || convRate === 0;
+  const [mode, setMode] = useState<"opps" | "leads">("opps");
+  const oppConvRate = pipelineConversion / 100;
+  const leadsAvailable = totalLeads > 0;
+  const empty = target === 0 || (mode === "opps" ? oppConvRate === 0 : !leadsAvailable);
   const met = !empty && remaining === 0;
+
+  const headline = mode === "opps" ? oppsToGoal : leadsToGoalTrue;
+  const underLabel = mode === "opps" ? "Opps to Goal" : "Leads to Goal";
+  const rateLabel = mode === "opps" ? "Deal→Won" : "Lead→Won";
+  const rateValue =
+    mode === "opps"
+      ? oppConvRate > 0
+        ? `${pipelineConversion.toFixed(1)}%`
+        : "—"
+      : leadToWonRate > 0
+      ? `${(leadToWonRate * 100).toFixed(1)}%`
+      : "—";
+
+  const PillBtn = ({
+    active,
+    disabled,
+    onClick,
+    children,
+  }: {
+    active: boolean;
+    disabled?: boolean;
+    onClick: () => void;
+    children: React.ReactNode;
+  }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+        disabled
+          ? "bg-muted/30 text-muted-foreground/40 cursor-not-allowed"
+          : active
+          ? "bg-[hsl(212,75%,55%)] text-white"
+          : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
+      }`}
+    >
+      {children}
+    </button>
+  );
 
   return (
     <motion.div
@@ -447,10 +494,22 @@ function LeadsToGoalCard({
       transition={{ duration: 0.25, delay: 0.1 }}
       className={`${cardBase} ${className ?? ""}`}
     >
-      <div className="flex items-center justify-between mb-2 gap-2">
+      <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
         <span className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground/70">
-          Leads to Goal
+          Funnel to Goal
         </span>
+        <div className="flex items-center gap-1.5">
+          <PillBtn active={mode === "opps"} onClick={() => setMode("opps")}>
+            Opportunities
+          </PillBtn>
+          <PillBtn
+            active={mode === "leads"}
+            disabled={!leadsAvailable}
+            onClick={() => leadsAvailable && setMode("leads")}
+          >
+            Leads
+          </PillBtn>
+        </div>
         <ConfirmedYlwToggle withYlw={withYlw} setWithYlw={setWithYlw} />
       </div>
 
@@ -460,20 +519,23 @@ function LeadsToGoalCard({
             className="font-mono tabular-nums font-semibold text-chart-green"
             style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", letterSpacing: "-0.02em", lineHeight: 1 }}
           >
-            {empty ? "—" : met ? "Goal met 🎉" : leadsToGoal}
+            {empty ? "—" : met ? "Goal met 🎉" : headline}
           </span>
           {!empty && !met && (
             <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-              Leads to Goal
+              {underLabel}
+            </span>
+          )}
+          {mode === "leads" && !leadsAvailable && (
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">
+              awaiting lead feed
             </span>
           )}
         </div>
         <div className="flex-1 flex flex-col items-center justify-center text-[15px] uppercase tracking-wider space-y-0.5 min-w-0 break-words">
           <div className="text-muted-foreground">
-            <span>Conv rate</span>{" "}
-            <span className="font-mono tabular-nums text-foreground">
-              {convRate > 0 ? `${pipelineConversion.toFixed(1)}%` : "—"}
-            </span>
+            <span>{rateLabel}</span>{" "}
+            <span className="font-mono tabular-nums text-foreground">{rateValue}</span>
           </div>
           <div className="text-muted-foreground">
             <span>Avg won</span>{" "}
@@ -493,4 +555,5 @@ function LeadsToGoalCard({
       </div>
     </motion.div>
   );
+
 }
