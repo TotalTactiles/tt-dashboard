@@ -1008,59 +1008,64 @@ function ConversionRatesCard({
 
 
 
-function RevGpNetDebtChart({
-
-  incomeOutgoingsData,
-  forecastChartData,
+function MonthlyInvoicesVsTargetChart({
+  monthlyInvoicesData,
+  invoicesTarget,
+  onInvoicesTargetChange,
 }: {
-  incomeOutgoingsData: Array<{ month: string; income: number; outgoings: number }>;
-  forecastChartData: Array<{ month: string; anticipatedSurplus?: number | null }>;
+  monthlyInvoicesData: Array<{ month: string; invoiced: number }>;
+  invoicesTarget: number;
+  onInvoicesTargetChange: (v: number) => void;
 }) {
-  const totalMonthlyRepayment = useMemo(() => {
-    try {
-      const raw = localStorage.getItem("tt_debt_register");
-      if (!raw) return 0;
-      const arr = JSON.parse(raw);
-      if (!Array.isArray(arr)) return 0;
-      return arr.reduce((s: number, d: any) => s + (Number(d?.monthlyRepayment) || 0), 0);
-    } catch { return 0; }
-  }, []);
+  const data = monthlyInvoicesData;
 
-  const data = useMemo(() => {
-    const fMap = new Map(forecastChartData.map((f) => [f.month, f.anticipatedSurplus ?? 0]));
-    return incomeOutgoingsData.map((r) => {
-      const revenue = r.income || 0;
-      const grossProfit = revenue - (r.outgoings || 0) * 0.45;
-      const anticipated = Number(fMap.get(r.month) ?? 0);
-      const netAfterDebt = anticipated - totalMonthlyRepayment;
-      return { month: r.month, revenue, grossProfit, netAfterDebt };
-    });
-  }, [incomeOutgoingsData, forecastChartData, totalMonthlyRepayment]);
+  const handleTargetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onInvoicesTargetChange(Number(e.target.value) || 0);
+  };
 
   return (
     <div className="chart-container">
-      <div className="mb-3">
-        <h3 className="text-sm font-medium text-foreground">Margin Waterfall</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">Revenue shrinks to GP after COGS, then to net after debt repayments</p>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <h3 className="text-sm font-medium text-foreground">Monthly Invoices</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Invoiced revenue per month vs target</p>
+        </div>
+        <label className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
+          Monthly Invoice Target $
+          <input
+            type="number"
+            value={invoicesTarget}
+            onChange={handleTargetChange}
+            className="bg-white/5 border border-white/10 rounded px-2 py-1 text-sm w-32 text-right font-mono text-foreground"
+          />
+        </label>
       </div>
       <ResponsiveContainer width="100%" height={240}>
-        <AreaChart data={data}>
+        <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
           <XAxis dataKey="month" tick={{ fill: "#6b7280", fontSize: 11 }} />
-          <YAxis tickFormatter={fmtKAxis} tick={{ fill: "#6b7280", fontSize: 11 }} />
-          <Tooltip content={<GpTooltip />} />
-          <Legend wrapperStyle={{ color: "#e2e8f0", fontSize: "12px", paddingTop: "8px" }} />
-          <ReferenceLine y={0} stroke="#ffffff20" strokeDasharray="3 3" />
-          <Area type="monotone" dataKey="revenue" stroke="#22c55e" strokeWidth={2} fill="#22c55e" fillOpacity={0.15} name="Revenue" />
-          <Area type="monotone" dataKey="grossProfit" stroke="#3b82f6" strokeWidth={2} fill="#3b82f6" fillOpacity={0.2} name="Gross Profit" />
-          <Area type="monotone" dataKey="netAfterDebt" stroke="#f59e0b" strokeWidth={2} fill="#f59e0b" fillOpacity={0.25} name="Net After Debt" />
-        </AreaChart>
+          <YAxis
+            tickFormatter={fmtKAxis}
+            tick={{ fill: "#6b7280", fontSize: 11 }}
+            domain={[0, (dataMax: number) => Math.ceil((dataMax * 1.12) / 1000) * 1000]}
+          />
+          <Tooltip
+            contentStyle={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 6, color: "#111827", fontSize: 12 }}
+            formatter={(v: any) => [`$${Number(v).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, "Invoiced"]}
+          />
+          <ReferenceLine
+            y={invoicesTarget}
+            stroke="#f59e0b"
+            strokeDasharray="4 4"
+            label={{ value: `Target $${invoicesTarget.toLocaleString()}`, position: "right", fill: "#f59e0b", fontSize: 11 }}
+          />
+          <Bar dataKey="invoiced" name="Invoiced">
+            {data.map((d, i) => (
+              <Cell key={i} fill={d.invoiced >= invoicesTarget ? "#22C55E" : "#3D89DA"} />
+            ))}
+          </Bar>
+        </BarChart>
       </ResponsiveContainer>
-      <div className="flex gap-4 text-[10px] font-mono text-muted-foreground mt-2">
-        <span><span style={{ color: "#22c55e" }}>●</span> Revenue (total)</span>
-        <span><span style={{ color: "#3b82f6" }}>●</span> After COGS</span>
-        <span><span style={{ color: "#f59e0b" }}>●</span> After Debt</span>
-      </div>
     </div>
   );
 }
