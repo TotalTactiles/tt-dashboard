@@ -221,6 +221,11 @@ export interface DashboardData {
   ylwCount: number;
   pipelineConversion: number;
   totalOpps: number;
+  wrWonFY: number;
+  wrLostFY: number;
+  wrYlwFY: number;
+  wonValueFY: number;
+  lostValueFY: number;
   kpiStats: KPIStat[];
 
   incomeOutgoingsData: IncomeOutgoingsPoint[];
