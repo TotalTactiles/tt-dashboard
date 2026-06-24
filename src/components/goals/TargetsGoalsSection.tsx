@@ -61,6 +61,7 @@ export default function TargetsGoalsSection({
           target={target}
           setTarget={setTarget}
           currentRevenue={currentRevenue}
+          effectiveCurrent={effectiveCurrent}
           pctConfirmed={pctConfirmed}
           pctYlw={pctYlw}
           pctTotal={pctTotal}
@@ -74,6 +75,7 @@ export default function TargetsGoalsSection({
           jobsToGoal={jobsToGoal}
           avgWonDeal={avgWonDeal}
           currentRevenue={currentRevenue}
+          effectiveCurrent={effectiveCurrent}
           remaining={remaining}
           withYlw={withYlw}
           setWithYlw={setWithYlw}
@@ -88,6 +90,7 @@ function RevenueGoalCard({
   target,
   setTarget,
   currentRevenue,
+  effectiveCurrent,
   pctConfirmed,
   pctYlw,
   pctTotal,
@@ -99,6 +102,7 @@ function RevenueGoalCard({
   target: number;
   setTarget: (n: number) => void;
   currentRevenue: number;
+  effectiveCurrent: number;
   pctConfirmed: number;
   pctYlw: number;
   pctTotal: number;
@@ -232,13 +236,17 @@ function RevenueGoalCard({
         <div className="mt-2 text-center text-[15px] uppercase tracking-wider whitespace-normal break-words space-y-0.5">
           {withYlw ? (
             <>
-              <div>
+              <div className="min-w-0 break-words">
                 <span className="font-mono tabular-nums text-chart-green">
                   {fmtAUD(currentRevenue)}
                 </span>
                 <span className="text-muted-foreground"> + </span>
                 <span className="font-mono tabular-nums" style={{ color: YLW_COLOR }}>
                   {fmtAUD(ylwValue)} YLW
+                </span>
+                <span className="text-muted-foreground"> = </span>
+                <span className="font-mono tabular-nums text-foreground">
+                  {fmtAUD(effectiveCurrent)}
                 </span>
               </div>
               <div>
@@ -255,7 +263,7 @@ function RevenueGoalCard({
               </div>
             </>
           ) : (
-            <div>
+            <div className="min-w-0 break-words">
               <span className="font-mono tabular-nums text-chart-green">
                 {fmtAUD(currentRevenue)}
               </span>
@@ -283,6 +291,7 @@ function JobsToGoalCard({
   jobsToGoal,
   avgWonDeal,
   currentRevenue,
+  effectiveCurrent,
   remaining,
   withYlw,
   setWithYlw,
@@ -292,6 +301,7 @@ function JobsToGoalCard({
   jobsToGoal: number;
   avgWonDeal: number;
   currentRevenue: number;
+  effectiveCurrent: number;
   remaining: number;
   withYlw: boolean;
   setWithYlw: (v: boolean) => void;
@@ -329,26 +339,30 @@ function JobsToGoalCard({
       </div>
 
       {/* Composition: AVG WON line + colour-coded breakdown */}
-      <div className="mt-2 text-center text-xs space-y-0.5 whitespace-normal break-words">
+      <div className="mt-2 text-center text-[15px] uppercase tracking-wider whitespace-normal break-words space-y-0.5">
         {empty ? (
           <div className="text-muted-foreground">Set a revenue goal to compute jobs needed</div>
         ) : (
           <>
             <div className="text-muted-foreground">
-              <span className="uppercase tracking-wider">Avg won</span>{" "}
+              <span>Avg won</span>{" "}
               <span className="font-mono tabular-nums text-foreground">
                 {avgWonDeal > 0 ? fmtAUD(avgWonDeal) : "—"}
               </span>
             </div>
             {withYlw ? (
               <>
-                <div>
+                <div className="min-w-0 break-words">
                   <span className="font-mono tabular-nums text-chart-green">
                     {fmtAUD(currentRevenue)}
                   </span>
                   <span className="text-muted-foreground"> + </span>
                   <span className="font-mono tabular-nums" style={{ color: YLW_COLOR }}>
                     {fmtAUD(ylwValue)} YLW
+                  </span>
+                  <span className="text-muted-foreground"> = </span>
+                  <span className="font-mono tabular-nums text-foreground">
+                    {fmtAUD(effectiveCurrent)}
                   </span>
                 </div>
                 {!met && (
@@ -362,7 +376,11 @@ function JobsToGoalCard({
               </>
             ) : (
               !met && (
-                <div>
+                <div className="min-w-0 break-words">
+                  <span className="font-mono tabular-nums text-chart-green">
+                    {fmtAUD(currentRevenue)}
+                  </span>
+                  <span className="text-muted-foreground"> · </span>
                   <span className="font-mono tabular-nums text-chart-red">
                     {fmtAUD(remaining)}
                   </span>{" "}
