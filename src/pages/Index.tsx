@@ -25,6 +25,7 @@ import { useGoals } from "@/hooks/useGoals";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { applyGoalMerge } from "@/lib/goalMerge";
 import { buildPeriodOptions, getCurrentMonthKey } from "@/lib/projectExecutionKpis";
+import { parseMonthKey } from "@/lib/reportDataAssembler";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Unplug, Loader2 } from "lucide-react";
@@ -312,6 +313,213 @@ function InvoicesPaidCard({ index, onJumpToMonth }: { index: number; onJumpToMon
     </motion.div>
   );
 }
+
+
+// ── AVG CONTRACT VALUE — split (Won top / Quoted bottom), Invoices-style ────────────
+function AvgContractCard({
+  avgWon,
+  wonCount,
+  avgQuoted,
+  quotedCount,
+  index,
+}: {
+  avgWon: number;
+  wonCount: number;
+  avgQuoted: number;
+  quotedCount: number;
+  index: number;
+}) {
+  const fmtCompact = (n: number) => {
+    const abs = Math.abs(n);
+    const sign = n < 0 ? "-" : "";
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}K`;
+    return `${sign}$${Math.round(abs).toLocaleString()}`;
+  };
+  const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
+  const labelClass = "text-[0.7rem] font-semibold tracking-wide text-foreground/80 font-mono text-center";
+  const subClass = "text-[0.65rem] leading-tight text-muted-foreground font-mono whitespace-normal break-words text-center";
+  const figureStyle: React.CSSProperties = { fontSize: 'clamp(1.25rem, 1.6vw, 1.5rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+      className="stat-card relative overflow-hidden flex flex-col items-center text-center h-full p-3 gap-1"
+      style={{ containerType: 'inline-size' }}
+    >
+      <div className="w-full min-h-[1.5rem] flex items-center justify-center px-1">
+        <p className={titleClass}>AVG CONTRACT VALUE</p>
+      </div>
+      <div className="w-full min-h-[1.5rem]" />
+      <div className="flex-1 flex flex-col items-center justify-center gap-1.5 w-full min-w-0 text-center">
+        <div className="w-full min-w-0">
+          <p className={labelClass}>Won</p>
+          <p className="leading-tight break-words flex items-baseline justify-center gap-1.5 flex-wrap">
+            <span className="font-bold font-mono text-chart-green" style={figureStyle}>{fmtCompact(avgWon)}</span>
+            <span className={subClass}>· {wonCount} jobs won</span>
+          </p>
+        </div>
+        <div className="h-px bg-white/10 my-1 w-2/3 mx-auto" />
+        <div className="w-full min-w-0">
+          <p className={labelClass}>Quoted</p>
+          <p className="leading-tight break-words flex items-baseline justify-center gap-1.5 flex-wrap">
+            <span className="font-bold font-mono text-foreground/90" style={figureStyle}>{fmtCompact(avgQuoted)}</span>
+            <span className={subClass}>· {quotedCount} jobs quoted</span>
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── REVENUE GROWTH — scope-aware (YTD avg MoM% + sparkline, or QoQ%) ─────────────────
+function RevenueGrowthCard({ scope, index }: { scope: "ytd" | "quarter"; index: number }) {
+  const { incomeOutgoingsData } = useDashboardData();
+
+  const { headline, sub, positive, isNA, spark, q1Total, q2Total } = useMemo(() => {
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth();
+
+    // Current-year monthly income series up to (and including) current month
+    const monthly: { monthIdx: number; income: number }[] = [];
+    for (const pt of incomeOutgoingsData) {
+      const k = parseMonthKey(pt.month);
+      if (!k) continue;
+      if (k.year !== curYear) continue;
+      if (k.monthIdx > curMonth) continue;
+      monthly.push({ monthIdx: k.monthIdx, income: pt.income || 0 });
+    }
+    monthly.sort((a, b) => a.monthIdx - b.monthIdx);
+
+    if (scope === "ytd") {
+      // Avg MoM growth across consecutive non-zero months
+      const rates: number[] = [];
+      for (let i = 1; i < monthly.length; i++) {
+        const prev = monthly[i - 1].income;
+        const cur = monthly[i].income;
+        if (prev > 0 && cur > 0) rates.push(((cur - prev) / prev) * 100);
+      }
+      const isNA = rates.length === 0;
+      const avg = isNA ? 0 : rates.reduce((s, r) => s + r, 0) / rates.length;
+      const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      const firstM = monthly[0]?.monthIdx ?? 0;
+      const lastM = monthly[monthly.length - 1]?.monthIdx ?? curMonth;
+      return {
+        headline: isNA ? "—" : `${avg >= 0 ? "+" : ""}${avg.toFixed(1)}%`,
+        sub: `${MONTH_ABBR[firstM]}–${MONTH_ABBR[lastM]} · avg MoM`,
+        positive: avg >= 0,
+        isNA,
+        spark: monthly.map(m => m.income),
+        q1Total: 0,
+        q2Total: 0,
+      };
+    }
+
+    // Quarter scope — Q of current month
+    const qIdx = Math.floor(curMonth / 3); // 0..3
+    const qStart = qIdx * 3;
+    const prevQStart = qStart - 3;
+    const qTotal = monthly.filter(m => m.monthIdx >= qStart && m.monthIdx < qStart + 3).reduce((s, m) => s + m.income, 0);
+    const prevTotal = prevQStart >= 0
+      ? monthly.filter(m => m.monthIdx >= prevQStart && m.monthIdx < prevQStart + 3).reduce((s, m) => s + m.income, 0)
+      : 0;
+    const isNA = prevTotal <= 0;
+    const pct = isNA ? 0 : ((qTotal - prevTotal) / prevTotal) * 100;
+    const delta = qTotal - prevTotal;
+    const fmtCompact = (n: number) => {
+      const abs = Math.abs(n);
+      const sign = n < 0 ? "-" : "";
+      if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+      if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}K`;
+      return `${sign}$${Math.round(abs).toLocaleString()}`;
+    };
+    const prevQName = prevQStart >= 0 ? `Q${qIdx}` : "—";
+    return {
+      headline: isNA ? "—" : `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`,
+      sub: isNA ? `Q${qIdx + 1} vs ${prevQName}` : `${delta >= 0 ? "+" : ""}${fmtCompact(delta)} vs ${prevQName}`,
+      positive: pct >= 0,
+      isNA,
+      spark: [],
+      q1Total: prevTotal,
+      q2Total: qTotal,
+    };
+  }, [incomeOutgoingsData, scope]);
+
+  const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
+  const subClass = "text-[0.65rem] leading-tight text-muted-foreground font-mono whitespace-normal break-words text-center";
+  const figureStyle: React.CSSProperties = { fontSize: 'clamp(1.35rem, 1.9vw, 1.7rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' };
+  const colorClass = isNA ? "text-muted-foreground" : positive ? "text-chart-green" : "text-chart-red";
+
+  // sparkline svg
+  const sparkSvg = (() => {
+    if (scope !== "ytd" || spark.length === 0) return null;
+    const W = 120, H = 24, P = 1;
+    const max = Math.max(...spark, 1);
+    const bw = (W - P * 2) / spark.length;
+    return (
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-6 mt-1" preserveAspectRatio="none">
+        {spark.map((v, i) => {
+          const h = max > 0 ? (v / max) * (H - 2) : 0;
+          return (
+            <rect
+              key={i}
+              x={P + i * bw + bw * 0.15}
+              y={H - h - 1}
+              width={Math.max(1, bw * 0.7)}
+              height={Math.max(1, h)}
+              className={positive ? "fill-chart-green/70" : "fill-chart-red/70"}
+            />
+          );
+        })}
+      </svg>
+    );
+  })();
+
+  const qBars = (() => {
+    if (scope !== "quarter") return null;
+    const max = Math.max(q1Total, q2Total, 1);
+    const h1 = (q1Total / max) * 22;
+    const h2 = (q2Total / max) * 22;
+    return (
+      <div className="flex items-end justify-center gap-2 h-6 mt-1">
+        <div className="flex flex-col items-center gap-0.5">
+          <div className="w-3 bg-muted-foreground/40 rounded-sm" style={{ height: Math.max(1, h1) }} />
+          <span className="text-[8px] font-mono text-muted-foreground leading-none">Q{Math.floor(new Date().getMonth() / 3)}</span>
+        </div>
+        <div className="flex flex-col items-center gap-0.5">
+          <div className={`w-3 rounded-sm ${positive ? "bg-chart-green/70" : "bg-chart-red/70"}`} style={{ height: Math.max(1, h2) }} />
+          <span className="text-[8px] font-mono text-muted-foreground leading-none">Q{Math.floor(new Date().getMonth() / 3) + 1}</span>
+        </div>
+      </div>
+    );
+  })();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+      className="stat-card relative overflow-hidden flex flex-col items-center text-center h-full p-3 gap-1"
+      style={{ containerType: 'inline-size' }}
+    >
+      <div className="w-full min-h-[1.5rem] flex items-center justify-center px-1">
+        <p className={titleClass}>REVENUE GROWTH</p>
+      </div>
+      <div className="w-full min-h-[1.5rem]" />
+      <div className="flex-1 flex flex-col items-center justify-center w-full min-w-0 text-center gap-0.5">
+        <span className={`font-bold font-mono ${colorClass}`} style={figureStyle}>{headline}</span>
+        <span className={subClass}>{sub}</span>
+        {sparkSvg}
+        {qBars}
+      </div>
+    </motion.div>
+  );
+}
+
+
 
 
 
@@ -1518,51 +1726,7 @@ const DashboardContent = () => {
                 />
                 {/* 2. Invoices Paid / To-be-paid — relocated/built from REVENUE tab */}
                 <InvoicesPaidCard index={10} onJumpToMonth={jumpToRevenueCogsMonth} />
-                <StatCard
-                  label="Gross Margin %"
-                  value={`${gmPct}%`}
-                  change={`avg ${gmPct}%`}
-                  positive={sd.grossMarginPct >= 30}
-                  index={11}
-                  momContext={scopeLabel}
-                />
-                {(() => {
-                  const allJobs = (liveData?.quotes ?? []) as any[];
-
-                  const getVal = (j: any): number =>
-                    parseFloat(String(j["Contract Value ($)"] ?? j._value ?? "0").replace(/[^0-9.-]/g, "")) || 0;
-
-                  const isWon = (j: any) => j["Current Status"] === "PO Received (GRN)";
-                  const isCompleted = (j: any) => j["Current Status"] === "Completed";
-
-                  const wonAndCompleted = allJobs.filter(j => isWon(j) || isCompleted(j));
-                  const allWithValue = allJobs.filter(j => getVal(j) > 0);
-
-                  const avgWon = wonAndCompleted.length > 0
-                    ? wonAndCompleted.reduce((s, j) => s + getVal(j), 0) / wonAndCompleted.length
-                    : 0;
-
-                  const avgQuoted = allWithValue.length > 0
-                    ? allWithValue.reduce((s, j) => s + getVal(j), 0) / allWithValue.length
-                    : 0;
-
-                  return (
-                    <StatCard
-                      label="Avg Contract Value"
-                      value={fmtAUD(avgWon)}
-                      change={`${wonAndCompleted.length} jobs won`}
-                      positive={true}
-                      index={14}
-                      altValue={fmtAUD(avgQuoted)}
-                      altChange={`${allWithValue.length} jobs quoted`}
-                      altPositive={true}
-                      toggleLabelBase="Won"
-                      toggleLabelAlt="Quoted"
-                      greenAltPill={true}
-                    />
-                  );
-                })()}
-                {/* 5. PER JOB — merged Revenue/Profit per-job card (Revenue|Profit toggle, no own period filter) */}
+                {/* 3. PER JOB — merged Revenue/Profit per-job card */}
                 {(() => {
                   const wc = sd.wonCount;
                   const grossRevPerJob = wc > 0 ? sd.revenueInclGST / wc : 0;
@@ -1576,25 +1740,52 @@ const DashboardContent = () => {
                       grossProfitPerJob={grossProfitPerJob}
                       netProfitPerJob={netProfitPerJob}
                       wonCount={wc}
-                      index={13}
+                      index={11}
                     />
                   );
                 })()}
-                {/* Always-rendered formerly-optional metrics */}
+                {/* 4. Avg Contract Value — split (Won top / Quoted bottom) */}
+                {(() => {
+                  const allJobs = (liveData?.quotes ?? []) as any[];
+                  const getVal = (j: any): number =>
+                    parseFloat(String(j["Contract Value ($)"] ?? j._value ?? "0").replace(/[^0-9.-]/g, "")) || 0;
+                  const isWon = (j: any) => j["Current Status"] === "PO Received (GRN)";
+                  const isCompleted = (j: any) => j["Current Status"] === "Completed";
+                  const wonAndCompleted = allJobs.filter(j => isWon(j) || isCompleted(j));
+                  const allWithValue = allJobs.filter(j => getVal(j) > 0);
+                  const avgWon = wonAndCompleted.length > 0
+                    ? wonAndCompleted.reduce((s, j) => s + getVal(j), 0) / wonAndCompleted.length
+                    : 0;
+                  const avgQuoted = allWithValue.length > 0
+                    ? allWithValue.reduce((s, j) => s + getVal(j), 0) / allWithValue.length
+                    : 0;
+                  return (
+                    <AvgContractCard
+                      avgWon={avgWon}
+                      wonCount={wonAndCompleted.length}
+                      avgQuoted={avgQuoted}
+                      quotedCount={allWithValue.length}
+                      index={12}
+                    />
+                  );
+                })()}
+                {/* 5. Revenue Growth — scope-aware (YTD avg MoM% w/ sparkline, or QoQ%) */}
+                <RevenueGrowthCard scope={investorScope} index={13} />
+                {/* Row 2 */}
                 <StatCard
-                  label="Revenue Growth"
-                  value={fmtVal(sd.revenueExGST)}
-                  change={scopeLabel}
-                  positive={true}
-                  index={12}
-                  momContext={`${sd.wonCount} jobs won`}
+                  label="Gross Margin %"
+                  value={`${gmPct}%`}
+                  change={`avg ${gmPct}%`}
+                  positive={sd.grossMarginPct >= 30}
+                  index={14}
+                  momContext={scopeLabel}
                 />
                 <StatCard
                   label="Pipeline Coverage"
                   value={`${sd.pipelineCoverage.toFixed(1)}x`}
                   change={fmtVal(sd.pipelineVal) + " pipeline"}
                   positive={sd.pipelineCoverage >= 2}
-                  index={13}
+                  index={15}
                   momContext="vs YTD revenue run rate"
                 />
                 <StatCard
@@ -1602,7 +1793,7 @@ const DashboardContent = () => {
                   value={`${sd.opExpRatio.toFixed(1)}%`}
                   change="Expenses / Revenue"
                   positive={sd.opExpRatio < 60}
-                  index={15}
+                  index={16}
                   altValue={fmtVal(sd.totalExpenses)}
                   altChange={`${scopeLabel} expenses`}
                   altPositive={sd.opExpRatio < 60}
@@ -1610,6 +1801,7 @@ const DashboardContent = () => {
                   toggleLabelAlt="$"
                   greenAltPill={true}
                 />
+
                 <StatCard
                   label="Labour Cost Ratio"
                   value={`${sd.labourRatio.toFixed(1)}%`}
