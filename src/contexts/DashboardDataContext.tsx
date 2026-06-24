@@ -238,7 +238,9 @@ export interface DashboardData {
   incomeOutgoingsData: IncomeOutgoingsPoint[];
   profitMarginData: ProfitMarginPoint[];
   monthlyInvoicesData: { month: string; invoiced: number; revenueCheck: number }[];
+  monthlyNetProfitData: { month: string; netProfit: number }[];
   forecastChartData: ForecastChartPoint[];
+
 
   expenseAllocation: ExpenseAllocationItem[];
   kpiVariables: Record<string, number>;
@@ -584,6 +586,9 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const totalCostOfSalesRow = findCashflowRowExact("Total Cost of Sales");
     const totalOpExInclSalariesRow = findCashflowRowExact("Total Operating Expenses (incl. Salaries)");
     const invoicesBeingPaidRow = findCashflowRowExact("Invoices Being Paid");
+    const businessLoanRow = findCashflowRowExact("Business Loan Repayment & Monthly Fee");
+    const vehicleRepayRow = findCashflowRowExact("Motor Vehicle Repayments");
+
 
     // For "Anticipated Cash Surplus/(Deficit)" — must NOT match the "Including Probable Jobs" variant
     const anticipatedSurplusRow = (() => {
@@ -723,6 +728,15 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       invoiced: invoicesBeingPaidRow ? Math.abs(parseNum(invoicesBeingPaidRow[m] ?? 0)) : 0,
       revenueCheck: Math.round(gpByMonth[m]?.totalRevenue ?? 0), // revenue-tab ex-GST cross-check
     }));
+
+    const monthlyNetProfitData = months.map((m) => {
+      const inc = totalIncomeRow ? parseNum(totalIncomeRow[m] ?? 0) : 0;
+      const out = totalOutgoingsRow ? Math.abs(parseNum(totalOutgoingsRow[m] ?? 0)) : 0;
+      const loan = businessLoanRow ? Math.abs(parseNum(businessLoanRow[m] ?? 0)) : 0;
+      const vehicle = vehicleRepayRow ? Math.abs(parseNum(vehicleRepayRow[m] ?? 0)) : 0;
+      return { month: m, netProfit: inc - out - loan - vehicle };
+    });
+
 
 
     console.log("[GP Chart Proof] === GROSS / NET PROFIT MARGIN VERIFICATION ===");
@@ -1411,7 +1425,8 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       wonValueFY,
       lostValueFY,
 
-      kpiStats, incomeOutgoingsData, profitMarginData, monthlyInvoicesData, forecastChartData, expenseAllocation,
+      kpiStats, incomeOutgoingsData, profitMarginData, monthlyInvoicesData, monthlyNetProfitData, forecastChartData, expenseAllocation,
+
 
       kpiVariables, dataStore: storeSnapshot, formulaCache: formulaCacheInstance, changedFormulas,
       formulas, addFormula, updateFormula, deleteFormula,
@@ -1458,7 +1473,8 @@ export function useDashboardData(): DashboardData {
 
 
       wrWonFY: 0, wrLostFY: 0, wrYlwFY: 0, wonValueFY: 0, lostValueFY: 0,
-      kpiStats: [], incomeOutgoingsData: [], profitMarginData: [], monthlyInvoicesData: [],
+      kpiStats: [], incomeOutgoingsData: [], profitMarginData: [], monthlyInvoicesData: [], monthlyNetProfitData: [],
+
 
 
       forecastChartData: [], expenseAllocation: [], kpiVariables: {},
