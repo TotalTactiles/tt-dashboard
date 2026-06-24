@@ -176,7 +176,7 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
 
   const isColVisible = (key: ColumnKey) => visibleColumns.includes(key);
 
-  const hasActiveFilters = sortBy !== "date-closest" || statusFilter !== "all" || stageFilter !== "all" || monthFilter !== "all" || companySearch.length > 0;
+  const hasActiveFilters = sortBy !== "date-closest" || statusFilter !== "all" || stageFilter !== "all" || monthFilter !== "all" || companySearch.length > 0 || externalActive !== null;
 
   const clearFilters = useCallback(() => {
     setSortBy("date-closest");
@@ -184,6 +184,7 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
     setStageFilter("all");
     setMonthFilter("all");
     setCompanySearch("");
+    setExternalActive(null);
     setPage(1);
   }, []);
 
