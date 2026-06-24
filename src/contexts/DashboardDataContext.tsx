@@ -1068,15 +1068,16 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const qjWonCount = quotedJobs.filter(j => j.status === "won").length;
     const qjYlwCount = quotedJobs.filter(j => j.status === "yellow").length;
 
-    // ===== WIN RATE (industry standard: won / (won + lost), decided deals only) =====
-    const wrWon  = quotedJobs.filter(j => j.status === "won").length;
-    const wrLost = quotedJobs.filter(j => j.status === "lost").length;
-    const wrYlw  = quotedJobs.filter(j => j.status === "yellow").length;
+    // ===== WIN RATE — FY-scoped from qtsSmmry (matches sheet) =====
+    const wrWon  = wonCountFY;
+    const wrLost = lostCountFY;
+    const wrYlw  = ylwCountFY;
     const winRateConfirmed = (wrWon + wrLost) > 0 ? (wrWon / (wrWon + wrLost)) * 100 : 0;
     const winRateWithYlw   = (wrWon + wrYlw + wrLost) > 0 ? ((wrWon + wrYlw) / (wrWon + wrYlw + wrLost)) * 100 : 0;
 
-    const totalOpps = quotedJobs.length;
+    const totalOpps = totalOppsFY;
     const pipelineConversion = totalOpps > 0 ? (wrWon / totalOpps) * 100 : 0;
+
 
     // ===== GROSS / NET revenue & profit =====
 
