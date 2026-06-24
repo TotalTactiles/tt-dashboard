@@ -584,6 +584,9 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const totalCostOfSalesRow = findCashflowRowExact("Total Cost of Sales");
     const totalOpExInclSalariesRow = findCashflowRowExact("Total Operating Expenses (incl. Salaries)");
     const invoicesBeingPaidRow = findCashflowRowExact("Invoices Being Paid");
+    const businessLoanRow = findCashflowRowExact("Business Loan Repayment & Monthly Fee");
+    const vehicleRepayRow = findCashflowRowExact("Motor Vehicle Repayments");
+
 
     // For "Anticipated Cash Surplus/(Deficit)" — must NOT match the "Including Probable Jobs" variant
     const anticipatedSurplusRow = (() => {
