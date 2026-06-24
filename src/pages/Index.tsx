@@ -1052,9 +1052,32 @@ function MonthlyInvoicesVsTargetChart({
             domain={[0, (dataMax: number) => Math.ceil((dataMax * 1.12) / 1000) * 1000]}
           />
           <Tooltip
-            contentStyle={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 6, color: "#111827", fontSize: 12 }}
-            formatter={(v: any) => [`$${Number(v).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, "Invoiced"]}
+            content={({ active, payload, label }: any) => {
+              if (!active || !payload?.length) return null;
+              const point = payload[0]?.payload;
+              const invoiced = point?.invoiced ?? 0;
+              const revenueCheck = point?.revenueCheck ?? 0;
+              return (
+                <div style={{
+                  backgroundColor: "#0f172a",
+                  border: "1px solid rgba(255,255,255,0.3)",
+                  borderRadius: "10px",
+                  padding: "10px 16px",
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+                  minWidth: "180px"
+                }}>
+                  <p style={{ color: "#94a3b8", fontSize: "11px", fontFamily: "monospace", margin: "0 0 6px 0" }}>{label}</p>
+                  <p style={{ color: "#22c55e", fontSize: "14px", fontWeight: 700, margin: 0, fontFamily: "monospace" }}>
+                    Invoiced: ${invoiced.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <p style={{ color: "#64748b", fontSize: "11px", margin: "4px 0 0 0" }}>
+                    Revenue tab (ex GST): ${revenueCheck.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+              );
+            }}
           />
+
           <ReferenceLine
             y={invoicesTarget}
             stroke="#f59e0b"
