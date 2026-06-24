@@ -673,10 +673,12 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
                   {visibleColDefs.map((col, idx) => {
                     if (idx === 0) {
                       return (
-                        <td key={col.key} className="py-3 pr-4 pl-1" colSpan={1}>
-                          <div className="flex items-center gap-2 text-foreground">
+                        <td key={col.key} className="py-3 pr-4 pl-1 sticky left-0 z-10 bg-[hsl(var(--card))]" colSpan={1}>
+                          <div className="flex items-center gap-2 text-foreground whitespace-nowrap">
                             <Table2 className="h-4 w-4" />
-                            <span>Total ({filteredProjects.length} projects)</span>
+                            <span>Total ({filteredProjects.length} {filteredProjects.length === 1 ? "project" : "projects"})</span>
+                            <span className="text-muted-foreground">·</span>
+                            <span className="text-chart-green">{fmtCompactDollar(totalValueInclGST)} incl GST</span>
                           </div>
                         </td>
                       );
@@ -692,24 +694,6 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
                     );
                   })}
                 </tr>
-                {(() => {
-                  const exclIdx = visibleColDefs.findIndex(c => c.key === "valueExclGST");
-                  const afterSpan = visibleColDefs.length - exclIdx - 1;
-                  return exclIdx > 0 ? (
-                    <tr className="bg-chart-green/[0.08] font-mono text-xs text-muted-foreground border-t border-chart-green/10">
-                      <td className="py-2 pr-4 text-right" colSpan={exclIdx}>Incl. GST</td>
-                      <td className="py-2 pr-4 text-right">{fmtDollar(totalValueInclGST)}</td>
-                      {afterSpan > 0 && <td className="py-2 pr-4" colSpan={afterSpan}></td>}
-                    </tr>
-                  ) : (
-                    <tr className="bg-chart-green/[0.08] font-mono text-xs text-muted-foreground border-t border-chart-green/10">
-                      <td className="py-2 pr-4 text-right" colSpan={visibleColDefs.length}>
-                        <span className="mr-2">Incl. GST</span>
-                        {fmtDollar(totalValueInclGST)}
-                      </td>
-                    </tr>
-                  );
-                })()}
               </tfoot>
             </table>
           </div>
