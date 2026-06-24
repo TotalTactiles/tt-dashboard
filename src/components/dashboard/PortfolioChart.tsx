@@ -213,7 +213,7 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
         <div className="min-w-0">
           <h3 className="text-sm font-medium text-muted-foreground">Income vs Outgoings</h3>
           <p className="text-xl font-mono font-bold text-foreground">Monthly Cash Flow</p>
-          <p className="text-[10px] text-muted-foreground font-mono mt-0.5">Green = income · Red = outgoings · Dark green = surplus · Maroon = deficit</p>
+          <p className="text-[10px] text-muted-foreground font-mono mt-0.5">Blue = opening cash · Green = income · Red = outgoings · Dark green = surplus · Maroon = deficit</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {hasMultipleYears && (
