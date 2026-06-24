@@ -1115,6 +1115,25 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     );
     const investorNetProfitYTD = revenueExGSTYTD - totalExpensesYTD;
 
+    // ===== Revenue / Profit — period split (2026 vs YTD) from line items =====
+    const _now = new Date();
+    const _parseDate = (s: any) => { const t = Date.parse(String(s ?? "")); return isNaN(t) ? null : new Date(t); };
+    const _liAll = rawRevenue.filter((r: any) => r?._label_isLineItem === true);
+    const _liYTD = _liAll.filter((r: any) => { const d = _parseDate(r._label_invoiceDate); return d && d <= _now; });
+    const _calcRev = (items: any[]) => {
+      const gross = items.reduce((s, r) => s + parseNum(r._label_value ?? 0), 0);
+      const net   = gross / 1.1;
+      const cogs  = items.reduce((s, r) => s + parseNum(r._label_labourCost ?? 0) + parseNum(r._label_tactileCost ?? 0) + parseNum(r._label_otherCost ?? 0), 0);
+      return { gross, net, cogs, grossProfit: net - cogs };
+    };
+    const rev2026 = _calcRev(_liAll);
+    const revYTD  = _calcRev(_liYTD);
+    // Overheads (full-period) ≈ job gross profit − net profit (proxy for cashflow-derived overhead)
+    const overheadsFull = Math.max(0, grossProfitVal - investorNetProfitYTD);
+    const revShareYTD   = rev2026.grossProfit > 0 ? (revYTD.grossProfit / rev2026.grossProfit) : 1;
+    const netProfit2026 = rev2026.grossProfit - overheadsFull;
+    const netProfitYTD  = revYTD.grossProfit  - overheadsFull * revShareYTD;
+
     const kpiStats: KPIStat[] = [
       // 1. Quotes (Active / Total) — unchanged
       {
