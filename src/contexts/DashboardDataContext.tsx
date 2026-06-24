@@ -317,7 +317,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
   const isLoading = ds.isLoading;
   const isRefreshing = ds.isRefreshing;
   const { formulas, addFormula, updateFormula, deleteFormula } = useFormulas();
-  const { quotingOpp } = useCrmStages();
+  const { quotingOpp, totalLeads } = useCrmStages();
   const [calendarEventsOverride, setCalendarEventsState] = useState<LiveCalendarEvent[] | null>(null);
 
   const data = useMemo<DashboardData>(() => {
@@ -1088,11 +1088,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     const totalOpps = totalOppsFY;
     const pipelineConversion = totalOpps > 0 ? (wrWon / totalOpps) * 100 : 0;
-    const convRate = pipelineConversion / 100;
-    const getLeadsToGoal = useCallback(
-      (jobsToGoal: number) => (convRate > 0 ? Math.ceil(jobsToGoal / convRate) : 0),
-      [convRate]
-    );
+    const oppConvRate = pipelineConversion / 100;
+    const convRate = oppConvRate;
+    const leadToWonRate = totalLeads > 0 ? (wonCountFY / totalLeads) : 0;
+    const getLeadsToGoal = (jobsToGoal: number) =>
+      oppConvRate > 0 ? Math.ceil(jobsToGoal / oppConvRate) : 0;
+    const getLeadsToGoalTrue = (jobsToGoal: number) =>
+      leadToWonRate > 0 ? Math.ceil(jobsToGoal / leadToWonRate) : 0;
 
 
     // ===== GROSS / NET revenue & profit =====
@@ -1358,6 +1360,10 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       pipelineConversion,
       convRate,
       getLeadsToGoal,
+      getLeadsToGoalTrue,
+      oppConvRate,
+      leadToWonRate,
+      totalLeads,
       totalOpps,
       wrWonFY: wonCountFY,
       wrLostFY: lostCountFY,
