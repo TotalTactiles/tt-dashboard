@@ -223,6 +223,9 @@ export interface DashboardData {
   convRate: number;
   getLeadsToGoal: (jobsToGoal: number) => number;
   totalOpps: number;
+  totalLeads: number;
+  leadToWonRate: number;
+  getLeadsToGoalTrue: (jobsToGoal: number) => number;
   wrWonFY: number;
   wrLostFY: number;
   wrYlwFY: number;
@@ -313,7 +316,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
   const isLoading = ds.isLoading;
   const isRefreshing = ds.isRefreshing;
   const { formulas, addFormula, updateFormula, deleteFormula } = useFormulas();
-  const { quotingOpp } = useCrmStages();
+  const { quotingOpp, totalLeads } = useCrmStages();
   const [calendarEventsOverride, setCalendarEventsState] = useState<LiveCalendarEvent[] | null>(null);
 
   const data = useMemo<DashboardData>(() => {
@@ -1087,6 +1090,10 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const convRate = pipelineConversion / 100;
     const getLeadsToGoal = (jobsToGoal: number) =>
       convRate > 0 ? Math.ceil(jobsToGoal / convRate) : 0;
+    // LEADS module (CRM Leads): true lead → won conversion
+    const leadToWonRate = totalLeads > 0 ? (wrWon / totalLeads) : 0;
+    const getLeadsToGoalTrue = (jobsToGoal: number) =>
+      leadToWonRate > 0 ? Math.ceil(jobsToGoal / leadToWonRate) : 0;
 
 
     // ===== GROSS / NET revenue & profit =====
@@ -1353,6 +1360,9 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       convRate,
       getLeadsToGoal,
       totalOpps,
+      totalLeads,
+      leadToWonRate,
+      getLeadsToGoalTrue,
       wrWonFY: wonCountFY,
       wrLostFY: lostCountFY,
       wrYlwFY: ylwCountFY,
@@ -1388,7 +1398,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       xeroPnl,
       xeroMonthlyCashflow,
     };
-  }, [liveData, hasLiveData, connectedCount, isLoading, isRefreshing, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride, calendarData, projectKPIData, quotingOpp]);
+  }, [liveData, hasLiveData, connectedCount, isLoading, isRefreshing, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride, calendarData, projectKPIData, quotingOpp, totalLeads]);
 
   return <DashboardDataContext.Provider value={data}>{children}</DashboardDataContext.Provider>;
 }
@@ -1402,6 +1412,7 @@ export function useDashboardData(): DashboardData {
       inRunningCount: 0, inRunningValue: 0,
       ylwValue: 0, ylwCount: 0,
       pipelineConversion: 0, convRate: 0, getLeadsToGoal: () => 0, totalOpps: 0,
+      totalLeads: 0, leadToWonRate: 0, getLeadsToGoalTrue: () => 0,
       wrWonFY: 0, wrLostFY: 0, wrYlwFY: 0, wonValueFY: 0, lostValueFY: 0,
       kpiStats: [], incomeOutgoingsData: [], profitMarginData: [],
 
