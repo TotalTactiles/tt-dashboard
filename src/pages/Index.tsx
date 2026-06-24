@@ -30,6 +30,7 @@ import { parseMonthKey } from "@/lib/reportDataAssembler";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle, Unplug, Loader2 } from "lucide-react";
 
 const fmtAUD = (n: number) => formatMetricValue(n, "currency");
