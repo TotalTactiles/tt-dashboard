@@ -1095,70 +1095,74 @@ function MonthlyInvoicesVsTargetChart({
   );
 }
 
-function MonthlyGpVsTargetChart({
-  incomeOutgoingsData,
-  gpTarget,
-  onGpTargetChange,
+function MonthlyNetProfitChart({
+  monthlyNetProfitData,
 }: {
-  incomeOutgoingsData: Array<{ month: string; income: number; outgoings: number }>;
-  gpTarget: number;
-  onGpTargetChange: (v: number) => void;
+  monthlyNetProfitData: Array<{ month: string; netProfit: number }>;
 }) {
-  const data = useMemo(
-    () => incomeOutgoingsData.map((r) => ({
-      month: r.month,
-      grossProfit: (r.income || 0) - (r.outgoings || 0) * 0.45,
-    })),
-    [incomeOutgoingsData]
-  );
-
-  const handleTargetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = Number(e.target.value) || 0;
-    onGpTargetChange(v);
-  };
+  const data = monthlyNetProfitData;
+  const dataMin = Math.min(0, ...data.map((d) => d.netProfit));
+  const dataMax = Math.max(0, ...data.map((d) => d.netProfit));
+  const yDomain = [Math.min(0, dataMin), Math.ceil((dataMax * 1.12) / 1000) * 1000];
 
   return (
     <div className="chart-container">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
-          <h3 className="text-sm font-medium text-foreground">Monthly Gross Profit $</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Actual GP dollars earned each month vs target</p>
+          <h3 className="text-sm font-medium text-foreground">Monthly Net Profit</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Profit each month after all expenses and debt</p>
         </div>
-        <label className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
-          Monthly GP Target $
-          <input
-            type="number"
-            value={gpTarget}
-            onChange={handleTargetChange}
-            className="bg-white/5 border border-white/10 rounded px-2 py-1 text-sm w-32 text-right font-mono text-foreground"
-          />
-        </label>
       </div>
       <ResponsiveContainer width="100%" height={220}>
-        <ComposedChart data={data}>
+        <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
           <XAxis dataKey="month" tick={{ fill: "#6b7280", fontSize: 11 }} />
-          <YAxis tickFormatter={fmtKAxis} tick={{ fill: "#6b7280", fontSize: 11 }} />
-          <Tooltip content={<GpBarTooltip />} />
-          <Legend wrapperStyle={{ color: "#e2e8f0", fontSize: "12px", paddingTop: "8px", fontFamily: "monospace" }} formatter={(value: string) => (
-            <span style={{ color: "#e2e8f0" }}>{value}</span>
-          )} />
-          <ReferenceLine
-            y={gpTarget}
-            stroke="#f59e0b"
-            strokeDasharray="4 4"
-            label={{ value: "Target", position: "right", fill: "#f59e0b", fontSize: 11 }}
+          <YAxis
+            tickFormatter={fmtKAxis}
+            tick={{ fill: "#6b7280", fontSize: 11 }}
+            domain={yDomain}
           />
-          <Bar dataKey="grossProfit" name="Gross Profit">
+          <Tooltip
+            content={({ active, payload, label }: any) => {
+              if (!active || !payload?.length) return null;
+              const value = payload[0]?.value ?? 0;
+              const isPositive = value >= 0;
+              return (
+                <div style={{
+                  backgroundColor: "#0f172a",
+                  border: "1px solid rgba(255,255,255,0.3)",
+                  borderRadius: "10px",
+                  padding: "10px 16px",
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+                  minWidth: "160px"
+                }}>
+                  <p style={{ color: "#94a3b8", fontSize: "11px", fontFamily: "monospace", margin: "0 0 6px 0" }}>{label}</p>
+                  <p style={{
+                    color: isPositive ? "#22c55e" : "#ef4444",
+                    fontSize: "15px",
+                    fontWeight: 700,
+                    margin: 0,
+                    fontFamily: "monospace"
+                  }}>
+                    {value < 0 ? "-" : ""}${Math.abs(value).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <p style={{ color: "#64748b", fontSize: "10px", margin: "4px 0 0 0" }}>Net Profit</p>
+                </div>
+              );
+            }}
+          />
+          <ReferenceLine y={0} stroke="#ffffff30" strokeDasharray="2 2" />
+          <Bar dataKey="netProfit" name="Net Profit">
             {data.map((d, i) => (
-              <Cell key={i} fill={d.grossProfit >= gpTarget ? "#22c55e" : "#ef4444"} />
+              <Cell key={i} fill={d.netProfit >= 0 ? "#22C55E" : "#7F1D1D"} />
             ))}
           </Bar>
-        </ComposedChart>
+        </BarChart>
       </ResponsiveContainer>
     </div>
   );
 }
+
 
 
 function timeAgo(ts: number | null): string {
@@ -1181,7 +1185,7 @@ function loadActiveGoalIds(allGoals: {id: string;merge?: boolean;}[]): Set<strin
 
 const DashboardContent = () => {
   const { goals, updateGoal } = useGoals();
-  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData, forecastChartData, quotedJobs, investorMetrics, isOffline, lastCachedAt, revenueProjects, dataStore, liveData, inRunningCount, inRunningValue, monthlyInvoicesData } = useDashboardData();
+  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData, forecastChartData, quotedJobs, investorMetrics, isOffline, lastCachedAt, revenueProjects, dataStore, liveData, inRunningCount, inRunningValue, monthlyInvoicesData, monthlyNetProfitData } = useDashboardData();
 
   // ── Shared period state — resets to current month on every mount/data change ──
   const periodOptions = useMemo(() => buildPeriodOptions(quotedJobs, revenueProjects), [quotedJobs, revenueProjects]);
@@ -1967,7 +1971,8 @@ const DashboardContent = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
             <MonthlyInvoicesVsTargetChart monthlyInvoicesData={monthlyInvoicesData} invoicesTarget={invoicesTarget} onInvoicesTargetChange={setInvoicesTarget} />
-            <MonthlyGpVsTargetChart incomeOutgoingsData={incomeOutgoingsData} gpTarget={gpTarget} onGpTargetChange={setGpTarget} />
+            <MonthlyNetProfitChart monthlyNetProfitData={monthlyNetProfitData} />
+
           </div>
 
           <div className="mb-4 md:mb-6">
