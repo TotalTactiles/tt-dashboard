@@ -1008,7 +1008,7 @@ const DashboardContent = () => {
     const dsrValue = revenueExGST > 0 ? (annualDebt / revenueExGST) * 100 : 0;
 
     return {
-      revenueExGST, totalCOGS, grossProfit, grossMarginPct,
+      revenueExGST, revenueInclGST, totalCOGS, grossProfit, grossMarginPct,
       totalExpenses, totalLabour, netProfit, opExpRatio, labourRatio,
       wonCount, totalCount, avgWon, avgQuoted, revPerJobWon, revPerJobQuoted,
       pipelineVal, pipelineCoverage, dsrValue, bizLoan, carLoan, monthlyDebt, annualDebt,
