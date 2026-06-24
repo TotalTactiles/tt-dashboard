@@ -1123,60 +1123,214 @@ function MonthlyNetProfitChart({
   const dataMax = Math.max(0, ...data.map((d) => d.netProfit));
   const yDomain = [Math.min(0, dataMin), Math.ceil((dataMax * 1.12) / 1000) * 1000];
 
+  const [mode, setMode] = useState<"with" | "without">("with");
+  const [debts, setDebts] = useState<DebtFacility[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(CACHE_WEBHOOK_GET);
+        const rows: Array<{ key: string; value: string }> = await res.json();
+        const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+        if (map[DEBT_CACHE_KEY]) {
+          const parsed = JSON.parse(map[DEBT_CACHE_KEY]);
+          if (!cancelled && Array.isArray(parsed)) { setDebts(parsed); return; }
+        }
+      } catch {}
+      try {
+        const saved = localStorage.getItem(DEBT_CACHE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (!cancelled && Array.isArray(parsed)) setDebts(parsed);
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const registerTotal = useMemo(
+    () => debts.reduce((s, d) => s + (Number(d.balance) || 0), 0),
+    [debts],
+  );
+
+  const debtPaydownData = useMemo(() => {
+    // Amortise each facility month-by-month; sum remaining balances at each visible month.
+    const balanceAt = (f: DebtFacility, targetYear: number, targetIdx: number): number => {
+      const opening = Number(f.balance) || 0;
+      if (opening <= 0) return 0;
+      const repay = Number(f.monthlyRepayment) || 0;
+      const annualRate = Number(f.rate) || 0;
+      const monthlyRate = annualRate / 100 / 12;
+
+      const start = f.startDate ? new Date(f.startDate) : null;
+      const maturity = f.maturityDate ? new Date(f.maturityDate) : null;
+      const targetDate = new Date(targetYear, targetIdx, 1);
+      if (maturity && targetDate > maturity) return 0;
+      if (!start || isNaN(start.getTime())) {
+        // No start date → assume already paying from earliest visible month; treat as opening.
+        return opening;
+      }
+      const startMonth = new Date(start.getFullYear(), start.getMonth(), 1);
+      if (targetDate < startMonth) return opening;
+      const elapsed =
+        (targetYear - startMonth.getFullYear()) * 12 +
+        (targetIdx - startMonth.getMonth()) + 1;
+      let bal = opening;
+      for (let i = 0; i < elapsed && bal > 0; i++) {
+        const interest = bal * monthlyRate;
+        const principal = Math.max(0, repay - interest);
+        bal = Math.max(0, bal - principal);
+      }
+      return bal;
+    };
+
+    return data.map((d) => {
+      const p = parseMonthKey(d.month);
+      if (!p) return { month: d.month, remaining: 0 };
+      const yr = 2000 + parseInt(p.yy, 10);
+      const total = debts.reduce((s, f) => s + balanceAt(f, yr, p.idx), 0);
+      return { month: d.month, remaining: Math.round(total) };
+    });
+  }, [data, debts]);
+
+  const debtYMax = Math.ceil((registerTotal * 1.05) / 1000) * 1000 || 1000;
 
   return (
     <div className="chart-container">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <h3 className="text-sm font-medium text-foreground">Monthly Net Profit</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Profit each month after all expenses and debt</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {mode === "with"
+              ? "Monthly profit after all expenses and debt repayments."
+              : "Total debt paid down each month — tracking toward debt-free."}
+          </p>
+        </div>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {([
+            { key: "with", label: "W Debt" },
+            { key: "without", label: "W/o Debt" },
+          ] as const).map((opt) => (
+            <button
+              key={opt.key}
+              onClick={() => setMode(opt.key)}
+              className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-medium transition-all ${
+                mode === opt.key
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-transparent border border-border text-muted-foreground hover:border-muted-foreground/50"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
       <ResponsiveContainer width="100%" height={220}>
-        <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-          <XAxis dataKey="month" tick={{ fill: "#6b7280", fontSize: 11 }} />
-          <YAxis
-            tickFormatter={fmtKAxis}
-            tick={{ fill: "#6b7280", fontSize: 11 }}
-            domain={yDomain}
-          />
-          <Tooltip
-            content={({ active, payload, label }: any) => {
-              if (!active || !payload?.length) return null;
-              const value = payload[0]?.value ?? 0;
-              const isPositive = value >= 0;
-              return (
-                <div style={{
-                  backgroundColor: "#0f172a",
-                  border: "1px solid rgba(255,255,255,0.3)",
-                  borderRadius: "10px",
-                  padding: "10px 16px",
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
-                  minWidth: "160px"
-                }}>
-                  <p style={{ color: "#94a3b8", fontSize: "11px", fontFamily: "monospace", margin: "0 0 6px 0" }}>{label}</p>
-                  <p style={{
-                    color: isPositive ? "#22c55e" : "#ef4444",
-                    fontSize: "15px",
-                    fontWeight: 700,
-                    margin: 0,
-                    fontFamily: "monospace"
+        {mode === "with" ? (
+          <BarChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
+            <XAxis dataKey="month" tick={{ fill: "#6b7280", fontSize: 11 }} />
+            <YAxis
+              tickFormatter={fmtKAxis}
+              tick={{ fill: "#6b7280", fontSize: 11 }}
+              domain={yDomain}
+            />
+            <Tooltip
+              content={({ active, payload, label }: any) => {
+                if (!active || !payload?.length) return null;
+                const value = payload[0]?.value ?? 0;
+                const isPositive = value >= 0;
+                return (
+                  <div style={{
+                    backgroundColor: "#0f172a",
+                    border: "1px solid rgba(255,255,255,0.3)",
+                    borderRadius: "10px",
+                    padding: "10px 16px",
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+                    minWidth: "160px"
                   }}>
-                    {value < 0 ? "-" : ""}${Math.abs(value).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                  <p style={{ color: "#64748b", fontSize: "10px", margin: "4px 0 0 0" }}>Net Profit</p>
-                </div>
-              );
-            }}
-          />
-          <ReferenceLine y={0} stroke="#ffffff30" strokeDasharray="2 2" />
-          <Bar dataKey="netProfit" name="Net Profit">
-            {data.map((d, i) => (
-              <Cell key={i} fill={d.netProfit >= 0 ? "#15803D" : "#7F1D1D"} />
-            ))}
-          </Bar>
-        </BarChart>
+                    <p style={{ color: "#94a3b8", fontSize: "11px", fontFamily: "monospace", margin: "0 0 6px 0" }}>{label}</p>
+                    <p style={{
+                      color: isPositive ? "#22c55e" : "#ef4444",
+                      fontSize: "15px",
+                      fontWeight: 700,
+                      margin: 0,
+                      fontFamily: "monospace"
+                    }}>
+                      {value < 0 ? "-" : ""}${Math.abs(value).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                    <p style={{ color: "#64748b", fontSize: "10px", margin: "4px 0 0 0" }}>Net Profit</p>
+                  </div>
+                );
+              }}
+            />
+            <ReferenceLine y={0} stroke="#ffffff30" strokeDasharray="2 2" />
+            <Bar dataKey="netProfit" name="Net Profit">
+              {data.map((d, i) => (
+                <Cell key={i} fill={d.netProfit >= 0 ? "#15803D" : "#7F1D1D"} />
+              ))}
+            </Bar>
+          </BarChart>
+        ) : (
+          <AreaChart data={debtPaydownData}>
+            <defs>
+              <linearGradient id="debtPaydownFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#3D89DA" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="#3D89DA" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
+            <XAxis dataKey="month" tick={{ fill: "#6b7280", fontSize: 11 }} />
+            <YAxis
+              tickFormatter={fmtKAxis}
+              tick={{ fill: "#6b7280", fontSize: 11 }}
+              domain={[0, debtYMax]}
+            />
+            <Tooltip
+              content={({ active, payload, label }: any) => {
+                if (!active || !payload?.length) return null;
+                const value = payload[0]?.value ?? 0;
+                return (
+                  <div style={{
+                    backgroundColor: "#0f172a",
+                    border: "1px solid rgba(255,255,255,0.3)",
+                    borderRadius: "10px",
+                    padding: "10px 16px",
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+                    minWidth: "180px"
+                  }}>
+                    <p style={{ color: "#94a3b8", fontSize: "11px", fontFamily: "monospace", margin: "0 0 6px 0" }}>{label}</p>
+                    <p style={{
+                      color: "#3D89DA",
+                      fontSize: "15px",
+                      fontWeight: 700,
+                      margin: 0,
+                      fontFamily: "monospace"
+                    }}>
+                      ${Math.round(value).toLocaleString("en-AU")}
+                    </p>
+                    <p style={{ color: "#64748b", fontSize: "10px", margin: "4px 0 0 0" }}>Debt remaining</p>
+                  </div>
+                );
+              }}
+            />
+            <ReferenceLine
+              y={0}
+              stroke="#ffffff40"
+              strokeDasharray="4 4"
+              label={{ value: "Debt free", position: "insideBottomRight", fill: "#94a3b8", fontSize: 10 }}
+            />
+            <Area
+              type="monotone"
+              dataKey="remaining"
+              stroke="#3D89DA"
+              strokeWidth={2}
+              fill="url(#debtPaydownFill)"
+              dot={false}
+            />
+          </AreaChart>
+        )}
       </ResponsiveContainer>
     </div>
   );
