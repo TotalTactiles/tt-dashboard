@@ -237,6 +237,7 @@ export interface DashboardData {
 
   incomeOutgoingsData: IncomeOutgoingsPoint[];
   profitMarginData: ProfitMarginPoint[];
+  monthlyInvoicesData: { month: string; invoiced: number }[];
   forecastChartData: ForecastChartPoint[];
   expenseAllocation: ExpenseAllocationItem[];
   kpiVariables: Record<string, number>;
@@ -713,6 +714,11 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         : null;
       return { month: mk, grossMargin, netProfitMargin };
     });
+
+    const monthlyInvoicesData = comparisonMonths.map((mk) => ({
+      month: mk,
+      invoiced: Math.round(gpByMonth[mk]?.totalRevenue ?? 0),
+    }));
 
     console.log("[GP Chart Proof] === GROSS / NET PROFIT MARGIN VERIFICATION ===");
     console.log(`[GP Chart Proof] Net Profit source: CASHFLOW → "Anticipated Cash Surplus/(Deficit)" row (found: ${hasNetProfitSource})`);
@@ -1400,7 +1406,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       wonValueFY,
       lostValueFY,
 
-      kpiStats, incomeOutgoingsData, profitMarginData, forecastChartData, expenseAllocation,
+      kpiStats, incomeOutgoingsData, profitMarginData, monthlyInvoicesData, forecastChartData, expenseAllocation,
 
       kpiVariables, dataStore: storeSnapshot, formulaCache: formulaCacheInstance, changedFormulas,
       formulas, addFormula, updateFormula, deleteFormula,
@@ -1447,7 +1453,7 @@ export function useDashboardData(): DashboardData {
 
 
       wrWonFY: 0, wrLostFY: 0, wrYlwFY: 0, wonValueFY: 0, lostValueFY: 0,
-      kpiStats: [], incomeOutgoingsData: [], profitMarginData: [],
+      kpiStats: [], incomeOutgoingsData: [], profitMarginData: [], monthlyInvoicesData: [],
 
       forecastChartData: [], expenseAllocation: [], kpiVariables: {},
       dataStore: { quotes: [], qtsSmmry: [], cashflow: [], revenue: [], expenses: [], labour: [], stock: [], quotesSummary: {}, cashflowSummary: {}, revenueSummary: {}, expensesSummary: {} },
