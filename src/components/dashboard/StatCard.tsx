@@ -458,7 +458,22 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
   })();
 
 
-  const trendBlock = (
+
+  const cashPositionSubtextBlock = isCashPosition ? (
+    <p
+      className="font-mono text-muted-foreground/80 leading-tight text-center w-full px-1 whitespace-nowrap overflow-hidden text-ellipsis"
+      style={{ fontSize: "clamp(9px, 0.75vw, 11px)" }}
+    >
+      {mode === "alt2"
+        ? isActualNotSet
+          ? "Enter your real balance to compare"
+          : "Your real bank balance (entered manually)"
+        : mode === "alt"
+        ? "Live cash balance right now"
+        : "Balance on the 1st of this month"}
+    </p>
+  ) : null;
+
     <div style={{ minWidth: 0 }} className={`${emphasis ? "w-full flex flex-col items-center" : "mt-auto pt-1"}`}>
       {showAlt && altDiff && !noData && (
         <p className={`font-mono text-amber-400/80 leading-tight ${emphasis ? "text-[0.65rem]" : ""}`} style={emphasis ? undefined : sublineStyle} title={`${altDiff} with YLWs`}>
