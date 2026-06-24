@@ -168,8 +168,6 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
     return [Math.floor(min / 5000) * 5000, Math.ceil((max + pad) / 10000) * 10000 || 10000];
   }, [filteredData]);
 
-  const barDomain = sharedDomain;
-  const surplusDomain = sharedDomain;
 
   const renderSurplusDot = (props: any) => {
     const { cx, cy, payload } = props;
@@ -300,7 +298,11 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
                 stroke={tc.axis}
                 fontSize={11}
                 fontFamily="JetBrains Mono"
-                domain={barDomain}
+                domain={[
+                  (dataMin: number) => Math.min(0, dataMin),
+                  (dataMax: number) => Math.ceil((dataMax * 1.12) / 1000) * 1000,
+                ]}
+                allowDataOverflow={false}
                 tickFormatter={(v) => {
                   const abs = Math.abs(v);
                   return abs >= 1000 ? `$${(abs / 1000).toFixed(0)}K` : `$${abs}`;
@@ -313,7 +315,11 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
                 stroke={tc.axis}
                 fontSize={10}
                 fontFamily="JetBrains Mono"
-                domain={surplusDomain}
+                domain={[
+                  (dataMin: number) => Math.min(0, dataMin),
+                  (dataMax: number) => Math.ceil((dataMax * 1.12) / 1000) * 1000,
+                ]}
+                allowDataOverflow={false}
                 tickFormatter={(v) => {
                   const abs = Math.abs(v);
                   const label = abs >= 1000 ? `$${(abs / 1000).toFixed(0)}K` : `$${abs}`;
