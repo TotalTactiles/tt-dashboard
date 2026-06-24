@@ -764,7 +764,12 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
                 </span>
                 <span className="font-mono font-bold text-sm text-chart-green">
                   {fmtDollar(totalRevenue)}
+                  <span className="text-[10px] text-muted-foreground ml-1 font-normal">(ex GST)</span>
                 </span>
+              </div>
+              <div className="flex items-center justify-between font-mono text-xs text-muted-foreground mt-1">
+                <span>Incl. GST</span>
+                <span>{fmtDollar(totalValueInclGST)}</span>
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs font-mono">
                 <div className="flex justify-between">
