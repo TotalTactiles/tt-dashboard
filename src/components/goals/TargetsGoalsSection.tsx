@@ -421,6 +421,7 @@ function JobsToGoalCard({
                 <span className="font-mono tabular-nums text-chart-green">
                   {fmtAUD(goalConfirmed)}
                 </span>
+                <span className="text-muted-foreground"> WON</span>
                 {withYlw ? (
                   <>
                     <span className="text-muted-foreground"> + </span>
