@@ -221,7 +221,7 @@ function WinLossSummaryCard({
 // Paid (top)        = last calendar month's invoices (received THIS month)
 // To be paid (bot.) = this calendar month's invoices (received NEXT month)
 // Source: revenueProjects (REVENUE tab), valueInclGST, invoiceDate.
-function InvoicesPaidCard({ index }: { index: number }) {
+function InvoicesPaidCard({ index, onJumpToMonth }: { index: number; onJumpToMonth?: (monthLabel: string) => void }) {
   const { revenueProjects } = useDashboardData();
 
   const { paid, toBePaid, paidCount, toBePaidCount } = useMemo(() => {
@@ -255,14 +255,18 @@ function InvoicesPaidCard({ index }: { index: number }) {
   };
 
   const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const MONTHS_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   const now = new Date();
   const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const paidCtx = MONTHS[prev.getMonth()];
   const toBeCtx = MONTHS[now.getMonth()];
+  const paidJumpLabel = `${MONTHS_FULL[prev.getMonth()]} ${prev.getFullYear()}`;
+  const toBeJumpLabel = `${MONTHS_FULL[now.getMonth()]} ${now.getFullYear()}`;
 
   const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
   const labelClass = "text-[0.7rem] font-semibold tracking-wide text-foreground/80 font-mono text-center";
   const subClass = "text-[0.65rem] leading-tight text-muted-foreground font-mono whitespace-normal break-words text-center";
+  const subLinkClass = subClass + " cursor-pointer hover:text-foreground hover:underline underline-offset-2 transition-colors";
   const figureStyle: React.CSSProperties = { fontSize: 'clamp(1.25rem, 1.6vw, 1.5rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' };
 
   return (
@@ -283,7 +287,12 @@ function InvoicesPaidCard({ index }: { index: number }) {
           <p className={labelClass}>To be Paid</p>
           <p className="leading-tight break-words flex items-baseline justify-center gap-1.5 flex-wrap">
             <span className="font-bold font-mono text-chart-green" style={figureStyle}>{fmtCompact(paid)}</span>
-            <span className={subClass}>· {paidCount} inv · {paidCtx}</span>
+            <button
+              type="button"
+              onClick={() => onJumpToMonth?.(paidJumpLabel)}
+              className={subLinkClass}
+              title={`Filter Revenue & COGS to ${paidJumpLabel}`}
+            >· {paidCount} inv · {paidCtx}</button>
           </p>
         </div>
         <div className="h-px bg-white/10 my-1 w-2/3 mx-auto" />
@@ -291,7 +300,12 @@ function InvoicesPaidCard({ index }: { index: number }) {
           <p className={labelClass}>To be Invoiced</p>
           <p className="leading-tight break-words flex items-baseline justify-center gap-1.5 flex-wrap">
             <span className="font-bold font-mono text-foreground/90" style={figureStyle}>{fmtCompact(toBePaid)}</span>
-            <span className={subClass}>· {toBePaidCount} inv · {toBeCtx}</span>
+            <button
+              type="button"
+              onClick={() => onJumpToMonth?.(toBeJumpLabel)}
+              className={subLinkClass}
+              title={`Filter Revenue & COGS to ${toBeJumpLabel}`}
+            >· {toBePaidCount} inv · {toBeCtx}</button>
           </p>
         </div>
       </div>
@@ -300,6 +314,83 @@ function InvoicesPaidCard({ index }: { index: number }) {
 }
 
 
+
+function PerJobCard({
+  grossRevPerJob,
+  netRevPerJob,
+  grossProfitPerJob,
+  netProfitPerJob,
+  wonCount,
+  index,
+}: {
+  grossRevPerJob: number;
+  netRevPerJob: number;
+  grossProfitPerJob: number;
+  netProfitPerJob: number;
+  wonCount: number;
+  index: number;
+}) {
+  const [mode, setMode] = useState<"revenue" | "profit">("revenue");
+
+  const fmtCompact = (n: number) => {
+    const abs = Math.abs(n);
+    const sign = n < 0 ? "-" : "";
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}K`;
+    return `${sign}$${Math.round(abs).toLocaleString()}`;
+  };
+
+  const isRevenue = mode === "revenue";
+  const topVal = isRevenue ? grossRevPerJob : grossProfitPerJob;
+  const bottomVal = isRevenue ? netRevPerJob : netProfitPerJob;
+  const topLabel = isRevenue ? "GROSS REV / JOB" : "GROSS PROFIT / JOB";
+  const bottomLabel = isRevenue ? "NET REV / JOB" : "NET PROFIT / JOB";
+  const topColor = isRevenue ? "text-chart-green" : (topVal >= 0 ? "text-chart-green" : "text-chart-red");
+  const bottomColor = isRevenue ? "text-chart-green" : (bottomVal >= 0 ? "text-chart-green" : "text-chart-red");
+
+  const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
+  const labelClass = "text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center";
+  const subClass = "text-[0.65rem] leading-tight text-muted-foreground font-mono text-center";
+  const figureStyle: React.CSSProperties = { fontSize: 'clamp(1.25rem, 1.6vw, 1.5rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+      className="stat-card relative overflow-hidden flex flex-col items-center text-center h-full p-3 gap-1"
+      style={{ containerType: 'inline-size' }}
+    >
+      <div className="w-full min-h-[1.5rem] flex items-center justify-center px-1">
+        <p className={titleClass}>PER JOB</p>
+      </div>
+      <div className="min-h-[1.5rem] flex justify-center items-center">
+        <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
+          <button
+            onClick={() => setMode("revenue")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${mode === "revenue" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >Revenue</button>
+          <button
+            onClick={() => setMode("profit")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${mode === "profit" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >Profit</button>
+        </div>
+      </div>
+      <div className="flex-1 flex flex-col items-center justify-center gap-0.5 w-full min-w-0 text-center">
+        <div className="w-full min-w-0">
+          <p className={labelClass}>{topLabel}</p>
+          <p className={`font-bold font-mono break-words leading-tight ${topColor}`} style={figureStyle}>{fmtCompact(topVal)}</p>
+        </div>
+        <div className="h-px bg-white/10 my-1 w-2/3 mx-auto" />
+        <div className="w-full min-w-0">
+          <p className={labelClass}>{bottomLabel}</p>
+          <p className={`font-bold font-mono break-words leading-tight ${bottomColor}`} style={figureStyle}>{fmtCompact(bottomVal)}</p>
+        </div>
+        <p className={subClass + " mt-1"}>{wonCount} jobs won</p>
+      </div>
+    </motion.div>
+  );
+}
 
 
 type RevPeriodData = { gross: number; net: number; cogs: number; grossProfit: number };
@@ -850,25 +941,20 @@ const DashboardContent = () => {
   const [showAllTables, setShowAllTables] = useState(false);
   const [invoiceFilter, setInvoiceFilter] = useState<"invoiced" | "to_be_invoiced">("invoiced");
   const [investorScope, setInvestorScope] = useState<"ytd" | "quarter">("ytd");
+  const [revenueTableMonth, setRevenueTableMonth] = useState<string | null>(null);
+  const [revenueTableJumpToken, setRevenueTableJumpToken] = useState(0);
+  const revenueCogsRef = useRef<HTMLDivElement | null>(null);
+  const jumpToRevenueCogsMonth = useCallback((monthLabel: string) => {
+    setRevenueTableMonth(monthLabel);
+    setRevenueTableJumpToken((t) => t + 1);
+    requestAnimationFrame(() => {
+      revenueCogsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, []);
+  
   
 
-  const OPTIONAL_INVESTOR_CARDS = [
-    "Revenue Growth",
-    "Pipeline Coverage",
-    "Op. Expense Ratio",
-    "Labour Cost Ratio",
-    "Revenue Per Job",
-  ] as const;
-  type OptionalCard = typeof OPTIONAL_INVESTOR_CARDS[number];
-  const [visibleOptionalCards, setVisibleOptionalCards] = useState<Set<OptionalCard>>(new Set());
-  const [metricsDropdownOpen, setMetricsDropdownOpen] = useState(false);
-  const toggleOptionalCard = (card: OptionalCard) => {
-    setVisibleOptionalCards(prev => {
-      const next = new Set(prev);
-      if (next.has(card)) next.delete(card); else next.add(card);
-      return next;
-    });
-  };
+  
 
   // ── GP target — synced via webhook cache ─────────────────────────
   const [gpTarget, setGpTarget] = useState(30000);
@@ -953,6 +1039,7 @@ const DashboardContent = () => {
 
     // Revenue metrics
     const revenueExGST = scopedRevenue.reduce((s, r) => s + r.valueExclGST, 0);
+    const revenueInclGST = scopedRevenue.reduce((s, r) => s + (r.valueInclGST || 0), 0);
     const totalCOGS = scopedRevenue.reduce((s, r) => s + r.totalCOGS, 0);
     const grossProfit = revenueExGST - totalCOGS;
     const grossMarginPct = revenueExGST > 0 ? (grossProfit / revenueExGST) * 100 : 0;
@@ -1007,7 +1094,7 @@ const DashboardContent = () => {
     const dsrValue = revenueExGST > 0 ? (annualDebt / revenueExGST) * 100 : 0;
 
     return {
-      revenueExGST, totalCOGS, grossProfit, grossMarginPct,
+      revenueExGST, revenueInclGST, totalCOGS, grossProfit, grossMarginPct,
       totalExpenses, totalLabour, netProfit, opExpRatio, labourRatio,
       wonCount, totalCount, avgWon, avgQuoted, revPerJobWon, revPerJobQuoted,
       pipelineVal, pipelineCoverage, dsrValue, bizLoan, carLoan, monthlyDebt, annualDebt,
@@ -1404,90 +1491,8 @@ const DashboardContent = () => {
                     >{scope === "ytd" ? "This Year" : investorDateWindows.qLabel}</button>
                   ))}
                 </div>
-                <span className="text-xs text-muted-foreground font-mono">Business Health</span>
-                <div style={{ position: "relative" }}>
-                  <button
-                    onClick={() => setMetricsDropdownOpen(o => !o)}
-                    style={{
-                      background: "rgba(255,255,255,0.06)",
-                      border: "1px solid rgba(255,255,255,0.15)",
-                      borderRadius: "6px",
-                      color: "#94a3b8",
-                      padding: "4px 10px",
-                      fontSize: "12px",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    <span>＋ Metrics</span>
-                    {visibleOptionalCards.size > 0 && (
-                      <span style={{
-                        background: "#22c55e",
-                        color: "#000",
-                        borderRadius: "9999px",
-                        fontSize: "10px",
-                        fontWeight: 700,
-                        padding: "0 5px",
-                        lineHeight: "16px",
-                      }}>
-                        {visibleOptionalCards.size}
-                      </span>
-                    )}
-                  </button>
-                  {metricsDropdownOpen && (
-                    <>
-                      <div
-                        style={{ position: "fixed", inset: 0, zIndex: 40 }}
-                        onClick={() => setMetricsDropdownOpen(false)}
-                      />
-                      <div style={{
-                        position: "absolute",
-                        top: "calc(100% + 6px)",
-                        right: 0,
-                        zIndex: 50,
-                        background: "#0f1623",
-                        border: "1px solid rgba(255,255,255,0.12)",
-                        borderRadius: "10px",
-                        padding: "8px 0",
-                        minWidth: "200px",
-                        boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-                      }}>
-                        <div style={{ padding: "6px 14px 8px", fontSize: "10px", color: "#475569", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                          Optional Metrics
-                        </div>
-                        {OPTIONAL_INVESTOR_CARDS.map(card => (
-                          <label
-                            key={card}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "10px",
-                              padding: "7px 14px",
-                              cursor: "pointer",
-                              color: visibleOptionalCards.has(card) ? "#e2e8f0" : "#64748b",
-                              fontSize: "13px",
-                              transition: "background 0.15s",
-                            }}
-                            onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
-                            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={visibleOptionalCards.has(card)}
-                              onChange={() => toggleOptionalCard(card)}
-                              style={{ accentColor: "#22c55e", width: "14px", height: "14px", cursor: "pointer" }}
-                            />
-                            {card}
-                          </label>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
               </div>
+
               <div className="text-xs font-mono text-muted-foreground/70 bg-secondary/40 border border-border/50 rounded px-3 py-1.5 mb-3">
                 {investorScope === "ytd"
                   ? `Jan–${ABBR[mo]} ${yr} YTD · ${investorDateWindows.ytdMonths.length} months`
@@ -1511,7 +1516,7 @@ const DashboardContent = () => {
                   emphasis
                 />
                 {/* 2. Invoices Paid / To-be-paid — relocated/built from REVENUE tab */}
-                <InvoicesPaidCard index={10} />
+                <InvoicesPaidCard index={10} onJumpToMonth={jumpToRevenueCogsMonth} />
                 <StatCard
                   label="Gross Margin %"
                   value={`${gmPct}%`}
@@ -1556,92 +1561,69 @@ const DashboardContent = () => {
                     />
                   );
                 })()}
+                {/* 5. PER JOB — merged Revenue/Profit per-job card (Revenue|Profit toggle, no own period filter) */}
                 {(() => {
-                  const netProfit = sd.netProfit;
-                  const wonCount = sd.wonCount;
-                  const profitPerJob = wonCount > 0 ? netProfit / wonCount : 0;
-                  const ebitdaPerJob = wonCount > 0 ? sd.grossProfit / wonCount : 0;
+                  const wc = sd.wonCount;
+                  const grossRevPerJob = wc > 0 ? sd.revenueInclGST / wc : 0;
+                  const netRevPerJob = wc > 0 ? sd.revenueExGST / wc : 0;
+                  const grossProfitPerJob = wc > 0 ? sd.grossProfit / wc : 0;
+                  const netProfitPerJob = wc > 0 ? sd.netProfit / wc : 0;
                   return (
-                    <StatCard
-                      label="Profit Per Job"
-                      value={fmtVal(profitPerJob)}
-                      change={`${wonCount} jobs won`}
-                      positive={profitPerJob >= 0}
+                    <PerJobCard
+                      grossRevPerJob={grossRevPerJob}
+                      netRevPerJob={netRevPerJob}
+                      grossProfitPerJob={grossProfitPerJob}
+                      netProfitPerJob={netProfitPerJob}
+                      wonCount={wc}
                       index={13}
-                      momContext={`EBITDA/job: ${fmtVal(ebitdaPerJob)}`}
                     />
                   );
                 })()}
+                {/* Always-rendered formerly-optional metrics */}
+                <StatCard
+                  label="Revenue Growth"
+                  value={fmtVal(sd.revenueExGST)}
+                  change={scopeLabel}
+                  positive={true}
+                  index={12}
+                  momContext={`${sd.wonCount} jobs won`}
+                />
+                <StatCard
+                  label="Pipeline Coverage"
+                  value={`${sd.pipelineCoverage.toFixed(1)}x`}
+                  change={fmtVal(sd.pipelineVal) + " pipeline"}
+                  positive={sd.pipelineCoverage >= 2}
+                  index={13}
+                  momContext="vs YTD revenue run rate"
+                />
+                <StatCard
+                  label="Op. Expense Ratio"
+                  value={`${sd.opExpRatio.toFixed(1)}%`}
+                  change="Expenses / Revenue"
+                  positive={sd.opExpRatio < 60}
+                  index={15}
+                  altValue={fmtVal(sd.totalExpenses)}
+                  altChange={`${scopeLabel} expenses`}
+                  altPositive={sd.opExpRatio < 60}
+                  toggleLabelBase="Ratio"
+                  toggleLabelAlt="$"
+                  greenAltPill={true}
+                />
+                <StatCard
+                  label="Labour Cost Ratio"
+                  value={`${sd.labourRatio.toFixed(1)}%`}
+                  change="Labour / Revenue"
+                  positive={sd.labourRatio < 35}
+                  index={16}
+                  altValue={fmtVal(sd.totalLabour)}
+                  altChange={`${scopeLabel} labour`}
+                  altPositive={sd.labourRatio < 35}
+                  toggleLabelBase="Ratio"
+                  toggleLabelAlt="$"
+                  greenAltPill={true}
+                />
               </div>
-              {visibleOptionalCards.size > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-3" style={{ containerType: 'inline-size' }}>
-                  {visibleOptionalCards.has("Revenue Growth") && (
-                    <StatCard
-                      label="Revenue Growth"
-                      value={fmtVal(sd.revenueExGST)}
-                      change={scopeLabel}
-                      positive={true}
-                      index={12}
-                      momContext={`${sd.wonCount} jobs won`}
-                    />
-                  )}
-                  {visibleOptionalCards.has("Pipeline Coverage") && (
-                    <StatCard
-                      label="Pipeline Coverage"
-                      value={`${sd.pipelineCoverage.toFixed(1)}x`}
-                      change={fmtVal(sd.pipelineVal) + " pipeline"}
-                      positive={sd.pipelineCoverage >= 2}
-                      index={13}
-                      momContext="vs YTD revenue run rate"
-                    />
-                  )}
-                  {visibleOptionalCards.has("Op. Expense Ratio") && (
-                    <StatCard
-                      label="Op. Expense Ratio"
-                      value={`${sd.opExpRatio.toFixed(1)}%`}
-                      change="Expenses / Revenue"
-                      positive={sd.opExpRatio < 60}
-                      index={15}
-                      altValue={fmtVal(sd.totalExpenses)}
-                      altChange={`${scopeLabel} expenses`}
-                      altPositive={sd.opExpRatio < 60}
-                      toggleLabelBase="Ratio"
-                      toggleLabelAlt="$"
-                      greenAltPill={true}
-                    />
-                  )}
-                  {visibleOptionalCards.has("Labour Cost Ratio") && (
-                    <StatCard
-                      label="Labour Cost Ratio"
-                      value={`${sd.labourRatio.toFixed(1)}%`}
-                      change="Labour / Revenue"
-                      positive={sd.labourRatio < 35}
-                      index={16}
-                      altValue={fmtVal(sd.totalLabour)}
-                      altChange={`${scopeLabel} labour`}
-                      altPositive={sd.labourRatio < 35}
-                      toggleLabelBase="Ratio"
-                      toggleLabelAlt="$"
-                      greenAltPill={true}
-                    />
-                  )}
-                  {visibleOptionalCards.has("Revenue Per Job") && (
-                    <StatCard
-                      label="Revenue Per Job"
-                      value={fmtVal(sd.revPerJobWon)}
-                      change={`${sd.wonCount} jobs won`}
-                      positive={true}
-                      index={17}
-                      altValue={fmtVal(sd.revPerJobQuoted)}
-                      altChange={`${sd.totalCount} jobs quoted`}
-                      altPositive={true}
-                      toggleLabelBase="Won"
-                      toggleLabelAlt="Quoted"
-                      greenAltPill={true}
-                    />
-                  )}
-                </div>
-              )}
+
             </div>
             );
           })()}
@@ -1688,12 +1670,16 @@ const DashboardContent = () => {
               onAllToggle={handleTableAllToggle}
             />
             <FundPerformanceChart />
-            <RevenueProjectsTable
-              periodFilter={selectedPeriod}
-              showAll={showAllTables}
-              onAllToggle={handleTableAllToggle}
-              invoiceFilter={invoiceFilter}
-            />
+            <div ref={revenueCogsRef} id="revenue-cogs-section" style={{ scrollMarginTop: 80 }}>
+              <RevenueProjectsTable
+                periodFilter={selectedPeriod}
+                showAll={showAllTables}
+                onAllToggle={handleTableAllToggle}
+                invoiceFilter={invoiceFilter}
+                externalMonthFilter={revenueTableMonth}
+                externalMonthFilterToken={revenueTableJumpToken}
+              />
+            </div>
 
             <div style={{ display: "flex", gap: "24px", alignItems: "flex-start", flexWrap: "wrap" }}>
               <div style={{ flex: "1 1 55%", minWidth: 0 }}>

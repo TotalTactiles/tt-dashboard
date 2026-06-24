@@ -116,9 +116,12 @@ interface RevenueProjectsTableProps {
   showAll?: boolean;
   onAllToggle?: (allOn: boolean) => void;
   invoiceFilter?: "invoiced" | "to_be_invoiced";
+  /** Externally-driven month filter (full label e.g. "May 2026"). Applied whenever externalMonthFilterToken changes. */
+  externalMonthFilter?: string | null;
+  externalMonthFilterToken?: number;
 }
 
-const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invoiceFilter = "invoiced" }: RevenueProjectsTableProps) => {
+const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invoiceFilter = "invoiced", externalMonthFilter = null, externalMonthFilterToken = 0 }: RevenueProjectsTableProps) => {
   const { revenueProjects, dataHealth } = useDashboardData();
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
@@ -137,6 +140,17 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
   useEffect(() => {
     sessionStorage.setItem(LS_KEY, JSON.stringify(visibleColumns));
   }, [visibleColumns]);
+
+  // Apply an externally-driven month filter (e.g. clicking Invoices subtexts on the dashboard).
+  // Re-applies on every token bump so repeat clicks still work.
+  useEffect(() => {
+    if (externalMonthFilter && externalMonthFilterToken > 0) {
+      setMonthFilter(externalMonthFilter);
+      setPage(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalMonthFilterToken]);
+
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
