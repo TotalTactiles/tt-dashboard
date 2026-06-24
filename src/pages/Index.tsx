@@ -1686,12 +1686,16 @@ const DashboardContent = () => {
               onAllToggle={handleTableAllToggle}
             />
             <FundPerformanceChart />
-            <RevenueProjectsTable
-              periodFilter={selectedPeriod}
-              showAll={showAllTables}
-              onAllToggle={handleTableAllToggle}
-              invoiceFilter={invoiceFilter}
-            />
+            <div ref={revenueCogsRef} id="revenue-cogs-section" style={{ scrollMarginTop: 80 }}>
+              <RevenueProjectsTable
+                periodFilter={selectedPeriod}
+                showAll={showAllTables}
+                onAllToggle={handleTableAllToggle}
+                invoiceFilter={invoiceFilter}
+                externalMonthFilter={revenueTableMonth}
+                externalMonthFilterToken={revenueTableJumpToken}
+              />
+            </div>
 
             <div style={{ display: "flex", gap: "24px", alignItems: "flex-start", flexWrap: "wrap" }}>
               <div style={{ flex: "1 1 55%", minWidth: 0 }}>
