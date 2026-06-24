@@ -1413,7 +1413,7 @@ export function useDashboardData(): DashboardData {
       cashflowPositionRaw: 0,
       inRunningCount: 0, inRunningValue: 0,
       ylwValue: 0, ylwCount: 0,
-      pipelineConversion: 0, convRate: 0, getLeadsToGoal: () => 0, totalOpps: 0,
+      pipelineConversion: 0, convRate: 0, getLeadsToGoal: () => 0, getLeadsToGoalTrue: () => 0, oppConvRate: 0, leadToWonRate: 0, totalLeads: 0, totalOpps: 0,
       wrWonFY: 0, wrLostFY: 0, wrYlwFY: 0, wonValueFY: 0, lostValueFY: 0,
       kpiStats: [], incomeOutgoingsData: [], profitMarginData: [],
 
