@@ -220,12 +220,13 @@ export interface DashboardData {
   ylwValue: number;
   ylwCount: number;
   pipelineConversion: number;
-  convRate: number;
+  winRateConfirmed: number;
   getLeadsToGoal: (jobsToGoal: number) => number;
   totalOpps: number;
   totalLeads: number;
-  leadToWonRate: number;
   getLeadsToGoalTrue: (jobsToGoal: number) => number;
+
+
   wrWonFY: number;
   wrLostFY: number;
   wrYlwFY: number;
@@ -1087,13 +1088,14 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     const totalOpps = totalOppsFY;
     const pipelineConversion = totalOpps > 0 ? (wrWon / totalOpps) * 100 : 0;
-    const convRate = pipelineConversion / 100;
+    // Opportunities mode uses Close Rate (won ÷ decided); Leads mode uses Pipeline rate (won ÷ all opps).
+    const closeRate = winRateConfirmed / 100;
     const getLeadsToGoal = (jobsToGoal: number) =>
-      convRate > 0 ? Math.ceil(jobsToGoal / convRate) : 0;
-    // LEADS module (CRM Leads): true lead → won conversion
-    const leadToWonRate = totalLeads > 0 ? (wrWon / totalLeads) : 0;
+      closeRate > 0 ? Math.ceil(jobsToGoal / closeRate) : 0;
+    const pipelineRate = pipelineConversion / 100;
     const getLeadsToGoalTrue = (jobsToGoal: number) =>
-      leadToWonRate > 0 ? Math.ceil(jobsToGoal / leadToWonRate) : 0;
+      pipelineRate > 0 ? Math.ceil(jobsToGoal / pipelineRate) : 0;
+
 
 
     // ===== GROSS / NET revenue & profit =====
@@ -1380,12 +1382,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       ylwValue: ylwValueFY || ylwValue_quoted,
       ylwCount: ylwCountFY || ylwCount_quoted,
       pipelineConversion,
-      convRate,
+      winRateConfirmed,
       getLeadsToGoal,
       totalOpps,
       totalLeads,
-      leadToWonRate,
       getLeadsToGoalTrue,
+
+
       wrWonFY: wonCountFY,
       wrLostFY: lostCountFY,
       wrYlwFY: ylwCountFY,
@@ -1434,8 +1437,10 @@ export function useDashboardData(): DashboardData {
       cashflowPositionRaw: 0,
       inRunningCount: 0, inRunningValue: 0,
       ylwValue: 0, ylwCount: 0,
-      pipelineConversion: 0, convRate: 0, getLeadsToGoal: () => 0, totalOpps: 0,
-      totalLeads: 0, leadToWonRate: 0, getLeadsToGoalTrue: () => 0,
+      pipelineConversion: 0, winRateConfirmed: 0, getLeadsToGoal: () => 0, totalOpps: 0,
+      totalLeads: 0, getLeadsToGoalTrue: () => 0,
+
+
       wrWonFY: 0, wrLostFY: 0, wrYlwFY: 0, wonValueFY: 0, lostValueFY: 0,
       kpiStats: [], incomeOutgoingsData: [], profitMarginData: [],
 

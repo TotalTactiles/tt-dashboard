@@ -30,9 +30,9 @@ export default function TargetsGoalsSection(_props: Props) {
     getLeadsToGoal,
     getLeadsToGoalTrue,
     pipelineConversion,
-    leadToWonRate,
-    totalLeads,
+    winRateConfirmed,
   } = useDashboardData();
+
   const [withYlw, setWithYlw] = useState(false);
 
   // Goal tracks SECURED WORK (won contract value) — identical basis to Win/Loss WON.
@@ -53,7 +53,8 @@ export default function TargetsGoalsSection(_props: Props) {
   const jobsToGoal =
     avgWonDeal > 0 && remaining > 0 ? Math.ceil(remaining / avgWonDeal) : 0;
   const oppsToGoal = getLeadsToGoal(jobsToGoal);
-  const leadsToGoalTrue = getLeadsToGoalTrue(jobsToGoal);
+  const leadsToGoal = getLeadsToGoalTrue(jobsToGoal);
+
 
   return (
     <>
@@ -95,15 +96,15 @@ export default function TargetsGoalsSection(_props: Props) {
         <LeadsToGoalCard
           target={target}
           oppsToGoal={oppsToGoal}
-          leadsToGoalTrue={leadsToGoalTrue}
+          leadsToGoal={leadsToGoal}
           avgWonDeal={avgWonDeal}
           pipelineConversion={pipelineConversion}
-          leadToWonRate={leadToWonRate}
-          totalLeads={totalLeads}
+          winRateConfirmed={winRateConfirmed}
           remaining={remaining}
           withYlw={withYlw}
           setWithYlw={setWithYlw}
         />
+
       </div>
     </>
   );
@@ -420,11 +421,10 @@ function JobsToGoalCard({
 function LeadsToGoalCard({
   target,
   oppsToGoal,
-  leadsToGoalTrue,
+  leadsToGoal,
   avgWonDeal,
   pipelineConversion,
-  leadToWonRate,
-  totalLeads,
+  winRateConfirmed,
   remaining,
   withYlw,
   setWithYlw,
@@ -432,33 +432,34 @@ function LeadsToGoalCard({
 }: {
   target: number;
   oppsToGoal: number;
-  leadsToGoalTrue: number;
+  leadsToGoal: number;
   avgWonDeal: number;
   pipelineConversion: number;
-  leadToWonRate: number;
-  totalLeads: number;
+  winRateConfirmed: number;
   remaining: number;
   withYlw: boolean;
   setWithYlw: (v: boolean) => void;
   className?: string;
 }) {
+
   const [mode, setMode] = useState<"opps" | "leads">("opps");
-  const oppConvRate = pipelineConversion / 100;
-  const leadsAvailable = totalLeads > 0;
-  const empty = target === 0 || (mode === "opps" ? oppConvRate === 0 : !leadsAvailable);
+  const closeRate = winRateConfirmed / 100;
+  const pipelineRate = pipelineConversion / 100;
+  const empty = target === 0 || (mode === "opps" ? closeRate === 0 : pipelineRate === 0);
   const met = !empty && remaining === 0;
 
-  const headline = mode === "opps" ? oppsToGoal : leadsToGoalTrue;
-  const underLabel = mode === "opps" ? "Opps to Goal" : "Leads to Goal";
-  const rateLabel = mode === "opps" ? "Deal→Won" : "Lead→Won";
+  const headline = mode === "opps" ? oppsToGoal : leadsToGoal;
+  const underLabel = mode === "opps" ? "Opps to Goal" : "Active Leads to Goal";
+  const rateLabel = mode === "opps" ? "Close Rate" : "Pipeline Rate";
   const rateValue =
     mode === "opps"
-      ? oppConvRate > 0
-        ? `${pipelineConversion.toFixed(1)}%`
+      ? closeRate > 0
+        ? `${winRateConfirmed.toFixed(1)}%`
         : "—"
-      : leadToWonRate > 0
-      ? `${(leadToWonRate * 100).toFixed(1)}%`
+      : pipelineRate > 0
+      ? `${pipelineConversion.toFixed(1)}%`
       : "—";
+
 
   const PillBtn = ({
     active,
@@ -502,11 +503,7 @@ function LeadsToGoalCard({
           <PillBtn active={mode === "opps"} onClick={() => setMode("opps")}>
             Opportunities
           </PillBtn>
-          <PillBtn
-            active={mode === "leads"}
-            disabled={!leadsAvailable}
-            onClick={() => leadsAvailable && setMode("leads")}
-          >
+          <PillBtn active={mode === "leads"} onClick={() => setMode("leads")}>
             Leads
           </PillBtn>
         </div>
@@ -526,12 +523,8 @@ function LeadsToGoalCard({
               {underLabel}
             </span>
           )}
-          {mode === "leads" && !leadsAvailable && (
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">
-              awaiting lead feed
-            </span>
-          )}
         </div>
+
         <div className="flex-1 flex flex-col items-center justify-center text-[15px] uppercase tracking-wider space-y-0.5 min-w-0 break-words">
           <div className="text-muted-foreground">
             <span>{rateLabel}</span>{" "}
