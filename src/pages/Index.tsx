@@ -246,7 +246,8 @@ function RevenueProfitCard({
   emphasis?: boolean;
 }) {
   const [mode, setMode] = useState<"revenue" | "profit">("revenue");
-  const [period, setPeriod] = useState<"2026" | "ytd">("2026");
+  const [period, setPeriod] = useState<"2026" | "ytd">("ytd");
+  const showAll = period === "ytd";
 
   const fmtCompact = (n: number) => {
     const abs = Math.abs(n);
