@@ -309,6 +309,7 @@ function JobsToGoalCard({
   withYlw,
   setWithYlw,
   ylwValue,
+  className,
 }: {
   target: number;
   jobsToGoal: number;
@@ -319,6 +320,7 @@ function JobsToGoalCard({
   withYlw: boolean;
   setWithYlw: (v: boolean) => void;
   ylwValue: number;
+  className?: string;
 }) {
   const empty = target === 0;
   const met = !empty && remaining === 0;
