@@ -19,6 +19,7 @@ import ExpenseBreakdown from "@/components/dashboard/ExpenseBreakdown";
 import DashboardLayout from "@/components/DashboardLayout";
 import GoalsDashboardWidgets from "@/components/goals/GoalsDashboardWidgets";
 import TargetsGoalsSection from "@/components/goals/TargetsGoalsSection";
+import DataIntegrityPanel from "@/components/DataIntegrityPanel";
 import GoalScenarioBar from "@/components/dashboard/GoalScenarioBar";
 import { useGoals } from "@/hooks/useGoals";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
@@ -1640,6 +1641,8 @@ const DashboardContent = () => {
               </div>
             </div>
           </div>
+
+          <DataIntegrityPanel />
         </>
       }
     </DashboardLayout>);
