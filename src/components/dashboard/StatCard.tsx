@@ -474,6 +474,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
     </p>
   ) : null;
 
+  const trendBlock = (
     <div style={{ minWidth: 0 }} className={`${emphasis ? "w-full flex flex-col items-center" : "mt-auto pt-1"}`}>
       {showAlt && altDiff && !noData && (
         <p className={`font-mono text-amber-400/80 leading-tight ${emphasis ? "text-[0.65rem]" : ""}`} style={emphasis ? undefined : sublineStyle} title={`${altDiff} with YLWs`}>
