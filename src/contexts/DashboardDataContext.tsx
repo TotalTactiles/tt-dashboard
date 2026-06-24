@@ -1206,6 +1206,10 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
           netRevenue: netRevenue4,
           grossProfit: grossProfitVal,
           netProfit: investorNetProfitYTD,
+          rev2026,
+          revYTD,
+          netProfit2026,
+          netProfitYTD,
         },
       },
     ];
