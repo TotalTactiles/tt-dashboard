@@ -226,8 +226,30 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
     let projects = [...revenueProjects];
     const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-    // Invoice filter from Cash Expected card overrides normal period filtering
-    if (!showAll && periodFilter && periodFilter.months.length > 0) {
+    // Canonical externally-driven month filter takes precedence — match by parsed year+monthIndex
+    // of the row's invoiceDate. Format-agnostic; works for any month/year.
+    if (externalActive) {
+      const before = projects.length;
+      projects = projects.filter((p) => {
+        const d = parseDateForSort(p.invoiceDate);
+        if (!d) return false;
+        return d.getFullYear() === externalActive.year && d.getMonth() === externalActive.month;
+      });
+      if (projects.length === 0 && before > 0) {
+        const keys = Array.from(new Set(revenueProjects.map(p => {
+          const d = parseDateForSort(p.invoiceDate);
+          return d ? `${d.getFullYear()}-${d.getMonth()}` : "unparseable";
+        })));
+        // eslint-disable-next-line no-console
+        console.warn("[RevenueProjectsTable] External month filter matched 0 rows", {
+          target: { year: externalActive.year, monthIndex: externalActive.month, label: externalActive.label },
+          presentInvoiceMonthKeys: keys,
+        });
+      }
+    }
+
+    // Invoice filter from Cash Expected card overrides normal period filtering (skipped when external filter is active)
+    if (!externalActive && !showAll && periodFilter && periodFilter.months.length > 0) {
       const monthSet = new Set(periodFilter.months);
       const priorSet = new Set(periodFilter.priorMonths ?? []);
 
