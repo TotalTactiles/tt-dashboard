@@ -1162,15 +1162,11 @@ function MonthlyNetProfitChart({
     () => filterByPeriod(monthlyNetProfitData, year, quarter),
     [monthlyNetProfitData, year, quarter],
   );
+  const tc = chartColors();
 
   const periodLabel =
     quarter === "all" ? (year === "all" ? "All periods" : year) : `${quarter} ${year}`;
   const periodTotal = data.reduce((sum, d) => sum + d.netProfit, 0);
-
-  const scaleMax = Math.max(1, ...data.map((d) => Math.abs(d.netProfit || 0)));
-  const hasNegative = data.some((d) => (d.netProfit || 0) < 0);
-  const fmtMoney = (n: number) =>
-    `${n < 0 ? "-" : ""}$${Math.abs(Math.round(n)).toLocaleString("en-AU")}`;
 
   return (
     <div className="chart-container h-full">
@@ -1204,7 +1200,7 @@ function MonthlyNetProfitChart({
         <div className="mb-3 flex-shrink-0">
           <p className="text-xs font-mono text-muted-foreground">
             <span className="text-foreground">{periodLabel}</span> net profit:{" "}
-            <span className="text-foreground">{fmtMoney(periodTotal)}</span>
+            <span className="text-foreground">{formatMetricValue(periodTotal, "currency")}</span>
           </p>
         </div>
 
@@ -1213,62 +1209,35 @@ function MonthlyNetProfitChart({
             <p className="text-sm text-muted-foreground font-mono">No data for this period</p>
           </div>
         ) : (
-          <div
-            className={`flex-1 flex flex-col ${
-              data.length > 6 ? "justify-start gap-2 overflow-hidden" : "justify-around"
-            }`}
-          >
-            {data.map((d) => {
-              const v = d.netProfit || 0;
-              const isPos = v >= 0;
-              const widthPct = Math.min(100, (Math.abs(v) / scaleMax) * 100);
-              const color = isPos ? "#15803D" : "#7F1D1D";
-              return (
-                <div key={d.month} className="flex items-center gap-3 min-h-[40px]">
-                  <span
-                    className="text-[11px] font-mono text-muted-foreground text-left shrink-0"
-                    style={{ width: 60 }}
-                  >
-                    {d.month}
-                  </span>
-                  <div className="relative flex-1 h-full rounded-sm bg-white/[0.04] overflow-hidden">
-                    {hasNegative ? (
-                      <>
-                        {/* centered zero baseline */}
-                        <div
-                          className="absolute inset-y-0"
-                          style={{
-                            left: "50%",
-                            width: 1,
-                            backgroundColor: "#ffffff30",
-                            transform: "translateX(-0.5px)",
-                          }}
-                        />
-                        <div
-                          className="absolute inset-y-0 rounded-sm transition-all"
-                          style={{
-                            left: isPos ? "50%" : `${50 - widthPct / 2}%`,
-                            width: `${widthPct / 2}%`,
-                            backgroundColor: color,
-                          }}
-                        />
-                      </>
-                    ) : (
-                      <div
-                        className="absolute inset-y-0 left-0 rounded-sm transition-all"
-                        style={{ width: `${widthPct}%`, backgroundColor: color }}
-                      />
-                    )}
-                  </div>
-                  <span
-                    className="text-[11px] font-mono text-foreground text-right shrink-0 tabular-nums"
-                    style={{ width: 90 }}
-                  >
-                    {fmtMoney(v)}
-                  </span>
-                </div>
-              );
-            })}
+          <div className="flex-1 w-full min-h-0">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={data}>
+                <CartesianGrid strokeDasharray="3 3" stroke={tc.grid} strokeOpacity={0.6} />
+                <XAxis dataKey="month" stroke={tc.axis} fontSize={11} fontFamily="JetBrains Mono" />
+                <YAxis
+                  stroke={tc.axis}
+                  fontSize={11}
+                  fontFamily="JetBrains Mono"
+                  tickFormatter={(v) => `$${Math.round(v / 1000)}k`}
+                  domain={[(min) => Math.min(0, min), (max) => Math.ceil((max * 1.12) / 1000) * 1000]}
+                />
+                <Tooltip
+                  formatter={(v) => [formatMetricValue(Number(v), "currency"), "Net Profit"]}
+                  contentStyle={{
+                    backgroundColor: "#0f172a",
+                    border: "1px solid #ffffff30",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                  }}
+                />
+                <ReferenceLine y={0} stroke={tc.zeroLine || "#555"} strokeDasharray="3 3" />
+                <Bar dataKey="netProfit" radius={[3, 3, 0, 0]} animationDuration={800}>
+                  {data.map((d, i) => (
+                    <Cell key={i} fill={d.netProfit >= 0 ? "#15803D" : "#7F1D1D"} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         )}
       </div>
