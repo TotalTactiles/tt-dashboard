@@ -260,20 +260,20 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono mb-3">
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#22c55e", opacity: 0.85 }} />
+          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#22C55E" }} />
           <span className="text-muted-foreground">Income</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#22c55e", opacity: 0.35 }} />
-          <span className="text-muted-foreground">Income (Probable)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#ef4444", opacity: 0.85 }} />
+          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#EF4444" }} />
           <span className="text-muted-foreground">Outgoings</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#a3e635" }} />
+          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#15803D" }} />
           <span className="text-muted-foreground">Net Surplus / Deficit</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#22C55E", opacity: 0.4 }} />
+          <span className="text-muted-foreground">Income (Probable)</span>
         </div>
       </div>
 
