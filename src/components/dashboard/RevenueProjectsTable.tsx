@@ -663,6 +663,23 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
                     );
                   })}
                 </tr>
+                {(() => {
+                  const exclIdx = visibleColDefs.findIndex(c => c.key === "valueExclGST");
+                  return exclIdx > 0 ? (
+                    <tr className="bg-chart-green/[0.08] font-mono text-xs text-muted-foreground border-t border-chart-green/10">
+                      <td className="py-2 pr-4 text-right" colSpan={exclIdx}>Incl. GST</td>
+                      <td className="py-2 pr-4 text-right">{fmtDollar(totalValueInclGST)}</td>
+                      <td className="py-2 pr-4" colSpan={visibleColDefs.length - exclIdx - 1}></td>
+                    </tr>
+                  ) : (
+                    <tr className="bg-chart-green/[0.08] font-mono text-xs text-muted-foreground border-t border-chart-green/10">
+                      <td className="py-2 pr-4 text-right" colSpan={visibleColDefs.length}>
+                        <span className="mr-2">Incl. GST</span>
+                        {fmtDollar(totalValueInclGST)}
+                      </td>
+                    </tr>
+                  );
+                })()}
               </tfoot>
             </table>
           </div>
