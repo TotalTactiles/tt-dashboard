@@ -455,7 +455,7 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
   const renderTotalCell = (key: ColumnKey) => {
     switch (key) {
       case "stageValue": return <span className="text-foreground whitespace-nowrap">{$d(totalStageValue)}</span>;
-      case "valueInclGST": return <span className="text-foreground whitespace-nowrap">{$d(totalValueInclGST)}</span>;
+      case "valueInclGST": return <span className="text-chart-green whitespace-nowrap">{$d(totalValueInclGST)}</span>;
       case "valueExclGST": return (
         <span className="text-foreground whitespace-nowrap">
           {$d(totalRevenue)}
