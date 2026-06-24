@@ -954,23 +954,7 @@ const DashboardContent = () => {
   
   
 
-  const OPTIONAL_INVESTOR_CARDS = [
-    "Revenue Growth",
-    "Pipeline Coverage",
-    "Op. Expense Ratio",
-    "Labour Cost Ratio",
-    "Revenue Per Job",
-  ] as const;
-  type OptionalCard = typeof OPTIONAL_INVESTOR_CARDS[number];
-  const [visibleOptionalCards, setVisibleOptionalCards] = useState<Set<OptionalCard>>(new Set());
-  const [metricsDropdownOpen, setMetricsDropdownOpen] = useState(false);
-  const toggleOptionalCard = (card: OptionalCard) => {
-    setVisibleOptionalCards(prev => {
-      const next = new Set(prev);
-      if (next.has(card)) next.delete(card); else next.add(card);
-      return next;
-    });
-  };
+  
 
   // ── GP target — synced via webhook cache ─────────────────────────
   const [gpTarget, setGpTarget] = useState(30000);
