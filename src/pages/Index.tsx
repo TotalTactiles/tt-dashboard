@@ -219,11 +219,17 @@ function WinLossSummaryCard({
 
 
 
+type RevPeriodData = { gross: number; net: number; cogs: number; grossProfit: number };
+
 function RevenueProfitCard({
   grossRevenue,
   netRevenue,
   grossProfit,
   netProfit,
+  rev2026,
+  revYTD,
+  netProfit2026,
+  netProfitYTD,
   index,
   emphasis,
 }: {
@@ -231,10 +237,15 @@ function RevenueProfitCard({
   netRevenue: number;
   grossProfit: number;
   netProfit: number;
+  rev2026?: RevPeriodData;
+  revYTD?: RevPeriodData;
+  netProfit2026?: number;
+  netProfitYTD?: number;
   index: number;
   emphasis?: boolean;
 }) {
   const [mode, setMode] = useState<"revenue" | "profit">("revenue");
+  const [period, setPeriod] = useState<"2026" | "ytd">("2026");
 
   const fmtCompact = (n: number) => {
     const abs = Math.abs(n);
@@ -244,9 +255,15 @@ function RevenueProfitCard({
     return `${sign}$${Math.round(abs).toLocaleString()}`;
   };
 
+  // Resolve period-scoped figures (fallback to legacy props if extras absent)
+  const fallback2026: RevPeriodData = { gross: grossRevenue, net: netRevenue, cogs: 0, grossProfit };
+  const fallbackYTD: RevPeriodData = { gross: grossRevenue, net: netRevenue, cogs: 0, grossProfit };
+  const periodData = period === "ytd" ? (revYTD ?? fallbackYTD) : (rev2026 ?? fallback2026);
+  const periodNetProfit = period === "ytd" ? (netProfitYTD ?? netProfit) : (netProfit2026 ?? netProfit);
+
   const isRevenue = mode === "revenue";
-  const topVal = isRevenue ? grossRevenue : grossProfit;
-  const bottomVal = isRevenue ? netRevenue : netProfit;
+  const topVal = isRevenue ? periodData.gross : periodData.grossProfit;
+  const bottomVal = isRevenue ? periodData.net : periodNetProfit;
   const topLabel = isRevenue ? "GROSS REVENUE" : "GROSS PROFIT";
   const bottomLabel = isRevenue ? "NET REVENUE" : "NET PROFIT";
 
@@ -289,7 +306,7 @@ function RevenueProfitCard({
         </p>
       </div>
       {/* PILLS */}
-      <div className={`${emphasis ? "min-h-[1.5rem]" : ""} flex ${emphasis ? "justify-center items-center" : ""}`}>
+      <div className={`${emphasis ? "min-h-[1.5rem]" : ""} flex ${emphasis ? "justify-center items-center" : ""} gap-1 flex-wrap`}>
         <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
           <button
             onClick={() => setMode("revenue")}
@@ -303,6 +320,20 @@ function RevenueProfitCard({
               mode === "profit" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >Profit</button>
+        </div>
+        <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
+          <button
+            onClick={() => setPeriod("2026")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+              period === "2026" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >2026</button>
+          <button
+            onClick={() => setPeriod("ytd")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+              period === "ytd" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >YTD</button>
         </div>
       </div>
 
@@ -1203,6 +1234,10 @@ const DashboardContent = () => {
                     netRevenue={e.netRevenue ?? 0}
                     grossProfit={e.grossProfit ?? 0}
                     netProfit={e.netProfit ?? 0}
+                    rev2026={e.rev2026}
+                    revYTD={e.revYTD}
+                    netProfit2026={e.netProfit2026}
+                    netProfitYTD={e.netProfitYTD}
                     index={i}
                     emphasis
                   />
