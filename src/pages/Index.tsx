@@ -278,17 +278,21 @@ function InvoicesPaidCard({ index }: { index: number }) {
       </div>
       {/* reserved pills row for parity with siblings */}
       <div className="w-full min-h-[1.5rem]" />
-      <div className="flex-1 flex flex-col items-center justify-center gap-0.5 w-full min-w-0">
+      <div className="flex-1 flex flex-col items-center justify-center gap-1.5 w-full min-w-0 text-center">
         <div className="w-full min-w-0">
-          <p className={labelClass}>PAID</p>
-          <p className="font-bold font-mono text-chart-green break-words leading-tight" style={figureStyle}>{fmtCompact(paid)}</p>
-          <p className={subClass}>{paidCount} inv · {paidCtx}</p>
+          <p className={labelClass}>To be Paid</p>
+          <p className="leading-tight break-words flex items-baseline justify-center gap-1.5 flex-wrap">
+            <span className="font-bold font-mono text-chart-green" style={figureStyle}>{fmtCompact(paid)}</span>
+            <span className={subClass}>· {paidCount} inv · {paidCtx}</span>
+          </p>
         </div>
         <div className="h-px bg-white/10 my-1 w-2/3 mx-auto" />
         <div className="w-full min-w-0">
-          <p className={labelClass}>TO BE PAID</p>
-          <p className="font-bold font-mono text-foreground/90 break-words leading-tight" style={figureStyle}>{fmtCompact(toBePaid)}</p>
-          <p className={subClass}>{toBePaidCount} inv · {toBeCtx}</p>
+          <p className={labelClass}>To be Invoiced</p>
+          <p className="leading-tight break-words flex items-baseline justify-center gap-1.5 flex-wrap">
+            <span className="font-bold font-mono text-foreground/90" style={figureStyle}>{fmtCompact(toBePaid)}</span>
+            <span className={subClass}>· {toBePaidCount} inv · {toBeCtx}</span>
+          </p>
         </div>
       </div>
     </motion.div>
