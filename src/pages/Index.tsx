@@ -1107,13 +1107,21 @@ function MonthlyInvoicesVsTargetChart({
 
 function MonthlyNetProfitChart({
   monthlyNetProfitData,
+  year,
+  quarter,
 }: {
   monthlyNetProfitData: Array<{ month: string; netProfit: number }>;
+  year: string;
+  quarter: QuarterFilter;
 }) {
-  const data = monthlyNetProfitData;
+  const data = useMemo(
+    () => filterByPeriod(monthlyNetProfitData, year, quarter),
+    [monthlyNetProfitData, year, quarter],
+  );
   const dataMin = Math.min(0, ...data.map((d) => d.netProfit));
   const dataMax = Math.max(0, ...data.map((d) => d.netProfit));
   const yDomain = [Math.min(0, dataMin), Math.ceil((dataMax * 1.12) / 1000) * 1000];
+
 
   return (
     <div className="chart-container">
