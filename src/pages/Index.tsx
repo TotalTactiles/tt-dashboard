@@ -1260,6 +1260,36 @@ const DashboardContent = () => {
     localStorage.setItem("tt_gp_monthly_target", String(gpTarget));
   }, [gpTarget]);
 
+  // ── Monthly Invoice target — synced via webhook cache ────────────
+  const [invoicesTarget, setInvoicesTarget] = useState(80000);
+  const isFirstLoadInvoices = useRef(true);
+
+  useEffect(() => {
+    fetch(CACHE_WEBHOOK)
+      .then((r) => r.json())
+      .then((rows: any[]) => {
+        const row = rows.find((r) => r.key === "tt_monthly_invoices_target");
+        if (row) setInvoicesTarget(parseFloat(row.value) || 80000);
+      })
+      .catch(() => {
+        const saved = localStorage.getItem("tt_monthly_invoices_target");
+        if (saved) setInvoicesTarget(parseFloat(saved) || 80000);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (isFirstLoadInvoices.current) {
+      isFirstLoadInvoices.current = false;
+      return;
+    }
+    fetch(CACHE_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "tt_monthly_invoices_target", value: String(invoicesTarget) }),
+    }).catch(() => {});
+    localStorage.setItem("tt_monthly_invoices_target", String(invoicesTarget));
+  }, [invoicesTarget]);
+
   // ── Compute date windows from real current date ──────────────────
   const investorDateWindows = useMemo(() => {
     const now = new Date();
