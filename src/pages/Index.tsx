@@ -953,6 +953,7 @@ const DashboardContent = () => {
 
     // Revenue metrics
     const revenueExGST = scopedRevenue.reduce((s, r) => s + r.valueExclGST, 0);
+    const revenueInclGST = scopedRevenue.reduce((s, r) => s + (r.valueInclGST || 0), 0);
     const totalCOGS = scopedRevenue.reduce((s, r) => s + r.totalCOGS, 0);
     const grossProfit = revenueExGST - totalCOGS;
     const grossMarginPct = revenueExGST > 0 ? (grossProfit / revenueExGST) * 100 : 0;
