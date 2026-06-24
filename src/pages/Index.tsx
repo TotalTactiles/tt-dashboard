@@ -30,6 +30,7 @@ import { parseMonthKey } from "@/lib/reportDataAssembler";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle, Unplug, Loader2 } from "lucide-react";
 
 const fmtAUD = (n: number) => formatMetricValue(n, "currency");
@@ -1147,10 +1148,14 @@ function MonthlyNetProfitChart({
   monthlyNetProfitData,
   year,
   quarter,
+  isOverridden,
+  onOverrideQuarter,
 }: {
   monthlyNetProfitData: Array<{ month: string; netProfit: number }>;
   year: string;
   quarter: QuarterFilter;
+  isOverridden: boolean;
+  onOverrideQuarter: (q: QuarterFilter) => void;
 }) {
   const data = useMemo(() => {
     let cumulative = 0;
@@ -1184,6 +1189,23 @@ function MonthlyNetProfitChart({
           <p className="text-xs text-muted-foreground mt-0.5">
             Profit each month after all expenses and debt.
           </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {isOverridden && (
+            <span className="text-[10px] font-mono text-muted-foreground">• custom</span>
+          )}
+          <Select value={quarter} onValueChange={(v) => onOverrideQuarter(v as QuarterFilter)}>
+            <SelectTrigger className="h-7 w-[90px] text-xs bg-white/5 border-white/10">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="Q1">Q1</SelectItem>
+              <SelectItem value="Q2">Q2</SelectItem>
+              <SelectItem value="Q3">Q3</SelectItem>
+              <SelectItem value="Q4">Q4</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <div className="mb-3">
@@ -1294,6 +1316,23 @@ const DashboardContent = () => {
     const q = ["Q1","Q1","Q1","Q2","Q2","Q2","Q3","Q3","Q3","Q4","Q4","Q4"][new Date().getMonth()];
     return q as QuarterFilter;
   });
+
+  // Independent override for the lower pair (Invoices + Net Profit). Not persisted.
+  const [lowerOverride, setLowerOverride] = useState<{ year: string; quarter: QuarterFilter } | null>(null);
+  const lowerPeriod = lowerOverride ?? { year: periodYear, quarter: periodQuarter };
+
+  // Cash-flow pills re-link the lower pair on use.
+  const handleSharedYearChange = useCallback((y: string) => {
+    setPeriodYear(y);
+    setLowerOverride(null);
+  }, []);
+  const handleSharedQuarterChange = useCallback((q: QuarterFilter) => {
+    setPeriodQuarter(q);
+    setLowerOverride(null);
+  }, []);
+  const handleLowerOverrideQuarter = useCallback((q: QuarterFilter) => {
+    setLowerOverride({ year: String(new Date().getFullYear()), quarter: q });
+  }, []);
 
 
   // ── Shared period state — resets to current month on every mount/data change ──
@@ -2080,8 +2119,8 @@ const DashboardContent = () => {
               adjustments={adjustments}
               year={periodYear}
               quarter={periodQuarter}
-              onYearChange={setPeriodYear}
-              onQuarterChange={setPeriodQuarter}
+              onYearChange={handleSharedYearChange}
+              onQuarterChange={handleSharedQuarterChange}
             />
           </div>
 
@@ -2090,14 +2129,17 @@ const DashboardContent = () => {
               monthlyInvoicesData={monthlyInvoicesData}
               invoicesTarget={invoicesTarget}
               onInvoicesTargetChange={setInvoicesTarget}
-              year={periodYear}
-              quarter={periodQuarter}
+              year={lowerPeriod.year}
+              quarter={lowerPeriod.quarter}
             />
             <MonthlyNetProfitChart
               monthlyNetProfitData={monthlyNetProfitData}
-              year={periodYear}
-              quarter={periodQuarter}
+              year={lowerPeriod.year}
+              quarter={lowerPeriod.quarter}
+              isOverridden={lowerOverride !== null}
+              onOverrideQuarter={handleLowerOverrideQuarter}
             />
+
 
 
           </div>
