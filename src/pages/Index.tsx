@@ -1192,6 +1192,11 @@ const DashboardContent = () => {
   const { goals, updateGoal } = useGoals();
   const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData, forecastChartData, quotedJobs, investorMetrics, isOffline, lastCachedAt, revenueProjects, dataStore, liveData, inRunningCount, inRunningValue, monthlyInvoicesData, monthlyNetProfitData } = useDashboardData();
 
+  // ── Shared period selector across PortfolioChart / MonthlyInvoices / MonthlyNetProfit ──
+  const [periodYear, setPeriodYear] = useState<string>(() => String(new Date().getFullYear()));
+  const [periodQuarter, setPeriodQuarter] = useState<QuarterFilter>("all");
+
+
   // ── Shared period state — resets to current month on every mount/data change ──
   const periodOptions = useMemo(() => buildPeriodOptions(quotedJobs, revenueProjects), [quotedJobs, revenueProjects]);
   const defaultPeriodIdx = useMemo(() => {
