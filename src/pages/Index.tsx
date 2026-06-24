@@ -1,12 +1,11 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { filterByPeriod, availableYearsFrom, parseMonthKey as parseShortMonthKey, type QuarterFilter } from "@/lib/periodFilter";
+import { filterByPeriod, type QuarterFilter } from "@/lib/periodFilter";
 
 import { motion } from "framer-motion";
 import { RefreshCw } from "lucide-react";
 import {
-  ComposedChart, BarChart, Bar, Line, ReferenceLine, XAxis, YAxis,
-  CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell,
-  AreaChart, Area,
+  ComposedChart, Bar, Line, ReferenceLine, XAxis, YAxis,
+  CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
 import StatCard from "@/components/dashboard/StatCard";
 import { formatMetricValue } from "@/lib/formatMetricValue";
@@ -28,7 +27,7 @@ import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { applyGoalMerge } from "@/lib/goalMerge";
 import { buildPeriodOptions, getCurrentMonthKey } from "@/lib/projectExecutionKpis";
 import { parseMonthKey } from "@/lib/reportDataAssembler";
-import { type DebtFacility, DEBT_CACHE_KEY, CACHE_WEBHOOK_GET } from "@/pages/FinancialHealth";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Unplug, Loader2 } from "lucide-react";
