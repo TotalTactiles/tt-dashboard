@@ -1352,6 +1352,8 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       ylwValue: ylwValueFY || ylwValue_quoted,
       ylwCount: ylwCountFY || ylwCount_quoted,
       pipelineConversion,
+      convRate,
+      getLeadsToGoal,
       totalOpps,
       wrWonFY: wonCountFY,
       wrLostFY: lostCountFY,
