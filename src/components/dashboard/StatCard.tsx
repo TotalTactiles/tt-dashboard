@@ -201,7 +201,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
     : "Enter amount";
   const resolvedActualDate = localActualDate ? `Actual · ${localActualDate}` : "";
 
-  const isCashflowPosition = label === "Cashflow Position";
+  const isCashflowPosition = label === "Cashflow Position" || label === "Cash Position";
   const openValue = isCashflowPosition && kpiVariables?.XeroCashOpening && kpiVariables.XeroCashOpening !== 0
     ? kpiVariables.XeroCashOpening
     : null;
@@ -457,6 +457,22 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
   })();
 
 
+
+  const cashPositionSubtextBlock = isCashflowPosition ? (
+    <p
+      className="font-mono text-muted-foreground/80 leading-tight text-center w-full px-1 whitespace-nowrap overflow-hidden text-ellipsis"
+      style={{ fontSize: "clamp(9px, 0.75vw, 11px)" }}
+    >
+      {mode === "alt2"
+        ? isActualNotSet
+          ? "Enter your real balance to compare"
+          : "Your real bank balance (entered manually)"
+        : mode === "alt"
+        ? "Live cash balance right now"
+        : "Balance on the 1st of this month"}
+    </p>
+  ) : null;
+
   const trendBlock = (
     <div style={{ minWidth: 0 }} className={`${emphasis ? "w-full flex flex-col items-center" : "mt-auto pt-1"}`}>
       {showAlt && altDiff && !noData && (
@@ -514,6 +530,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
           {/* BODY — figure + sub-lines centred (trend lives inside as a sub) */}
           <div className="flex-1 flex flex-col items-center justify-center gap-0.5 w-full min-w-0">
             {valueBlock}
+            {cashPositionSubtextBlock}
             {momBlock}
             {contextBlock}
             {trendBlock}
