@@ -498,11 +498,25 @@ const RevenueProjectsTable = ({ periodFilter, showAll = false, onAllToggle, invo
               All
             </button>
           )}
-          {!showAll && periodFilter && (
+          {!showAll && periodFilter && !externalActive && (
             <span className="text-[10px] font-mono text-muted-foreground/70">
               {periodFilter.label}
             </span>
           )}
+          {externalActive && (() => {
+            const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+            const chip = `${MONTH_ABBR[externalActive.month]} ${String(externalActive.year).slice(-2)}`;
+            return (
+              <button
+                onClick={() => setExternalActive(null)}
+                className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full border bg-chart-green/15 text-chart-green border-chart-green/40 font-mono hover:bg-chart-green/25 transition-colors"
+                title="Clear month filter"
+              >
+                {chip}
+                <X className="h-3 w-3" />
+              </button>
+            );
+          })()}
         </div>
         <div className="flex items-center gap-2">
           {filteredProjects.length > 0 && (
