@@ -28,7 +28,10 @@ export default function TargetsGoalsSection(_props: Props) {
     wonValueFY,
     wrWonFY,
     getLeadsToGoal,
+    getLeadsToGoalTrue,
     pipelineConversion,
+    leadToWonRate,
+    totalLeads,
   } = useDashboardData();
   const [withYlw, setWithYlw] = useState(false);
 
@@ -50,6 +53,7 @@ export default function TargetsGoalsSection(_props: Props) {
   const jobsToGoal =
     avgWonDeal > 0 && remaining > 0 ? Math.ceil(remaining / avgWonDeal) : 0;
   const oppsToGoal = getLeadsToGoal(jobsToGoal);
+  const leadsToGoalTrue = getLeadsToGoalTrue(jobsToGoal);
 
   return (
     <>
@@ -90,9 +94,12 @@ export default function TargetsGoalsSection(_props: Props) {
         />
         <LeadsToGoalCard
           target={target}
-          leadsToGoal={oppsToGoal}
+          oppsToGoal={oppsToGoal}
+          leadsToGoalTrue={leadsToGoalTrue}
           avgWonDeal={avgWonDeal}
           pipelineConversion={pipelineConversion}
+          leadToWonRate={leadToWonRate}
+          totalLeads={totalLeads}
           remaining={remaining}
           withYlw={withYlw}
           setWithYlw={setWithYlw}
