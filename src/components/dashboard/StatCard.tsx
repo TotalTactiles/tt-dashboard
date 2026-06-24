@@ -373,13 +373,22 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
             </TooltipContent>
           </Tooltip>
           {isActual && !isActualNotSet && (
-            <button
-              onClick={handleEditClick}
-              className="text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded"
-              title="Edit actual balance"
-            >
-              <Pencil className="w-3 h-3" />
-            </button>
+            <>
+              <button
+                onClick={handleEditClick}
+                className="text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded"
+                title="Edit actual balance"
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
+              <button
+                onClick={clearActualBalance}
+                className="text-muted-foreground hover:text-chart-red transition-colors p-0.5 rounded"
+                title="Clear actual balance"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </>
           )}
         </div>
       )}
