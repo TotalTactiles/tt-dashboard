@@ -12,35 +12,40 @@ const YLW_COLOR = "#E8B931";
 const GREEN_COLOR = "hsl(var(--chart-green, 142 71% 45%))";
 
 type Props = {
-  /** YTD actual revenue (gross). Swap to netRevenue for ex-GST comparison. */
-  currentRevenue: number;
-  /** Sum of won-job values */
-  wonValueTotal: number;
-  /** Count of won jobs */
-  wonCount: number;
+  /** Legacy — unused. Goal now tracks SECURED WORK (won contract value). */
+  currentRevenue?: number;
+  wonValueTotal?: number;
+  wonCount?: number;
 };
 
 const cardBase =
   "relative bg-card border border-border rounded-lg p-4 md:p-5 flex flex-col";
 
-export default function TargetsGoalsSection({
-  currentRevenue,
-  wonValueTotal,
-  wonCount,
-}: Props) {
+export default function TargetsGoalsSection(_props: Props) {
   const { target, setTarget } = useRevenueTarget();
-  const { ylwValue, getLeadsToGoal, pipelineConversion } = useDashboardData();
+  const {
+    ylwValue,
+    wonValueFY,
+    wrWonFY,
+    getLeadsToGoal,
+    pipelineConversion,
+  } = useDashboardData();
   const [withYlw, setWithYlw] = useState(false);
 
-  const avgWonDeal = wonCount > 0 ? wonValueTotal / wonCount : 0;
+  // Goal tracks SECURED WORK (won contract value) — identical basis to Win/Loss WON.
+  const goalConfirmed = wonValueFY;                    // GRN + Completed
+  const ylwTopUp = ylwValue;                           // YLW (QUOTES basis)
+  const goalWithYlw = goalConfirmed + ylwTopUp;
+  const effectiveCurrent = withYlw ? goalWithYlw : goalConfirmed;
+
+  const avgWonDeal = wrWonFY > 0 ? wonValueFY / wrWonFY : 0;
 
   // Stacked gauge composition.
-  const pctConfirmed = target > 0 ? Math.min(100, (currentRevenue / target) * 100) : 0;
+  const pctConfirmed = target > 0 ? Math.min(100, (goalConfirmed / target) * 100) : 0;
   const pctYlw =
-    target > 0 && withYlw ? Math.min(100 - pctConfirmed, (ylwValue / target) * 100) : 0;
+    target > 0 && withYlw ? Math.min(100 - pctConfirmed, (ylwTopUp / target) * 100) : 0;
   const pctTotal = Math.min(100, pctConfirmed + pctYlw);
 
-  const effectiveCurrent = withYlw ? currentRevenue + ylwValue : currentRevenue;
   const remaining = Math.max(0, target - effectiveCurrent);
   const jobsToGoal =
     avgWonDeal > 0 && remaining > 0 ? Math.ceil(remaining / avgWonDeal) : 0;
@@ -62,7 +67,7 @@ export default function TargetsGoalsSection({
           className="md:col-span-2"
           target={target}
           setTarget={setTarget}
-          currentRevenue={currentRevenue}
+          goalConfirmed={goalConfirmed}
           effectiveCurrent={effectiveCurrent}
           pctConfirmed={pctConfirmed}
           pctYlw={pctYlw}
@@ -70,18 +75,18 @@ export default function TargetsGoalsSection({
           remaining={remaining}
           withYlw={withYlw}
           setWithYlw={setWithYlw}
-          ylwValue={ylwValue}
+          ylwValue={ylwTopUp}
         />
         <JobsToGoalCard
           target={target}
           jobsToGoal={jobsToGoal}
           avgWonDeal={avgWonDeal}
-          currentRevenue={currentRevenue}
+          goalConfirmed={goalConfirmed}
           effectiveCurrent={effectiveCurrent}
           remaining={remaining}
           withYlw={withYlw}
           setWithYlw={setWithYlw}
-          ylwValue={ylwValue}
+          ylwValue={ylwTopUp}
         />
         <LeadsToGoalCard
           target={target}
@@ -100,7 +105,7 @@ export default function TargetsGoalsSection({
 function RevenueGoalCard({
   target,
   setTarget,
-  currentRevenue,
+  goalConfirmed,
   effectiveCurrent,
   pctConfirmed,
   pctYlw,
@@ -113,7 +118,7 @@ function RevenueGoalCard({
 }: {
   target: number;
   setTarget: (n: number) => void;
-  currentRevenue: number;
+  goalConfirmed: number;
   effectiveCurrent: number;
   pctConfirmed: number;
   pctYlw: number;
@@ -143,7 +148,6 @@ function RevenueGoalCard({
     setEditing(false);
   };
 
-  // Single data point with two stacked dataKeys (confirmed + ylw).
   const chartData = [{ confirmed: pctConfirmed, ylw: pctYlw }];
 
   return (
@@ -160,7 +164,6 @@ function RevenueGoalCard({
         <ConfirmedYlwToggle withYlw={withYlw} setWithYlw={setWithYlw} />
       </div>
 
-      {/* Editable target — prominent */}
       <div className="flex flex-col items-center mb-2">
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
           Target
@@ -195,7 +198,6 @@ function RevenueGoalCard({
         )}
       </div>
 
-      {/* Stacked gauge: green confirmed + yellow YLW top-up over grey track */}
       <div className="relative flex-1 flex items-center justify-center" style={{ minHeight: 160 }}>
         {target > 0 ? (
           <>
@@ -244,14 +246,13 @@ function RevenueGoalCard({
         )}
       </div>
 
-      {/* Composition: colour-coded breakdown mirroring the gauge */}
       {target > 0 && (
         <div className="mt-2 text-center text-[15px] uppercase tracking-wider whitespace-normal break-words space-y-0.5">
           {withYlw ? (
             <>
               <div className="min-w-0 break-words">
                 <span className="font-mono tabular-nums text-chart-green">
-                  {fmtAUD(currentRevenue)}
+                  {fmtAUD(goalConfirmed)}
                 </span>
                 <span className="text-muted-foreground"> + </span>
                 <span className="font-mono tabular-nums" style={{ color: YLW_COLOR }}>
@@ -278,7 +279,7 @@ function RevenueGoalCard({
           ) : (
             <div className="min-w-0 break-words">
               <span className="font-mono tabular-nums text-chart-green">
-                {fmtAUD(currentRevenue)}
+                {fmtAUD(goalConfirmed)}
               </span>
               {remaining > 0 ? (
                 <>
@@ -303,7 +304,7 @@ function JobsToGoalCard({
   target,
   jobsToGoal,
   avgWonDeal,
-  currentRevenue,
+  goalConfirmed,
   effectiveCurrent,
   remaining,
   withYlw,
@@ -314,7 +315,7 @@ function JobsToGoalCard({
   target: number;
   jobsToGoal: number;
   avgWonDeal: number;
-  currentRevenue: number;
+  goalConfirmed: number;
   effectiveCurrent: number;
   remaining: number;
   withYlw: boolean;
@@ -353,7 +354,6 @@ function JobsToGoalCard({
         )}
       </div>
 
-      {/* Composition: AVG WON line + colour-coded breakdown */}
       <div className="mt-2 text-center text-[15px] uppercase tracking-wider whitespace-normal break-words space-y-0.5">
         {empty ? (
           <div className="text-muted-foreground">Set a revenue goal to compute jobs needed</div>
@@ -369,7 +369,7 @@ function JobsToGoalCard({
               <>
                 <div className="min-w-0 break-words">
                   <span className="font-mono tabular-nums text-chart-green">
-                    {fmtAUD(currentRevenue)}
+                    {fmtAUD(goalConfirmed)}
                   </span>
                   <span className="text-muted-foreground"> + </span>
                   <span className="font-mono tabular-nums" style={{ color: YLW_COLOR }}>
@@ -393,7 +393,7 @@ function JobsToGoalCard({
               !met && (
                 <div className="min-w-0 break-words">
                   <span className="font-mono tabular-nums text-chart-green">
-                    {fmtAUD(currentRevenue)}
+                    {fmtAUD(goalConfirmed)}
                   </span>
                   <span className="text-muted-foreground"> · </span>
                   <span className="font-mono tabular-nums text-chart-red">
