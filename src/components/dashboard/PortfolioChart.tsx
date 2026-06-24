@@ -159,14 +159,6 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [] }: PortfolioChartP
     [filteredData, currentMonthLabel]
   );
 
-  const sharedDomain = useMemo(() => {
-    if (filteredData.length === 0) return [0, 100000];
-    const allVals = filteredData.flatMap((d) => [d.income, d.outgoings, d.probableIncome, d.surplus]);
-    const min = Math.min(0, ...allVals);
-    const max = Math.max(...allVals);
-    const pad = Math.ceil(max * 0.15 / 10000) * 10000;
-    return [Math.floor(min / 5000) * 5000, Math.ceil((max + pad) / 10000) * 10000 || 10000];
-  }, [filteredData]);
 
 
   const renderSurplusDot = (props: any) => {
