@@ -220,6 +220,8 @@ export interface DashboardData {
   ylwValue: number;
   ylwCount: number;
   pipelineConversion: number;
+  convRate: number;
+  getLeadsToGoal: (jobsToGoal: number) => number;
   totalOpps: number;
   wrWonFY: number;
   wrLostFY: number;
