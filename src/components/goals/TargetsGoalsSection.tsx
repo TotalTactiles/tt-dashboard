@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { ReactNode, useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from "recharts";
 import { useRevenueTarget } from "@/hooks/useRevenueTarget";
@@ -308,6 +308,65 @@ function RevenueGoalCard({
   );
 }
 
+function CardHeader({
+  title,
+  withYlw,
+  setWithYlw,
+  extra,
+}: {
+  title: string;
+  withYlw: boolean;
+  setWithYlw: (v: boolean) => void;
+  extra?: ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+      <span className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground/70">
+        {title}
+      </span>
+      <div className="flex items-center gap-1.5">
+        {extra}
+        <ConfirmedYlwToggle withYlw={withYlw} setWithYlw={setWithYlw} />
+      </div>
+    </div>
+  );
+}
+
+function SplitBody({
+  empty,
+  met,
+  headline,
+  underLabel,
+  details,
+}: {
+  empty: boolean;
+  met: boolean;
+  headline: ReactNode;
+  underLabel: string;
+  details: ReactNode;
+}) {
+  return (
+    <div className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-3 min-w-0">
+      <div className="flex-1 flex flex-col items-center justify-center text-center min-w-0">
+        <span
+          className="font-mono tabular-nums font-semibold text-chart-green"
+          style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", letterSpacing: "-0.02em", lineHeight: 1 }}
+        >
+          {headline}
+        </span>
+        {!empty && !met && (
+          <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+            {underLabel}
+          </span>
+        )}
+      </div>
+      <div className="flex-1 flex flex-col items-end justify-center text-right text-[14px] uppercase tracking-wider space-y-0.5 min-w-0 break-words">
+        {details}
+      </div>
+    </div>
+  );
+}
+
 function JobsToGoalCard({
   target,
   jobsToGoal,
@@ -341,79 +400,52 @@ function JobsToGoalCard({
       transition={{ duration: 0.25, delay: 0.05 }}
       className={`${cardBase} ${className ?? ""}`}
     >
-      <div className="flex items-center justify-between mb-2 gap-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground/70">
-          Jobs to Goal
-        </span>
-        <ConfirmedYlwToggle withYlw={withYlw} setWithYlw={setWithYlw} />
-      </div>
-
-      <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
-        <span
-          className="font-mono tabular-nums font-semibold text-chart-green"
-          style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", letterSpacing: "-0.02em", lineHeight: 1 }}
-        >
-          {empty ? "—" : met ? "Goal met 🎉" : jobsToGoal}
-        </span>
-        {!empty && !met && (
-          <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-            Jobs to Goal
-          </span>
-        )}
-      </div>
-
-      <div className="mt-2 text-center text-[15px] uppercase tracking-wider whitespace-normal break-words space-y-0.5">
-        {empty ? (
-          <div className="text-muted-foreground">Set a revenue goal to compute jobs needed</div>
-        ) : (
-          <>
-            <div className="text-muted-foreground">
-              <span>Avg won</span>{" "}
-              <span className="font-mono tabular-nums text-foreground">
-                {avgWonDeal > 0 ? fmtAUD(avgWonDeal) : "—"}
-              </span>
-            </div>
-            {withYlw ? (
-              <>
-                <div className="min-w-0 break-words">
-                  <span className="font-mono tabular-nums text-chart-green">
-                    {fmtAUD(goalConfirmed)}
-                  </span>
-                  <span className="text-muted-foreground"> + </span>
-                  <span className="font-mono tabular-nums" style={{ color: YLW_COLOR }}>
-                    {fmtAUD(ylwValue)} YLW
-                  </span>
-                  <span className="text-muted-foreground"> = </span>
-                  <span className="font-mono tabular-nums text-foreground">
-                    {fmtAUD(effectiveCurrent)}
-                  </span>
-                </div>
-                {!met && (
-                  <div>
-                    <span className="font-mono tabular-nums text-chart-red">
-                      {fmtAUD(remaining)}
-                    </span>{" "}
-                    <span className="text-muted-foreground">remaining</span>
-                  </div>
-                )}
-              </>
-            ) : (
-              !met && (
-                <div className="min-w-0 break-words">
-                  <span className="font-mono tabular-nums text-chart-green">
-                    {fmtAUD(goalConfirmed)}
-                  </span>
-                  <span className="text-muted-foreground"> · </span>
+      <CardHeader title="Jobs to Goal" withYlw={withYlw} setWithYlw={setWithYlw} />
+      <SplitBody
+        empty={empty}
+        met={met}
+        headline={empty ? "—" : met ? "Goal met 🎉" : jobsToGoal}
+        underLabel="Jobs to Goal"
+        details={
+          empty ? (
+            <div className="text-muted-foreground">Set a revenue target to compute jobs needed</div>
+          ) : (
+            <>
+              <div className="text-muted-foreground">
+                <span>Avg won</span>{" "}
+                <span className="font-mono tabular-nums text-foreground">
+                  {avgWonDeal > 0 ? fmtAUD(avgWonDeal) : "—"}
+                </span>
+              </div>
+              <div className="min-w-0 break-words">
+                <span className="font-mono tabular-nums text-chart-green">
+                  {fmtAUD(goalConfirmed)}
+                </span>
+                {withYlw ? (
+                  <>
+                    <span className="text-muted-foreground"> + </span>
+                    <span className="font-mono tabular-nums" style={{ color: YLW_COLOR }}>
+                      {fmtAUD(ylwValue)} YLW
+                    </span>
+                    <span className="text-muted-foreground"> = </span>
+                    <span className="font-mono tabular-nums text-foreground">
+                      {fmtAUD(effectiveCurrent)}
+                    </span>
+                  </>
+                ) : null}
+              </div>
+              {!met && (
+                <div>
                   <span className="font-mono tabular-nums text-chart-red">
                     {fmtAUD(remaining)}
                   </span>{" "}
                   <span className="text-muted-foreground">remaining</span>
                 </div>
-              )
-            )}
-          </>
-        )}
-      </div>
+              )}
+            </>
+          )
+        }
+      />
     </motion.div>
   );
 }
@@ -441,7 +473,6 @@ function LeadsToGoalCard({
   setWithYlw: (v: boolean) => void;
   className?: string;
 }) {
-
   const [mode, setMode] = useState<"opps" | "leads">("opps");
   const closeRate = winRateConfirmed / 100;
   const pipelineRate = pipelineConversion / 100;
@@ -460,7 +491,6 @@ function LeadsToGoalCard({
       ? `${pipelineConversion.toFixed(1)}%`
       : "—";
 
-
   const PillBtn = ({
     active,
     disabled,
@@ -470,7 +500,7 @@ function LeadsToGoalCard({
     active: boolean;
     disabled?: boolean;
     onClick: () => void;
-    children: React.ReactNode;
+    children: ReactNode;
   }) => (
     <button
       type="button"
@@ -495,58 +525,49 @@ function LeadsToGoalCard({
       transition={{ duration: 0.25, delay: 0.1 }}
       className={`${cardBase} ${className ?? ""}`}
     >
-      <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-        <span className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground/70">
-          Funnel to Goal
-        </span>
-        <div className="flex items-center gap-1.5">
-          <PillBtn active={mode === "opps"} onClick={() => setMode("opps")}>
-            Opportunities
-          </PillBtn>
-          <PillBtn active={mode === "leads"} onClick={() => setMode("leads")}>
-            Leads
-          </PillBtn>
-        </div>
-        <ConfirmedYlwToggle withYlw={withYlw} setWithYlw={setWithYlw} />
-      </div>
-
-      <div className="flex-1 flex flex-row items-center justify-center text-center gap-3 min-w-0">
-        <div className="flex-1 flex flex-col items-center justify-center min-w-0">
-          <span
-            className="font-mono tabular-nums font-semibold text-chart-green"
-            style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)", letterSpacing: "-0.02em", lineHeight: 1 }}
-          >
-            {empty ? "—" : met ? "Goal met 🎉" : headline}
-          </span>
-          {!empty && !met && (
-            <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-              {underLabel}
-            </span>
-          )}
-        </div>
-
-        <div className="flex-1 flex flex-col items-center justify-center text-[15px] uppercase tracking-wider space-y-0.5 min-w-0 break-words">
-          <div className="text-muted-foreground">
-            <span>{rateLabel}</span>{" "}
-            <span className="font-mono tabular-nums text-foreground">{rateValue}</span>
+      <CardHeader
+        title="Funnel to Goal"
+        withYlw={withYlw}
+        setWithYlw={setWithYlw}
+        extra={
+          <div className="flex items-center gap-1.5">
+            <PillBtn active={mode === "opps"} onClick={() => setMode("opps")}>
+              Opportunities
+            </PillBtn>
+            <PillBtn active={mode === "leads"} onClick={() => setMode("leads")}>
+              Leads
+            </PillBtn>
           </div>
-          <div className="text-muted-foreground">
-            <span>Avg won</span>{" "}
-            <span className="font-mono tabular-nums text-foreground">
-              {avgWonDeal > 0 ? fmtAUD(avgWonDeal) : "—"}
-            </span>
-          </div>
-          {!empty && !met && (
-            <div>
-              <span className="font-mono tabular-nums text-chart-red">
-                {fmtAUD(remaining)}
-              </span>{" "}
-              <span className="text-muted-foreground">remaining</span>
+        }
+      />
+      <SplitBody
+        empty={empty}
+        met={met}
+        headline={empty ? "—" : met ? "Goal met 🎉" : headline}
+        underLabel={underLabel}
+        details={
+          <>
+            <div className="text-muted-foreground">
+              <span>{rateLabel}</span>{" "}
+              <span className="font-mono tabular-nums text-foreground">{rateValue}</span>
             </div>
-          )}
-        </div>
-      </div>
+            <div className="text-muted-foreground">
+              <span>Avg won</span>{" "}
+              <span className="font-mono tabular-nums text-foreground">
+                {avgWonDeal > 0 ? fmtAUD(avgWonDeal) : "—"}
+              </span>
+            </div>
+            {!empty && !met && (
+              <div>
+                <span className="font-mono tabular-nums text-chart-red">
+                  {fmtAUD(remaining)}
+                </span>{" "}
+                <span className="text-muted-foreground">remaining</span>
+              </div>
+            )}
+          </>
+        }
+      />
     </motion.div>
   );
-
 }
