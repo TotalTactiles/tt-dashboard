@@ -4,11 +4,11 @@ import { filterByPeriod, type QuarterFilter } from "@/lib/periodFilter";
 import { motion } from "framer-motion";
 import { RefreshCw } from "lucide-react";
 import {
-  ComposedChart, Bar, Line, ReferenceLine, XAxis, YAxis,
+  BarChart, Bar, ReferenceLine, XAxis, YAxis,
   CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
 import StatCard from "@/components/dashboard/StatCard";
-import { formatMetricValue } from "@/lib/formatMetricValue";
+import { chartColors } from "@/lib/chartTheme";
 import PortfolioChart from "@/components/dashboard/PortfolioChart";
 import SectorAllocationChart from "@/components/dashboard/SectorAllocationChart";
 import DealPipeline from "@/components/dashboard/DealPipeline";
