@@ -1033,6 +1033,18 @@ function MonthlyInvoicesVsTargetChart({
     onInvoicesTargetChange(Number(e.target.value) || 0);
   };
 
+  const maxInvoiced = data.reduce((m, d) => Math.max(m, d.invoiced || 0), 0);
+  const scaleMax = Math.max(invoicesTarget, maxInvoiced, 1);
+  const totalInvoiced = data.reduce((s, d) => s + (d.invoiced || 0), 0);
+  const totalTarget = invoicesTarget * data.length;
+  const pct = totalTarget > 0 ? (totalInvoiced / totalTarget) * 100 : 0;
+  const pctClamped = Math.min(100, Math.max(0, pct));
+  const fmtMoney = (n: number) => `$${Math.round(n).toLocaleString("en-AU")}`;
+
+  const periodLabel =
+    quarter === "all"
+      ? (year === "all" ? "All periods" : year)
+      : `${quarter} ${year}`;
 
   return (
     <div className="chart-container">
@@ -1052,56 +1064,76 @@ function MonthlyInvoicesVsTargetChart({
           />
         </label>
       </div>
-      <ResponsiveContainer width="100%" height={240}>
-        <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-          <XAxis dataKey="month" tick={{ fill: "#6b7280", fontSize: 11 }} />
-          <YAxis
-            tickFormatter={fmtKAxis}
-            tick={{ fill: "#6b7280", fontSize: 11 }}
-            domain={[0, (dataMax: number) => Math.ceil((dataMax * 1.12) / 1000) * 1000]}
+
+      {/* Period KPI line */}
+      <div className="mb-3">
+        <p className="text-xs font-mono text-muted-foreground">
+          <span className="text-foreground">{periodLabel}</span> invoiced:{" "}
+          <span className="text-foreground">{fmtMoney(totalInvoiced)}</span> of{" "}
+          <span className="text-foreground">{fmtMoney(totalTarget)}</span> target{" "}
+          <span style={{ color: pct >= 100 ? "#22C55E" : "#f59e0b" }}>({pct.toFixed(0)}%)</span>
+        </p>
+        <div className="mt-1 h-1 w-full rounded-full bg-white/5 overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all"
+            style={{ width: `${pctClamped}%`, backgroundColor: "#22C55E" }}
           />
-          <Tooltip
-            content={({ active, payload, label }: any) => {
-              if (!active || !payload?.length) return null;
-              const point = payload[0]?.payload;
-              const invoiced = point?.invoiced ?? 0;
-              return (
-                <div style={{
-                  backgroundColor: "#0f172a",
-                  border: "1px solid rgba(255,255,255,0.3)",
-                  borderRadius: "10px",
-                  padding: "10px 16px",
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
-                  minWidth: "160px"
-                }}>
-                  <p style={{ color: "#94a3b8", fontSize: "11px", fontFamily: "monospace", margin: "0 0 6px 0" }}>{label}</p>
-                  <p style={{ color: "#22c55e", fontSize: "14px", fontWeight: 700, margin: 0, fontFamily: "monospace" }}>
-                    Invoiced: ${invoiced.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
+        </div>
+      </div>
+
+      {/* Bullet rows */}
+      {data.length === 0 ? (
+        <div className="flex items-center justify-center h-[200px]">
+          <p className="text-sm text-muted-foreground font-mono">No data for this period</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          {data.map((d) => {
+            const invoiced = d.invoiced || 0;
+            const barPct = Math.min(100, (invoiced / scaleMax) * 100);
+            const targetPct = Math.min(100, (invoicesTarget / scaleMax) * 100);
+            const hitTarget = invoiced >= invoicesTarget;
+            return (
+              <div key={d.month} className="flex items-center gap-3" style={{ height: 28 }}>
+                <span
+                  className="text-[11px] font-mono text-muted-foreground text-left shrink-0"
+                  style={{ width: 60 }}
+                >
+                  {d.month}
+                </span>
+                <div className="relative flex-1 h-full rounded-sm bg-white/[0.04] overflow-hidden">
+                  {/* invoiced bar */}
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-sm transition-all"
+                    style={{
+                      width: `${barPct}%`,
+                      backgroundColor: "#22C55E",
+                      opacity: hitTarget ? 1 : 0.4,
+                    }}
+                  />
+                  {/* target tick */}
+                  <div
+                    className="absolute inset-y-0"
+                    style={{
+                      left: `${targetPct}%`,
+                      width: 2,
+                      backgroundColor: "#F5A623",
+                      transform: "translateX(-1px)",
+                    }}
+                    title={`Target ${fmtMoney(invoicesTarget)}`}
+                  />
                 </div>
-              );
-            }}
-          />
-
-          <ReferenceLine
-            y={invoicesTarget}
-            stroke="#f59e0b"
-            strokeDasharray="4 4"
-            label={{ value: `Target $${invoicesTarget.toLocaleString()}`, position: "right", fill: "#f59e0b", fontSize: 11 }}
-          />
-          <Bar dataKey="invoiced" name="Invoiced">
-            {data.map((d, i) => (
-              <Cell
-                key={i}
-                fill="#22C55E"
-                fillOpacity={d.invoiced >= invoicesTarget ? 1 : 0.4}
-              />
-            ))}
-          </Bar>
-
-        </BarChart>
-      </ResponsiveContainer>
+                <span
+                  className="text-[11px] font-mono text-foreground text-right shrink-0 tabular-nums"
+                  style={{ width: 90 }}
+                >
+                  {fmtMoney(invoiced)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
