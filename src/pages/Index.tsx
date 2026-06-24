@@ -1046,93 +1046,99 @@ function MonthlyInvoicesVsTargetChart({
       : `${quarter} ${year}`;
 
   return (
-    <div className="chart-container">
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div>
-          <h3 className="text-sm font-medium text-foreground">Monthly Invoices</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Invoices being paid per month vs target</p>
+    <div className="chart-container h-full">
+      <div className="flex flex-col h-full">
+        <div className="flex items-start justify-between gap-3 mb-3 flex-shrink-0">
+          <div>
+            <h3 className="text-sm font-medium text-foreground">Monthly Invoices</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Invoices being paid per month vs target</p>
+          </div>
+
+          <label className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
+            Monthly Invoice Target $
+            <input
+              type="number"
+              value={invoicesTarget}
+              onChange={handleTargetChange}
+              className="bg-white/5 border border-white/10 rounded px-2 py-1 text-sm w-32 text-right font-mono text-foreground"
+            />
+          </label>
         </div>
 
-        <label className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
-          Monthly Invoice Target $
-          <input
-            type="number"
-            value={invoicesTarget}
-            onChange={handleTargetChange}
-            className="bg-white/5 border border-white/10 rounded px-2 py-1 text-sm w-32 text-right font-mono text-foreground"
-          />
-        </label>
-      </div>
+        {/* Period KPI line */}
+        <div className="mb-3 flex-shrink-0">
+          <p className="text-xs font-mono text-muted-foreground">
+            <span className="text-foreground">{periodLabel}</span> invoiced:{" "}
+            <span className="text-foreground">{fmtMoney(totalInvoiced)}</span> of{" "}
+            <span className="text-foreground">{fmtMoney(totalTarget)}</span> target{" "}
+            <span style={{ color: pct >= 100 ? "#22C55E" : "#f59e0b" }}>({pct.toFixed(0)}%)</span>
+          </p>
+          <div className="mt-1 h-1 w-full rounded-full bg-white/5 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${pctClamped}%`, backgroundColor: "#22C55E" }}
+            />
+          </div>
+        </div>
 
-      {/* Period KPI line */}
-      <div className="mb-3">
-        <p className="text-xs font-mono text-muted-foreground">
-          <span className="text-foreground">{periodLabel}</span> invoiced:{" "}
-          <span className="text-foreground">{fmtMoney(totalInvoiced)}</span> of{" "}
-          <span className="text-foreground">{fmtMoney(totalTarget)}</span> target{" "}
-          <span style={{ color: pct >= 100 ? "#22C55E" : "#f59e0b" }}>({pct.toFixed(0)}%)</span>
-        </p>
-        <div className="mt-1 h-1 w-full rounded-full bg-white/5 overflow-hidden">
+        {/* Bullet rows */}
+        {data.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-sm text-muted-foreground font-mono">No data for this period</p>
+          </div>
+        ) : (
           <div
-            className="h-full rounded-full transition-all"
-            style={{ width: `${pctClamped}%`, backgroundColor: "#22C55E" }}
-          />
-        </div>
-      </div>
-
-      {/* Bullet rows */}
-      {data.length === 0 ? (
-        <div className="flex items-center justify-center h-[200px]">
-          <p className="text-sm text-muted-foreground font-mono">No data for this period</p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-1.5">
-          {data.map((d) => {
-            const invoiced = d.invoiced || 0;
-            const barPct = Math.min(100, (invoiced / scaleMax) * 100);
-            const targetPct = Math.min(100, (invoicesTarget / scaleMax) * 100);
-            const hitTarget = invoiced >= invoicesTarget;
-            return (
-              <div key={d.month} className="flex items-center gap-3" style={{ height: 28 }}>
-                <span
-                  className="text-[11px] font-mono text-muted-foreground text-left shrink-0"
-                  style={{ width: 60 }}
-                >
-                  {d.month}
-                </span>
-                <div className="relative flex-1 h-full rounded-sm bg-white/[0.04] overflow-hidden">
-                  {/* invoiced bar */}
-                  <div
-                    className="absolute inset-y-0 left-0 rounded-sm transition-all"
-                    style={{
-                      width: `${barPct}%`,
-                      backgroundColor: "#22C55E",
-                      opacity: hitTarget ? 1 : 0.4,
-                    }}
-                  />
-                  {/* target tick */}
-                  <div
-                    className="absolute inset-y-0"
-                    style={{
-                      left: `${targetPct}%`,
-                      width: 2,
-                      backgroundColor: "#F5A623",
-                      transform: "translateX(-1px)",
-                    }}
-                    title={`Target ${fmtMoney(invoicesTarget)}`}
-                  />
+            className={`flex-1 flex flex-col ${
+              data.length > 6 ? "justify-start gap-2 overflow-hidden" : "justify-around"
+            }`}
+          >
+            {data.map((d) => {
+              const invoiced = d.invoiced || 0;
+              const barPct = Math.min(100, (invoiced / scaleMax) * 100);
+              const targetPct = Math.min(100, (invoicesTarget / scaleMax) * 100);
+              const hitTarget = invoiced >= invoicesTarget;
+              return (
+                <div key={d.month} className="flex items-center gap-3 min-h-[40px]">
+                  <span
+                    className="text-[11px] font-mono text-muted-foreground text-left shrink-0"
+                    style={{ width: 60 }}
+                  >
+                    {d.month}
+                  </span>
+                  <div className="relative flex-1 h-full rounded-sm bg-white/[0.04] overflow-hidden">
+                    {/* invoiced bar */}
+                    <div
+                      className="absolute inset-y-0 left-0 rounded-sm transition-all"
+                      style={{
+                        width: `${barPct}%`,
+                        backgroundColor: "#22C55E",
+                        opacity: hitTarget ? 1 : 0.4,
+                      }}
+                    />
+                    {/* target tick */}
+                    <div
+                      className="absolute inset-y-0"
+                      style={{
+                        left: `${targetPct}%`,
+                        width: 2,
+                        backgroundColor: "#F5A623",
+                        transform: "translateX(-1px)",
+                      }}
+                      title={`Target ${fmtMoney(invoicesTarget)}`}
+                    />
+                  </div>
+                  <span
+                    className="text-[11px] font-mono text-foreground text-right shrink-0 tabular-nums"
+                    style={{ width: 90 }}
+                  >
+                    {fmtMoney(invoiced)}
+                  </span>
                 </div>
-                <span
-                  className="text-[11px] font-mono text-foreground text-right shrink-0 tabular-nums"
-                  style={{ width: 90 }}
-                >
-                  {fmtMoney(invoiced)}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
