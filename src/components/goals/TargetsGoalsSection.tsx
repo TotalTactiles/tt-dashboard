@@ -29,7 +29,7 @@ export default function TargetsGoalsSection({
   wonCount,
 }: Props) {
   const { target, setTarget } = useRevenueTarget();
-  const { ylwValue } = useDashboardData();
+  const { ylwValue, getLeadsToGoal, pipelineConversion } = useDashboardData();
   const [withYlw, setWithYlw] = useState(false);
 
   const avgWonDeal = wonCount > 0 ? wonValueTotal / wonCount : 0;
@@ -44,6 +44,7 @@ export default function TargetsGoalsSection({
   const remaining = Math.max(0, target - effectiveCurrent);
   const jobsToGoal =
     avgWonDeal > 0 && remaining > 0 ? Math.ceil(remaining / avgWonDeal) : 0;
+  const leadsToGoal = getLeadsToGoal(jobsToGoal);
 
   return (
     <>
