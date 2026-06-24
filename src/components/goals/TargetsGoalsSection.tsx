@@ -61,6 +61,7 @@ export default function TargetsGoalsSection({
           target={target}
           setTarget={setTarget}
           currentRevenue={currentRevenue}
+          effectiveCurrent={effectiveCurrent}
           pctConfirmed={pctConfirmed}
           pctYlw={pctYlw}
           pctTotal={pctTotal}
@@ -74,6 +75,7 @@ export default function TargetsGoalsSection({
           jobsToGoal={jobsToGoal}
           avgWonDeal={avgWonDeal}
           currentRevenue={currentRevenue}
+          effectiveCurrent={effectiveCurrent}
           remaining={remaining}
           withYlw={withYlw}
           setWithYlw={setWithYlw}
