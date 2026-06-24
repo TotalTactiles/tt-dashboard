@@ -854,7 +854,6 @@ const DashboardContent = () => {
     "Op. Expense Ratio",
     "Labour Cost Ratio",
     "Revenue Per Job",
-    "CAC Per Client",
   ] as const;
   type OptionalCard = typeof OPTIONAL_INVESTOR_CARDS[number];
   const [visibleOptionalCards, setVisibleOptionalCards] = useState<Set<OptionalCard>>(new Set());
