@@ -461,8 +461,8 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
     const ctx = showAlt && altMomContext ? altMomContext : momContext;
     return ctx ? (
       <p
-        className={`font-mono text-muted-foreground/80 leading-tight ${emphasis ? "text-[0.65rem] whitespace-normal break-words text-center w-full px-1" : ""}`}
-        style={emphasis ? undefined : noteStyle}
+        className={`font-mono text-muted-foreground/80 leading-tight ${isCentered || emphasis ? "text-[0.65rem] whitespace-normal break-words text-center w-full px-1" : ""}`}
+        style={isCentered || emphasis ? undefined : noteStyle}
         title={ctx}
       >
         {ctx}
