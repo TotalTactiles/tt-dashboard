@@ -120,6 +120,18 @@ export interface ProjectKPIData {
       isStubbed: boolean;
     };
   };
+  projects?: Array<{
+    name: string;
+    pctComplete: number | null;
+    trackedTotal: number;
+    trackedDone: number;
+    loggedHours: number;
+    endDate: string | null;
+    invoiceDate: string | null;
+    estRevenue: number | null;
+    estCost: number | null;
+    matchedTo: string | null;
+  }>;
 }
 
 const DEFAULT_SOURCES: DataSourceConfig[] = [
