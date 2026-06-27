@@ -33,7 +33,7 @@ function monKeyToDate(key: string): Date | null {
 
 // ── Period helpers ─────────────────────────────────────────────────
 
-export type PeriodMode = "month" | "quarter" | "ytd";
+export type PeriodMode = "month" | "quarter" | "ytd" | "all";
 
 export interface PeriodSpec {
   mode: PeriodMode;
