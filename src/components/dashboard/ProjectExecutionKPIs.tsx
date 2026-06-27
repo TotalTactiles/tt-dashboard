@@ -1012,6 +1012,110 @@ function CashExpectedCard({
   );
 }
 
+// ── PROJECTS DUE CARD ─────────────────────────────────────────────
+
+function ProjectsDueCard({ projects, periodLabel, index }: { projects: PEProject[]; periodLabel: string; index: number }) {
+  const count = projects.length;
+  const totalRev = projects.reduce((s, p) => s + (p.estRevenue ?? 0), 0);
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: index * 0.06 }}
+      className="stat-card relative overflow-hidden flex flex-col min-w-0"
+      style={cardContainerStyle}
+    >
+      <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: "hidden" }}>
+        <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: "hidden" }}>
+          <span className="text-muted-foreground shrink-0"><FolderCheck className="w-4 h-4" /></span>
+          <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>Projects Due</p>
+        </div>
+        <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>DELIVERY</span>
+      </div>
+
+      <p className="font-mono font-bold text-foreground my-1" style={valueShortStyle}>{count}</p>
+
+      <div className="mt-auto">
+        <p className="font-mono text-foreground/80" style={sublineStyle}>{periodLabel || "—"}</p>
+        <p className="font-mono text-muted-foreground" style={sublineStyle}>
+          {totalRev > 0 ? `${formatMetricValue(totalRev, "currency")} to invoice` : "No revenue matched"}
+        </p>
+      </div>
+
+      <div className="mt-2 h-[3px] bg-secondary rounded-full overflow-hidden">
+        <motion.div initial={{ width: 0 }} animate={{ width: count > 0 ? "100%" : "0%" }} transition={{ duration: 0.8, delay: 0.3 + index * 0.06 }} className="h-full rounded-full bg-accent" />
+      </div>
+    </motion.div>
+  );
+}
+
+// ── PROJECTS TABLE ────────────────────────────────────────────────
+
+function ProjectsTable({ projects, periodLabel }: { projects: PEProject[]; periodLabel: string }) {
+  const $ = (n: number) => formatMetricValue(n, "currency");
+  const totalRev = projects.reduce((s, p) => s + (p.estRevenue ?? 0), 0);
+  const totalCost = projects.reduce((s, p) => s + (p.estCost ?? 0), 0);
+  const totalHours = Math.round(projects.reduce((s, p) => s + (p.loggedHours ?? 0), 0) * 10) / 10;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.3 }}
+      className="chart-container col-span-full mt-4 md:mt-6"
+    >
+      <div className="flex items-center justify-between mb-4 gap-2">
+        <div className="flex items-center gap-2">
+          <h3 className="text-fluid-sm font-medium text-muted-foreground">Projects to Complete</h3>
+          {periodLabel && <span className="text-[11px] px-2 py-1 rounded-full border border-border font-mono text-muted-foreground">{periodLabel}</span>}
+        </div>
+        <span className="text-xs font-mono text-muted-foreground">{projects.length} {projects.length === 1 ? "project" : "projects"}</span>
+      </div>
+
+      {projects.length === 0 ? (
+        <p className="text-sm text-muted-foreground font-mono py-6 text-center">No projects with a job date in {periodLabel || "this period"}.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs font-mono">
+            <thead>
+              <tr className="text-muted-foreground border-b border-border/50">
+                <th className="text-left font-medium py-2 pr-3">Project</th>
+                <th className="text-right font-medium py-2 px-3">% Complete</th>
+                <th className="text-right font-medium py-2 px-3">Hours</th>
+                <th className="text-right font-medium py-2 px-3">Job Date</th>
+                <th className="text-right font-medium py-2 px-3">Est. Cost</th>
+                <th className="text-right font-medium py-2 pl-3">Est. Revenue</th>
+              </tr>
+            </thead>
+            <tbody>
+              {projects.map((p, i) => (
+                <tr key={i} className="border-b border-border/30">
+                  <td className="text-left py-2 pr-3 text-foreground"><span className="block max-w-[260px] truncate">{p.name}</span></td>
+                  <td className="text-right py-2 px-3 text-foreground">{p.pctComplete != null ? `${p.pctComplete}%` : "—"}</td>
+                  <td className="text-right py-2 px-3 text-muted-foreground">{p.loggedHours ?? 0}h</td>
+                  <td className="text-right py-2 px-3 text-muted-foreground">{p.invoiceDate ?? "—"}</td>
+                  <td className="text-right py-2 px-3 text-chart-red">{p.estCost != null ? $(p.estCost) : "—"}</td>
+                  <td className="text-right py-2 pl-3 text-chart-green">{p.estRevenue != null ? $(p.estRevenue) : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-border font-bold">
+                <td className="text-left py-2 pr-3 text-foreground">Total ({projects.length})</td>
+                <td className="text-right py-2 px-3" />
+                <td className="text-right py-2 px-3 text-foreground">{totalHours}h</td>
+                <td className="text-right py-2 px-3" />
+                <td className="text-right py-2 px-3 text-chart-red">{$(totalCost)}</td>
+                <td className="text-right py-2 pl-3 text-chart-green">{$(totalRev)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 // ── Section component ──────────────────────────────────────────────
 
 interface ProjectExecutionKPIsProps {
