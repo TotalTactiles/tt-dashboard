@@ -111,6 +111,7 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
       rawStatus: l.stage || "Quoting",
       dateQuoted: l.date,
       estJobDate: l.date,
+      lastActive: "",
       stageValue: 0,
       lostReason: "",
       zohoId: "",
