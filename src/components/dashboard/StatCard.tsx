@@ -37,6 +37,7 @@ interface StatCardProps {
   altPositive2?: boolean;
   toggleLabelAlt2?: string;
   emphasis?: boolean;
+  variant?: "default" | "centered";
 }
 
 // Unified emphasis figure style — one compact type scale across every Quick Look Sales card.
