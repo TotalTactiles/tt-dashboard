@@ -34,6 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle, Unplug, Loader2 } from "lucide-react";
+import { computeMoneyMetrics, scopeLabel as moneyScopeLabel, type MoneyScope } from "@/lib/moneyPeriod";
 
 const fmtAUD = (n: number) => formatMetricValue(n, "currency");
 const fmtKAxis = (v: number) => {
