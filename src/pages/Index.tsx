@@ -1946,6 +1946,13 @@ const DashboardContent = () => {
               : "--";
             const gmPct = sd.grossMarginPct.toFixed(2);
 
+            const money = computeMoneyMetrics({
+              scope: moneyScope,
+              revenueProjects,
+              cashflowRows: (dataStore as any)?.cashflow ?? [],
+            });
+            const moneyLabels = moneyScopeLabel(moneyScope);
+
             return (
             <div className="mt-4 mb-4">
               <SectionHeader title="Let's Talk Money">
