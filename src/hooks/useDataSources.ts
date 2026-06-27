@@ -53,6 +53,8 @@ export interface ProjectKPIData {
     estimatedHoursTotal: number;
     completedTasksFound: number;
     completedMilestonesFound: number;
+    trackedTasksTotal?: number;
+    trackedTasksCompleted?: number;
   };
   kpis: {
     onTimeDelivery: {

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   CalendarClock,
@@ -308,6 +308,40 @@ function ZohoKPIError({ title, icon, group, index }: { title: string; icon: Reac
       </div>
       <p className="font-mono font-bold text-muted-foreground/40 my-auto" style={valueShortStyle}>--</p>
       <p className="font-mono text-chart-amber mt-auto" style={sublineStyle}>Sync failed · Check Settings</p>
+      <div className="mt-2 h-[3px] bg-secondary rounded-full" />
+    </motion.div>
+  );
+}
+
+// ── ZOHO TO BE BUILT CARD ─────────────────────────────────────────
+
+function ZohoToBeBuiltCard({
+  title, icon, group, index, note,
+}: { title: string; icon: React.ReactNode; group: string; index: number; note?: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: index * 0.06 }}
+      className="stat-card relative overflow-hidden flex flex-col min-w-0 opacity-70"
+      style={cardContainerStyle}
+    >
+      <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: "hidden" }}>
+        <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: "hidden" }}>
+          <span className="text-muted-foreground shrink-0">{icon}</span>
+          <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>{title}</p>
+        </div>
+        <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>{group}</span>
+      </div>
+
+      <div className="flex items-center my-1">
+        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-secondary/60 text-muted-foreground border border-border">To Be Built</span>
+      </div>
+
+      <p className="font-mono text-muted-foreground mt-auto" style={sublineStyle}>
+        {note ?? "Setup pending in Zoho Projects"}
+      </p>
+
       <div className="mt-2 h-[3px] bg-secondary rounded-full" />
     </motion.div>
   );
@@ -983,18 +1017,17 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
     );
   }
 
-  // 5 Zoho-driven cards
+  // 4 Zoho-driven cards
   const zohoCardDefs = [
     { title: "On-Time Delivery", icon: <CheckCircle2 className="w-4 h-4" />, group: "DELIVERY" },
     { title: "Task Progress",    icon: <ListChecks className="w-4 h-4" />,  group: "DELIVERY" },
-    { title: "Schedule Slippage",icon: <Clock className="w-4 h-4" />,       group: "DELIVERY" },
     { title: "Labour Efficiency",icon: <Users className="w-4 h-4" />,       group: "DELIVERY" },
     { title: "Margin Variance",  icon: <TrendingUp className="w-4 h-4" />,  group: "PROFIT" },
   ];
 
   // Jobs Due card (only remaining non-Zoho card)
   const existingCards: ExecKPICardProps[] = [
-    { title: "Jobs Due", group: "DELIVERY", icon: <CalendarClock className="w-4 h-4" />, kpi: kpis.jobsDuePeriod, index: 5 },
+    { title: "Jobs Due", group: "DELIVERY", icon: <CalendarClock className="w-4 h-4" />, kpi: kpis.jobsDuePeriod, index: 4 },
   ];
 
   return (
@@ -1042,10 +1075,10 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
       </SectionHeader>
 
       <div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 items-stretch"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 items-stretch"
         style={{ gap: "clamp(8px, 1vw, 16px)" }}
       >
-        {/* 5 Zoho-driven cards */}
+        {/* 4 Zoho-driven cards */}
         {zohoCardDefs.map((def, i) => {
           if (!zohoEnabled) {
             return <ZohoKPIDisabled key={def.title} {...def} index={i} />;
@@ -1061,12 +1094,16 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
           }
 
           switch (i) {
-            case 0: return <OnTimeDeliveryCard key={def.title} data={projectKPIData.kpis.onTimeDelivery} index={i} />;
-            case 1: return <TaskCompletionCard key={def.title} completed={projectKPIData.dataHealth.completedTasksFound} total={projectKPIData.dataHealth.tasks} index={i} />;
-            case 2: return <ScheduleSlippageCard key={def.title} data={projectKPIData.kpis.scheduleSlippage} index={i} />;
-            case 3: return <LabourEfficiencyCard key={def.title} data={projectKPIData.kpis.labourEfficiency} index={i} />;
-            case 4: return <MarginVarianceCard key={def.title} data={projectKPIData.kpis.marginVariance} index={i} />;
-            default: return null;
+            case 0:
+              return <ZohoToBeBuiltCard key={def.title} title={def.title} icon={def.icon} group={def.group} index={i} note="No due-date tracking in Zoho Projects yet" />;
+            case 1:
+              return <TaskCompletionCard key={def.title} completed={projectKPIData.dataHealth.trackedTasksCompleted ?? projectKPIData.dataHealth.completedTasksFound} total={projectKPIData.dataHealth.trackedTasksTotal ?? projectKPIData.dataHealth.tasks} index={i} />;
+            case 2:
+              return <LabourEfficiencyCard key={def.title} data={projectKPIData.kpis.labourEfficiency} index={i} />;
+            case 3:
+              return <MarginVarianceCard key={def.title} data={projectKPIData.kpis.marginVariance} index={i} />;
+            default:
+              return null;
           }
         })}
 
