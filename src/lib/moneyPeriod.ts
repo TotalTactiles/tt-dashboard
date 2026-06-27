@@ -116,3 +116,25 @@ export function computeMoneyMetrics(params: {
     grossMarginPct: revenueExGST > 0 ? ((revenueExGST - cogs) / revenueExGST) * 100 : null,
   };
 }
+
+export function availableMonthKeys(
+  revenueProjects: Array<{ invoiceDate?: string; otherDate?: string }>
+): string[] {
+  const set = new Set<string>();
+  for (const r of revenueProjects ?? []) {
+    const s = r.invoiceDate || r.otherDate;
+    if (!s) continue;
+    const d = parseDate(s);
+    if (d) set.add(monKey(d));
+  }
+  return Array.from(set).sort((a, b) => {
+    const [ma, ya] = a.split("-");
+    const [mb, yb] = b.split("-");
+    return (Number("20" + yb) - Number("20" + ya)) || (MONTH_ABBR.indexOf(mb) - MONTH_ABBR.indexOf(ma));
+  });
+}
+
+export function monthLabel(key: string): string {
+  const [m, y] = key.split("-");
+  return `${m} 20${y}`;
+}
