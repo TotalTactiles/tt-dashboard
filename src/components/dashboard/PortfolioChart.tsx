@@ -307,6 +307,10 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [], year: yearProp, q
           <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#22C55E", opacity: 0.4 }} />
           <span className="text-muted-foreground">Income (Probable)</span>
         </div>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-0.5 rounded" style={{ background: "repeating-linear-gradient(90deg,#3D89DA 0 5px,transparent 5px 8px)" }} />
+          <span className="text-muted-foreground">Cash Position</span>
+        </div>
       </div>
 
       {incomeOutgoingsData.length === 0 ? (
