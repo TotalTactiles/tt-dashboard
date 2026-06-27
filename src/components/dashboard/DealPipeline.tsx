@@ -137,10 +137,10 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
   }, []);
 
   const filteredJobs = useMemo(() => {
-    let jobs = [...quotedJobs];
+    let jobs = [...viewSource];
 
-    // Period filter from Project Execution KPIs (unless "All" is toggled)
-    if (!showAll && periodFilter && periodFilter.months.length > 0) {
+    // Period filter from Project Execution KPIs (skip in opps view)
+    if (view !== "opps" && !showAll && periodFilter && periodFilter.months.length > 0) {
       const monthSet = new Set(periodFilter.months);
       const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
       jobs = jobs.filter((j) => {
@@ -151,10 +151,10 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
       });
     }
 
-    if (statusFilter !== "all") {
+    if (view === "all" && statusFilter !== "all") {
       jobs = jobs.filter((j) => j.rawStatus === statusFilter);
     }
-    if (dateFilter !== "all") {
+    if (view !== "opps" && dateFilter !== "all") {
       const currentYear = new Date().getFullYear();
       jobs = jobs.filter((j) => {
         const d = parseDateForFilter(j.dateQuoted);
@@ -186,7 +186,7 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
       }
     });
     return jobs;
-  }, [quotedJobs, statusFilter, dateFilter, sortBy, showAll, periodFilter]);
+  }, [viewSource, view, statusFilter, dateFilter, sortBy, showAll, periodFilter]);
 
   const filteredTotal = useMemo(() => filteredJobs.reduce((s, j) => s + j.value, 0), [filteredJobs]);
 
