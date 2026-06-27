@@ -1238,63 +1238,68 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
 
   return (
     <div className="mb-4 md:mb-6">
-      <SectionHeader title="DOING THE DEED">
-        <button
-          onClick={() => syncProjectKPIs()}
-          disabled={zohoSyncing}
-          title={
-            zohoSyncError
-              ? `Sync failed: ${zohoSyncError}`
-              : zohoLastSync
-              ? `Last synced: ${zohoLastSync}`
-              : "Sync Zoho Projects data"
-          }
-          className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 font-mono text-muted-foreground transition-colors hover:text-foreground hover:border-accent/50 disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ fontSize: "clamp(10px, 0.9vw, 12px)" }}
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${zohoSyncing ? "animate-spin" : ""}`} />
-          <span>{zohoSyncing ? "Syncing\u2026" : "Sync"}</span>
-          {zohoSyncError && !zohoSyncing && (
-            <span className="ml-0.5 inline-block w-1.5 h-1.5 rounded-full bg-chart-red" aria-label="Sync error" />
-          )}
-        </button>
+      {(() => {
+        const cur = periodOptions[selectedPeriodIdx];
+        const activePillKey =
+          cur?.mode === "quarter" ? "quarter" :
+          cur?.mode === "ytd"     ? "ytd" :
+          cur?.mode === "all"     ? "all" : null;
+        const selectedMonthKey = cur?.mode === "month" ? cur.key : null;
+        const ddSubtitle = selectedMonthKey
+          ? monthLabel(selectedMonthKey)
+          : activePillKey === "ytd"  ? moneyScopeLabel("ytd").subtitle
+          : activePillKey === "all"  ? "All time"
+          : moneyScopeLabel("quarter").subtitle;
 
-        <div className="flex items-center gap-1.5">
-          {pillDefs.map((p) => (
-            <button
-              key={p.label}
-              onClick={() => onPeriodChange(p.idx)}
-              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap text-[11px] ${
-                selectedPeriodIdx === p.idx
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
+        const syncBtn = (
+          <button
+            onClick={() => syncProjectKPIs()}
+            disabled={zohoSyncing}
+            title={
+              zohoSyncError
+                ? `Sync failed: ${zohoSyncError}`
+                : zohoLastSync
+                ? `Last synced: ${zohoLastSync}`
+                : "Sync Zoho Projects data"
+            }
+            className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 font-mono text-muted-foreground transition-colors hover:text-foreground hover:border-accent/50 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ fontSize: "clamp(10px, 0.9vw, 12px)" }}
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${zohoSyncing ? "animate-spin" : ""}`} />
+            <span>{zohoSyncing ? "Syncing\u2026" : "Sync"}</span>
+            {zohoSyncError && !zohoSyncing && (
+              <span className="ml-0.5 inline-block w-1.5 h-1.5 rounded-full bg-chart-red" aria-label="Sync error" />
+            )}
+          </button>
+        );
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-1 font-mono text-xs">
-              {period.label}
-              <ChevronDown className="w-3 h-3" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="max-h-64 overflow-y-auto">
-            {monthOnlyOptions.map(({ opt, i }) => (
-              <DropdownMenuItem
-                key={opt.key}
-                onClick={() => onPeriodChange(i)}
-                className={`font-mono text-xs ${i === selectedPeriodIdx ? "bg-accent" : ""}`}
-              >
-                {opt.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SectionHeader>
+        return (
+          <SectionPeriodHeader
+            title="Doing The Deed"
+            pills={[
+              { key: "quarter", label: moneyScopeLabel("quarter").pill },
+              { key: "ytd", label: "YTD" },
+              { key: "all", label: "All" },
+            ]}
+            activeKey={activePillKey}
+            onPill={(k) => {
+              const idx = k === "quarter" ? quarterIdx : k === "ytd" ? ytdIdx : allIdx;
+              if (idx >= 0) onPeriodChange(idx);
+            }}
+            months={periodOptions
+              .filter((p) => p.mode === "month")
+              .map((p) => ({ key: p.key, label: monthLabel(p.key) }))}
+            selectedMonth={selectedMonthKey}
+            onMonth={(k) => {
+              if (!k) { if (quarterIdx >= 0) onPeriodChange(quarterIdx); return; }
+              const idx = periodOptions.findIndex((p) => p.mode === "month" && p.key === k);
+              if (idx >= 0) onPeriodChange(idx);
+            }}
+            subtitle={ddSubtitle}
+            rightSlot={syncBtn}
+          />
+        );
+      })()}
 
       <div
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 items-stretch"
