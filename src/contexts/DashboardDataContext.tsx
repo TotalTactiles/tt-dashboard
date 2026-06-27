@@ -588,6 +588,9 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const invoicesBeingPaidRow = findCashflowRowExact("Invoices Being Paid");
     const businessLoanRow = findCashflowRowExact("Business Loan Repayment & Monthly Fee");
     const vehicleRepayRow = findCashflowRowExact("Motor Vehicle Repayments");
+    const gstPaidRow = findCashflowRowExact("GST Paid");
+    const integratedClientAccountRow = findCashflowRowExact("Integrated Client Account (BAS)");
+    const incomeTaxAccountRow = findCashflowRowExact("Income Tax Account");
 
 
     // For "Anticipated Cash Surplus/(Deficit)" — must NOT match the "Including Probable Jobs" variant
@@ -786,7 +789,14 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const parsedCurrent = parseMonthLabel(currentMonthKey);
 
     const forecastChartData: ForecastChartPoint[] = months.map((m) => {
-      const totalOut = totalOutgoingsRow ? Math.abs(parseNum(totalOutgoingsRow[m] ?? 0)) : 0;
+      const totalOut =
+        parseNum(totalCostOfSalesRow?.[m] ?? 0) +
+        Math.abs(parseNum(totalOpExInclSalariesRow?.[m] ?? 0)) +
+        Math.abs(parseNum(businessLoanRow?.[m] ?? 0)) +
+        Math.abs(parseNum(vehicleRepayRow?.[m] ?? 0)) +
+        Math.abs(parseNum(gstPaidRow?.[m] ?? 0)) +
+        Math.abs(parseNum(integratedClientAccountRow?.[m] ?? 0)) +
+        Math.abs(parseNum(incomeTaxAccountRow?.[m] ?? 0));
       const anticipated = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[m] ?? 0) : sv(cs?.anticipatedSurplus, m);
 
       const parsedM = parseMonthLabel(m);
