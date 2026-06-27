@@ -325,11 +325,13 @@ function AvgContractCard({
   acvQuoted,
   acvWon,
   acvLost,
+  acvTotal,
   index,
 }: {
   acvQuoted: { avg: number; count: number };
   acvWon: { avg: number; count: number };
   acvLost: { avg: number; count: number };
+  acvTotal: { avg: number; count: number };
   index: number;
 }) {
   const [mode, setMode] = useState<"qw" | "wl">("qw");
@@ -349,11 +351,11 @@ function AvgContractCard({
 
   // Mode-driven top/bottom
   const top = mode === "qw" ? acvQuoted : acvWon;
-  const bottom = mode === "qw" ? acvWon : acvLost;
+  const bottom = mode === "qw" ? acvTotal : acvLost;
   const topLabel = mode === "qw" ? "QUOTED" : "WON";
-  const bottomLabel = mode === "qw" ? "WON" : "LOST";
+  const bottomLabel = mode === "qw" ? "TOTAL" : "LOST";
   const topNoun = mode === "qw" ? "quoted" : "won";
-  const bottomNoun = mode === "qw" ? "won" : "lost";
+  const bottomNoun = mode === "qw" ? "total" : "lost";
   // Colour: red only ever for Lost
   const topColor = "text-chart-green";
   const bottomColor = mode === "wl" ? "text-chart-red" : "text-chart-green";
@@ -377,7 +379,7 @@ function AvgContractCard({
             className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
               mode === "qw" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
-          >Quoted vs Won</button>
+          >Quoted vs Total</button>
           <button
             onClick={() => setMode("wl")}
             className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
@@ -1543,8 +1545,11 @@ const DashboardContent = () => {
     const totalCount = scopedQuotes.length;
     const avgWon = wonCount > 0 ? scopedWonOnly.reduce((s, j) => s + j.value, 0) / wonCount : 0;
     const avgQuoted = totalCount > 0 ? scopedQuotes.reduce((s, j) => s + j.value, 0) / totalCount : 0;
+    const totalAllCount = quotedJobs.length;
+    const avgTotal = totalAllCount > 0 ? quotedJobs.reduce((s, j) => s + j.value, 0) / totalAllCount : 0;
     const revPerJobWon = wonCount > 0 ? revenueExGST / wonCount : 0;
     const revPerJobQuoted = totalCount > 0 ? revenueExGST / totalCount : 0;
+
 
     // Pipeline coverage: current open pipeline / YTD revenue run rate
     // Pipeline value = all pending + yellow jobs (always a current snapshot — not time-scoped)
@@ -1575,7 +1580,7 @@ const DashboardContent = () => {
     return {
       revenueExGST, revenueInclGST, totalCOGS, grossProfit, grossMarginPct,
       totalExpenses, totalLabour, netProfit, opExpRatio, labourRatio,
-      wonCount, totalCount, avgWon, avgQuoted, revPerJobWon, revPerJobQuoted,
+      wonCount, totalCount, avgWon, avgQuoted, avgTotal, totalAllCount, revPerJobWon, revPerJobQuoted,
       pipelineVal, pipelineCoverage, dsrValue, bizLoan, carLoan, monthlyDebt, annualDebt,
       scopedMonthCount: activeMonths.length,
     };
@@ -2038,18 +2043,20 @@ const DashboardContent = () => {
                     />
                   );
                 })()}
-                {/* 4. Avg Contract Value — dual-mode (Quoted vs Won | Won vs Lost), overall */}
+                {/* 4. Avg Contract Value — dual-mode (Quoted vs Total | Won vs Lost), overall */}
                 {(() => {
                   const qs = (dataStore as any)?.quotesSummary ?? {};
                   const avgOf = (o: any) => (Number(o?.count) > 0 ? Number(o.value) / Number(o.count) : 0);
                   const acvQuoted = { avg: avgOf(qs.totalQuoted), count: Number(qs?.totalQuoted?.count ?? 0) };
                   const acvWon    = { avg: avgOf(qs.totalWon),    count: Number(qs?.totalWon?.count ?? 0) };
                   const acvLost   = { avg: avgOf(qs.totalLost),   count: Number(qs?.totalLost?.count ?? 0) };
+                  const acvTotal  = { avg: sd.avgTotal, count: sd.totalAllCount };
                   return (
                     <AvgContractCard
                       acvQuoted={acvQuoted}
                       acvWon={acvWon}
                       acvLost={acvLost}
+                      acvTotal={acvTotal}
                       index={12}
                     />
                   );
