@@ -411,6 +411,9 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [], year: yearProp, q
                           <p style={{ color: isNeg ? "#7F1D1D" : "#15803D", marginTop: 4, borderTop: `1px solid ${tc.tooltipBorder}`, paddingTop: 4 }}>
                             {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
                           </p>
+                          <p style={{ color: "#3D89DA", marginTop: 2 }}>
+                            Cash Position: {formatMetricValue(point.cashPosition ?? 0, "currency")}
+                          </p>
                         </>
                       )}
                       {goalAdj.length > 0 && (
