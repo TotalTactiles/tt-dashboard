@@ -292,10 +292,26 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
       className="chart-container col-span-full"
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <h3 className="text-fluid-sm font-medium text-muted-foreground">Quoted Jobs</h3>
-          {periodFilter && (
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div className="flex flex-wrap items-center gap-2">
+          {([
+            { key: "all" as const, label: "Quoted Jobs", count: quotedJobs.length },
+            { key: "running" as const, label: "In The Running", count: quotedJobs.filter(j => j.status === "pending").length },
+            { key: "opps" as const, label: "Quoting Opps", count: quotingOpp?.count ?? crmOppRows.length },
+          ]).map((v) => (
+            <button
+              key={v.key}
+              onClick={() => { setView(v.key); setPage(1); }}
+              className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors font-mono ${
+                view === v.key
+                  ? "border-[#3D89DA] text-[#3D89DA] bg-[#3D89DA]/10"
+                  : "border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {v.label} ({v.count})
+            </button>
+          ))}
+          {view !== "opps" && periodFilter && (
             <button
               onClick={() => { const next = !showAll; onAllToggle?.(next); setPage(1); }}
               className={`text-[11px] px-2.5 py-1 rounded-full border font-mono transition-colors ${
@@ -307,7 +323,7 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
               All
             </button>
           )}
-          {!showAll && periodFilter && (
+          {view !== "opps" && !showAll && periodFilter && (
             <span className="text-[10px] font-mono text-muted-foreground/70">
               {periodFilter.label}
             </span>
@@ -327,6 +343,11 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
           </button>
         </div>
       </div>
+      {view === "running" && (
+        <p className="text-[11px] text-muted-foreground font-mono mb-3">
+          Pending quotes (Quote Sent + Negotiation/Review). The Pipeline card's count is FY-scoped, so it can differ by a row or two.
+        </p>
+      )}
 
       {/* Filter panel */}
       <AnimatePresence>
