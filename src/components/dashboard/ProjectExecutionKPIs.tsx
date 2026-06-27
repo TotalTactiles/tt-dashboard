@@ -1052,11 +1052,24 @@ function ProjectsDueCard({ projects, periodLabel, index }: { projects: PEProject
 
 // ── PROJECTS TABLE ────────────────────────────────────────────────
 
-function ProjectsTable({ projects, periodLabel }: { projects: PEProject[]; periodLabel: string }) {
+const ZOHO_PROJECTS_URL = "https://projects.zoho.com.au/portal/totaltactilesprojects";
+
+function ProjectsTable({
+  monthProjects,
+  allProjects,
+  periodLabel,
+}: {
+  monthProjects: PEProject[];
+  allProjects: PEProject[];
+  periodLabel: string;
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const rows = showAll ? allProjects : monthProjects;
+
   const $ = (n: number) => formatMetricValue(n, "currency");
-  const totalRev = projects.reduce((s, p) => s + (p.estRevenue ?? 0), 0);
-  const totalCost = projects.reduce((s, p) => s + (p.estCost ?? 0), 0);
-  const totalHours = Math.round(projects.reduce((s, p) => s + (p.loggedHours ?? 0), 0) * 10) / 10;
+  const totalRev = rows.reduce((s, p) => s + (p.estRevenue ?? 0), 0);
+  const totalCost = rows.reduce((s, p) => s + (p.estCost ?? 0), 0);
+  const totalHours = Math.round(rows.reduce((s, p) => s + (p.loggedHours ?? 0), 0) * 10) / 10;
 
   return (
     <motion.div
@@ -1065,16 +1078,51 @@ function ProjectsTable({ projects, periodLabel }: { projects: PEProject[]; perio
       transition={{ duration: 0.5, delay: 0.3 }}
       className="chart-container col-span-full mt-4 md:mt-6"
     >
-      <div className="flex items-center justify-between mb-4 gap-2">
+      <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <h3 className="text-fluid-sm font-medium text-muted-foreground">Projects to Complete</h3>
-          {periodLabel && <span className="text-[11px] px-2 py-1 rounded-full border border-border font-mono text-muted-foreground">{periodLabel}</span>}
+          <span className="text-[11px] px-2 py-1 rounded-full border border-border font-mono text-muted-foreground">
+            {showAll ? "All active" : (periodLabel || "—")}
+          </span>
+          <span className="text-xs font-mono text-muted-foreground">
+            {rows.length} {rows.length === 1 ? "project" : "projects"}
+          </span>
         </div>
-        <span className="text-xs font-mono text-muted-foreground">{projects.length} {projects.length === 1 ? "project" : "projects"}</span>
+
+        <div className="flex items-center gap-2">
+          {/* All / month toggle */}
+          <div className="inline-flex rounded-md border border-border overflow-hidden">
+            <button
+              onClick={() => setShowAll(false)}
+              className={`px-2.5 py-1 text-[11px] font-mono transition-colors ${!showAll ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              {periodLabel || "Month"}
+            </button>
+            <button
+              onClick={() => setShowAll(true)}
+              className={`px-2.5 py-1 text-[11px] font-mono transition-colors ${showAll ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              All
+            </button>
+          </div>
+
+          {/* Zoho Projects link */}
+          <a
+            href={ZOHO_PROJECTS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-mono rounded-md border border-border text-muted-foreground hover:text-foreground hover:border-accent transition-colors"
+          >
+            View in Zoho Projects
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        </div>
       </div>
 
-      {projects.length === 0 ? (
-        <p className="text-sm text-muted-foreground font-mono py-6 text-center">No projects with a job date in {periodLabel || "this period"}.</p>
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground font-mono py-6 text-center">
+          {showAll ? "No active projects." : `No projects with a job date in ${periodLabel || "this period"}.`}
+        </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-xs font-mono">
@@ -1089,7 +1137,7 @@ function ProjectsTable({ projects, periodLabel }: { projects: PEProject[]; perio
               </tr>
             </thead>
             <tbody>
-              {projects.map((p, i) => (
+              {rows.map((p, i) => (
                 <tr key={i} className="border-b border-border/30">
                   <td className="text-left py-2 pr-3 text-foreground"><span className="block max-w-[260px] truncate">{p.name}</span></td>
                   <td className="text-right py-2 px-3 text-foreground">{p.pctComplete != null ? `${p.pctComplete}%` : "—"}</td>
@@ -1102,7 +1150,7 @@ function ProjectsTable({ projects, periodLabel }: { projects: PEProject[]; perio
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-border font-bold">
-                <td className="text-left py-2 pr-3 text-foreground">Total ({projects.length})</td>
+                <td className="text-left py-2 pr-3 text-foreground">Total ({rows.length})</td>
                 <td className="text-right py-2 px-3" />
                 <td className="text-right py-2 px-3 text-foreground">{totalHours}h</td>
                 <td className="text-right py-2 px-3" />
