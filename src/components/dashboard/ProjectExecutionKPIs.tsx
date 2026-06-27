@@ -636,15 +636,17 @@ function MarginVarianceCard({ data, index }: { data: import("@/lib/projectExecut
   const variance = isNull ? null : Math.round((actualGP - gpTarget) * 10) / 10;
   const isPositiveVariance = variance !== null && variance >= 0;
   const isBelowTarget = variance !== null && variance < 0;
-  const displayVal = variance !== null
-    ? `${isPositiveVariance ? '+' : ''}${variance}%`
-    : 'N/A';
+
+  const headline = mvMode === "variance"
+    ? (variance !== null ? `${isPositiveVariance ? '+' : ''}${variance}%` : "N/A")
+    : (isNull ? "N/A" : `${actualGP}%`);
+  const sublineText = mvMode === "variance"
+    ? (isNull ? "Revenue data unavailable" : `${actualGP}% actual · target ${gpTarget}%`)
+    : (isNull ? "Revenue data unavailable" : `Gross margin · target ${gpTarget}%`);
+  const displayVal = headline;
+
   const barFill = isNull ? 0 : Math.min(100, (actualGP / Math.max(gpTarget, 0.0001)) * 100);
   const barColor = isBelowTarget ? "bg-chart-red" : "bg-chart-green";
-
-  const sublineText = isNull
-    ? "Revenue data unavailable"
-    : `${actualGP}% actual · target ${gpTarget}%`;
 
   const belowTarget = data.projects.filter((p) => p.gpPct < gpTarget);
   const atLoss = data.projects.filter((p) => p.gpPct < 0);
