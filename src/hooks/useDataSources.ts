@@ -832,6 +832,7 @@ export function useDataSources() {
     updateWebhookUrl,
     saveAndTest,
     syncNow,
+    syncProjectKPIs,
     syncCalendar: fetchCalendar,
     updateScreenshot,
     removeScreenshot,
