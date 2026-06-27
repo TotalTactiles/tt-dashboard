@@ -19,6 +19,7 @@ import ProjectExecutionKPIs from "@/components/dashboard/ProjectExecutionKPIs";
 import RevenueProjectsTable from "@/components/dashboard/RevenueProjectsTable";
 import ExpenseBreakdown from "@/components/dashboard/ExpenseBreakdown";
 import SectionHeader from "@/components/dashboard/SectionHeader";
+import SectionPeriodHeader from "@/components/dashboard/SectionPeriodHeader";
 import DashboardLayout from "@/components/DashboardLayout";
 import GoalsDashboardWidgets from "@/components/goals/GoalsDashboardWidgets";
 import TargetsGoalsSection from "@/components/goals/TargetsGoalsSection";
