@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   X,
   RefreshCw,
+  FolderCheck,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
