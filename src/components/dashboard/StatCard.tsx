@@ -309,7 +309,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
   );
 
   const pillsBlock = hasToggle && !noData ? (
-    <div className={`flex ${emphasis ? "justify-center" : ""} mt-0.5 mb-0.5`}>
+    <div className={`flex ${isCentered || emphasis ? "justify-center" : ""} mt-0.5 mb-0.5`}>
       <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
         <button
           onClick={() => setMode("base")}
