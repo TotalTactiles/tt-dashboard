@@ -614,11 +614,10 @@ function ScheduleSlippageCard({ data, index }: { data: ProjectKPIData["kpis"]["s
 
 // ── MARGIN VARIANCE CARD ──────────────────────────────────────────
 
-function MarginVarianceCard({ data, index }: { data: ProjectKPIData["kpis"]["marginVariance"]; index: number }) {
+function MarginVarianceCard({ data, index }: { data: import("@/lib/projectExecutionKpis").MarginVarianceResult; index: number }) {
   const [gpTarget, setGpTarget] = useState(loadGPTarget);
   const [showDetail, setShowDetail] = useState(false);
 
-  // Listen for GP target changes from the chart
   useEffect(() => {
     const handler = () => setGpTarget(loadGPTarget());
     window.addEventListener("storage", handler);
@@ -637,14 +636,16 @@ function MarginVarianceCard({ data, index }: { data: ProjectKPIData["kpis"]["mar
   const displayVal = variance !== null
     ? `${isPositiveVariance ? '+' : ''}${variance}%`
     : 'N/A';
-  const barFill = isNull ? 0 : Math.min(100, (actualGP / gpTarget) * 100);
+  const barFill = isNull ? 0 : Math.min(100, (actualGP / Math.max(gpTarget, 0.0001)) * 100);
   const barColor = isBelowTarget ? "bg-chart-red" : "bg-chart-green";
 
   const sublineText = isNull
     ? "Revenue data unavailable"
     : `${actualGP}% actual · target ${gpTarget}%`;
 
-  const hasDetail = data.negativeGPJobs.length > 0;
+  const belowTarget = data.projects.filter((p) => p.gpPct < gpTarget);
+  const atLoss = data.projects.filter((p) => p.gpPct < 0);
+  const hasDetail = belowTarget.length > 0;
 
   return (
     <>
@@ -662,9 +663,9 @@ function MarginVarianceCard({ data, index }: { data: ProjectKPIData["kpis"]["mar
             <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>Margin Variance</p>
           </div>
           <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
-            {data.negativeGPJobs.length > 0 && (
+            {atLoss.length > 0 && (
               <Badge variant="secondary" className="text-[8px] font-mono bg-chart-amber/20 text-chart-amber border-chart-amber/30 px-1 py-0">
-                ⚠ {data.negativeGPJobs.length} at loss
+                ⚠ {atLoss.length} at loss
               </Badge>
             )}
             <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap">PROFIT</span>
@@ -685,7 +686,7 @@ function MarginVarianceCard({ data, index }: { data: ProjectKPIData["kpis"]["mar
           </p>
           {hasDetail && (
             <p className="text-muted-foreground/40 font-mono truncate" style={noteStyle}>
-              Click to view jobs at loss
+              Click to view projects below target
             </p>
           )}
         </div>
@@ -700,26 +701,22 @@ function MarginVarianceCard({ data, index }: { data: ProjectKPIData["kpis"]["mar
         </div>
       </motion.div>
 
-      {/* Modal — same pattern as Schedule Slippage */}
       <Dialog open={showDetail} onOpenChange={setShowDetail}>
         <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-mono text-base">Margin Variance</DialogTitle>
             <DialogDescription className="font-mono text-xs text-muted-foreground">
-              {data.negativeGPJobs.length} job{data.negativeGPJobs.length !== 1 ? "s" : ""} below target · Target {gpTarget}%
+              {belowTarget.length} project{belowTarget.length !== 1 ? "s" : ""} below target · Target {gpTarget}%
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-col gap-1 mt-2">
-            {data.negativeGPJobs.map((job, i) => {
+            {belowTarget.map((job, i) => {
               const jobVariance = Math.round((job.gpPct - gpTarget) * 10) / 10;
               const severelyNegative = job.gpPct < 0;
-              const belowTarget = job.gpPct < gpTarget;
               const rowColor = severelyNegative
                 ? "text-chart-red bg-chart-red/5"
-                : belowTarget
-                ? "text-amber-400 bg-amber-400/5"
-                : "text-chart-green bg-chart-green/5";
+                : "text-amber-400 bg-amber-400/5";
               const reason = severelyNegative
                 ? "Negative gross profit"
                 : job.gpPct < gpTarget * 0.5
@@ -1324,7 +1321,7 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
             case 2:
               return <LabourEfficiencyCard key={def.title} data={projectKPIData.kpis.labourEfficiency} index={i} />;
             case 3:
-              return <MarginVarianceCard key={def.title} data={projectKPIData.kpis.marginVariance} index={i} />;
+              return <MarginVarianceCard key={def.title} data={kpis.marginVariance} index={i} />;
             default:
               return null;
           }
