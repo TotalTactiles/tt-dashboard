@@ -150,6 +150,18 @@ export function buildPeriodOptions(jobs: QuotedJob[], revenue?: RevenueProject[]
     });
   }
 
+  // ── All-time option (every month in the data) ──
+  const allMonths = parsed.map((p) => p.key);
+  if (allMonths.length > 0) {
+    options.push({
+      mode: "all",
+      key: "ALL",
+      label: "All",
+      months: allMonths,
+      priorMonths: [],
+    });
+  }
+
   return options;
 }
 
