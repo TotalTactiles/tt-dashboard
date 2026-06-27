@@ -2033,15 +2033,20 @@ const DashboardContent = () => {
                   );
                 })()}
                 {/* 5. Revenue Growth — scope-aware (YTD avg MoM% w/ sparkline, or QoQ%) */}
-                <RevenueGrowthCard scope={investorScope} index={13} />
+                <RevenueGrowthCard
+                  scope={investorScope}
+                  index={13}
+                  defaultView="dollar"
+                  dollarOverride={{ value: money.revenueExGST, label: `${moneyLabels.pill} revenue` }}
+                />
                 {/* Row 2 */}
                 <StatCard
                   label="Gross Margin %"
-                  value={`${gmPct}%`}
-                  change={`avg ${gmPct}%`}
-                  positive={sd.grossMarginPct >= 30}
+                  value={money.grossMarginPct !== null ? `${money.grossMarginPct.toFixed(2)}%` : "N/A"}
+                  change={money.grossMarginPct !== null ? `avg ${money.grossMarginPct.toFixed(2)}%` : "--"}
+                  positive={(money.grossMarginPct ?? 0) >= 30}
                   index={14}
-                  momContext={scopeLabel}
+                  momContext={`${moneyLabels.pill}`}
                 />
                 <StatCard
                   label="Pipeline Coverage"
@@ -2053,13 +2058,13 @@ const DashboardContent = () => {
                 />
                 <StatCard
                   label="Op. Expense Ratio"
-                  value={`${sd.opExpRatio.toFixed(1)}%`}
+                  value={money.opExpRatio !== null ? `${money.opExpRatio.toFixed(1)}%` : "N/A"}
                   change="Expenses / Revenue"
-                  positive={sd.opExpRatio < 60}
+                  positive={(money.opExpRatio ?? 0) < 60}
                   index={16}
-                  altValue={fmtVal(sd.totalExpenses)}
-                  altChange={`${scopeLabel} expenses`}
-                  altPositive={sd.opExpRatio < 60}
+                  altValue={fmtVal(money.opEx)}
+                  altChange={`${moneyLabels.pill} operating expenses`}
+                  altPositive={(money.opExpRatio ?? 0) < 60}
                   toggleLabelBase="Ratio"
                   toggleLabelAlt="$"
                   greenAltPill={true}
@@ -2067,13 +2072,13 @@ const DashboardContent = () => {
 
                 <StatCard
                   label="Labour Cost Ratio"
-                  value={`${sd.labourRatio.toFixed(1)}%`}
+                  value={money.labourCostRatio !== null ? `${money.labourCostRatio.toFixed(1)}%` : "N/A"}
                   change="Labour / Revenue"
-                  positive={sd.labourRatio < 35}
+                  positive={(money.labourCostRatio ?? 0) < 35}
                   index={16}
-                  altValue={fmtVal(sd.totalLabour)}
-                  altChange={`${scopeLabel} labour`}
-                  altPositive={sd.labourRatio < 35}
+                  altValue={fmtVal(money.labour)}
+                  altChange={`${moneyLabels.pill} labour`}
+                  altPositive={(money.labourCostRatio ?? 0) < 35}
                   toggleLabelBase="Ratio"
                   toggleLabelAlt="$"
                   greenAltPill={true}
