@@ -1268,7 +1268,7 @@ function loadActiveGoalIds(allGoals: {id: string;merge?: boolean;}[]): Set<strin
 
 const DashboardContent = () => {
   const { goals, updateGoal } = useGoals();
-  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, formulaCache, incomeOutgoingsData, forecastChartData, quotedJobs, investorMetrics, isOffline, lastCachedAt, revenueProjects, dataStore, liveData, inRunningCount, inRunningValue, monthlyInvoicesData, monthlyNetProfitData } = useDashboardData();
+  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, syncCalendar, formulaCache, incomeOutgoingsData, forecastChartData, quotedJobs, investorMetrics, isOffline, lastCachedAt, revenueProjects, dataStore, liveData, inRunningCount, inRunningValue, monthlyInvoicesData, monthlyNetProfitData } = useDashboardData();
 
   // ── Shared period selector across PortfolioChart / MonthlyInvoices / MonthlyNetProfit ──
   const [periodYear, setPeriodYear] = useState<string>(() => String(new Date().getFullYear()));
@@ -1668,10 +1668,23 @@ const DashboardContent = () => {
     });
   }, [kpiStats, adjustedData, goals, activeGoalIds, hasActiveGoals]);
 
-  const handleRefresh = () => {
-    const gSheets = sources.find((s) => s.id === "google_sheets");
-    if (gSheets) syncNow(gSheets.id);
-  };
+  const handleRefresh = useCallback(() => {
+    // 1) Re-pull every connected n8n source (Google Sheets main payload, Zoho Projects KPIs, etc.)
+    sources
+      .filter((s) => s.connected && s.webhookUrl)
+      .forEach((s) => syncNow(s.id));
+
+    // Safety net: always include the core Google Sheets payload even if a flag is odd
+    if (!sources.some((s) => s.id === "google_sheets" && s.connected && s.webhookUrl)) {
+      syncNow("google_sheets");
+    }
+
+    // 2) Refresh the calendar feed (separate poll)
+    syncCalendar?.();
+
+    // 3) Refresh standalone islands (CRM Quoting Opps / leads) via a global event
+    window.dispatchEvent(new Event("tt:refresh-all"));
+  }, [sources, syncNow, syncCalendar]);
 
   const formatLastUpdated = (ts: string | null) => {
     if (!ts) return null;
