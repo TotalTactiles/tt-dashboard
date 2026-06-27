@@ -1957,20 +1957,18 @@ const DashboardContent = () => {
             <div className="mt-4 mb-4">
               <SectionHeader title="Let's Talk Money">
                 <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
-                  {(["ytd", "quarter"] as const).map((scope) => (
+                  {(["quarter", "ytd", "all"] as MoneyScope[]).map((s) => (
                     <button
-                      key={scope}
-                      onClick={() => setInvestorScope(scope)}
-                      className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${investorScope === scope ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                    >{scope === "ytd" ? "This Year" : investorDateWindows.qLabel}</button>
+                      key={s}
+                      onClick={() => setMoneyScope(s)}
+                      className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${moneyScope === s ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                    >{moneyScopeLabel(s).pill}</button>
                   ))}
                 </div>
               </SectionHeader>
 
               <div className="text-xs font-mono text-muted-foreground/70 bg-secondary/40 border border-border/50 rounded px-3 py-1.5 mb-3">
-                {investorScope === "ytd"
-                  ? `Jan–${ABBR[mo]} ${yr} YTD · ${investorDateWindows.ytdMonths.length} months`
-                  : `${investorDateWindows.qLabel} · ${investorDateWindows.qMonths.length} months to date`}
+                {moneyLabels.subtitle}
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" style={{ containerType: 'inline-size' }}>
                 {/* 1. Cash Position — relocated. StatCard internals detect label and wire Open/Today/Actual */}
