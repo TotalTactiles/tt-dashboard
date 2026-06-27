@@ -577,13 +577,13 @@ function RevenueGrowthCard({ scope, index, defaultView = "pct", dollarOverride }
       <div className="min-h-[1.5rem] flex justify-center items-center">
         <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
           <button
-            onClick={() => setView("pct")}
-            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${view === "pct" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-          >%</button>
-          <button
             onClick={() => setView("dollar")}
             className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${view === "dollar" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
           >$</button>
+          <button
+            onClick={() => setView("pct")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${view === "pct" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >%</button>
         </div>
       </div>
       <div className="flex-1 flex flex-col items-center justify-center w-full min-w-0 text-center gap-0.5">
