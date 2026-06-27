@@ -766,7 +766,7 @@ function TaskCompletionCard({ completed, total, index }: { completed: number; to
       <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: "hidden" }}>
         <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: "hidden" }}>
           <span className="text-muted-foreground shrink-0"><ListChecks className="w-4 h-4" /></span>
-          <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>Task Progress</p>
+          <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>Project Progress</p>
         </div>
         <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>DELIVERY</span>
       </div>
