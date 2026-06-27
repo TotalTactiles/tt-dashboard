@@ -396,7 +396,7 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
                   <th className="pb-3 pr-4">Project</th>
                   <th className="pb-3 pr-4 text-right">Value</th>
                   <th className="pb-3 pr-4 text-center">Status</th>
-                  <th className="pb-3">Date</th>
+                  <th className="pb-3">Est. Job Date</th>
                 </tr>
               </thead>
               <tbody>
@@ -421,7 +421,7 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
                       </span>
                     </td>
                     <td className="py-3.5 font-mono text-xs text-muted-foreground">
-                      {formatDateMonthYear(job.dateQuoted)}
+                      {job.estJobDate ? formatDateMonthYear(job.estJobDate) : "TBC"}
                     </td>
                   </motion.tr>
                 ))}
@@ -468,7 +468,7 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
                       {job.rawStatus || "Unknown"}
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-[10px] text-muted-foreground">{formatDateMonthYear(job.dateQuoted)}</span>
+                      <span className="font-mono text-[10px] text-muted-foreground" title="Est. Job Date">{job.estJobDate ? formatDateMonthYear(job.estJobDate) : "TBC"}</span>
                       <button onClick={() => toggleCardExpand(job.id)} className="text-muted-foreground">
                         <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                       </button>
