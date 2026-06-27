@@ -471,6 +471,51 @@ function calcCashExpectedToBeInvoiced(cashflowData: IncomeOutgoingsPoint[], reve
   };
 }
 
+// ── MARGIN VARIANCE (aggregated by parent project) ────────────────
+
+function parentProjectName(project: string): string {
+  return String(project ?? "")
+    .replace(/\s*[-–—]\s*S\s*\d+\s*$/i, "")
+    .replace(/\s*stage\s*\d+\s*$/i, "")
+    .replace(/\s*\bS\d+\b\s*$/i, "")
+    .trim();
+}
+function parentKey(company: string, project: string): string {
+  return `${String(company ?? "").trim()}::${parentProjectName(project)}`.toLowerCase();
+}
+
+export interface MarginVarianceJob { company: string; project: string; gpPct: number; rev: number; gp: number; }
+export interface MarginVarianceResult {
+  actualGP: number | null;
+  revenueBase: number;
+  cogsTotal: number;
+  projects: MarginVarianceJob[];
+}
+
+function calcMarginVariance(revenue: RevenueProject[], period: PeriodSpec): MarginVarianceResult {
+  const rows = filterByPeriod(revenue, revenueMonthKey, period.months).filter((r) => r.valueExclGST > 0);
+
+  const groups = new Map<string, MarginVarianceJob>();
+  for (const r of rows) {
+    const k = parentKey(r.company, r.project);
+    const g = groups.get(k) ?? { company: r.company, project: parentProjectName(r.project), gpPct: 0, rev: 0, gp: 0 };
+    g.rev += r.valueExclGST;
+    g.gp += r.grossProfit;
+    groups.set(k, g);
+  }
+
+  const projects = Array.from(groups.values())
+    .map((g) => ({ ...g, gpPct: g.rev > 0 ? Math.round((g.gp / g.rev) * 1000) / 10 : 0 }))
+    .sort((a, b) => a.gpPct - b.gpPct);
+
+  const revenueBase = projects.reduce((s, p) => s + p.rev, 0);
+  const gpTotal = projects.reduce((s, p) => s + p.gp, 0);
+  const cogsTotal = revenueBase - gpTotal;
+  const actualGP = revenueBase > 0 ? Math.round((gpTotal / revenueBase) * 1000) / 10 : null;
+
+  return { actualGP, revenueBase, cogsTotal, projects };
+}
+
 // ── Aggregate runner ───────────────────────────────────────────────
 
 export interface ExecutionKPIs {
@@ -482,6 +527,7 @@ export interface ExecutionKPIs {
   grossProfitPerJob: KPIResult;
   cashExpected: KPIResult;
   cashExpectedToBeInvoiced: KPIResult;
+  marginVariance: MarginVarianceResult;
 }
 
 export function computeExecutionKPIs(
@@ -499,5 +545,6 @@ export function computeExecutionKPIs(
     grossProfitPerJob: calcGrossProfitPerJob(revenue, period),
     cashExpected: calcCashExpected(cashflowData, revenue, period),
     cashExpectedToBeInvoiced: calcCashExpectedToBeInvoiced(cashflowData, revenue, period),
+    marginVariance: calcMarginVariance(revenue, period),
   };
 }
