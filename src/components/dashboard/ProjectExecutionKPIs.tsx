@@ -1017,11 +1017,10 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
     );
   }
 
-  // 5 Zoho-driven cards
+  // 4 Zoho-driven cards
   const zohoCardDefs = [
     { title: "On-Time Delivery", icon: <CheckCircle2 className="w-4 h-4" />, group: "DELIVERY" },
     { title: "Task Progress",    icon: <ListChecks className="w-4 h-4" />,  group: "DELIVERY" },
-    { title: "Schedule Slippage",icon: <Clock className="w-4 h-4" />,       group: "DELIVERY" },
     { title: "Labour Efficiency",icon: <Users className="w-4 h-4" />,       group: "DELIVERY" },
     { title: "Margin Variance",  icon: <TrendingUp className="w-4 h-4" />,  group: "PROFIT" },
   ];
