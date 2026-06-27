@@ -33,7 +33,7 @@ function monKeyToDate(key: string): Date | null {
 
 // ── Period helpers ─────────────────────────────────────────────────
 
-export type PeriodMode = "month" | "quarter" | "ytd";
+export type PeriodMode = "month" | "quarter" | "ytd" | "all";
 
 export interface PeriodSpec {
   mode: PeriodMode;
@@ -147,6 +147,18 @@ export function buildPeriodOptions(jobs: QuotedJob[], revenue?: RevenueProject[]
       label: `YTD ${yr2}`,
       months: ytdMonths,
       priorMonths: prevYtdMonths,
+    });
+  }
+
+  // ── All-time option (every month in the data) ──
+  const allMonths = parsed.map((p) => p.key);
+  if (allMonths.length > 0) {
+    options.push({
+      mode: "all",
+      key: "ALL",
+      label: "All",
+      months: allMonths,
+      priorMonths: [],
     });
   }
 

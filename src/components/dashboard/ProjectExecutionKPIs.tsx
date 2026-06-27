@@ -1220,10 +1220,22 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
     { title: "Margin Variance",  icon: <TrendingUp className="w-4 h-4" />,  group: "PROFIT" },
   ];
 
-  // Jobs Due card (only remaining non-Zoho card)
-  const existingCards: ExecKPICardProps[] = [
-    { title: "Jobs Due", group: "DELIVERY", icon: <CalendarClock className="w-4 h-4" />, kpi: kpis.jobsDuePeriod, index: 4 },
-  ];
+  // ── Period pills (Quarter / YTD / All) ──
+  const _now = new Date();
+  const _yy = String(_now.getFullYear()).slice(-2);
+  const _curQ = Math.floor(_now.getMonth() / 3) + 1;
+  const quarterIdx = periodOptions.findIndex((p) => p.mode === "quarter" && p.key === `Q${_curQ}-${_yy}`);
+  const ytdIdx     = periodOptions.findIndex((p) => p.mode === "ytd" && p.key === `YTD-${_yy}`);
+  const allIdx     = periodOptions.findIndex((p) => p.mode === "all");
+  const pillDefs = [
+    { label: `Q${_curQ} ${_now.getFullYear()}`, idx: quarterIdx },
+    { label: "YTD", idx: ytdIdx },
+    { label: "All", idx: allIdx },
+  ].filter((p) => p.idx >= 0);
+
+  const monthOnlyOptions = periodOptions
+    .map((opt, i) => ({ opt, i }))
+    .filter(({ opt }) => opt.mode === "month");
 
   return (
     <div className="mb-4 md:mb-6">
@@ -1248,6 +1260,22 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
           )}
         </button>
 
+        <div className="flex items-center gap-1.5">
+          {pillDefs.map((p) => (
+            <button
+              key={p.label}
+              onClick={() => onPeriodChange(p.idx)}
+              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap text-[11px] ${
+                selectedPeriodIdx === p.idx
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="gap-1 font-mono text-xs">
@@ -1256,7 +1284,7 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="max-h-64 overflow-y-auto">
-            {periodOptions.map((opt, i) => (
+            {monthOnlyOptions.map(({ opt, i }) => (
               <DropdownMenuItem
                 key={opt.key}
                 onClick={() => onPeriodChange(i)}
@@ -1270,7 +1298,7 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
       </SectionHeader>
 
       <div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 items-stretch"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 items-stretch"
         style={{ gap: "clamp(8px, 1vw, 16px)" }}
       >
         {/* 4 Zoho-driven cards */}
@@ -1301,11 +1329,6 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
               return null;
           }
         })}
-
-        {/* Jobs Due — untouched */}
-        {existingCards.map((card) => (
-          <ExecKPICard key={card.title} {...card} />
-        ))}
       </div>
 
       <ProjectsTable
