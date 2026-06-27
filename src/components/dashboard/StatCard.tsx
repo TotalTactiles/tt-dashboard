@@ -523,12 +523,40 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-3 gap-1" : "gap-0.5"} ${ylwGlowClass}`}
-      style={emphasis
-        ? { containerType: 'inline-size' }
-        : { minHeight: "90px", containerType: 'inline-size', padding: "clamp(0.65rem, 1.5vw, 1.1rem)" }}
+      className={`stat-card relative overflow-hidden flex flex-col ${isCentered || emphasis ? "items-center text-center h-full p-3 gap-1" : "gap-0.5"} ${ylwGlowClass}`}
+      style={isCentered
+        ? { minHeight: "100px", containerType: 'inline-size' }
+        : emphasis
+          ? { containerType: 'inline-size' }
+          : { minHeight: "90px", containerType: 'inline-size', padding: "clamp(0.65rem, 1.5vw, 1.1rem)" }}
     >
-      {emphasis ? (
+      {isCentered ? (
+        <>
+          {/* HEADER — centered title + badges */}
+          <div className="w-full min-h-[1.5rem] flex flex-col items-center justify-center gap-1 px-1">
+            <p
+              className="font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-center whitespace-normal break-words leading-tight"
+              style={titleStyleCentered}
+              title={label}
+            >
+              {label}
+            </p>
+            {badges}
+          </div>
+          {/* PILLS — reserved row even when empty */}
+          <div className="w-full min-h-[1.5rem] flex items-center justify-center">
+            {pillsBlock}
+          </div>
+          {/* BODY — figure + sub-lines centred */}
+          <div className="flex-1 flex flex-col items-center justify-center gap-0.5 w-full min-w-0">
+            {valueBlock}
+            {cashPositionSubtextBlock}
+            {momBlock}
+            {contextBlock}
+            {trendBlock}
+          </div>
+        </>
+      ) : emphasis ? (
         <>
           {/* HEADER — fixed height, 2-line capable, never truncate */}
           <div className="w-full min-h-[1.5rem] flex items-center justify-center gap-1.5 min-w-0 px-1">
@@ -550,8 +578,6 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
             {trendBlock}
           </div>
         </>
-
-
       ) : (
         <>
           {/* ROW 1 — Label + badges */}
