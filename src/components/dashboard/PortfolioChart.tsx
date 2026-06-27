@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, ReferenceLine, Cell } from "recharts";
+import { Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, ReferenceLine, Cell } from "recharts";
 import { Download } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { formatMetricValue } from "@/lib/formatMetricValue";
@@ -167,6 +167,15 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [], year: yearProp, q
     return data;
   }, [sourceData, quarter, selectedYear, adjustments]);
 
+  const positionDomain = useMemo<[number, number]>(() => {
+    if (filteredData.length === 0) return [0, 100000];
+    const vals = filteredData.map((d: any) => d.cashPosition ?? 0);
+    const min = Math.min(0, ...vals);
+    const max = Math.max(...vals);
+    const pad = Math.max((max - min) * 0.15, 5000);
+    return [Math.floor((min - pad) / 5000) * 5000, Math.ceil((max + pad) / 5000) * 5000];
+  }, [filteredData]);
+
   const quarterYear = useMemo(() => {
     if (quarter === "all") return selectedYear !== null ? String(selectedYear) : "";
     return selectedYear !== null ? String(selectedYear) : (() => {
@@ -298,6 +307,10 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [], year: yearProp, q
           <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#22C55E", opacity: 0.4 }} />
           <span className="text-muted-foreground">Income (Probable)</span>
         </div>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-0.5 rounded" style={{ background: "repeating-linear-gradient(90deg,#3D89DA 0 5px,transparent 5px 8px)" }} />
+          <span className="text-muted-foreground">Cash Position</span>
+        </div>
       </div>
 
       {incomeOutgoingsData.length === 0 ? (
@@ -345,6 +358,19 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [], year: yearProp, q
                   return v < 0 ? `-${label}` : label;
                 }}
               />
+              <YAxis
+                yAxisId="position"
+                orientation="right"
+                stroke="#3D89DA"
+                fontSize={10}
+                fontFamily="JetBrains Mono"
+                domain={positionDomain}
+                tickFormatter={(v) => {
+                  const abs = Math.abs(v);
+                  const label = abs >= 1000 ? `$${(abs / 1000).toFixed(0)}K` : `$${abs}`;
+                  return v < 0 ? `-${label}` : label;
+                }}
+              />
               <Tooltip
                 content={({ active, payload, label }) => {
                   if (!active || !payload || payload.length === 0) return null;
@@ -374,6 +400,9 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [], year: yearProp, q
                           <p style={{ color: isNeg ? "#7F1D1D" : "#15803D", marginTop: 4, borderTop: `1px solid ${tc.tooltipBorder}`, paddingTop: 4 }}>
                             Projected {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
                           </p>
+                          <p style={{ color: "#3D89DA", marginTop: 2 }}>
+                            Cash Position: {formatMetricValue(point.cashPosition ?? 0, "currency")}
+                          </p>
                         </>
                       ) : (
                         <>
@@ -381,6 +410,9 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [], year: yearProp, q
                           <p style={{ color: "#EF4444" }}>Outgoings: {formatMetricValue(point.outgoings, "currency")}</p>
                           <p style={{ color: isNeg ? "#7F1D1D" : "#15803D", marginTop: 4, borderTop: `1px solid ${tc.tooltipBorder}`, paddingTop: 4 }}>
                             {isNeg ? "Deficit" : "Surplus"}: {formatMetricValue(surplusVal, "currency")}
+                          </p>
+                          <p style={{ color: "#3D89DA", marginTop: 2 }}>
+                            Cash Position: {formatMetricValue(point.cashPosition ?? 0, "currency")}
                           </p>
                         </>
                       )}
@@ -437,6 +469,18 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [], year: yearProp, q
                 </Bar>
               )}
               <ReferenceLine yAxisId="bars" y={0} stroke="#ffffff30" />
+              <Line
+                yAxisId="position"
+                type="monotone"
+                dataKey="cashPosition"
+                name="Cash Position"
+                stroke="#3D89DA"
+                strokeWidth={2}
+                strokeDasharray="5 3"
+                dot={{ r: 2.5, fill: "#3D89DA", strokeWidth: 0 }}
+                activeDot={{ r: 4 }}
+                animationDuration={800}
+              />
             </ComposedChart>
           </ResponsiveContainer>
         </div>

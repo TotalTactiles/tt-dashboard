@@ -135,6 +135,7 @@ export interface IncomeOutgoingsPoint {
   income: number;
   outgoings: number;
   surplus: number;
+  cashPosition: number;
   probableIncome: number;
   openingBalance: number;
   isFuture: boolean;
@@ -648,6 +649,8 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         const isFuture = parsed ? (parsed.year > currentYear || (parsed.year === currentYear && parsed.month > currentMonthIdx)) : false;
         // Surplus = this month's income minus outgoings (net movement), not cumulative cash position
         const surplus = inc - out;
+        // Cash Position = "Anticipated Cash Surplus/(Deficit)" row (running balance, matches Cash Position tile)
+        const cashPosition = anticipatedSurplusRow ? parseNum(anticipatedSurplusRow[m] ?? 0) : sv(cs?.anticipatedSurplus, m);
         // Probable income for future months = Row 11 (cashflow model forecast), not derived from surplus
         const probableIncome = isFuture ? Math.max(0, inc) : 0;
         const openingBalance = openingBalancesRow
@@ -658,6 +661,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
           income: inc,
           outgoings: out,
           surplus,
+          cashPosition,
           probableIncome,
           openingBalance,
           isFuture,
