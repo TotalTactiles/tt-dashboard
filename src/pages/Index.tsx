@@ -34,6 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle, Unplug, Loader2 } from "lucide-react";
+import { computeMoneyMetrics, scopeLabel as moneyScopeLabel, type MoneyScope } from "@/lib/moneyPeriod";
 
 const fmtAUD = (n: number) => formatMetricValue(n, "currency");
 const fmtKAxis = (v: number) => {
@@ -377,9 +378,9 @@ function AvgContractCard({
 }
 
 // ── REVENUE GROWTH — scope-aware (% growth or $ total) ─────────────────
-function RevenueGrowthCard({ scope, index }: { scope: "ytd" | "quarter"; index: number }) {
+function RevenueGrowthCard({ scope, index, defaultView = "pct", dollarOverride }: { scope: "ytd" | "quarter"; index: number; defaultView?: "pct" | "dollar"; dollarOverride?: { value: number; label: string } | null }) {
   const { incomeOutgoingsData } = useDashboardData();
-  const [view, setView] = useState<"pct" | "dollar">("pct");
+  const [view, setView] = useState<"pct" | "dollar">(defaultView);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
   const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -473,6 +474,13 @@ function RevenueGrowthCard({ scope, index }: { scope: "ytd" | "quarter"; index: 
     sub = data.qIdx > 0
       ? `Q${data.qIdx + 1} · ${data.qDelta >= 0 ? "+" : ""}${fmtCompact(data.qDelta)} vs ${prevQName}`
       : `Q${data.qIdx + 1} total`;
+  }
+
+  if (!isPct && dollarOverride) {
+    isNA = !(dollarOverride.value > 0);
+    positive = dollarOverride.value >= 0;
+    headline = isNA ? "—" : fmtCompact(dollarOverride.value);
+    sub = dollarOverride.label;
   }
 
   const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
@@ -569,13 +577,13 @@ function RevenueGrowthCard({ scope, index }: { scope: "ytd" | "quarter"; index: 
       <div className="min-h-[1.5rem] flex justify-center items-center">
         <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
           <button
-            onClick={() => setView("pct")}
-            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${view === "pct" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-          >%</button>
-          <button
             onClick={() => setView("dollar")}
             className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${view === "dollar" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
           >$</button>
+          <button
+            onClick={() => setView("pct")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${view === "pct" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >%</button>
         </div>
       </div>
       <div className="flex-1 flex flex-col items-center justify-center w-full min-w-0 text-center gap-0.5">
@@ -1351,6 +1359,7 @@ const DashboardContent = () => {
   const [showAllTables, setShowAllTables] = useState(false);
   const [invoiceFilter, setInvoiceFilter] = useState<"invoiced" | "to_be_invoiced">("invoiced");
   const [investorScope, setInvestorScope] = useState<"ytd" | "quarter">("ytd");
+  const [moneyScope, setMoneyScope] = useState<MoneyScope>("quarter");
   const [revenueTableMonth, setRevenueTableMonth] = useState<{ year: number; month: number; label: string } | null>(null);
   const [revenueTableJumpToken, setRevenueTableJumpToken] = useState(0);
   const revenueCogsRef = useRef<HTMLDivElement | null>(null);
@@ -1937,24 +1946,29 @@ const DashboardContent = () => {
               : "--";
             const gmPct = sd.grossMarginPct.toFixed(2);
 
+            const money = computeMoneyMetrics({
+              scope: moneyScope,
+              revenueProjects,
+              cashflowRows: (dataStore as any)?.cashflow ?? [],
+            });
+            const moneyLabels = moneyScopeLabel(moneyScope);
+
             return (
             <div className="mt-4 mb-4">
               <SectionHeader title="Let's Talk Money">
                 <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
-                  {(["ytd", "quarter"] as const).map((scope) => (
+                  {(["quarter", "ytd", "all"] as MoneyScope[]).map((s) => (
                     <button
-                      key={scope}
-                      onClick={() => setInvestorScope(scope)}
-                      className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${investorScope === scope ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-                    >{scope === "ytd" ? "This Year" : investorDateWindows.qLabel}</button>
+                      key={s}
+                      onClick={() => setMoneyScope(s)}
+                      className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${moneyScope === s ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                    >{moneyScopeLabel(s).pill}</button>
                   ))}
                 </div>
               </SectionHeader>
 
               <div className="text-xs font-mono text-muted-foreground/70 bg-secondary/40 border border-border/50 rounded px-3 py-1.5 mb-3">
-                {investorScope === "ytd"
-                  ? `Jan–${ABBR[mo]} ${yr} YTD · ${investorDateWindows.ytdMonths.length} months`
-                  : `${investorDateWindows.qLabel} · ${investorDateWindows.qMonths.length} months to date`}
+                {moneyLabels.subtitle}
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" style={{ containerType: 'inline-size' }}>
                 {/* 1. Cash Position — relocated. StatCard internals detect label and wire Open/Today/Actual */}
@@ -2019,15 +2033,20 @@ const DashboardContent = () => {
                   );
                 })()}
                 {/* 5. Revenue Growth — scope-aware (YTD avg MoM% w/ sparkline, or QoQ%) */}
-                <RevenueGrowthCard scope={investorScope} index={13} />
+                <RevenueGrowthCard
+                  scope={investorScope}
+                  index={13}
+                  defaultView="dollar"
+                  dollarOverride={{ value: money.revenueExGST, label: `${moneyLabels.pill} revenue` }}
+                />
                 {/* Row 2 */}
                 <StatCard
                   label="Gross Margin %"
-                  value={`${gmPct}%`}
-                  change={`avg ${gmPct}%`}
-                  positive={sd.grossMarginPct >= 30}
+                  value={money.grossMarginPct !== null ? `${money.grossMarginPct.toFixed(2)}%` : "N/A"}
+                  change={money.grossMarginPct !== null ? `avg ${money.grossMarginPct.toFixed(2)}%` : "--"}
+                  positive={(money.grossMarginPct ?? 0) >= 30}
                   index={14}
-                  momContext={scopeLabel}
+                  momContext={`${moneyLabels.pill}`}
                 />
                 <StatCard
                   label="Pipeline Coverage"
@@ -2039,13 +2058,13 @@ const DashboardContent = () => {
                 />
                 <StatCard
                   label="Op. Expense Ratio"
-                  value={`${sd.opExpRatio.toFixed(1)}%`}
+                  value={money.opExpRatio !== null ? `${money.opExpRatio.toFixed(1)}%` : "N/A"}
                   change="Expenses / Revenue"
-                  positive={sd.opExpRatio < 60}
+                  positive={(money.opExpRatio ?? 0) < 60}
                   index={16}
-                  altValue={fmtVal(sd.totalExpenses)}
-                  altChange={`${scopeLabel} expenses`}
-                  altPositive={sd.opExpRatio < 60}
+                  altValue={fmtVal(money.opEx)}
+                  altChange={`${moneyLabels.pill} operating expenses`}
+                  altPositive={(money.opExpRatio ?? 0) < 60}
                   toggleLabelBase="Ratio"
                   toggleLabelAlt="$"
                   greenAltPill={true}
@@ -2053,13 +2072,13 @@ const DashboardContent = () => {
 
                 <StatCard
                   label="Labour Cost Ratio"
-                  value={`${sd.labourRatio.toFixed(1)}%`}
+                  value={money.labourCostRatio !== null ? `${money.labourCostRatio.toFixed(1)}%` : "N/A"}
                   change="Labour / Revenue"
-                  positive={sd.labourRatio < 35}
+                  positive={(money.labourCostRatio ?? 0) < 35}
                   index={16}
-                  altValue={fmtVal(sd.totalLabour)}
-                  altChange={`${scopeLabel} labour`}
-                  altPositive={sd.labourRatio < 35}
+                  altValue={fmtVal(money.labour)}
+                  altChange={`${moneyLabels.pill} labour`}
+                  altPositive={(money.labourCostRatio ?? 0) < 35}
                   toggleLabelBase="Ratio"
                   toggleLabelAlt="$"
                   greenAltPill={true}
