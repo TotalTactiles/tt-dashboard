@@ -947,12 +947,7 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
   if (!kpis || !period) {
     return (
       <div className="mb-4 md:mb-6">
-        <h2 className="font-semibold text-foreground font-mono" style={{ fontSize: "clamp(14px, 1.8vw, 20px)" }}>
-          DOING THE DEED
-        </h2>
-        <p className="text-muted-foreground font-mono mt-1" style={{ fontSize: "clamp(10px, 1vw, 12px)" }}>
-          No quoted jobs data available
-        </p>
+        <SectionHeader title="DOING THE DEED" />
       </div>
     );
   }
@@ -972,53 +967,47 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
 
   return (
     <div className="mb-4 md:mb-6">
-      <div className="mb-4 md:mb-6 flex items-center justify-between gap-3">
-        <h2 className="font-semibold text-foreground font-mono" style={{ fontSize: "clamp(14px, 1.8vw, 20px)" }}>
-          DOING THE DEED
-        </h2>
+      <SectionHeader title="DOING THE DEED">
+        <button
+          onClick={() => syncProjectKPIs()}
+          disabled={zohoSyncing}
+          title={
+            zohoSyncError
+              ? `Sync failed: ${zohoSyncError}`
+              : zohoLastSync
+              ? `Last synced: ${zohoLastSync}`
+              : "Sync Zoho Projects data"
+          }
+          className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 font-mono text-muted-foreground transition-colors hover:text-foreground hover:border-accent/50 disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ fontSize: "clamp(10px, 0.9vw, 12px)" }}
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${zohoSyncing ? "animate-spin" : ""}`} />
+          <span>{zohoSyncing ? "Syncing\u2026" : "Sync"}</span>
+          {zohoSyncError && !zohoSyncing && (
+            <span className="ml-0.5 inline-block w-1.5 h-1.5 rounded-full bg-chart-red" aria-label="Sync error" />
+          )}
+        </button>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => syncProjectKPIs()}
-            disabled={zohoSyncing}
-            title={
-              zohoSyncError
-                ? `Sync failed: ${zohoSyncError}`
-                : zohoLastSync
-                ? `Last synced: ${zohoLastSync}`
-                : "Sync Zoho Projects data"
-            }
-            className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 font-mono text-muted-foreground transition-colors hover:text-foreground hover:border-accent/50 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ fontSize: "clamp(10px, 0.9vw, 12px)" }}
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${zohoSyncing ? "animate-spin" : ""}`} />
-            <span>{zohoSyncing ? "Syncing\u2026" : "Sync"}</span>
-            {zohoSyncError && !zohoSyncing && (
-              <span className="ml-0.5 inline-block w-1.5 h-1.5 rounded-full bg-chart-red" aria-label="Sync error" />
-            )}
-          </button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1 font-mono text-xs">
-                {period.label}
-                <ChevronDown className="w-3 h-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="max-h-64 overflow-y-auto">
-              {periodOptions.map((opt, i) => (
-                <DropdownMenuItem
-                  key={opt.key}
-                  onClick={() => onPeriodChange(i)}
-                  className={`font-mono text-xs ${i === selectedPeriodIdx ? "bg-accent" : ""}`}
-                >
-                  {opt.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1 font-mono text-xs">
+              {period.label}
+              <ChevronDown className="w-3 h-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="max-h-64 overflow-y-auto">
+            {periodOptions.map((opt, i) => (
+              <DropdownMenuItem
+                key={opt.key}
+                onClick={() => onPeriodChange(i)}
+                className={`font-mono text-xs ${i === selectedPeriodIdx ? "bg-accent" : ""}`}
+              >
+                {opt.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SectionHeader>
 
       <div
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 items-stretch"
