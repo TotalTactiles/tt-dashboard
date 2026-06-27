@@ -78,6 +78,8 @@ export interface MoneyMetrics {
   opExpRatio: number | null;
   labourCostRatio: number | null;
   grossMarginPct: number | null;
+  lifestyleExpense: number;
+  lifestyleExpenseRatio: number | null;
 }
 
 export function computeMoneyMetrics(params: {
