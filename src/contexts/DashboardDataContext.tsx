@@ -263,6 +263,7 @@ export interface DashboardData {
   updateWebhookUrl: ReturnType<typeof useDataSources>["updateWebhookUrl"];
   saveAndTest: ReturnType<typeof useDataSources>["saveAndTest"];
   syncNow: ReturnType<typeof useDataSources>["syncNow"];
+  syncProjectKPIs: () => Promise<{ success: boolean; data?: ProjectKPIData; error?: string }>;
   syncCalendar: () => Promise<void>;
   calendarEvents: LiveCalendarEvent[];
   upcomingEvents: LiveCalendarEvent[];
