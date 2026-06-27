@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Clock,
   Users,
+  ListChecks,
   AlertTriangle,
   X,
   RefreshCw,
@@ -682,112 +683,141 @@ function MarginVarianceCard({ data, index }: { data: ProjectKPIData["kpis"]["mar
   );
 }
 
+// ── TASK PROGRESS CARD ───────────────────────────────────────────
+
+function TaskCompletionCard({ completed, total, index }: { completed: number; total: number; index: number }) {
+  const pct = total > 0 ? (completed / total) * 100 : 0;
+  const remaining = Math.max(0, total - completed);
+  const hasData = total > 0;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: index * 0.06 }}
+      className="stat-card relative overflow-hidden flex flex-col min-w-0"
+      style={cardContainerStyle}
+    >
+      <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: "hidden" }}>
+        <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: "hidden" }}>
+          <span className="text-muted-foreground shrink-0"><ListChecks className="w-4 h-4" /></span>
+          <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>Task Progress</p>
+        </div>
+        <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>DELIVERY</span>
+      </div>
+
+      <p className="font-mono font-bold text-foreground my-1" style={valueShortStyle}>
+        {hasData ? `${pct.toFixed(pct > 0 && pct < 10 ? 1 : 0)}%` : "N/A"}
+      </p>
+
+      <div className="mt-auto">
+        <p className="font-mono text-foreground/80" style={sublineStyle}>
+          {hasData ? `${completed} of ${total} tasks done` : "No tasks found"}
+        </p>
+        <p className="font-mono text-muted-foreground" style={sublineStyle}>
+          {hasData ? `${remaining} remaining` : "Awaiting Zoho Projects sync"}
+        </p>
+      </div>
+
+      <div className="mt-2 h-[3px] bg-secondary rounded-full overflow-hidden">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${Math.min(100, pct)}%` }}
+          transition={{ duration: 0.8, delay: 0.3 + index * 0.06 }}
+          className="h-full rounded-full bg-accent"
+        />
+      </div>
+    </motion.div>
+  );
+}
+
 // ── LABOUR EFFICIENCY CARD ────────────────────────────────────────
 
 function LabourEfficiencyCard({ data, index }: { data: ProjectKPIData["kpis"]["labourEfficiency"]; index: number }) {
-  const [showDetail, setShowDetail] = useState(false);
-  const barFill = !data.dataReady ? 0 : Math.min(100, data.value ?? 0);
-  const barColor = !data.dataReady ? "bg-muted-foreground/20" : (data.value ?? 0) >= 100 ? "bg-chart-green" : "bg-chart-amber";
-  const valueColor = !data.dataReady ? "text-muted-foreground/60" : data.isEfficient ? "text-chart-green" : "text-chart-amber";
+  const [view, setView] = useState<"hours" | "efficiency">("hours");
 
-  const effPct = data.value ?? 0;
-  const hasDetail = data.dataReady && data.loggedHours > 0;
+  const logged = data.loggedHours ?? 0;
+  const estimated = data.estimatedHours ?? 0;
+  const hasLogged = logged > 0;
+  const hasEstimate = estimated > 0;
+
+  const burnPct = hasEstimate ? (logged / estimated) * 100 : 0;
+  const remaining = Math.max(0, estimated - logged);
+  const fmtH = (h: number) => `${Math.round(h * 10) / 10}h`;
+
+  // ----- Hours (burn) view : logged vs estimate, % done, hours left -----
+  const hoursValue = !hasEstimate ? "—" : `${burnPct.toFixed(burnPct > 0 && burnPct < 10 ? 1 : 0)}%`;
+  const hoursDetail = hasLogged ? `${fmtH(logged)} of ${fmtH(estimated)} logged` : "No hours logged yet";
+  const hoursSub = !hasEstimate
+    ? "Set task durations in Zoho Projects"
+    : hasLogged ? `${fmtH(remaining)} to go` : `${fmtH(estimated)} estimated`;
+
+  // ----- Efficiency view : est ÷ actual ratio, only meaningful once tasks complete -----
+  const effReady = data.dataReady && data.value != null;
+  const effValue = effReady ? `${Math.round(data.value as number)}%` : "—";
+  const effColor = !effReady ? "text-muted-foreground/60" : data.isEfficient ? "text-chart-green" : "text-chart-amber";
+  const effDetail = effReady ? "Est \u00f7 actual hours" : "Activates once tasks are completed";
+  const effSub = hasLogged ? `${fmtH(logged)} logged \u00b7 ${fmtH(estimated)} est` : "Awaiting logged hours";
+
+  const isHours = view === "hours";
+  const headlineValue = isHours ? hoursValue : effValue;
+  const headlineColor = isHours ? "text-foreground" : effColor;
+  const detailText = isHours ? hoursDetail : effDetail;
+  const subText = isHours ? hoursSub : effSub;
+  const barPct = isHours ? Math.min(100, burnPct) : (effReady ? Math.min(100, data.value as number) : 0);
+  const barColor = isHours
+    ? "bg-accent"
+    : !effReady ? "bg-muted-foreground/20" : data.isEfficient ? "bg-chart-green" : "bg-chart-amber";
 
   return (
-    <>
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, delay: index * 0.06 }}
-        className={`stat-card relative overflow-hidden flex flex-col min-w-0 ${hasDetail ? "cursor-pointer select-none" : ""}`}
-        style={cardContainerStyle}
-        onClick={() => hasDetail && setShowDetail(true)}
-      >
-        <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: 'hidden' }}>
-          <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: 'hidden' }}>
-            <Users className="w-4 h-4 text-muted-foreground shrink-0" />
-            <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>Labour Efficiency</p>
-          </div>
-          <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>DELIVERY</span>
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: index * 0.06 }}
+      className="stat-card relative overflow-hidden flex flex-col min-w-0"
+      style={cardContainerStyle}
+    >
+      <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: 'hidden' }}>
+        <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: 'hidden' }}>
+          <span className="text-muted-foreground shrink-0"><Users className="w-4 h-4" /></span>
+          <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>Labour Efficiency</p>
         </div>
+        <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap" style={{ flexShrink: 0 }}>DELIVERY</span>
+      </div>
 
-        <p
-          className={`font-mono font-bold my-auto ${valueColor}`}
-          style={isShortValue(data.label) ? valueShortStyle : valueLongStyle}
-          title={data.label}
-        >
-          {data.label}
-        </p>
+      {/* Hours / Efficiency toggle */}
+      <div className="flex items-center gap-1 mb-1">
+        {(["hours", "efficiency"] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`text-[9px] font-mono px-1.5 py-0.5 rounded transition-colors ${
+              view === v
+                ? "bg-accent/20 text-accent border border-accent/40"
+                : "text-muted-foreground/60 border border-transparent hover:text-muted-foreground"
+            }`}
+          >
+            {v === "hours" ? "Hours" : "Efficiency"}
+          </button>
+        ))}
+      </div>
 
-        <div className="mt-auto space-y-0.5" style={{ minWidth: 0, overflow: 'hidden' }}>
-          <p className="font-mono text-muted-foreground" style={sublineStyle} title={data.detail}>{data.detail}</p>
-          {data.note && (
-            <p className="font-mono text-muted-foreground" style={noteStyle}>{data.note}</p>
-          )}
-          {hasDetail && (
-            <p className="text-muted-foreground/40 font-mono truncate" style={noteStyle}>
-              Click to view breakdown
-            </p>
-          )}
-        </div>
+      <p className={`font-mono font-bold my-1 ${headlineColor}`} style={valueShortStyle}>{headlineValue}</p>
 
-        <div className="mt-2 h-[3px] bg-secondary rounded-full overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: data.dataReady ? `${Math.min(100, Math.max(0, barFill))}%` : "0%" }}
-            transition={{ duration: 0.8, delay: 0.3 + index * 0.06 }}
-            className={`h-full rounded-full ${barColor}`}
-          />
-        </div>
-      </motion.div>
+      <div className="mt-auto">
+        <p className="font-mono text-foreground/80" style={sublineStyle}>{detailText}</p>
+        <p className="font-mono text-muted-foreground" style={sublineStyle}>{subText}</p>
+      </div>
 
-      {/* Modal — same pattern as Schedule Slippage */}
-      <Dialog open={showDetail} onOpenChange={setShowDetail}>
-        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="font-mono text-base">Labour Efficiency</DialogTitle>
-            <DialogDescription className="font-mono text-xs text-muted-foreground">
-              Estimated vs actual logged hours
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex flex-col gap-2 mt-2">
-            {/* Summary rows */}
-            <div className="flex items-center justify-between px-3 py-1.5 rounded-md font-mono text-xs bg-secondary/40">
-              <span className="text-muted-foreground">Estimated Hours</span>
-              <span className="tabular-nums text-foreground">{data.estimatedHours.toFixed(1)}h</span>
-            </div>
-            <div className="flex items-center justify-between px-3 py-1.5 rounded-md font-mono text-xs bg-secondary/40">
-              <span className="text-muted-foreground">Logged Hours</span>
-              <span className="tabular-nums text-foreground">{data.loggedHours.toFixed(1)}h</span>
-            </div>
-            <div className="flex items-center justify-between px-3 py-1.5 rounded-md font-mono text-xs bg-secondary/40">
-              <span className="text-muted-foreground">Variance</span>
-              <span className={`tabular-nums ${data.estimatedHours - data.loggedHours >= 0 ? "text-chart-green" : "text-chart-red"}`}>
-                {data.estimatedHours - data.loggedHours >= 0 ? "+" : ""}{(data.estimatedHours - data.loggedHours).toFixed(1)}h
-              </span>
-            </div>
-            <div
-              className={`flex items-center justify-between px-3 py-2 rounded-md font-mono text-sm font-bold ${
-                effPct >= 100 ? "text-chart-green bg-chart-green/5" : effPct >= 85 ? "text-amber-400 bg-amber-400/5" : "text-chart-red bg-chart-red/5"
-              }`}
-            >
-              <span>Efficiency</span>
-              <span className="tabular-nums">{effPct.toFixed(1)}%</span>
-            </div>
-
-            {/* Contextual note */}
-            <p className="text-muted-foreground font-mono mt-1" style={{ fontSize: '11px', lineHeight: '1.4' }}>
-              {effPct >= 100
-                ? "Work is completing within or under estimated hours — on budget."
-                : effPct >= 85
-                ? "Slightly over estimated hours. Monitor for scope creep."
-                : "Significantly over estimated hours. Review estimates and workload."}
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+      <div className="mt-2 h-[3px] bg-secondary rounded-full overflow-hidden">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${barPct}%` }}
+          transition={{ duration: 0.8, delay: 0.3 + index * 0.06 }}
+          className={`h-full rounded-full ${barColor}`}
+        />
+      </div>
+    </motion.div>
   );
 }
 
@@ -953,17 +983,18 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
     );
   }
 
-  // 4 Zoho-driven cards
+  // 5 Zoho-driven cards
   const zohoCardDefs = [
     { title: "On-Time Delivery", icon: <CheckCircle2 className="w-4 h-4" />, group: "DELIVERY" },
-    { title: "Schedule Slippage", icon: <Clock className="w-4 h-4" />, group: "DELIVERY" },
-    { title: "Margin Variance", icon: <TrendingUp className="w-4 h-4" />, group: "PROFIT" },
-    { title: "Labour Efficiency", icon: <Users className="w-4 h-4" />, group: "DELIVERY" },
+    { title: "Task Progress",    icon: <ListChecks className="w-4 h-4" />,  group: "DELIVERY" },
+    { title: "Schedule Slippage",icon: <Clock className="w-4 h-4" />,       group: "DELIVERY" },
+    { title: "Labour Efficiency",icon: <Users className="w-4 h-4" />,       group: "DELIVERY" },
+    { title: "Margin Variance",  icon: <TrendingUp className="w-4 h-4" />,  group: "PROFIT" },
   ];
 
   // Jobs Due card (only remaining non-Zoho card)
   const existingCards: ExecKPICardProps[] = [
-    { title: "Jobs Due", group: "DELIVERY", icon: <CalendarClock className="w-4 h-4" />, kpi: kpis.jobsDuePeriod, index: 4 },
+    { title: "Jobs Due", group: "DELIVERY", icon: <CalendarClock className="w-4 h-4" />, kpi: kpis.jobsDuePeriod, index: 5 },
   ];
 
   return (
@@ -1011,10 +1042,10 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
       </SectionHeader>
 
       <div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 items-stretch"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 items-stretch"
         style={{ gap: "clamp(8px, 1vw, 16px)" }}
       >
-        {/* 4 Zoho-driven cards */}
+        {/* 5 Zoho-driven cards */}
         {zohoCardDefs.map((def, i) => {
           if (!zohoEnabled) {
             return <ZohoKPIDisabled key={def.title} {...def} index={i} />;
@@ -1031,9 +1062,10 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
 
           switch (i) {
             case 0: return <OnTimeDeliveryCard key={def.title} data={projectKPIData.kpis.onTimeDelivery} index={i} />;
-            case 1: return <ScheduleSlippageCard key={def.title} data={projectKPIData.kpis.scheduleSlippage} index={i} />;
-            case 2: return <MarginVarianceCard key={def.title} data={projectKPIData.kpis.marginVariance} index={i} />;
+            case 1: return <TaskCompletionCard key={def.title} completed={projectKPIData.dataHealth.completedTasksFound} total={projectKPIData.dataHealth.tasks} index={i} />;
+            case 2: return <ScheduleSlippageCard key={def.title} data={projectKPIData.kpis.scheduleSlippage} index={i} />;
             case 3: return <LabourEfficiencyCard key={def.title} data={projectKPIData.kpis.labourEfficiency} index={i} />;
+            case 4: return <MarginVarianceCard key={def.title} data={projectKPIData.kpis.marginVariance} index={i} />;
             default: return null;
           }
         })}
