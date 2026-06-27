@@ -619,6 +619,7 @@ function ScheduleSlippageCard({ data, index }: { data: ProjectKPIData["kpis"]["s
 function MarginVarianceCard({ data, index }: { data: import("@/lib/projectExecutionKpis").MarginVarianceResult; index: number }) {
   const [gpTarget, setGpTarget] = useState(loadGPTarget);
   const [showDetail, setShowDetail] = useState(false);
+  const [mvMode, setMvMode] = useState<"variance" | "gm">("variance");
 
   useEffect(() => {
     const handler = () => setGpTarget(loadGPTarget());
@@ -635,15 +636,17 @@ function MarginVarianceCard({ data, index }: { data: import("@/lib/projectExecut
   const variance = isNull ? null : Math.round((actualGP - gpTarget) * 10) / 10;
   const isPositiveVariance = variance !== null && variance >= 0;
   const isBelowTarget = variance !== null && variance < 0;
-  const displayVal = variance !== null
-    ? `${isPositiveVariance ? '+' : ''}${variance}%`
-    : 'N/A';
+
+  const headline = mvMode === "variance"
+    ? (variance !== null ? `${isPositiveVariance ? '+' : ''}${variance}%` : "N/A")
+    : (isNull ? "N/A" : `${actualGP}%`);
+  const sublineText = mvMode === "variance"
+    ? (isNull ? "Revenue data unavailable" : `${actualGP}% actual · target ${gpTarget}%`)
+    : (isNull ? "Revenue data unavailable" : `Gross margin · target ${gpTarget}%`);
+  const displayVal = headline;
+
   const barFill = isNull ? 0 : Math.min(100, (actualGP / Math.max(gpTarget, 0.0001)) * 100);
   const barColor = isBelowTarget ? "bg-chart-red" : "bg-chart-green";
-
-  const sublineText = isNull
-    ? "Revenue data unavailable"
-    : `${actualGP}% actual · target ${gpTarget}%`;
 
   const belowTarget = data.projects.filter((p) => p.gpPct < gpTarget);
   const atLoss = data.projects.filter((p) => p.gpPct < 0);
@@ -672,6 +675,21 @@ function MarginVarianceCard({ data, index }: { data: import("@/lib/projectExecut
             )}
             <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap">PROFIT</span>
           </div>
+        </div>
+
+        <div className="flex gap-1 mb-1" onClick={(e) => e.stopPropagation()}>
+          {[["variance","Variance"],["gm","Gross Margin"]].map(([k,label]) => (
+            <button
+              key={k}
+              onClick={(e) => { e.stopPropagation(); setMvMode(k as "variance" | "gm"); }}
+              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+                mvMode === k ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+              style={titleStyle}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
         <p

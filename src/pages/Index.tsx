@@ -2001,7 +2001,7 @@ const DashboardContent = () => {
                 onMonth={(k) => setMoneyMonth(k)}
                 subtitle={subtitleText}
               />
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" style={{ containerType: 'inline-size' }}>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3" style={{ containerType: 'inline-size' }}>
                 {/* 1. Cash Position — relocated. StatCard internals detect label and wire Open/Today/Actual */}
                 <StatCard
                   label="Cash Position"
@@ -2063,15 +2063,6 @@ const DashboardContent = () => {
                   dollarOverride={{ value: money.revenueExGST, label: `${moneyLabels.pill} revenue` }}
                 />
                 {/* Row 2 */}
-                <StatCard
-                  label="Gross Margin %"
-                  value={money.grossMarginPct !== null ? `${money.grossMarginPct.toFixed(2)}%` : "N/A"}
-                  change={money.grossMarginPct !== null ? `avg ${money.grossMarginPct.toFixed(2)}%` : "--"}
-                  positive={(money.grossMarginPct ?? 0) >= 30}
-                  index={14}
-                  variant="centered"
-                  momContext={`${moneyLabels.pill}`}
-                />
                 <StatCard
                   label="Pipeline Coverage"
                   value={`${sd.pipelineCoverage.toFixed(1)}x`}
