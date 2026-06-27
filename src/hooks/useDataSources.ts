@@ -606,6 +606,35 @@ export function useDataSources() {
     [sources, fetchSource]
   );
 
+  const syncProjectKPIs = useCallback(async () => {
+    const zp = sources.find((s) => s.id === "zoho_projects");
+    const url = zp?.webhookUrl || ZOHO_PROJECTS_WEBHOOK_URL;
+
+    setSources((prev) =>
+      prev.map((s) => (s.id === "zoho_projects" ? { ...s, loading: true, lastError: "" } : s))
+    );
+
+    const result = await fetchProjectKPIs(url);
+    const now = new Date().toLocaleString();
+
+    setSources((prev) => {
+      const updated = prev.map((s) =>
+        s.id === "zoho_projects"
+          ? {
+              ...s,
+              loading: false,
+              lastSync: result.success ? now : s.lastSync,
+              lastError: result.success ? "" : (result.error || "Sync failed"),
+            }
+          : s
+      );
+      saveSources(updated);
+      return updated;
+    });
+
+    return result;
+  }, [sources, fetchProjectKPIs]);
+
   const updateScreenshot = useCallback((id: string, url: string) => {
     setSources((prev) => {
       const updated = prev.map((s) => (s.id === id ? { ...s, screenshotUrl: url } : s));
@@ -803,6 +832,7 @@ export function useDataSources() {
     updateWebhookUrl,
     saveAndTest,
     syncNow,
+    syncProjectKPIs,
     syncCalendar: fetchCalendar,
     updateScreenshot,
     removeScreenshot,

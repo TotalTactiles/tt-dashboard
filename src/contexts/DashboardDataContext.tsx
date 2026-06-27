@@ -263,6 +263,7 @@ export interface DashboardData {
   updateWebhookUrl: ReturnType<typeof useDataSources>["updateWebhookUrl"];
   saveAndTest: ReturnType<typeof useDataSources>["saveAndTest"];
   syncNow: ReturnType<typeof useDataSources>["syncNow"];
+  syncProjectKPIs: () => Promise<{ success: boolean; data?: ProjectKPIData; error?: string }>;
   syncCalendar: () => Promise<void>;
   calendarEvents: LiveCalendarEvent[];
   upcomingEvents: LiveCalendarEvent[];
@@ -1453,7 +1454,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       formulas, addFormula, updateFormula, deleteFormula,
       dataHealth, quotesDebug, isLoading, isRefreshing, hasLiveData, connectedCount, lastUpdated,
       sources: ds.sources, toggleConnection: ds.toggleConnection,
-      updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow, syncCalendar: ds.syncCalendar,
+      updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow, syncProjectKPIs: ds.syncProjectKPIs, syncCalendar: ds.syncCalendar,
       calendarEvents: calendarEventsOverride !== null
         ? [
             ...rawCalendarEvents.filter((e) => !e.id.startsWith("sqb-")),
@@ -1524,7 +1525,7 @@ export function useDashboardData(): DashboardData {
       },
       isLoading: false, isRefreshing: false, hasLiveData: false, connectedCount: 0, lastUpdated: null,
       sources: [], toggleConnection: () => {}, updateWebhookUrl: () => {},
-      saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {}, syncCalendar: async () => {},
+      saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {}, syncProjectKPIs: async () => ({ success: false, error: "Not initialized" }), syncCalendar: async () => {},
       calendarEvents: [], upcomingEvents: [], calendarSummary: null, setCalendarEvents: () => {},
       projectKPIData: null,
       liveData: {},
