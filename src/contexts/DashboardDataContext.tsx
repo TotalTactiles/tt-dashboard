@@ -135,6 +135,7 @@ export interface IncomeOutgoingsPoint {
   income: number;
   outgoings: number;
   surplus: number;
+  cashPosition: number;
   probableIncome: number;
   openingBalance: number;
   isFuture: boolean;
