@@ -1260,6 +1260,22 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
           )}
         </button>
 
+        <div className="flex items-center gap-1.5">
+          {pillDefs.map((p) => (
+            <button
+              key={p.label}
+              onClick={() => onPeriodChange(p.idx)}
+              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap text-[11px] ${
+                selectedPeriodIdx === p.idx
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="gap-1 font-mono text-xs">
@@ -1268,7 +1284,7 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="max-h-64 overflow-y-auto">
-            {periodOptions.map((opt, i) => (
+            {monthOnlyOptions.map(({ opt, i }) => (
               <DropdownMenuItem
                 key={opt.key}
                 onClick={() => onPeriodChange(i)}
@@ -1279,6 +1295,12 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+      </SectionHeader>
+
+      <div
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 items-stretch"
+        style={{ gap: "clamp(8px, 1vw, 16px)" }}
+      ></div>
       </SectionHeader>
 
       <div
