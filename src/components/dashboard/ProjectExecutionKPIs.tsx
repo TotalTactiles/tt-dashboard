@@ -1094,12 +1094,16 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
           }
 
           switch (i) {
-            case 0: return <OnTimeDeliveryCard key={def.title} data={projectKPIData.kpis.onTimeDelivery} index={i} />;
-            case 1: return <TaskCompletionCard key={def.title} completed={projectKPIData.dataHealth.completedTasksFound} total={projectKPIData.dataHealth.tasks} index={i} />;
-            case 2: return <ScheduleSlippageCard key={def.title} data={projectKPIData.kpis.scheduleSlippage} index={i} />;
-            case 3: return <LabourEfficiencyCard key={def.title} data={projectKPIData.kpis.labourEfficiency} index={i} />;
-            case 4: return <MarginVarianceCard key={def.title} data={projectKPIData.kpis.marginVariance} index={i} />;
-            default: return null;
+            case 0:
+              return <ZohoToBeBuiltCard key={def.title} title={def.title} icon={def.icon} group={def.group} index={i} note="No due-date tracking in Zoho Projects yet" />;
+            case 1:
+              return <TaskCompletionCard key={def.title} completed={projectKPIData.dataHealth.trackedTasksCompleted ?? projectKPIData.dataHealth.completedTasksFound} total={projectKPIData.dataHealth.trackedTasksTotal ?? projectKPIData.dataHealth.tasks} index={i} />;
+            case 2:
+              return <LabourEfficiencyCard key={def.title} data={projectKPIData.kpis.labourEfficiency} index={i} />;
+            case 3:
+              return <MarginVarianceCard key={def.title} data={projectKPIData.kpis.marginVariance} index={i} />;
+            default:
+              return null;
           }
         })}
 
