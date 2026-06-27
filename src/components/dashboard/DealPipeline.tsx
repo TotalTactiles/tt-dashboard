@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SlidersHorizontal, ChevronLeft, ChevronRight, X, Calculator, ChevronDown, Filter } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
+import { useCrmStages } from "@/hooks/useCrmStages";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 import { formatDateMonthYear } from "@/lib/formatDate";
 import type { PeriodSpec } from "@/lib/projectExecutionKpis";
@@ -90,12 +91,38 @@ interface DealPipelineProps {
 
 const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipelineProps) => {
   const { quotedJobs, dataHealth } = useDashboardData();
+  const { quotingOpp } = useCrmStages();
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("date-closest");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [view, setView] = useState<"all" | "running" | "opps">("all");
+
+  const crmOppRows = useMemo(() => {
+    const leads = quotingOpp?.leads ?? [];
+    return leads.map((l, i) => ({
+      id: `O${i}`,
+      company: l.company,
+      project: l.name,
+      value: l.value,
+      status: "pending" as const,
+      rawStatus: l.stage || "Quoting",
+      dateQuoted: l.date,
+      estJobDate: l.date,
+      stageValue: 0,
+      lostReason: "",
+      zohoId: "",
+      projectYear: "",
+    }));
+  }, [quotingOpp]);
+
+  const viewSource = useMemo(() => {
+    if (view === "running") return quotedJobs.filter((j) => j.status === "pending");
+    if (view === "opps") return crmOppRows;
+    return quotedJobs;
+  }, [view, quotedJobs, crmOppRows]);
 
   const hasActiveFilters = sortBy !== "date-closest" || statusFilter !== "all" || dateFilter !== "all";
   const activeFilterCount = [sortBy !== "date-closest", statusFilter !== "all", dateFilter !== "all"].filter(Boolean).length;
@@ -110,10 +137,10 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
   }, []);
 
   const filteredJobs = useMemo(() => {
-    let jobs = [...quotedJobs];
+    let jobs = [...viewSource];
 
-    // Period filter from Project Execution KPIs (unless "All" is toggled)
-    if (!showAll && periodFilter && periodFilter.months.length > 0) {
+    // Period filter from Project Execution KPIs (skip in opps view)
+    if (view !== "opps" && !showAll && periodFilter && periodFilter.months.length > 0) {
       const monthSet = new Set(periodFilter.months);
       const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
       jobs = jobs.filter((j) => {
@@ -124,10 +151,10 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
       });
     }
 
-    if (statusFilter !== "all") {
+    if (view === "all" && statusFilter !== "all") {
       jobs = jobs.filter((j) => j.rawStatus === statusFilter);
     }
-    if (dateFilter !== "all") {
+    if (view !== "opps" && dateFilter !== "all") {
       const currentYear = new Date().getFullYear();
       jobs = jobs.filter((j) => {
         const d = parseDateForFilter(j.dateQuoted);
@@ -159,7 +186,7 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
       }
     });
     return jobs;
-  }, [quotedJobs, statusFilter, dateFilter, sortBy, showAll, periodFilter]);
+  }, [viewSource, view, statusFilter, dateFilter, sortBy, showAll, periodFilter]);
 
   const filteredTotal = useMemo(() => filteredJobs.reduce((s, j) => s + j.value, 0), [filteredJobs]);
 
@@ -265,10 +292,26 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
       className="chart-container col-span-full"
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <h3 className="text-fluid-sm font-medium text-muted-foreground">Quoted Jobs</h3>
-          {periodFilter && (
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div className="flex flex-wrap items-center gap-2">
+          {([
+            { key: "all" as const, label: "Quoted Jobs", count: quotedJobs.length },
+            { key: "running" as const, label: "In The Running", count: quotedJobs.filter(j => j.status === "pending").length },
+            { key: "opps" as const, label: "Quoting Opps", count: quotingOpp?.count ?? crmOppRows.length },
+          ]).map((v) => (
+            <button
+              key={v.key}
+              onClick={() => { setView(v.key); setPage(1); }}
+              className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors font-mono ${
+                view === v.key
+                  ? "border-[#3D89DA] text-[#3D89DA] bg-[#3D89DA]/10"
+                  : "border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {v.label} ({v.count})
+            </button>
+          ))}
+          {view !== "opps" && periodFilter && (
             <button
               onClick={() => { const next = !showAll; onAllToggle?.(next); setPage(1); }}
               className={`text-[11px] px-2.5 py-1 rounded-full border font-mono transition-colors ${
@@ -280,7 +323,7 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
               All
             </button>
           )}
-          {!showAll && periodFilter && (
+          {view !== "opps" && !showAll && periodFilter && (
             <span className="text-[10px] font-mono text-muted-foreground/70">
               {periodFilter.label}
             </span>
@@ -300,6 +343,11 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
           </button>
         </div>
       </div>
+      {view === "running" && (
+        <p className="text-[11px] text-muted-foreground font-mono mb-3">
+          Pending quotes (Quote Sent + Negotiation/Review). The Pipeline card's count is FY-scoped, so it can differ by a row or two.
+        </p>
+      )}
 
       {/* Filter panel */}
       <AnimatePresence>
@@ -318,7 +366,24 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
         )}
       </AnimatePresence>
 
-      {quotedJobs.length === 0 ? (
+      {view === "opps" && crmOppRows.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10 text-center">
+          <div className="font-mono text-4xl font-bold text-[#3D89DA]">
+            {quotingOpp?.count ?? "—"}
+          </div>
+          <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground mt-1">
+            Quoting Opportunities
+          </div>
+          {quotingOpp?.value && quotingOpp.value > 0 ? (
+            <div className="mt-2 font-mono text-sm text-chart-green">
+              {formatMetricValue(quotingOpp.value, "currency")}
+            </div>
+          ) : null}
+          <p className="mt-3 text-[11px] text-muted-foreground font-mono max-w-md">
+            Lead detail will appear here once the CRM lead sync returns row data.
+          </p>
+        </div>
+      ) : view === "all" && quotedJobs.length === 0 ? (
         <NoData message="No quote data" healthStatus={dataHealth.quotes.status} />
       ) : (
         <>
@@ -331,7 +396,7 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
                   <th className="pb-3 pr-4">Project</th>
                   <th className="pb-3 pr-4 text-right">Value</th>
                   <th className="pb-3 pr-4 text-center">Status</th>
-                  <th className="pb-3">Date</th>
+                  <th className="pb-3">Est. Job Date</th>
                 </tr>
               </thead>
               <tbody>
@@ -356,7 +421,7 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
                       </span>
                     </td>
                     <td className="py-3.5 font-mono text-xs text-muted-foreground">
-                      {formatDateMonthYear(job.dateQuoted)}
+                      {job.estJobDate ? formatDateMonthYear(job.estJobDate) : "TBC"}
                     </td>
                   </motion.tr>
                 ))}
@@ -403,7 +468,7 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
                       {job.rawStatus || "Unknown"}
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-[10px] text-muted-foreground">{formatDateMonthYear(job.dateQuoted)}</span>
+                      <span className="font-mono text-[10px] text-muted-foreground" title="Est. Job Date">{job.estJobDate ? formatDateMonthYear(job.estJobDate) : "TBC"}</span>
                       <button onClick={() => toggleCardExpand(job.id)} className="text-muted-foreground">
                         <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                       </button>

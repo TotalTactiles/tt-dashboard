@@ -57,6 +57,7 @@ export interface QuotedJob {
   status: "won" | "lost" | "pending" | "yellow";
   rawStatus: string;
   dateQuoted: string;
+  estJobDate: string;
   stageValue: number;
   lostReason: string;
   zohoId: string;
@@ -400,6 +401,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
           : normalizeQuoteStatus(String(r["Current Status"] ?? "pending")),
         rawStatus: String(r["Current Status"] ?? r["Current\nStatus"] ?? r.Status ?? "").trim(),
         dateQuoted: String(r["Estimated Job Date"] ?? r["Date Quoted"] ?? "").trim(),
+        estJobDate: String(r["Estimated Job Date"] ?? "").trim(),
         stageValue: parseNum(r["Stage Value ($)"] ?? 0),
         lostReason: String(r["Lost/Dead Reason"] ?? r["Lost/Dead\nReason"] ?? "").trim(),
         zohoId: String(r["Job/Lead ID (Zoho)"] ?? r["Job / Lead ID\n(Zoho)"] ?? "").trim(),
