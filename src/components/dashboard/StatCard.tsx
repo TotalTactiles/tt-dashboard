@@ -411,8 +411,8 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
 
   const momBlock = !isActual && !noData && (showAlt && altMomDelta ? altMomDelta : momDelta) ? (
     <p
-      className={`font-mono text-muted-foreground ${emphasis ? "text-[0.65rem] whitespace-normal break-words text-center w-full px-1 leading-tight" : ""}`}
-      style={emphasis ? undefined : sublineStyle}
+      className={`font-mono text-muted-foreground ${isCentered || emphasis ? "text-[0.65rem] whitespace-normal break-words text-center w-full px-1 leading-tight" : ""}`}
+      style={isCentered || emphasis ? undefined : sublineStyle}
       title={showAlt && altMomDelta ? altMomDelta : momDelta}
     >
       {showAlt && altMomDelta ? altMomDelta : momDelta}
