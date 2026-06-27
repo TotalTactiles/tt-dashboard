@@ -89,6 +89,18 @@ const titleStyle: React.CSSProperties = {
   fontWeight: 500,
 };
 
+const titleStyleCentered: React.CSSProperties = {
+  fontSize: 'clamp(0.7rem, 2.2cqi, 0.82rem)',
+  fontWeight: 600,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  minWidth: 0,
+  maxWidth: '100%',
+};
+
 const valueShortStyle: React.CSSProperties = {
   fontSize: 'clamp(0.95rem, 4cqi, 1.6rem)',
   lineHeight: '1.2',
