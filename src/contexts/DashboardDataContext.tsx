@@ -1525,7 +1525,7 @@ export function useDashboardData(): DashboardData {
       },
       isLoading: false, isRefreshing: false, hasLiveData: false, connectedCount: 0, lastUpdated: null,
       sources: [], toggleConnection: () => {}, updateWebhookUrl: () => {},
-      saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {}, syncCalendar: async () => {},
+      saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {}, syncProjectKPIs: async () => ({ success: false, error: "Not initialized" }), syncCalendar: async () => {},
       calendarEvents: [], upcomingEvents: [], calendarSummary: null, setCalendarEvents: () => {},
       projectKPIData: null,
       liveData: {},
