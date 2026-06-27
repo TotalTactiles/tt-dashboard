@@ -1543,8 +1543,11 @@ const DashboardContent = () => {
     const totalCount = scopedQuotes.length;
     const avgWon = wonCount > 0 ? scopedWonOnly.reduce((s, j) => s + j.value, 0) / wonCount : 0;
     const avgQuoted = totalCount > 0 ? scopedQuotes.reduce((s, j) => s + j.value, 0) / totalCount : 0;
+    const totalAllCount = quotedJobs.length;
+    const avgTotal = totalAllCount > 0 ? quotedJobs.reduce((s, j) => s + j.value, 0) / totalAllCount : 0;
     const revPerJobWon = wonCount > 0 ? revenueExGST / wonCount : 0;
     const revPerJobQuoted = totalCount > 0 ? revenueExGST / totalCount : 0;
+
 
     // Pipeline coverage: current open pipeline / YTD revenue run rate
     // Pipeline value = all pending + yellow jobs (always a current snapshot — not time-scoped)
