@@ -619,6 +619,7 @@ function ScheduleSlippageCard({ data, index }: { data: ProjectKPIData["kpis"]["s
 function MarginVarianceCard({ data, index }: { data: import("@/lib/projectExecutionKpis").MarginVarianceResult; index: number }) {
   const [gpTarget, setGpTarget] = useState(loadGPTarget);
   const [showDetail, setShowDetail] = useState(false);
+  const [mvMode, setMvMode] = useState<"variance" | "gm">("variance");
 
   useEffect(() => {
     const handler = () => setGpTarget(loadGPTarget());
