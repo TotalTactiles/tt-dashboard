@@ -397,7 +397,8 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
                   <th className="pb-3 pr-4">Project</th>
                   <th className="pb-3 pr-4 text-right">Value</th>
                   <th className="pb-3 pr-4 text-center">Status</th>
-                  <th className="pb-3">Est. Job Date</th>
+                  <th className="pb-3 pr-4">Est. Job Date</th>
+                  <th className="pb-3">Last Active</th>
                 </tr>
               </thead>
               <tbody>
@@ -421,8 +422,11 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
                         {job.rawStatus || "Unknown"}
                       </span>
                     </td>
-                    <td className="py-3.5 font-mono text-xs text-muted-foreground">
+                    <td className="py-3.5 pr-4 font-mono text-xs text-muted-foreground">
                       {job.estJobDate ? formatDateMonthYear(job.estJobDate) : "TBC"}
+                    </td>
+                    <td className="py-3.5 font-mono text-xs text-muted-foreground">
+                      {job.lastActive ? formatDateMonthYear(job.lastActive) : "—"}
                     </td>
                   </motion.tr>
                 ))}
@@ -438,7 +442,7 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
                   <td className="py-3 pr-4 text-right font-mono text-base font-bold text-chart-green">
                     {filteredTotal > 0 ? formatMetricValue(filteredTotal, "currency") : "TBC"}
                   </td>
-                  <td colSpan={2} />
+                  <td colSpan={3} />
                 </tr>
               </tfoot>
             </table>
