@@ -366,7 +366,24 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
         )}
       </AnimatePresence>
 
-      {quotedJobs.length === 0 ? (
+      {view === "opps" && crmOppRows.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10 text-center">
+          <div className="font-mono text-4xl font-bold text-[#3D89DA]">
+            {quotingOpp?.count ?? "—"}
+          </div>
+          <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground mt-1">
+            Quoting Opportunities
+          </div>
+          {quotingOpp?.value && quotingOpp.value > 0 ? (
+            <div className="mt-2 font-mono text-sm text-chart-green">
+              {formatMetricValue(quotingOpp.value, "currency")}
+            </div>
+          ) : null}
+          <p className="mt-3 text-[11px] text-muted-foreground font-mono max-w-md">
+            Lead detail will appear here once the CRM lead sync returns row data.
+          </p>
+        </div>
+      ) : view === "all" && quotedJobs.length === 0 ? (
         <NoData message="No quote data" healthStatus={dataHealth.quotes.status} />
       ) : (
         <>
