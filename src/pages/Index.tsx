@@ -2069,6 +2069,7 @@ const DashboardContent = () => {
                   change={money.grossMarginPct !== null ? `avg ${money.grossMarginPct.toFixed(2)}%` : "--"}
                   positive={(money.grossMarginPct ?? 0) >= 30}
                   index={14}
+                  variant="centered"
                   momContext={`${moneyLabels.pill}`}
                 />
                 <StatCard
@@ -2077,6 +2078,7 @@ const DashboardContent = () => {
                   change={fmtVal(sd.pipelineVal) + " pipeline"}
                   positive={sd.pipelineCoverage >= 2}
                   index={15}
+                  variant="centered"
                   momContext="vs YTD revenue run rate"
                 />
                 <StatCard
@@ -2085,10 +2087,11 @@ const DashboardContent = () => {
                   change="Expenses / Revenue"
                   positive={(money.opExpRatio ?? 0) < 60}
                   index={16}
+                  variant="centered"
                   altValue={fmtVal(money.opEx)}
                   altChange={`${moneyLabels.pill} operating expenses`}
                   altPositive={(money.opExpRatio ?? 0) < 60}
-                  toggleLabelBase="Ratio"
+                  toggleLabelBase="%"
                   toggleLabelAlt="$"
                   greenAltPill={true}
                 />
@@ -2099,10 +2102,11 @@ const DashboardContent = () => {
                   change="Labour / Revenue"
                   positive={(money.labourCostRatio ?? 0) < 35}
                   index={16}
+                  variant="centered"
                   altValue={fmtVal(money.labour)}
                   altChange={`${moneyLabels.pill} labour`}
                   altPositive={(money.labourCostRatio ?? 0) < 35}
-                  toggleLabelBase="Ratio"
+                  toggleLabelBase="%"
                   toggleLabelAlt="$"
                   greenAltPill={true}
                 />

@@ -37,6 +37,7 @@ interface StatCardProps {
   altPositive2?: boolean;
   toggleLabelAlt2?: string;
   emphasis?: boolean;
+  variant?: "default" | "centered";
 }
 
 // Unified emphasis figure style — one compact type scale across every Quick Look Sales card.
@@ -88,6 +89,18 @@ const titleStyle: React.CSSProperties = {
   fontWeight: 500,
 };
 
+const titleStyleCentered: React.CSSProperties = {
+  fontSize: 'clamp(0.7rem, 2.2cqi, 0.82rem)',
+  fontWeight: 600,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  minWidth: 0,
+  maxWidth: '100%',
+};
+
 const valueShortStyle: React.CSSProperties = {
   fontSize: 'clamp(0.95rem, 4cqi, 1.6rem)',
   lineHeight: '1.2',
@@ -137,7 +150,8 @@ const noteStyle: React.CSSProperties = {
 
 type ToggleMode = "base" | "alt" | "alt2";
 
-const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted, toggleLabelBase, toggleLabelAlt, momDelta, altMomDelta, momContext, altMomContext, greenAltPill, altValue2, altChange2, altPositive2, toggleLabelAlt2, emphasis }: StatCardProps) => {
+const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted, toggleLabelBase, toggleLabelAlt, momDelta, altMomDelta, momContext, altMomContext, greenAltPill, altValue2, altChange2, altPositive2, toggleLabelAlt2, emphasis, variant = "default" }: StatCardProps) => {
+  const isCentered = variant === "centered";
   const { kpiVariables, formulaCache, formulas } = useDashboardData();
   const [mode, setMode] = useState<ToggleMode>("base");
   const [editing, setEditing] = useState(false);
@@ -295,7 +309,7 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
   );
 
   const pillsBlock = hasToggle && !noData ? (
-    <div className={`flex ${emphasis ? "justify-center" : ""} mt-0.5 mb-0.5`}>
+    <div className={`flex ${isCentered || emphasis ? "justify-center" : ""} mt-0.5 mb-0.5`}>
       <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
         <button
           onClick={() => setMode("base")}
@@ -329,9 +343,9 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
   ) : null;
 
   const valueBlock = (
-    <div style={{ minWidth: 0 }} className={emphasis ? "w-full break-words" : "my-0.5"}>
+    <div style={{ minWidth: 0 }} className={isCentered || emphasis ? "w-full break-words text-center" : "my-0.5"}>
       {isActual && (editing || isActualNotSet) ? (
-        <div className={`flex items-center gap-1 ${emphasis ? "justify-center" : ""}`}>
+        <div className={`flex items-center gap-1 ${isCentered || emphasis ? "justify-center" : ""}`}>
           <span className="text-muted-foreground font-mono" style={{ fontSize: 'clamp(0.75rem, 3cqi, 1.2rem)' }}>$</span>
           <input
             ref={inputRef}
@@ -351,18 +365,18 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
               if (e.key === "Escape") setEditing(false);
             }}
             placeholder="Enter amount"
-            className={`bg-transparent border-b border-primary/40 outline-none font-mono font-bold text-foreground placeholder:text-muted-foreground placeholder:font-normal w-full ${emphasis ? "text-center" : ""}`}
+            className={`bg-transparent border-b border-primary/40 outline-none font-mono font-bold text-foreground placeholder:text-muted-foreground placeholder:font-normal w-full ${isCentered || emphasis ? "text-center" : ""}`}
             style={{ fontSize: 'clamp(0.75rem, 3.5cqi, 1.4rem)', lineHeight: '1.2' }}
             autoFocus
           />
         </div>
       ) : (
-        <div className={`flex items-center gap-1 ${emphasis ? "justify-center" : ""}`}>
+        <div className={`flex items-center gap-1 ${isCentered || emphasis ? "justify-center" : ""}`}>
           <Tooltip>
             <TooltipTrigger asChild>
               <span
-                className={`font-mono font-bold ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}
-                style={emphasis ? (isShort ? emphasisValueShortStyle : emphasisValueLongStyle) : (isShort ? valueShortStyle : valueLongStyle)}
+                className={`font-mono font-bold ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`} ${isCentered ? "w-full block text-center" : ""}`}
+                style={isCentered || emphasis ? (isShort ? emphasisValueShortStyle : emphasisValueLongStyle) : (isShort ? valueShortStyle : valueLongStyle)}
                 title={displayValue}
               >
                 {abbreviatedDisplay}
@@ -397,8 +411,8 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
 
   const momBlock = !isActual && !noData && (showAlt && altMomDelta ? altMomDelta : momDelta) ? (
     <p
-      className={`font-mono text-muted-foreground ${emphasis ? "text-[0.65rem] whitespace-normal break-words text-center w-full px-1 leading-tight" : ""}`}
-      style={emphasis ? undefined : sublineStyle}
+      className={`font-mono text-muted-foreground ${isCentered || emphasis ? "text-[0.65rem] whitespace-normal break-words text-center w-full px-1 leading-tight" : ""}`}
+      style={isCentered || emphasis ? undefined : sublineStyle}
       title={showAlt && altMomDelta ? altMomDelta : momDelta}
     >
       {showAlt && altMomDelta ? altMomDelta : momDelta}
@@ -447,8 +461,8 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
     const ctx = showAlt && altMomContext ? altMomContext : momContext;
     return ctx ? (
       <p
-        className={`font-mono text-muted-foreground/80 leading-tight ${emphasis ? "text-[0.65rem] whitespace-normal break-words text-center w-full px-1" : ""}`}
-        style={emphasis ? undefined : noteStyle}
+        className={`font-mono text-muted-foreground/80 leading-tight ${isCentered || emphasis ? "text-[0.65rem] whitespace-normal break-words text-center w-full px-1" : ""}`}
+        style={isCentered || emphasis ? undefined : noteStyle}
         title={ctx}
       >
         {ctx}
@@ -474,19 +488,19 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
   ) : null;
 
   const trendBlock = (
-    <div style={{ minWidth: 0 }} className={`${emphasis ? "w-full flex flex-col items-center" : "mt-auto pt-1"}`}>
+    <div style={{ minWidth: 0 }} className={`${isCentered || emphasis ? "w-full flex flex-col items-center" : "mt-auto pt-1"}`}>
       {showAlt && altDiff && !noData && (
-        <p className={`font-mono text-amber-400/80 leading-tight ${emphasis ? "text-[0.65rem]" : ""}`} style={emphasis ? undefined : sublineStyle} title={`${altDiff} with YLWs`}>
+        <p className={`font-mono text-amber-400/80 leading-tight ${isCentered || emphasis ? "text-[0.65rem]" : ""}`} style={isCentered || emphasis ? undefined : sublineStyle} title={`${altDiff} with YLWs`}>
           ↑ {altDiff} with YLWs
         </p>
       )}
       {!isActual && !noData && displayChange !== "--" && (
         <div
-          className={`flex items-center gap-0.5 font-mono leading-tight ${emphasis ? "justify-center text-[0.65rem]" : ""} ${accentColor}`}
-          style={emphasis ? undefined : { ...sublineStyle, display: 'flex', WebkitLineClamp: undefined, WebkitBoxOrient: undefined }}
+          className={`flex items-center gap-0.5 font-mono leading-tight ${isCentered || emphasis ? "justify-center text-[0.65rem]" : ""} ${accentColor}`}
+          style={isCentered || emphasis ? undefined : { ...sublineStyle, display: 'flex', WebkitLineClamp: undefined, WebkitBoxOrient: undefined }}
         >
           {displayPositive ? <TrendingUp className="w-3 h-3 shrink-0" /> : <TrendingDown className="w-3 h-3 shrink-0" />}
-          <span className={emphasis ? "" : "truncate"} title={displayChange}>{displayChange}</span>
+          <span className={isCentered || emphasis ? "" : "truncate"} title={displayChange}>{displayChange}</span>
         </div>
       )}
     </div>
@@ -509,12 +523,40 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      className={`stat-card relative overflow-hidden flex flex-col ${emphasis ? "items-center text-center h-full p-3 gap-1" : "gap-0.5"} ${ylwGlowClass}`}
-      style={emphasis
-        ? { containerType: 'inline-size' }
-        : { minHeight: "90px", containerType: 'inline-size', padding: "clamp(0.65rem, 1.5vw, 1.1rem)" }}
+      className={`stat-card relative overflow-hidden flex flex-col ${isCentered || emphasis ? "items-center text-center h-full p-3 gap-1" : "gap-0.5"} ${ylwGlowClass}`}
+      style={isCentered
+        ? { minHeight: "100px", containerType: 'inline-size' }
+        : emphasis
+          ? { containerType: 'inline-size' }
+          : { minHeight: "90px", containerType: 'inline-size', padding: "clamp(0.65rem, 1.5vw, 1.1rem)" }}
     >
-      {emphasis ? (
+      {isCentered ? (
+        <>
+          {/* HEADER — centered title + badges */}
+          <div className="w-full min-h-[1.5rem] flex flex-col items-center justify-center gap-1 px-1">
+            <p
+              className="font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-center whitespace-normal break-words leading-tight"
+              style={titleStyleCentered}
+              title={label}
+            >
+              {label}
+            </p>
+            {badges}
+          </div>
+          {/* PILLS — reserved row even when empty */}
+          <div className="w-full min-h-[1.5rem] flex items-center justify-center">
+            {pillsBlock}
+          </div>
+          {/* BODY — figure + sub-lines centred */}
+          <div className="flex-1 flex flex-col items-center justify-center gap-0.5 w-full min-w-0">
+            {valueBlock}
+            {cashPositionSubtextBlock}
+            {momBlock}
+            {contextBlock}
+            {trendBlock}
+          </div>
+        </>
+      ) : emphasis ? (
         <>
           {/* HEADER — fixed height, 2-line capable, never truncate */}
           <div className="w-full min-h-[1.5rem] flex items-center justify-center gap-1.5 min-w-0 px-1">
@@ -536,8 +578,6 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
             {trendBlock}
           </div>
         </>
-
-
       ) : (
         <>
           {/* ROW 1 — Label + badges */}
