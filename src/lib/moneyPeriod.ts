@@ -107,6 +107,19 @@ export function computeMoneyMetrics(params: {
   const opEx = sumRowMonths(opExRow, months);
   const labour = sumRowMonths(salaryRow, months);
 
+  const mvRepayRow = findCashflowRow(cashflowRows, "Motor Vehicle Repayments");
+  const superRows = cashflowRows.filter((r) => {
+    const lbl = String(r?._label_rowLabel ?? r?.col_1 ?? r?.Cashflow ?? Object.values(r ?? {})[0] ?? "").trim();
+    return lbl.toUpperCase() === "SUPERANNUATION";
+  });
+  const salaries = sumRowMonths(salaryRow, months);
+  const mvRepay = sumRowMonths(mvRepayRow, months);
+  const superTotal = superRows.reduce((s, r) => s + sumRowMonths(r, months), 0);
+  const lifestyleExpense = salaries + mvRepay + superTotal;
+  const totalOutgoingsRow = findCashflowRow(cashflowRows, "Total Outgoings");
+  const totalOutgoings = sumRowMonths(totalOutgoingsRow, months);
+  const lifestyleExpenseRatio = totalOutgoings > 0 ? (lifestyleExpense / totalOutgoings) * 100 : null;
+
   return {
     scope,
     revenueExGST,
@@ -116,6 +129,8 @@ export function computeMoneyMetrics(params: {
     opExpRatio: revenueExGST > 0 ? (opEx / revenueExGST) * 100 : null,
     labourCostRatio: revenueExGST > 0 ? (labour / revenueExGST) * 100 : null,
     grossMarginPct: revenueExGST > 0 ? ((revenueExGST - cogs) / revenueExGST) * 100 : null,
+    lifestyleExpense,
+    lifestyleExpenseRatio,
   };
 }
 
