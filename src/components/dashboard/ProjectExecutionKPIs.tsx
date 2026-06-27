@@ -994,7 +994,7 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
 
   // Jobs Due card (only remaining non-Zoho card)
   const existingCards: ExecKPICardProps[] = [
-    { title: "Jobs Due", group: "DELIVERY", icon: <CalendarClock className="w-4 h-4" />, kpi: kpis.jobsDuePeriod, index: 4 },
+    { title: "Jobs Due", group: "DELIVERY", icon: <CalendarClock className="w-4 h-4" />, kpi: kpis.jobsDuePeriod, index: 5 },
   ];
 
   return (
@@ -1042,10 +1042,10 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
       </SectionHeader>
 
       <div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 items-stretch"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 items-stretch"
         style={{ gap: "clamp(8px, 1vw, 16px)" }}
       >
-        {/* 4 Zoho-driven cards */}
+        {/* 5 Zoho-driven cards */}
         {zohoCardDefs.map((def, i) => {
           if (!zohoEnabled) {
             return <ZohoKPIDisabled key={def.title} {...def} index={i} />;
@@ -1062,9 +1062,10 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
 
           switch (i) {
             case 0: return <OnTimeDeliveryCard key={def.title} data={projectKPIData.kpis.onTimeDelivery} index={i} />;
-            case 1: return <ScheduleSlippageCard key={def.title} data={projectKPIData.kpis.scheduleSlippage} index={i} />;
-            case 2: return <MarginVarianceCard key={def.title} data={projectKPIData.kpis.marginVariance} index={i} />;
+            case 1: return <TaskCompletionCard key={def.title} completed={projectKPIData.dataHealth.completedTasksFound} total={projectKPIData.dataHealth.tasks} index={i} />;
+            case 2: return <ScheduleSlippageCard key={def.title} data={projectKPIData.kpis.scheduleSlippage} index={i} />;
             case 3: return <LabourEfficiencyCard key={def.title} data={projectKPIData.kpis.labourEfficiency} index={i} />;
+            case 4: return <MarginVarianceCard key={def.title} data={projectKPIData.kpis.marginVariance} index={i} />;
             default: return null;
           }
         })}
