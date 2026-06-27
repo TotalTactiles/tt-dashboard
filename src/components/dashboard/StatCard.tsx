@@ -488,19 +488,19 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
   ) : null;
 
   const trendBlock = (
-    <div style={{ minWidth: 0 }} className={`${emphasis ? "w-full flex flex-col items-center" : "mt-auto pt-1"}`}>
+    <div style={{ minWidth: 0 }} className={`${isCentered || emphasis ? "w-full flex flex-col items-center" : "mt-auto pt-1"}`}>
       {showAlt && altDiff && !noData && (
-        <p className={`font-mono text-amber-400/80 leading-tight ${emphasis ? "text-[0.65rem]" : ""}`} style={emphasis ? undefined : sublineStyle} title={`${altDiff} with YLWs`}>
+        <p className={`font-mono text-amber-400/80 leading-tight ${isCentered || emphasis ? "text-[0.65rem]" : ""}`} style={isCentered || emphasis ? undefined : sublineStyle} title={`${altDiff} with YLWs`}>
           ↑ {altDiff} with YLWs
         </p>
       )}
       {!isActual && !noData && displayChange !== "--" && (
         <div
-          className={`flex items-center gap-0.5 font-mono leading-tight ${emphasis ? "justify-center text-[0.65rem]" : ""} ${accentColor}`}
-          style={emphasis ? undefined : { ...sublineStyle, display: 'flex', WebkitLineClamp: undefined, WebkitBoxOrient: undefined }}
+          className={`flex items-center gap-0.5 font-mono leading-tight ${isCentered || emphasis ? "justify-center text-[0.65rem]" : ""} ${accentColor}`}
+          style={isCentered || emphasis ? undefined : { ...sublineStyle, display: 'flex', WebkitLineClamp: undefined, WebkitBoxOrient: undefined }}
         >
           {displayPositive ? <TrendingUp className="w-3 h-3 shrink-0" /> : <TrendingDown className="w-3 h-3 shrink-0" />}
-          <span className={emphasis ? "" : "truncate"} title={displayChange}>{displayChange}</span>
+          <span className={isCentered || emphasis ? "" : "truncate"} title={displayChange}>{displayChange}</span>
         </div>
       )}
     </div>
