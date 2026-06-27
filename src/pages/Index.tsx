@@ -321,18 +321,18 @@ function InvoicesPaidCard({ index, onJumpToMonth }: { index: number; onJumpToMon
 
 // ── AVG CONTRACT VALUE — split (Won top / Quoted bottom), Invoices-style ────────────
 function AvgContractCard({
-  avgWon,
-  wonCount,
-  avgQuoted,
-  quotedCount,
+  acvQuoted,
+  acvWon,
+  acvLost,
   index,
 }: {
-  avgWon: number;
-  wonCount: number;
-  avgQuoted: number;
-  quotedCount: number;
+  acvQuoted: { avg: number; count: number };
+  acvWon: { avg: number; count: number };
+  acvLost: { avg: number; count: number };
   index: number;
 }) {
+  const [mode, setMode] = useState<"qw" | "wl">("qw");
+
   const fmtCompact = (n: number) => {
     const abs = Math.abs(n);
     const sign = n < 0 ? "-" : "";
@@ -340,10 +340,22 @@ function AvgContractCard({
     if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}K`;
     return `${sign}$${Math.round(abs).toLocaleString()}`;
   };
-  const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
-  const labelClass = "text-[0.7rem] font-semibold tracking-wide text-foreground/80 font-mono text-center";
-  const subClass = "text-[0.65rem] leading-tight text-muted-foreground font-mono whitespace-normal break-words text-center";
+
   const figureStyle: React.CSSProperties = { fontSize: 'clamp(1.25rem, 1.6vw, 1.5rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' };
+  const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
+  const subClass = "text-[0.65rem] leading-tight text-muted-foreground font-mono whitespace-normal break-words text-center";
+  const labelClass = "text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center";
+
+  // Mode-driven top/bottom
+  const top = mode === "qw" ? acvQuoted : acvWon;
+  const bottom = mode === "qw" ? acvWon : acvLost;
+  const topLabel = mode === "qw" ? "QUOTED" : "WON";
+  const bottomLabel = mode === "qw" ? "WON" : "LOST";
+  const topNoun = mode === "qw" ? "quoted" : "won";
+  const bottomNoun = mode === "qw" ? "won" : "lost";
+  // Colour: red only ever for Lost
+  const topColor = "text-chart-green";
+  const bottomColor = mode === "wl" ? "text-chart-red" : "text-chart-green";
 
   return (
     <motion.div
@@ -356,26 +368,41 @@ function AvgContractCard({
       <div className="w-full min-h-[1.5rem] flex items-center justify-center px-1">
         <p className={titleClass}>AVG CONTRACT VALUE</p>
       </div>
-      <div className="flex-1 flex flex-col items-center justify-center gap-1.5 w-full min-w-0 text-center">
-        <div className="w-full min-w-0">
-          <p className={labelClass}>Won</p>
-          <p className="leading-tight break-words flex items-baseline justify-center gap-1.5 flex-wrap">
-            <span className="font-bold font-mono text-chart-green" style={figureStyle}>{fmtCompact(avgWon)}</span>
-            <span className={subClass}>· {wonCount} jobs won</span>
-          </p>
+      {/* PILLS */}
+      <div className="min-h-[1.5rem] flex justify-center items-center">
+        <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
+          <button
+            onClick={() => setMode("qw")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+              mode === "qw" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >Quoted vs Won</button>
+          <button
+            onClick={() => setMode("wl")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+              mode === "wl" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >Won vs Lost</button>
+        </div>
+      </div>
+      {/* BODY */}
+      <div className="flex-1 flex flex-col items-center justify-center gap-0.5 w-full min-w-0">
+        <div className="min-w-0 w-full">
+          <p className={labelClass}>{topLabel}</p>
+          <p className={`font-bold font-mono ${topColor} break-words leading-tight`} style={figureStyle}>{fmtCompact(top.avg)}</p>
+          <p className={subClass}>{top.count} jobs {topNoun}</p>
         </div>
         <div className="h-px bg-white/10 my-1 w-2/3 mx-auto" />
-        <div className="w-full min-w-0">
-          <p className={labelClass}>Quoted</p>
-          <p className="leading-tight break-words flex items-baseline justify-center gap-1.5 flex-wrap">
-            <span className="font-bold font-mono text-foreground/90" style={figureStyle}>{fmtCompact(avgQuoted)}</span>
-            <span className={subClass}>· {quotedCount} jobs quoted</span>
-          </p>
+        <div className="min-w-0 w-full">
+          <p className={labelClass}>{bottomLabel}</p>
+          <p className={`font-bold font-mono ${bottomColor} break-words leading-tight`} style={figureStyle}>{fmtCompact(bottom.avg)}</p>
+          <p className={subClass}>{bottom.count} jobs {bottomNoun}</p>
         </div>
       </div>
     </motion.div>
   );
 }
+
 
 // ── REVENUE GROWTH — scope-aware (% growth or $ total) ─────────────────
 function RevenueGrowthCard({ scope, index, defaultView = "pct", dollarOverride }: { scope: "ytd" | "quarter"; index: number; defaultView?: "pct" | "dollar"; dollarOverride?: { value: number; label: string } | null }) {
@@ -2007,31 +2034,23 @@ const DashboardContent = () => {
                     />
                   );
                 })()}
-                {/* 4. Avg Contract Value — split (Won top / Quoted bottom) */}
+                {/* 4. Avg Contract Value — dual-mode (Quoted vs Won | Won vs Lost), overall */}
                 {(() => {
-                  const allJobs = (liveData?.quotes ?? []) as any[];
-                  const getVal = (j: any): number =>
-                    parseFloat(String(j["Contract Value ($)"] ?? j._value ?? "0").replace(/[^0-9.-]/g, "")) || 0;
-                  const isWon = (j: any) => j["Current Status"] === "PO Received (GRN)";
-                  const isCompleted = (j: any) => j["Current Status"] === "Completed";
-                  const wonAndCompleted = allJobs.filter(j => isWon(j) || isCompleted(j));
-                  const allWithValue = allJobs.filter(j => getVal(j) > 0);
-                  const avgWon = wonAndCompleted.length > 0
-                    ? wonAndCompleted.reduce((s, j) => s + getVal(j), 0) / wonAndCompleted.length
-                    : 0;
-                  const avgQuoted = allWithValue.length > 0
-                    ? allWithValue.reduce((s, j) => s + getVal(j), 0) / allWithValue.length
-                    : 0;
+                  const qs = (dataStore as any)?.quotesSummary ?? {};
+                  const avgOf = (o: any) => (Number(o?.count) > 0 ? Number(o.value) / Number(o.count) : 0);
+                  const acvQuoted = { avg: avgOf(qs.totalQuoted), count: Number(qs?.totalQuoted?.count ?? 0) };
+                  const acvWon    = { avg: avgOf(qs.totalWon),    count: Number(qs?.totalWon?.count ?? 0) };
+                  const acvLost   = { avg: avgOf(qs.totalLost),   count: Number(qs?.totalLost?.count ?? 0) };
                   return (
                     <AvgContractCard
-                      avgWon={avgWon}
-                      wonCount={wonAndCompleted.length}
-                      avgQuoted={avgQuoted}
-                      quotedCount={allWithValue.length}
+                      acvQuoted={acvQuoted}
+                      acvWon={acvWon}
+                      acvLost={acvLost}
                       index={12}
                     />
                   );
                 })()}
+
                 {/* 5. Revenue Growth — scope-aware (YTD avg MoM% w/ sparkline, or QoQ%) */}
                 <RevenueGrowthCard
                   scope={investorScope}
