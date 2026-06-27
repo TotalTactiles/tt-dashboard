@@ -16,6 +16,7 @@ import {
   X,
   RefreshCw,
   FolderCheck,
+  ExternalLink,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
