@@ -50,18 +50,16 @@ export function useCrmStages(): CrmStages {
     }
   }, []);
 
-  // Initial load + 5-minute polling (matches dashboard cadence)
+  // Initial load + 5-minute polling + global refresh listener
   useEffect(() => {
     load();
     const id = setInterval(load, 5 * 60 * 1000);
-    return () => clearInterval(id);
-  }, [load]);
-
-  // Refetch when the top dashboard Refresh button fires
-  useEffect(() => {
     const handler = () => load();
     window.addEventListener("tt:refresh-all", handler);
-    return () => window.removeEventListener("tt:refresh-all", handler);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("tt:refresh-all", handler);
+    };
   }, [load]);
 
   return data;
