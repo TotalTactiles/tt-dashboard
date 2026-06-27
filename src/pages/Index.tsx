@@ -1976,10 +1976,13 @@ const DashboardContent = () => {
 
             const money = computeMoneyMetrics({
               scope: moneyScope,
+              monthsOverride: moneyMonth ? new Set([moneyMonth]) : undefined,
               revenueProjects,
               cashflowRows: (dataStore as any)?.cashflow ?? [],
             });
             const moneyLabels = moneyScopeLabel(moneyScope);
+            const monthOptions = availableMonthKeys(revenueProjects);
+            const subtitleText = moneyMonth ? monthLabel(moneyMonth) : moneyLabels.subtitle;
 
             return (
             <div className="mt-4 mb-4">
@@ -1988,15 +1991,25 @@ const DashboardContent = () => {
                   {(["quarter", "ytd", "all"] as MoneyScope[]).map((s) => (
                     <button
                       key={s}
-                      onClick={() => setMoneyScope(s)}
-                      className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${moneyScope === s ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                      onClick={() => { setMoneyScope(s); setMoneyMonth(null); }}
+                      className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${moneyScope === s && !moneyMonth ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
                     >{moneyScopeLabel(s).pill}</button>
                   ))}
                 </div>
+                <select
+                  value={moneyMonth ?? ""}
+                  onChange={(e) => setMoneyMonth(e.target.value || null)}
+                  className="text-[11px] font-mono bg-secondary/60 border border-border rounded-full px-2 py-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <option value="">By month…</option>
+                  {monthOptions.map((k) => (
+                    <option key={k} value={k}>{monthLabel(k)}</option>
+                  ))}
+                </select>
               </SectionHeader>
 
               <div className="text-xs font-mono text-muted-foreground/70 bg-secondary/40 border border-border/50 rounded px-3 py-1.5 mb-3">
-                {moneyLabels.subtitle}
+                {subtitleText}
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" style={{ containerType: 'inline-size' }}>
                 {/* 1. Cash Position — relocated. StatCard internals detect label and wire Open/Today/Actual */}
