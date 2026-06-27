@@ -295,11 +295,11 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div className="flex flex-wrap items-center gap-2">
-          {([
-            { key: "all" as const, label: "Quoted Jobs", count: quotedJobs.length },
-            { key: "running" as const, label: "In The Running", count: quotedJobs.filter(j => j.status === "pending").length },
-            { key: "opps" as const, label: "Quoting Opps", count: quotingOpp?.count ?? crmOppRows.length },
-          ]).map((v) => (
+        {([
+          { key: "opps" as const, label: "Quoting Opps", count: quotingOpp?.count ?? crmOppRows.length },
+          { key: "running" as const, label: "In The Running", count: quotedJobs.filter(j => j.status === "pending").length },
+          { key: "all" as const, label: "Quoted Jobs", count: quotedJobs.length },
+        ]).map((v) => (
             <button
               key={v.key}
               onClick={() => { setView(v.key); setPage(1); }}
