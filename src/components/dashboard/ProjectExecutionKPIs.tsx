@@ -43,6 +43,36 @@ import {
 } from "@/lib/projectExecutionKpis";
 import type { ProjectKPIData } from "@/hooks/useDataSources";
 import SectionHeader from "@/components/dashboard/SectionHeader";
+import { formatMetricValue } from "@/lib/formatMetricValue";
+
+const PE_MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+/** Convert a project invoiceDate ("June 2026", "Jun-26", "08-02-2026", ISO) → "Mon-YY" key. */
+function invoiceToMonKey(s?: string | null): string | null {
+  if (!s) return null;
+  const str = String(s).trim();
+  let m = str.match(/^([A-Za-z]+)\s+(\d{4})$/);
+  if (m) {
+    const idx = PE_MONTH_ABBR.findIndex(a => a.toLowerCase() === m![1].slice(0, 3).toLowerCase());
+    if (idx >= 0) return `${PE_MONTH_ABBR[idx]}-${m[2].slice(-2)}`;
+  }
+  m = str.match(/^([A-Za-z]{3})-(\d{2})$/);
+  if (m) {
+    const idx = PE_MONTH_ABBR.findIndex(a => a.toLowerCase() === m![1].toLowerCase());
+    if (idx >= 0) return `${PE_MONTH_ABBR[idx]}-${m[2]}`;
+  }
+  m = str.match(/^(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})/);
+  if (m) {
+    const monIdx = parseInt(m[2], 10) - 1;
+    if (monIdx >= 0 && monIdx < 12) return `${PE_MONTH_ABBR[monIdx]}-${m[3].slice(-2)}`;
+  }
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) return `${PE_MONTH_ABBR[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
+  return null;
+}
+
+type PEProject = NonNullable<ProjectKPIData["projects"]>[number];
+
 
 // ── Inline style objects for fluid typography (cqi units) ──────────
 
