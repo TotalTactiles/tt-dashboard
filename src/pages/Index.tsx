@@ -2034,31 +2034,23 @@ const DashboardContent = () => {
                     />
                   );
                 })()}
-                {/* 4. Avg Contract Value — split (Won top / Quoted bottom) */}
+                {/* 4. Avg Contract Value — dual-mode (Quoted vs Won | Won vs Lost), overall */}
                 {(() => {
-                  const allJobs = (liveData?.quotes ?? []) as any[];
-                  const getVal = (j: any): number =>
-                    parseFloat(String(j["Contract Value ($)"] ?? j._value ?? "0").replace(/[^0-9.-]/g, "")) || 0;
-                  const isWon = (j: any) => j["Current Status"] === "PO Received (GRN)";
-                  const isCompleted = (j: any) => j["Current Status"] === "Completed";
-                  const wonAndCompleted = allJobs.filter(j => isWon(j) || isCompleted(j));
-                  const allWithValue = allJobs.filter(j => getVal(j) > 0);
-                  const avgWon = wonAndCompleted.length > 0
-                    ? wonAndCompleted.reduce((s, j) => s + getVal(j), 0) / wonAndCompleted.length
-                    : 0;
-                  const avgQuoted = allWithValue.length > 0
-                    ? allWithValue.reduce((s, j) => s + getVal(j), 0) / allWithValue.length
-                    : 0;
+                  const qs = (dataStore as any)?.quotesSummary ?? {};
+                  const avgOf = (o: any) => (Number(o?.count) > 0 ? Number(o.value) / Number(o.count) : 0);
+                  const acvQuoted = { avg: avgOf(qs.totalQuoted), count: Number(qs?.totalQuoted?.count ?? 0) };
+                  const acvWon    = { avg: avgOf(qs.totalWon),    count: Number(qs?.totalWon?.count ?? 0) };
+                  const acvLost   = { avg: avgOf(qs.totalLost),   count: Number(qs?.totalLost?.count ?? 0) };
                   return (
                     <AvgContractCard
-                      avgWon={avgWon}
-                      wonCount={wonAndCompleted.length}
-                      avgQuoted={avgQuoted}
-                      quotedCount={allWithValue.length}
+                      acvQuoted={acvQuoted}
+                      acvWon={acvWon}
+                      acvLost={acvLost}
                       index={12}
                     />
                   );
                 })()}
+
                 {/* 5. Revenue Growth — scope-aware (YTD avg MoM% w/ sparkline, or QoQ%) */}
                 <RevenueGrowthCard
                   scope={investorScope}
