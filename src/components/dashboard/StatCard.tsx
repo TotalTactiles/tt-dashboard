@@ -343,9 +343,9 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
   ) : null;
 
   const valueBlock = (
-    <div style={{ minWidth: 0 }} className={emphasis ? "w-full break-words" : "my-0.5"}>
+    <div style={{ minWidth: 0 }} className={isCentered || emphasis ? "w-full break-words text-center" : "my-0.5"}>
       {isActual && (editing || isActualNotSet) ? (
-        <div className={`flex items-center gap-1 ${emphasis ? "justify-center" : ""}`}>
+        <div className={`flex items-center gap-1 ${isCentered || emphasis ? "justify-center" : ""}`}>
           <span className="text-muted-foreground font-mono" style={{ fontSize: 'clamp(0.75rem, 3cqi, 1.2rem)' }}>$</span>
           <input
             ref={inputRef}
@@ -365,18 +365,18 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
               if (e.key === "Escape") setEditing(false);
             }}
             placeholder="Enter amount"
-            className={`bg-transparent border-b border-primary/40 outline-none font-mono font-bold text-foreground placeholder:text-muted-foreground placeholder:font-normal w-full ${emphasis ? "text-center" : ""}`}
+            className={`bg-transparent border-b border-primary/40 outline-none font-mono font-bold text-foreground placeholder:text-muted-foreground placeholder:font-normal w-full ${isCentered || emphasis ? "text-center" : ""}`}
             style={{ fontSize: 'clamp(0.75rem, 3.5cqi, 1.4rem)', lineHeight: '1.2' }}
             autoFocus
           />
         </div>
       ) : (
-        <div className={`flex items-center gap-1 ${emphasis ? "justify-center" : ""}`}>
+        <div className={`flex items-center gap-1 ${isCentered || emphasis ? "justify-center" : ""}`}>
           <Tooltip>
             <TooltipTrigger asChild>
               <span
-                className={`font-mono font-bold ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`}`}
-                style={emphasis ? (isShort ? emphasisValueShortStyle : emphasisValueLongStyle) : (isShort ? valueShortStyle : valueLongStyle)}
+                className={`font-mono font-bold ${noData ? "text-muted-foreground" : `${accentGlow} ${accentColor}`} ${isCentered ? "w-full block text-center" : ""}`}
+                style={isCentered || emphasis ? (isShort ? emphasisValueShortStyle : emphasisValueLongStyle) : (isShort ? valueShortStyle : valueLongStyle)}
                 title={displayValue}
               >
                 {abbreviatedDisplay}
