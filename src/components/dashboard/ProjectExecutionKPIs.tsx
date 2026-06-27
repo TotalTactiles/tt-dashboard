@@ -1137,7 +1137,7 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
 
           switch (i) {
             case 0:
-              return <ZohoToBeBuiltCard key={def.title} title={def.title} icon={def.icon} group={def.group} index={i} note="No due-date tracking in Zoho Projects yet" />;
+              return <ProjectsDueCard key={def.title} projects={monthProjects} periodLabel={periodLabel} index={i} />;
             case 1:
               return <TaskCompletionCard key={def.title} completed={projectKPIData.dataHealth.trackedTasksCompleted ?? projectKPIData.dataHealth.completedTasksFound} total={projectKPIData.dataHealth.trackedTasksTotal ?? projectKPIData.dataHealth.tasks} index={i} />;
             case 2:
@@ -1154,6 +1154,8 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
           <ExecKPICard key={card.title} {...card} />
         ))}
       </div>
+
+      <ProjectsTable projects={monthProjects} periodLabel={periodLabel} />
     </div>
   );
 }
