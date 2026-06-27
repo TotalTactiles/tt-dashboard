@@ -111,6 +111,7 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
       rawStatus: l.stage || "Quoting",
       dateQuoted: l.date,
       estJobDate: l.date,
+      lastActive: "",
       stageValue: 0,
       lostReason: "",
       zohoId: "",
@@ -294,11 +295,11 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div className="flex flex-wrap items-center gap-2">
-          {([
-            { key: "all" as const, label: "Quoted Jobs", count: quotedJobs.length },
-            { key: "running" as const, label: "In The Running", count: quotedJobs.filter(j => j.status === "pending").length },
-            { key: "opps" as const, label: "Quoting Opps", count: quotingOpp?.count ?? crmOppRows.length },
-          ]).map((v) => (
+        {([
+          { key: "opps" as const, label: "Quoting Opps", count: quotingOpp?.count ?? crmOppRows.length },
+          { key: "running" as const, label: "In The Running", count: quotedJobs.filter(j => j.status === "pending").length },
+          { key: "all" as const, label: "Quoted Jobs", count: quotedJobs.length },
+        ]).map((v) => (
             <button
               key={v.key}
               onClick={() => { setView(v.key); setPage(1); }}
@@ -396,7 +397,8 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
                   <th className="pb-3 pr-4">Project</th>
                   <th className="pb-3 pr-4 text-right">Value</th>
                   <th className="pb-3 pr-4 text-center">Status</th>
-                  <th className="pb-3">Est. Job Date</th>
+                  <th className="pb-3 pr-4">Est. Job Date</th>
+                  <th className="pb-3">Last Active</th>
                 </tr>
               </thead>
               <tbody>
@@ -420,8 +422,11 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
                         {job.rawStatus || "Unknown"}
                       </span>
                     </td>
-                    <td className="py-3.5 font-mono text-xs text-muted-foreground">
+                    <td className="py-3.5 pr-4 font-mono text-xs text-muted-foreground">
                       {job.estJobDate ? formatDateMonthYear(job.estJobDate) : "TBC"}
+                    </td>
+                    <td className="py-3.5 font-mono text-xs text-muted-foreground">
+                      {job.lastActive ? formatDateMonthYear(job.lastActive) : "—"}
                     </td>
                   </motion.tr>
                 ))}
@@ -437,7 +442,7 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
                   <td className="py-3 pr-4 text-right font-mono text-base font-bold text-chart-green">
                     {filteredTotal > 0 ? formatMetricValue(filteredTotal, "currency") : "TBC"}
                   </td>
-                  <td colSpan={2} />
+                  <td colSpan={3} />
                 </tr>
               </tfoot>
             </table>
@@ -474,6 +479,12 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
                       </button>
                     </div>
                   </div>
+                  {isExpanded && (
+                    <div className="mt-2 pt-2 border-t border-border/50 text-[10px] font-mono text-muted-foreground">
+                      <span className="text-muted-foreground">Last Active: </span>
+                      {job.lastActive ? formatDateMonthYear(job.lastActive) : "—"}
+                    </div>
+                  )}
                 </motion.div>
               );
             })}
