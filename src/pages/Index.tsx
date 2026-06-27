@@ -1891,6 +1891,15 @@ const DashboardContent = () => {
             );
           })()}
 
+          {/* Quoted Jobs — moved here, under Targets/Goals, above Let's Talk Money */}
+          <div className="mb-4 md:mb-6">
+            <DealPipeline
+              periodFilter={selectedPeriod}
+              showAll={showAllTables}
+              onAllToggle={handleTableAllToggle}
+            />
+          </div>
+
           {investorMetrics && (() => {
             const sd = scopedInvestorData;
             const { yr, mo, ABBR } = investorDateWindows;
@@ -2106,11 +2115,6 @@ const DashboardContent = () => {
           <ProjectExecutionKPIs selectedPeriodIdx={selectedPeriodIdx} onPeriodChange={handlePeriodChange} invoiceFilter={invoiceFilter} onInvoiceFilterChange={setInvoiceFilter} />
 
           <div className="space-y-4 md:space-y-6">
-            <DealPipeline
-              periodFilter={selectedPeriod}
-              showAll={showAllTables}
-              onAllToggle={handleTableAllToggle}
-            />
             <FundPerformanceChart />
             <div ref={revenueCogsRef} id="revenue-cogs-section" style={{ scrollMarginTop: 80 }}>
               <RevenueProjectsTable
