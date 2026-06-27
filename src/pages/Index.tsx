@@ -1359,6 +1359,7 @@ const DashboardContent = () => {
   const [showAllTables, setShowAllTables] = useState(false);
   const [invoiceFilter, setInvoiceFilter] = useState<"invoiced" | "to_be_invoiced">("invoiced");
   const [investorScope, setInvestorScope] = useState<"ytd" | "quarter">("ytd");
+  const [moneyScope, setMoneyScope] = useState<MoneyScope>("quarter");
   const [revenueTableMonth, setRevenueTableMonth] = useState<{ year: number; month: number; label: string } | null>(null);
   const [revenueTableJumpToken, setRevenueTableJumpToken] = useState(0);
   const revenueCogsRef = useRef<HTMLDivElement | null>(null);
