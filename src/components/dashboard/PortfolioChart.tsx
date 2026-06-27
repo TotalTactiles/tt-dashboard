@@ -469,6 +469,18 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [], year: yearProp, q
                 </Bar>
               )}
               <ReferenceLine yAxisId="bars" y={0} stroke="#ffffff30" />
+              <Line
+                yAxisId="position"
+                type="monotone"
+                dataKey="cashPosition"
+                name="Cash Position"
+                stroke="#3D89DA"
+                strokeWidth={2}
+                strokeDasharray="5 3"
+                dot={{ r: 2.5, fill: "#3D89DA", strokeWidth: 0 }}
+                activeDot={{ r: 4 }}
+                animationDuration={800}
+              />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
