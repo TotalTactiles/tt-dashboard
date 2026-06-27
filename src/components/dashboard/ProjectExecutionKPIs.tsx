@@ -677,6 +677,21 @@ function MarginVarianceCard({ data, index }: { data: import("@/lib/projectExecut
           </div>
         </div>
 
+        <div className="flex gap-1 mb-1" onClick={(e) => e.stopPropagation()}>
+          {[["variance","Variance"],["gm","Gross Margin"]].map(([k,label]) => (
+            <button
+              key={k}
+              onClick={(e) => { e.stopPropagation(); setMvMode(k as "variance" | "gm"); }}
+              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+                mvMode === k ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+              style={titleStyle}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         <p
           className={`font-mono font-bold my-auto ${isNull ? "text-muted-foreground/40" : isBelowTarget ? "text-chart-red" : "text-chart-green"}`}
           style={isShortValue(displayVal) ? valueShortStyle : valueLongStyle}
