@@ -82,13 +82,14 @@ export interface MoneyMetrics {
 
 export function computeMoneyMetrics(params: {
   scope: MoneyScope;
+  monthsOverride?: Set<string> | null;
   revenueProjects: Array<{ valueExclGST: number; totalCOGS: number; invoiceDate?: string; otherDate?: string }>;
   cashflowRows: any[];
   now?: Date;
 }): MoneyMetrics {
   const { scope, revenueProjects, cashflowRows } = params;
   const now = params.now ?? new Date();
-  const months = scopeMonths(scope, now);
+  const months = params.monthsOverride !== undefined ? params.monthsOverride : scopeMonths(scope, now);
 
   const inPeriod = (rp: any) => {
     if (months === null) return true;
@@ -114,4 +115,26 @@ export function computeMoneyMetrics(params: {
     labourCostRatio: revenueExGST > 0 ? (labour / revenueExGST) * 100 : null,
     grossMarginPct: revenueExGST > 0 ? ((revenueExGST - cogs) / revenueExGST) * 100 : null,
   };
+}
+
+export function availableMonthKeys(
+  revenueProjects: Array<{ invoiceDate?: string; otherDate?: string }>
+): string[] {
+  const set = new Set<string>();
+  for (const r of revenueProjects ?? []) {
+    const s = r.invoiceDate || r.otherDate;
+    if (!s) continue;
+    const d = parseDate(s);
+    if (d) set.add(monKey(d));
+  }
+  return Array.from(set).sort((a, b) => {
+    const [ma, ya] = a.split("-");
+    const [mb, yb] = b.split("-");
+    return (Number("20" + yb) - Number("20" + ya)) || (MONTH_ABBR.indexOf(mb) - MONTH_ABBR.indexOf(ma));
+  });
+}
+
+export function monthLabel(key: string): string {
+  const [m, y] = key.split("-");
+  return `${m} 20${y}`;
 }
