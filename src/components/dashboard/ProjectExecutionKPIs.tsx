@@ -40,6 +40,7 @@ import {
   type KPIResult,
 } from "@/lib/projectExecutionKpis";
 import type { ProjectKPIData } from "@/hooks/useDataSources";
+import SectionHeader from "@/components/dashboard/SectionHeader";
 
 // ── Inline style objects for fluid typography (cqi units) ──────────
 
