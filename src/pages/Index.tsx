@@ -378,9 +378,9 @@ function AvgContractCard({
 }
 
 // ── REVENUE GROWTH — scope-aware (% growth or $ total) ─────────────────
-function RevenueGrowthCard({ scope, index }: { scope: "ytd" | "quarter"; index: number }) {
+function RevenueGrowthCard({ scope, index, defaultView = "pct", dollarOverride }: { scope: "ytd" | "quarter"; index: number; defaultView?: "pct" | "dollar"; dollarOverride?: { value: number; label: string } | null }) {
   const { incomeOutgoingsData } = useDashboardData();
-  const [view, setView] = useState<"pct" | "dollar">("pct");
+  const [view, setView] = useState<"pct" | "dollar">(defaultView);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
   const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
