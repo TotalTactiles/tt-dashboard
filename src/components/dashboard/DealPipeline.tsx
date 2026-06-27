@@ -479,6 +479,12 @@ const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipeli
                       </button>
                     </div>
                   </div>
+                  {isExpanded && (
+                    <div className="mt-2 pt-2 border-t border-border/50 text-[10px] font-mono text-muted-foreground">
+                      <span className="text-muted-foreground">Last Active: </span>
+                      {job.lastActive ? formatDateMonthYear(job.lastActive) : "—"}
+                    </div>
+                  )}
                 </motion.div>
               );
             })}
