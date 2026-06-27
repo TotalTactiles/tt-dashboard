@@ -358,6 +358,19 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [], year: yearProp, q
                   return v < 0 ? `-${label}` : label;
                 }}
               />
+              <YAxis
+                yAxisId="position"
+                orientation="right"
+                stroke="#3D89DA"
+                fontSize={10}
+                fontFamily="JetBrains Mono"
+                domain={positionDomain}
+                tickFormatter={(v) => {
+                  const abs = Math.abs(v);
+                  const label = abs >= 1000 ? `$${(abs / 1000).toFixed(0)}K` : `$${abs}`;
+                  return v < 0 ? `-${label}` : label;
+                }}
+              />
               <Tooltip
                 content={({ active, payload, label }) => {
                   if (!active || !payload || payload.length === 0) return null;
