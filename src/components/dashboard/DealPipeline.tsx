@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SlidersHorizontal, ChevronLeft, ChevronRight, X, Calculator, ChevronDown, Filter } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
+import { useCrmStages } from "@/hooks/useCrmStages";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 import { formatDateMonthYear } from "@/lib/formatDate";
 import type { PeriodSpec } from "@/lib/projectExecutionKpis";
