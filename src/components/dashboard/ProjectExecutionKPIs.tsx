@@ -1027,7 +1027,7 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
 
   // Jobs Due card (only remaining non-Zoho card)
   const existingCards: ExecKPICardProps[] = [
-    { title: "Jobs Due", group: "DELIVERY", icon: <CalendarClock className="w-4 h-4" />, kpi: kpis.jobsDuePeriod, index: 5 },
+    { title: "Jobs Due", group: "DELIVERY", icon: <CalendarClock className="w-4 h-4" />, kpi: kpis.jobsDuePeriod, index: 4 },
   ];
 
   return (
