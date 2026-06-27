@@ -44,6 +44,8 @@ import {
 } from "@/lib/projectExecutionKpis";
 import type { ProjectKPIData } from "@/hooks/useDataSources";
 import SectionHeader from "@/components/dashboard/SectionHeader";
+import SectionPeriodHeader from "@/components/dashboard/SectionPeriodHeader";
+import { scopeLabel as moneyScopeLabel, monthLabel } from "@/lib/moneyPeriod";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 
 const PE_MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
