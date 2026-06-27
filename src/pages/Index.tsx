@@ -1891,6 +1891,15 @@ const DashboardContent = () => {
             );
           })()}
 
+          {/* Quoted Jobs — moved here, under Targets/Goals, above Let's Talk Money */}
+          <div className="mb-4 md:mb-6">
+            <DealPipeline
+              periodFilter={selectedPeriod}
+              showAll={showAllTables}
+              onAllToggle={handleTableAllToggle}
+            />
+          </div>
+
           {investorMetrics && (() => {
             const sd = scopedInvestorData;
             const { yr, mo, ABBR } = investorDateWindows;
