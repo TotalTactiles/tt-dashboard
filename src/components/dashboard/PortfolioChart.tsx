@@ -167,6 +167,15 @@ const PortfolioChartInner = ({ adjustedData, adjustments = [], year: yearProp, q
     return data;
   }, [sourceData, quarter, selectedYear, adjustments]);
 
+  const positionDomain = useMemo<[number, number]>(() => {
+    if (filteredData.length === 0) return [0, 100000];
+    const vals = filteredData.map((d: any) => d.cashPosition ?? 0);
+    const min = Math.min(0, ...vals);
+    const max = Math.max(...vals);
+    const pad = Math.max((max - min) * 0.15, 5000);
+    return [Math.floor((min - pad) / 5000) * 5000, Math.ceil((max + pad) / 5000) * 5000];
+  }, [filteredData]);
+
   const quarterYear = useMemo(() => {
     if (quarter === "all") return selectedYear !== null ? String(selectedYear) : "";
     return selectedYear !== null ? String(selectedYear) : (() => {
