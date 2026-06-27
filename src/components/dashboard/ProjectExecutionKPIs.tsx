@@ -1040,6 +1040,17 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
   const zohoLastSync = zohoProjectsSource?.lastSync || "";
   const zohoSyncError = zohoProjectsSource?.lastError || "";
 
+  const periodLabel = period?.label ?? "";
+  const monthSet = useMemo(() => new Set(period?.months ?? []), [period]);
+  const monthProjects = useMemo(
+    () => (projectKPIData?.projects ?? []).filter((p) => {
+      const k = invoiceToMonKey(p.invoiceDate);
+      return k !== null && monthSet.has(k);
+    }),
+    [projectKPIData, monthSet]
+  );
+
+
   if (!kpis || !period) {
     return (
       <div className="mb-4 md:mb-6">
