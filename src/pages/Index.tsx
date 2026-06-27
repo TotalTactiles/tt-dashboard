@@ -476,6 +476,13 @@ function RevenueGrowthCard({ scope, index, defaultView = "pct", dollarOverride }
       : `Q${data.qIdx + 1} total`;
   }
 
+  if (!isPct && dollarOverride) {
+    isNA = !(dollarOverride.value > 0);
+    positive = dollarOverride.value >= 0;
+    headline = isNA ? "—" : fmtCompact(dollarOverride.value);
+    sub = dollarOverride.label;
+  }
+
   const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
   const subClass = "text-[0.65rem] leading-tight text-muted-foreground font-mono whitespace-normal break-words text-center";
   const figureStyle: React.CSSProperties = { fontSize: 'clamp(1.35rem, 1.9vw, 1.7rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' };
