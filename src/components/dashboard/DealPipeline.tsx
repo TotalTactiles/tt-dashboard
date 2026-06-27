@@ -91,12 +91,38 @@ interface DealPipelineProps {
 
 const DealPipeline = ({ periodFilter, showAll = false, onAllToggle }: DealPipelineProps) => {
   const { quotedJobs, dataHealth } = useDashboardData();
+  const { quotingOpp } = useCrmStages();
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("date-closest");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [view, setView] = useState<"all" | "running" | "opps">("all");
+
+  const crmOppRows = useMemo(() => {
+    const leads = quotingOpp?.leads ?? [];
+    return leads.map((l, i) => ({
+      id: `O${i}`,
+      company: l.company,
+      project: l.name,
+      value: l.value,
+      status: "pending" as const,
+      rawStatus: l.stage || "Quoting",
+      dateQuoted: l.date,
+      estJobDate: l.date,
+      stageValue: 0,
+      lostReason: "",
+      zohoId: "",
+      projectYear: "",
+    }));
+  }, [quotingOpp]);
+
+  const viewSource = useMemo(() => {
+    if (view === "running") return quotedJobs.filter((j) => j.status === "pending");
+    if (view === "opps") return crmOppRows;
+    return quotedJobs;
+  }, [view, quotedJobs, crmOppRows]);
 
   const hasActiveFilters = sortBy !== "date-closest" || statusFilter !== "all" || dateFilter !== "all";
   const activeFilterCount = [sortBy !== "date-closest", statusFilter !== "all", dateFilter !== "all"].filter(Boolean).length;
