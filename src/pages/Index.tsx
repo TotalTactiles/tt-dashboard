@@ -18,6 +18,7 @@ import ForecastChart from "@/components/dashboard/ForecastChart";
 import ProjectExecutionKPIs from "@/components/dashboard/ProjectExecutionKPIs";
 import RevenueProjectsTable from "@/components/dashboard/RevenueProjectsTable";
 import ExpenseBreakdown from "@/components/dashboard/ExpenseBreakdown";
+import SectionHeader from "@/components/dashboard/SectionHeader";
 import DashboardLayout from "@/components/DashboardLayout";
 import GoalsDashboardWidgets from "@/components/goals/GoalsDashboardWidgets";
 import TargetsGoalsSection from "@/components/goals/TargetsGoalsSection";
@@ -1801,10 +1802,7 @@ const DashboardContent = () => {
       {hasLiveData &&
       <>
           {/* Quick Look Sales — top KPI row */}
-          <div className="flex items-center gap-2 mb-3 px-1">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quick Look Sales</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
+          <SectionHeader title="Quick Look Sales" />
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 items-stretch mb-4 md:mb-6" style={{ gap: "clamp(8px, 1vw, 16px)" }}>
             {adjustedKpiStats.map((stat, i) => {
               if (stat.label === "Pipeline") {
@@ -1919,9 +1917,7 @@ const DashboardContent = () => {
 
             return (
             <div className="mt-4 mb-4">
-              <div className="flex items-center gap-2 mb-3 px-1">
-                <span className="text-xs font-semibold text-muted-foreground tracking-wider">Let's Talk Money</span>
-                <div className="flex-1 h-px bg-border" />
+              <SectionHeader title="Let's Talk Money">
                 <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
                   {(["ytd", "quarter"] as const).map((scope) => (
                     <button
@@ -1931,7 +1927,7 @@ const DashboardContent = () => {
                     >{scope === "ytd" ? "This Year" : investorDateWindows.qLabel}</button>
                   ))}
                 </div>
-              </div>
+              </SectionHeader>
 
               <div className="text-xs font-mono text-muted-foreground/70 bg-secondary/40 border border-border/50 rounded px-3 py-1.5 mb-3">
                 {investorScope === "ytd"
