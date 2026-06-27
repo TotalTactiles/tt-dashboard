@@ -1308,7 +1308,11 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
         ))}
       </div>
 
-      <ProjectsTable projects={monthProjects} periodLabel={periodLabel} />
+      <ProjectsTable
+        monthProjects={monthProjects}
+        allProjects={projectKPIData?.projects ?? []}
+        periodLabel={periodLabel}
+      />
     </div>
   );
 }
