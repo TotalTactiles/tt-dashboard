@@ -82,13 +82,14 @@ export interface MoneyMetrics {
 
 export function computeMoneyMetrics(params: {
   scope: MoneyScope;
+  monthsOverride?: Set<string> | null;
   revenueProjects: Array<{ valueExclGST: number; totalCOGS: number; invoiceDate?: string; otherDate?: string }>;
   cashflowRows: any[];
   now?: Date;
 }): MoneyMetrics {
   const { scope, revenueProjects, cashflowRows } = params;
   const now = params.now ?? new Date();
-  const months = scopeMonths(scope, now);
+  const months = params.monthsOverride !== undefined ? params.monthsOverride : scopeMonths(scope, now);
 
   const inPeriod = (rp: any) => {
     if (months === null) return true;
