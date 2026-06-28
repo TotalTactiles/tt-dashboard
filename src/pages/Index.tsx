@@ -2111,12 +2111,12 @@ const DashboardContent = () => {
                 <StatCard
                   label="Lifestyle Expense Ratio"
                   value={money.lifestyleExpenseRatio != null ? `${money.lifestyleExpenseRatio.toFixed(1)}%` : "N/A"}
-                  change="Owners' pay + vehicles + super ÷ total cost"
+                  change="Owner lifestyle vs total business cost"
                   positive={true}
                   index={17}
                   variant="centered"
                   altValue={money.lifestyleExpense ? fmtVal(money.lifestyleExpense) : "–"}
-                  altChange="Salaries + MV repayments + super"
+                  altChange="Owner lifestyle cost"
                   altPositive={true}
                   toggleLabelBase="%"
                   toggleLabelAlt="$"
