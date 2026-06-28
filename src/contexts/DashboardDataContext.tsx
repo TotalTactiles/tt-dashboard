@@ -525,7 +525,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     // ===== CASHFLOW-WINS MERGE for fixed recurring expenses =====
     {
-      const cfMonths: string[] = (cs?.months ?? []) as string[];
+      const cfMonths: string[] = cs?.months ?? [];
       const getCfLabel = (r: any): string => (r._label_rowLabel ?? r.col_1 ?? "").toString().trim();
       const findCfRow = (label: string) => {
         const upper = label.toUpperCase().trim();
@@ -536,10 +536,21 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
           return lbl.includes(upper) || upper.includes(lbl);
         }) ?? null;
       };
+      // Resolve the CURRENT calendar month's column, then walk BACKWARD to the most recent
+      // populated past month. Future columns are never read — this prevents scheduled raises
+      // (e.g. owner salaries stepping up later in the year) from showing as the current cost.
+      const CF_MON_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      const cfNowKey = `${CF_MON_ABBR[new Date().getMonth()]}-${String(new Date().getFullYear()).slice(-2)}`;
+      const cfNorm = (k: string) => k.trim().toUpperCase();
+      const cfNowIdx = (() => {
+        const i = cfMonths.findIndex((m) => cfNorm(m) === cfNorm(cfNowKey));
+        return i >= 0 ? i : cfMonths.length - 1; // if current month isn't in the array, fall back to last
+      })();
+      // Current month first; if blank, fall back to the most recent PAST month with data (abs, since stored negative)
       const cfLatest = (label: string): number => {
         const row = findCfRow(label);
         if (!row) return 0;
-        for (let i = cfMonths.length - 1; i >= 0; i--) {
+        for (let i = cfNowIdx; i >= 0; i--) {
           const v = parseNum(row[cfMonths[i]] ?? 0);
           if (v !== 0) return Math.abs(v);
         }
