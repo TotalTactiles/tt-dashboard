@@ -103,6 +103,25 @@ export interface ExpenseCategoryGroup {
   totalYearly: number;
 }
 
+export interface ExpenseGroupItem {
+  name: string;
+  monthlyCost: number;
+  yearlyCost: number;
+  weeklyCost: number;
+  tracked?: boolean;
+  series?: { month: string; value: number }[];
+  avgMonthly?: number;
+}
+
+export interface ExpenseGroup {
+  title: string;
+  items: ExpenseGroupItem[];
+  totalWeekly: number;
+  totalMonthly: number;
+  totalYearly: number;
+  tracked?: boolean;
+}
+
 export interface GrandTotalExpense {
   weeklyCost: number;
   monthlyCost: number;
