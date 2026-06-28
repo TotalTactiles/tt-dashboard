@@ -256,6 +256,8 @@ export interface DashboardData {
 
 
   expenseAllocation: ExpenseAllocationItem[];
+  variableExpenses: VariableExpenseSeries[];
+  taxObligations: VariableExpenseSeries[];
   kpiVariables: Record<string, number>;
   dataStore: DataStore;
   formulaCache: ReturnType<typeof createFormulaCache>;
