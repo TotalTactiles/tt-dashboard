@@ -501,13 +501,25 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         // New format: must have a sub-category
         return !!subCat;
       })
-      .map((r: any) => ({
-        name: String(r["Sub-Category"] ?? r._label_name ?? "").trim(),
-        category: String(r["Category"] ?? r._label_category ?? "Uncategorised").trim(),
-        weeklyCost: parseNum(r["Weekly Cost"] ?? r._label_weeklyCost ?? 0),
-        monthlyCost: parseNum(r["Monthly Cost"] ?? r._label_monthlyCost ?? 0),
-        yearlyCost: parseNum(r["Yearly Cost"] ?? r._label_yearlyCost ?? 0),
-      }));
+      .map((r: any) => {
+        const subCat = String(r["Sub-Category"] ?? r._label_name ?? "").trim();
+        const cat = String(r["Category"] ?? r._label_category ?? "Uncategorised").trim();
+        const item = String(r["Item"] ?? r._label_item ?? "").trim();
+        // "Shared Expenses" exists under BOTH Business and Personal — without this they'd
+        // collapse into one group, mixing Phone/Gym/Entertainment with Food/Meal Preps.
+        const groupLabel =
+          cat === "Personal Expenses" && subCat === "Shared Expenses"
+            ? "Shared Expenses (Personal)"
+            : subCat;
+        return {
+          name: item || subCat,   // real line item; fall back to sub-category only if Item is blank
+          subCategory: groupLabel,
+          category: cat,
+          weeklyCost: parseNum(r["Weekly Cost"] ?? r._label_weeklyCost ?? 0),
+          monthlyCost: parseNum(r["Monthly Cost"] ?? r._label_monthlyCost ?? 0),
+          yearlyCost: parseNum(r["Yearly Cost"] ?? r._label_yearlyCost ?? 0),
+        };
+      });
 
     console.log("[Expenses Debug] line items:", expenseItems.length, "categories:", [...new Set(expenseItems.map(i => i.category))]);
 
