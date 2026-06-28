@@ -136,6 +136,68 @@ const ExpenseBreakdownInner = ({ goals = [], activeGoalIds = new Set() }: Expens
             </div>
           ))}
 
+          {/* Variable Expenses (tracked monthly) — display only */}
+          {variableExpenses.length > 0 && (
+            <div className="mb-6">
+              <h4 className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-3">
+                Variable Expenses · tracked monthly
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                {variableExpenses.map((v) => (
+                  <div key={v.name} className="rounded-lg border border-border p-4 bg-secondary/20">
+                    <p className="text-xs font-mono text-muted-foreground mb-2">{v.name}</p>
+                    <p className="text-lg font-mono font-bold text-foreground">
+                      ${Math.round(v.current).toLocaleString()}
+                      <span className="text-xs text-muted-foreground">/mo</span>
+                    </p>
+                    <p className="text-xs font-mono text-muted-foreground mt-1">
+                      avg ${Math.round(v.avg).toLocaleString()}/mo
+                    </p>
+                    <div className="mt-2 h-8">
+                      <ResponsiveContainer width="100%" height={32}>
+                        <LineChart data={v.series}>
+                          <YAxis hide domain={[0, "dataMax"]} />
+                          <Line type="monotone" dataKey="value" stroke="#3D89DA" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Tax & Obligations (tracked monthly) — display only */}
+          {taxObligations.length > 0 && (
+            <div className="mb-6">
+              <h4 className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-3">
+                Tax & Obligations · tracked monthly
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                {taxObligations.map((v) => (
+                  <div key={v.name} className="rounded-lg border border-border p-4 bg-secondary/20">
+                    <p className="text-xs font-mono text-muted-foreground mb-2">{v.name}</p>
+                    <p className="text-lg font-mono font-bold text-foreground">
+                      ${Math.round(v.current).toLocaleString()}
+                      <span className="text-xs text-muted-foreground">/mo</span>
+                    </p>
+                    <p className="text-xs font-mono text-muted-foreground mt-1">
+                      avg ${Math.round(v.avg).toLocaleString()}/mo
+                    </p>
+                    <div className="mt-2 h-8">
+                      <ResponsiveContainer width="100%" height={32}>
+                        <LineChart data={v.series}>
+                          <YAxis hide domain={[0, "dataMax"]} />
+                          <Line type="monotone" dataKey="value" stroke="#F59E0B" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Goals category from merged goals */}
           {goalsCategory && (
             <div className="mb-6">
