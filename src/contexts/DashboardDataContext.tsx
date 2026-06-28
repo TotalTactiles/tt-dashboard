@@ -163,6 +163,13 @@ export interface ExpenseAllocationItem {
   fill: string;
 }
 
+export interface VariableExpenseSeries {
+  name: string;
+  series: { month: string; value: number }[];
+  current: number;
+  avg: number;
+}
+
 export type DataHealthStatus = "disconnected" | "connected-empty" | "healthy";
 
 export interface SectionHealth {
