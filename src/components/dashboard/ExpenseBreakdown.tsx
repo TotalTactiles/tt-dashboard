@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, YAx
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
 import ExpenseCategoryModal from "./ExpenseCategoryModal";
+import ExpenseGroupAccordion from "./ExpenseGroupAccordion";
 import { getGoalExpenseCategory } from "@/lib/goalMerge";
 import type { Goal } from "@/hooks/useGoals";
 
