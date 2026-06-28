@@ -616,13 +616,20 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       yearlyCost: parseNum(grandTotalRow["Yearly Cost"] ?? 0),
     } : null;
 
-    // ===== EXPENSE ALLOCATION (PIE) =====
+    // ===== EXPENSE ALLOCATION (PIE) — aggregated by sub-category =====
+    const allocMap: Record<string, number> = {};
+    for (const item of expenseItems) {
+      const key = item.subCategory || item.category || "Uncategorised";
+      allocMap[key] = (allocMap[key] ?? 0) + item.monthlyCost;
+    }
     let fillIdx = 0;
-    const expenseAllocation: ExpenseAllocationItem[] = expenseItems.map((item) => ({
-      name: item.name,
-      value: item.monthlyCost,
-      fill: CATEGORY_FILLS[item.name] ?? FALLBACK_FILLS[fillIdx++ % FALLBACK_FILLS.length],
-    }));
+    const expenseAllocation: ExpenseAllocationItem[] = Object.entries(allocMap)
+      .filter(([, v]) => v > 0)
+      .map(([name, value]) => ({
+        name,
+        value,
+        fill: CATEGORY_FILLS[name] ?? FALLBACK_FILLS[fillIdx++ % FALLBACK_FILLS.length],
+      }));
 
     // ===== CASHFLOW SUMMARY CHARTS =====
     const months: string[] = cs?.months ?? [];
