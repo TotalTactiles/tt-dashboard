@@ -1573,6 +1573,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       lostValueFY,
 
       kpiStats, incomeOutgoingsData, profitMarginData, monthlyInvoicesData, monthlyNetProfitData, forecastChartData, expenseAllocation,
+      variableExpenses, taxObligations,
 
 
       kpiVariables, dataStore: storeSnapshot, formulaCache: formulaCacheInstance, changedFormulas,
