@@ -29,8 +29,14 @@ export default function ExpenseGroupAccordion({
       return next;
     });
 
+  const recurringTotal = (p: Period) =>
+    groups.filter((g) => !g.tracked).reduce((s, g) => s + groupTotal(g, p), 0);
+  const trackedTotal = (p: Period) =>
+    groups.filter((g) => g.tracked).reduce((s, g) => s + groupTotal(g, p), 0);
+
   return (
-    <div className="space-y-3">
+    <div>
+      <div className="space-y-3">
       {groups.map((g) => {
         const isOpen = open.has(g.title);
         return (
@@ -123,6 +129,23 @@ export default function ExpenseGroupAccordion({
           </div>
         );
       })}
+      </div>
+
+      {/* TOTAL footer */}
+      <div className="mt-3 md:mt-4 rounded-xl border border-primary/40 bg-secondary/40 p-4 flex items-center justify-between gap-3">
+        <div className="flex flex-col min-w-0">
+          <span className="text-xs font-mono uppercase tracking-wider text-foreground">Total</span>
+          {trackedTotal("monthly") > 0 && (
+            <span className="text-[10px] font-mono text-muted-foreground/70">
+              + {fmt(trackedTotal(period))}{suffix(period)} tax &amp; obligations (tracked separately)
+            </span>
+          )}
+        </div>
+        <span className="font-mono font-bold text-lg text-foreground whitespace-nowrap">
+          {fmt(recurringTotal(period))}
+          <span className="text-[10px] text-muted-foreground">{suffix(period)}</span>
+        </span>
+      </div>
     </div>
   );
 }
