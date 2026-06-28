@@ -12,13 +12,13 @@ const SectorAllocationChart = React.memo(() => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.4 }}
-      className="chart-container"
+      className="chart-container h-full flex flex-col"
     >
       <h3 className="text-sm font-medium text-muted-foreground mb-4">Expense Breakdown by Category</h3>
       {expenseAllocation.length === 0 ? (
         <NoData message="No expense data" healthStatus={dataHealth.expenses.status} />
       ) : (
-        <>
+        <div className="flex-1 flex flex-col justify-center">
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie
@@ -63,7 +63,7 @@ const SectorAllocationChart = React.memo(() => {
               </div>
             ))}
           </div>
-        </>
+        </div>
       )}
     </motion.div>
   );
