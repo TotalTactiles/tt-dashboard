@@ -502,6 +502,77 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     console.log("[Expenses Debug] line items:", expenseItems.length, "categories:", [...new Set(expenseItems.map(i => i.category))]);
 
+    // ===== CASHFLOW-WINS MERGE for fixed recurring expenses =====
+    {
+      const cfMonths: string[] = (cs?.months ?? []) as string[];
+      const getCfLabel = (r: any): string => (r._label_rowLabel ?? r.col_1 ?? "").toString().trim();
+      const findCfRow = (label: string) => {
+        const upper = label.toUpperCase().trim();
+        const exact = rawCashflow.find((r: any) => getCfLabel(r).toUpperCase() === upper);
+        if (exact) return exact;
+        return rawCashflow.find((r: any) => {
+          const lbl = getCfLabel(r).toUpperCase();
+          return lbl.includes(upper) || upper.includes(lbl);
+        }) ?? null;
+      };
+      const cfLatest = (label: string): number => {
+        const row = findCfRow(label);
+        if (!row) return 0;
+        for (let i = cfMonths.length - 1; i >= 0; i--) {
+          const v = parseNum(row[cfMonths[i]] ?? 0);
+          if (v !== 0) return Math.abs(v);
+        }
+        return 0;
+      };
+      const asItem = (monthly: number) => ({
+        weeklyCost: monthly / 4.333,
+        monthlyCost: monthly,
+        yearlyCost: monthly * 12,
+      });
+
+      const overrideFor = (item: ExpenseItem): number | null => {
+        const n = item.name.toLowerCase();
+        const sub = ((item.subCategory ?? item.category) ?? "").toLowerCase();
+        if (n === "wages" && sub.includes("krishan")) return cfLatest("Krishan Singh");
+        if (n === "wages" && sub.includes("mehmet"))  return cfLatest("Mehmet Kayaf");
+        if (n === "rent")                              return cfLatest("Rent");
+        if (n === "entertainment")                     return cfLatest("Entertainment");
+        if (n.includes("workers comp"))                return cfLatest("Workers Compensation");
+        if (n === "phone")                             return cfLatest("Telephone & Internet");
+        if (n.includes("accountant"))                  return cfLatest("Consulting & Accounting");
+        return null;
+      };
+
+      for (const item of expenseItems) {
+        const o = overrideFor(item);
+        if (o != null && o > 0) {
+          Object.assign(item, asItem(o), { source: "cashflow" });
+        }
+      }
+
+      const ADDITIONS: Array<{ label: string; name: string; group: string }> = [
+        { label: "Shania Georges Kayaf",  name: "Wages",                  group: "Shania (Personal)" },
+        { label: "Bank Fees",             name: "Bank Fees",              group: "Office & Misc" },
+        { label: "Printing & Stationery", name: "Printing & Stationery",  group: "Office & Misc" },
+        { label: "Travel - National",     name: "Travel",                 group: "Office & Misc" },
+        { label: "Superannuation",        name: "Superannuation",         group: "Office & Misc" },
+      ];
+      for (const a of ADDITIONS) {
+        const monthly = cfLatest(a.label);
+        if (monthly > 0) {
+          expenseItems.push({
+            name: a.name,
+            category: a.group,
+            subCategory: a.group,
+            topCategory: "From CASHFLOW",
+            source: "cashflow",
+            ...asItem(monthly),
+          });
+        }
+      }
+    }
+
+
     const catMap: Record<string, ExpenseItem[]> = {};
     for (const item of expenseItems) {
       if (!catMap[item.category]) catMap[item.category] = [];
