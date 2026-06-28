@@ -2198,11 +2198,11 @@ const DashboardContent = () => {
               />
             </div>
 
-            <div style={{ display: "flex", gap: "24px", alignItems: "flex-start", flexWrap: "wrap" }}>
-              <div style={{ flex: "1 1 55%", minWidth: 0 }}>
+            <div style={{ display: "flex", gap: "24px", alignItems: "stretch", flexWrap: "wrap" }}>
+              <div style={{ flex: "1 1 55%", minWidth: 0 }} className="h-full">
                 <ExpenseBreakdown goals={goals} activeGoalIds={activeGoalIds} />
               </div>
-              <div style={{ flex: "1 1 calc(45% - 24px)", minWidth: 0 }}>
+              <div style={{ flex: "1 1 calc(45% - 24px)", minWidth: 0 }} className="h-full">
                 <SectorAllocationChart />
               </div>
             </div>
