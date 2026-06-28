@@ -85,12 +85,12 @@ export interface RevenueProject {
 }
 
 export interface ExpenseItem {
-  name: string;
-  category: string;
+  name: string;          // the line item (e.g. "Website", "Rent") — shown on the card
+  subCategory: string;     // the Sub-Category (e.g. "Essentials") — used for grouping
+  category: string;      // top-level: "Business Expenses" | "Personal Expenses"
   weeklyCost: number;
   monthlyCost: number;
   yearlyCost: number;
-  subCategory?: string;
   topCategory?: string;
   source?: string;
 }
