@@ -41,7 +41,7 @@ interface ExpenseBreakdownProps {
 }
 
 const ExpenseBreakdownInner = ({ goals = [], activeGoalIds = new Set() }: ExpenseBreakdownProps) => {
-  const { expenseCategories, grandTotalExpense, dataHealth, variableExpenses, taxObligations } = useDashboardData();
+  const { expenseCategories, grandTotalExpense, dataHealth, variableExpenses, taxObligations, expenseGroups } = useDashboardData();
   const [period, setPeriod] = useState<Period>("monthly");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<{ cardName: string; categoryGroup: string } | null>(null);
