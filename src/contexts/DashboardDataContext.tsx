@@ -1741,7 +1741,7 @@ export function useDashboardData(): DashboardData {
 
 
 
-      forecastChartData: [], expenseAllocation: [], variableExpenses: [], taxObligations: [], kpiVariables: {},
+      forecastChartData: [], expenseAllocation: [], variableExpenses: [], taxObligations: [], expenseGroups: [], kpiVariables: {},
       dataStore: { quotes: [], qtsSmmry: [], cashflow: [], revenue: [], expenses: [], labour: [], stock: [], quotesSummary: {}, cashflowSummary: {}, revenueSummary: {}, expensesSummary: {} },
       formulaCache: formulaCacheInstance,
       changedFormulas: [],
