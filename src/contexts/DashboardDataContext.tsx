@@ -90,6 +90,9 @@ export interface ExpenseItem {
   weeklyCost: number;
   monthlyCost: number;
   yearlyCost: number;
+  subCategory?: string;
+  topCategory?: string;
+  source?: string;
 }
 
 export interface ExpenseCategoryGroup {
