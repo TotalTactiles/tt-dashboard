@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, YAx
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
 import ExpenseCategoryModal from "./ExpenseCategoryModal";
+import ExpenseGroupAccordion from "./ExpenseGroupAccordion";
 import { getGoalExpenseCategory } from "@/lib/goalMerge";
 import type { Goal } from "@/hooks/useGoals";
 
@@ -40,7 +41,7 @@ interface ExpenseBreakdownProps {
 }
 
 const ExpenseBreakdownInner = ({ goals = [], activeGoalIds = new Set() }: ExpenseBreakdownProps) => {
-  const { expenseCategories, grandTotalExpense, dataHealth, variableExpenses, taxObligations } = useDashboardData();
+  const { expenseCategories, grandTotalExpense, dataHealth, variableExpenses, taxObligations, expenseGroups } = useDashboardData();
   const [period, setPeriod] = useState<Period>("monthly");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<{ cardName: string; categoryGroup: string } | null>(null);
@@ -100,103 +101,14 @@ const ExpenseBreakdownInner = ({ goals = [], activeGoalIds = new Set() }: Expens
         </div>
       </div>
 
-      {expenseCategories.length === 0 ? (
+      {expenseGroups.length === 0 ? (
         <NoData message="No expense data" healthStatus={dataHealth.expenses.status} />
       ) : (
         <>
-          {/* Category groups */}
-          {expenseCategories.map((cat, ci) => (
-            <div key={cat.category} className="mb-6">
-              <h4 className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-3">
-                {cat.category}
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                {cat.items.map((item, ii) => (
-                  <motion.div
-                    key={item.name}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.9 + ci * 0.1 + ii * 0.05 }}
-                    className="rounded-lg border border-border p-4 bg-secondary/20 cursor-pointer transition-all hover:bg-secondary/40 hover:border-primary/30"
-                    onClick={() => handleCardClick(item.name, cat.category)}
-                  >
-                    <p className="text-xs font-mono text-muted-foreground mb-2">{item.name}</p>
-                    <p className="text-lg font-mono font-bold text-foreground">
-                      ${getCostByPeriod(item, period).toLocaleString()}
-                      <span className="text-xs text-muted-foreground">{periodSuffix}</span>
-                    </p>
-                    {period !== "yearly" && (
-                      <p className="text-xs font-mono text-muted-foreground mt-1">
-                        ${item.yearlyCost.toLocaleString()}/yr
-                      </p>
-                    )}
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          ))}
+          <div className="mb-6">
+            <ExpenseGroupAccordion groups={expenseGroups} period={period} />
+          </div>
 
-          {/* Variable Expenses (tracked monthly) — display only */}
-          {variableExpenses.length > 0 && (
-            <div className="mb-6">
-              <h4 className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-3">
-                Variable Expenses · tracked monthly
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                {variableExpenses.map((v) => (
-                  <div key={v.name} className="rounded-lg border border-border p-4 bg-secondary/20">
-                    <p className="text-xs font-mono text-muted-foreground mb-2">{v.name}</p>
-                    <p className="text-lg font-mono font-bold text-foreground">
-                      ${Math.round(v.current).toLocaleString()}
-                      <span className="text-xs text-muted-foreground">/mo</span>
-                    </p>
-                    <p className="text-xs font-mono text-muted-foreground mt-1">
-                      avg ${Math.round(v.avg).toLocaleString()}/mo
-                    </p>
-                    <div className="mt-2 h-8">
-                      <ResponsiveContainer width="100%" height={32}>
-                        <LineChart data={v.series}>
-                          <YAxis hide domain={[0, "dataMax"]} />
-                          <Line type="monotone" dataKey="value" stroke="#3D89DA" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Tax & Obligations (tracked monthly) — display only */}
-          {taxObligations.length > 0 && (
-            <div className="mb-6">
-              <h4 className="text-xs font-mono text-muted-foreground uppercase tracking-wider mb-3">
-                Tax & Obligations · tracked monthly
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                {taxObligations.map((v) => (
-                  <div key={v.name} className="rounded-lg border border-border p-4 bg-secondary/20">
-                    <p className="text-xs font-mono text-muted-foreground mb-2">{v.name}</p>
-                    <p className="text-lg font-mono font-bold text-foreground">
-                      ${Math.round(v.current).toLocaleString()}
-                      <span className="text-xs text-muted-foreground">/mo</span>
-                    </p>
-                    <p className="text-xs font-mono text-muted-foreground mt-1">
-                      avg ${Math.round(v.avg).toLocaleString()}/mo
-                    </p>
-                    <div className="mt-2 h-8">
-                      <ResponsiveContainer width="100%" height={32}>
-                        <LineChart data={v.series}>
-                          <YAxis hide domain={[0, "dataMax"]} />
-                          <Line type="monotone" dataKey="value" stroke="#F59E0B" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Goals category from merged goals */}
           {goalsCategory && (

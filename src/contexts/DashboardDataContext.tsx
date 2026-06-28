@@ -103,6 +103,25 @@ export interface ExpenseCategoryGroup {
   totalYearly: number;
 }
 
+export interface ExpenseGroupItem {
+  name: string;
+  monthlyCost: number;
+  yearlyCost: number;
+  weeklyCost: number;
+  tracked?: boolean;
+  series?: { month: string; value: number }[];
+  avgMonthly?: number;
+}
+
+export interface ExpenseGroup {
+  title: string;
+  items: ExpenseGroupItem[];
+  totalWeekly: number;
+  totalMonthly: number;
+  totalYearly: number;
+  tracked?: boolean;
+}
+
 export interface GrandTotalExpense {
   weeklyCost: number;
   monthlyCost: number;
@@ -258,6 +277,7 @@ export interface DashboardData {
   expenseAllocation: ExpenseAllocationItem[];
   variableExpenses: VariableExpenseSeries[];
   taxObligations: VariableExpenseSeries[];
+  expenseGroups: ExpenseGroup[];
   kpiVariables: Record<string, number>;
   dataStore: DataStore;
   formulaCache: ReturnType<typeof createFormulaCache>;
@@ -744,6 +764,71 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const taxObligations: VariableExpenseSeries[] = TAX_LINES
       .map(buildSeries)
       .filter((x): x is VariableExpenseSeries => x !== null);
+
+    // ===== CONSOLIDATED EXPENSE GROUPS (collapsible cards) =====
+    const fixedGroupOf = (subCat: string): string => {
+      const s = (subCat || "").toLowerCase();
+      if (s.includes("krishan") || s.includes("mehmet") || s.includes("shania")) return "Wages";
+      if (s.includes("shared"))   return "Shared Expenses";
+      if (s.includes("office"))   return "Office & Misc";
+      if (s.includes("essential")) return "Essentials";
+      return subCat || "Other";
+    };
+    const personLabel = (subCat: string): string =>
+      (subCat || "").replace(/\s*\(personal\)\s*/i, "").trim();
+
+    const FIXED_ORDER = ["Essentials", "Office & Misc", "Shared Expenses", "Wages"];
+    const groupBuckets: Record<string, ExpenseGroupItem[]> = {};
+    for (const item of expenseItems) {
+      const g = fixedGroupOf(item.subCategory);
+      const label = g === "Wages" ? personLabel(item.subCategory) : item.name;
+      (groupBuckets[g] ??= []).push({
+        name: label,
+        monthlyCost: item.monthlyCost,
+        yearlyCost: item.yearlyCost,
+        weeklyCost: item.weeklyCost,
+      });
+    }
+    const fixedGroups: ExpenseGroup[] = FIXED_ORDER
+      .filter((g) => groupBuckets[g]?.length)
+      .map((g) => {
+        const items = groupBuckets[g];
+        return {
+          title: g,
+          items,
+          totalWeekly: items.reduce((s, i) => s + i.weeklyCost, 0),
+          totalMonthly: items.reduce((s, i) => s + i.monthlyCost, 0),
+          totalYearly: items.reduce((s, i) => s + i.yearlyCost, 0),
+          tracked: false,
+        };
+      });
+
+    const trackedToItem = (t: VariableExpenseSeries): ExpenseGroupItem => ({
+      name: t.name,
+      monthlyCost: t.current,
+      yearlyCost: t.current * 12,
+      weeklyCost: t.current / 4.333,
+      tracked: true,
+      series: t.series,
+      avgMonthly: t.avg,
+    });
+    const taxItems: ExpenseGroupItem[] = [
+      ...taxObligations.map(trackedToItem),
+      ...variableExpenses.map(trackedToItem),
+    ];
+    const taxGroup: ExpenseGroup | null = taxItems.length
+      ? {
+          title: "Tax & Obligations",
+          items: taxItems,
+          totalWeekly: taxItems.reduce((s, i) => s + i.weeklyCost, 0),
+          totalMonthly: taxItems.reduce((s, i) => s + i.monthlyCost, 0),
+          totalYearly: taxItems.reduce((s, i) => s + i.yearlyCost, 0),
+          tracked: true,
+        }
+      : null;
+
+    const expenseGroups: ExpenseGroup[] = [...fixedGroups, ...(taxGroup ? [taxGroup] : [])];
+
 
 
 
@@ -1604,7 +1689,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       lostValueFY,
 
       kpiStats, incomeOutgoingsData, profitMarginData, monthlyInvoicesData, monthlyNetProfitData, forecastChartData, expenseAllocation,
-      variableExpenses, taxObligations,
+      variableExpenses, taxObligations, expenseGroups,
 
 
       kpiVariables, dataStore: storeSnapshot, formulaCache: formulaCacheInstance, changedFormulas,
@@ -1656,7 +1741,7 @@ export function useDashboardData(): DashboardData {
 
 
 
-      forecastChartData: [], expenseAllocation: [], variableExpenses: [], taxObligations: [], kpiVariables: {},
+      forecastChartData: [], expenseAllocation: [], variableExpenses: [], taxObligations: [], expenseGroups: [], kpiVariables: {},
       dataStore: { quotes: [], qtsSmmry: [], cashflow: [], revenue: [], expenses: [], labour: [], stock: [], quotesSummary: {}, cashflowSummary: {}, revenueSummary: {}, expensesSummary: {} },
       formulaCache: formulaCacheInstance,
       changedFormulas: [],
