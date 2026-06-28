@@ -596,8 +596,9 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     const catMap: Record<string, ExpenseItem[]> = {};
     for (const item of expenseItems) {
-      if (!catMap[item.category]) catMap[item.category] = [];
-      catMap[item.category].push(item);
+      const key = item.subCategory || item.category || "Uncategorised";
+      if (!catMap[key]) catMap[key] = [];
+      catMap[key].push(item);
     }
     const expenseCategories: ExpenseCategoryGroup[] = Object.entries(catMap).map(([cat, items]) => ({
       category: cat,
