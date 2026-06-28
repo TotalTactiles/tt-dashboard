@@ -85,12 +85,12 @@ export interface RevenueProject {
 }
 
 export interface ExpenseItem {
-  name: string;
-  category: string;
+  name: string;          // the line item (e.g. "Website", "Rent") — shown on the card
+  subCategory: string;     // the Sub-Category (e.g. "Essentials") — used for grouping
+  category: string;      // top-level: "Business Expenses" | "Personal Expenses"
   weeklyCost: number;
   monthlyCost: number;
   yearlyCost: number;
-  subCategory?: string;
   topCategory?: string;
   source?: string;
 }
@@ -501,13 +501,25 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         // New format: must have a sub-category
         return !!subCat;
       })
-      .map((r: any) => ({
-        name: String(r["Sub-Category"] ?? r._label_name ?? "").trim(),
-        category: String(r["Category"] ?? r._label_category ?? "Uncategorised").trim(),
-        weeklyCost: parseNum(r["Weekly Cost"] ?? r._label_weeklyCost ?? 0),
-        monthlyCost: parseNum(r["Monthly Cost"] ?? r._label_monthlyCost ?? 0),
-        yearlyCost: parseNum(r["Yearly Cost"] ?? r._label_yearlyCost ?? 0),
-      }));
+      .map((r: any) => {
+        const subCat = String(r["Sub-Category"] ?? r._label_name ?? "").trim();
+        const cat = String(r["Category"] ?? r._label_category ?? "Uncategorised").trim();
+        const item = String(r["Item"] ?? r._label_item ?? "").trim();
+        // "Shared Expenses" exists under BOTH Business and Personal — without this they'd
+        // collapse into one group, mixing Phone/Gym/Entertainment with Food/Meal Preps.
+        const groupLabel =
+          cat === "Personal Expenses" && subCat === "Shared Expenses"
+            ? "Shared Expenses (Personal)"
+            : subCat;
+        return {
+          name: item || subCat,   // real line item; fall back to sub-category only if Item is blank
+          subCategory: groupLabel,
+          category: cat,
+          weeklyCost: parseNum(r["Weekly Cost"] ?? r._label_weeklyCost ?? 0),
+          monthlyCost: parseNum(r["Monthly Cost"] ?? r._label_monthlyCost ?? 0),
+          yearlyCost: parseNum(r["Yearly Cost"] ?? r._label_yearlyCost ?? 0),
+        };
+      });
 
     console.log("[Expenses Debug] line items:", expenseItems.length, "categories:", [...new Set(expenseItems.map(i => i.category))]);
 
@@ -584,8 +596,9 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
 
     const catMap: Record<string, ExpenseItem[]> = {};
     for (const item of expenseItems) {
-      if (!catMap[item.category]) catMap[item.category] = [];
-      catMap[item.category].push(item);
+      const key = item.subCategory || item.category || "Uncategorised";
+      if (!catMap[key]) catMap[key] = [];
+      catMap[key].push(item);
     }
     const expenseCategories: ExpenseCategoryGroup[] = Object.entries(catMap).map(([cat, items]) => ({
       category: cat,
@@ -603,13 +616,20 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       yearlyCost: parseNum(grandTotalRow["Yearly Cost"] ?? 0),
     } : null;
 
-    // ===== EXPENSE ALLOCATION (PIE) =====
+    // ===== EXPENSE ALLOCATION (PIE) — aggregated by sub-category =====
+    const allocMap: Record<string, number> = {};
+    for (const item of expenseItems) {
+      const key = item.subCategory || item.category || "Uncategorised";
+      allocMap[key] = (allocMap[key] ?? 0) + item.monthlyCost;
+    }
     let fillIdx = 0;
-    const expenseAllocation: ExpenseAllocationItem[] = expenseItems.map((item) => ({
-      name: item.name,
-      value: item.monthlyCost,
-      fill: CATEGORY_FILLS[item.name] ?? FALLBACK_FILLS[fillIdx++ % FALLBACK_FILLS.length],
-    }));
+    const expenseAllocation: ExpenseAllocationItem[] = Object.entries(allocMap)
+      .filter(([, v]) => v > 0)
+      .map(([name, value]) => ({
+        name,
+        value,
+        fill: CATEGORY_FILLS[name] ?? FALLBACK_FILLS[fillIdx++ % FALLBACK_FILLS.length],
+      }));
 
     // ===== CASHFLOW SUMMARY CHARTS =====
     const months: string[] = cs?.months ?? [];
