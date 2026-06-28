@@ -681,6 +681,40 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     const integratedClientAccountRow = findCashflowRowExact("Integrated Client Account (BAS)");
     const incomeTaxAccountRow = findCashflowRowExact("Income Tax Account");
 
+    // ===== VARIABLE EXPENSES (tracked monthly) — display only =====
+    const cfMonths: string[] = (cs?.months ?? []) as string[];
+    const VARIABLE_LINES = [
+      "Motor Vehicle Expenses",
+      "Motor Vehicle Repayments",
+      "Computer Expenses",
+      "Office Expenses",
+      "Repairs and Maintenance",
+      "Interest Expense",
+      "Instant Asset Write-Off",
+    ];
+    const TAX_LINES = [
+      "GST Paid",
+      "Integrated Client Account (BAS)",
+      "Income Tax Account",
+    ];
+    const buildSeries = (label: string): VariableExpenseSeries | null => {
+      const row = findCashflowRowExact(label);
+      if (!row) return null;
+      const series = cfMonths.map((m) => ({ month: m, value: Math.abs(parseNum(row[m] ?? 0)) }));
+      const nonZero = series.filter((p) => p.value !== 0);
+      if (nonZero.length === 0) return null;
+      const current = [...series].reverse().find((p) => p.value !== 0)?.value ?? 0;
+      const avg = nonZero.reduce((s, p) => s + p.value, 0) / nonZero.length;
+      return { name: label, series, current, avg };
+    };
+    const variableExpenses: VariableExpenseSeries[] = VARIABLE_LINES
+      .map(buildSeries)
+      .filter((x): x is VariableExpenseSeries => x !== null);
+    const taxObligations: VariableExpenseSeries[] = TAX_LINES
+      .map(buildSeries)
+      .filter((x): x is VariableExpenseSeries => x !== null);
+
+
 
     // For "Anticipated Cash Surplus/(Deficit)" — must NOT match the "Including Probable Jobs" variant
     const anticipatedSurplusRow = (() => {
