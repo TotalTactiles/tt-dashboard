@@ -134,7 +134,7 @@ const ExpenseBreakdownInner = ({
     >
       {/* Header with toggle */}
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-sm font-medium text-muted-foreground">Business Expenses</h3>
+        <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
         <div className="flex items-center gap-1 rounded-lg border border-border bg-secondary/30 p-0.5">
           {(["weekly", "monthly", "yearly"] as Period[]).map((p) => (
             <button
