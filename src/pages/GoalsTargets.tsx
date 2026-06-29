@@ -14,7 +14,7 @@ const CATEGORIES = ["All", "Revenue", "Customer", "Sales Target", "Operating Exp
 
 const GoalsTargets = () => {
   const { goals, addGoal, updateGoal, deleteGoal } = useGoals();
-  const { dataStore, investorMetrics } = useDashboardData();
+  const { dataStore, investorMetrics, expenseGroups } = useDashboardData();
   const qs = dataStore.quotesSummary;
   const cs = dataStore.cashflowSummary;
 
@@ -24,20 +24,39 @@ const GoalsTargets = () => {
 
   const EXPENSES_OVERRIDE_KEY = "tt_goals_monthly_expenses_override";
 
+  // Source of truth: the dashboard "Business Expenses" card TOTAL.
+  // Mirrors Index.tsx `expenseGroupsDefault` (excludes Cost of Sales, drops
+  // "Business Loan Repayment & Monthly Fee" from Finance/Debt — that lives in
+  // the COS & Debt card) and honours the same per-item exclusion choices the
+  // user has made on that card (storageKey: tt_expense_excluded_default_v1).
   const dashboardMonthlyExpenses = useMemo(() => {
-    const im = investorMetrics as any;
-    if (im?.ytdTotalExpenses && im.ytdTotalExpenses > 0) {
-      return Math.round(im.ytdTotalExpenses / 12);
+    const defaultGroups = expenseGroups
+      .filter((g) => g.title !== "Cost of Sales")
+      .map((g) => {
+        if (g.title === "Finance / Debt") {
+          const items = g.items.filter((i) => i.name !== "Business Loan Repayment & Monthly Fee");
+          return { ...g, title: "Finance", items };
+        }
+        return g;
+      })
+      .filter((g) => g.items.length > 0);
+
+    let excludedKeys: Set<string>;
+    try {
+      const raw = localStorage.getItem("tt_expense_excluded_default_v1");
+      excludedKeys = raw !== null ? new Set<string>(JSON.parse(raw)) : new Set<string>();
+    } catch {
+      excludedKeys = new Set<string>();
     }
-    // Fallback: sum from expenses tab
-    const expRows = dataStore.expenses ?? [];
-    return Math.round(expRows.reduce((s: number, e: any) => {
-      const sub = String(e['Sub-Category'] ?? '').toUpperCase();
-      if (sub === 'TOTAL' || sub === 'GRAND TOTAL') return s;
-      const v = parseFloat(String(e['Monthly Cost'] ?? 0).replace(/[^0-9.-]/g,''));
-      return s + (isNaN(v) ? 0 : v);
-    }, 0));
-  }, [investorMetrics, dataStore]);
+
+    const total = defaultGroups.reduce((sum, g) => {
+      return sum + g.items
+        .filter((it) => !excludedKeys.has(`${g.title}::${it.name}`))
+        .reduce((s, it) => s + (it.monthlyCost || 0), 0);
+    }, 0);
+
+    return Math.round(total);
+  }, [expenseGroups]);
 
   const [expensesOverride, setExpensesOverride] = useState<number | null>(() => {
     try {
