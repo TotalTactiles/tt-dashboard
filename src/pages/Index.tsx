@@ -536,7 +536,7 @@ function AvgContractCard({
 
 
 // ── REVENUE GROWTH — scope-aware (% growth or $ total) ─────────────────
-function RevenueGrowthCard({ scope, index, defaultView = "pct", dollarOverride }: { scope: "ytd" | "quarter"; index: number; defaultView?: "pct" | "dollar"; dollarOverride?: { value: number; label: string } | null }) {
+function RevenueGrowthCard({ scope, index, defaultView = "pct", dollarOverride, periodMonths, periodLabel }: { scope: "ytd" | "quarter"; index: number; defaultView?: "pct" | "dollar"; dollarOverride?: { value: number; label: string } | null; periodMonths?: Set<string> | null; periodLabel?: string }) {
   const { incomeOutgoingsData } = useDashboardData();
   const [view, setView] = useState<"pct" | "dollar">(defaultView);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
