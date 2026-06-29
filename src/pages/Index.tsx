@@ -34,7 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle, Unplug, Loader2 } from "lucide-react";
-import { computeMoneyMetrics, scopeLabel as moneyScopeLabel, availableMonthKeys, monthLabel, type MoneyScope } from "@/lib/moneyPeriod";
+import { computeMoneyMetrics, scopeLabel as moneyScopeLabel, scopeMonths as moneyScopeMonths, availableMonthKeys, monthLabel, type MoneyScope } from "@/lib/moneyPeriod";
 
 const fmtAUD = (n: number) => formatMetricValue(n, "currency");
 const fmtKAxis = (v: number) => {
@@ -319,7 +319,134 @@ function InvoicesPaidCard({ index, onJumpToMonth }: { index: number; onJumpToMon
 }
 
 
-// ── AVG CONTRACT VALUE — split (Won top / Quoted bottom), Invoices-style ────────────
+// ── EXPENSE RATIOS — merged Op + Lifestyle ──────────────────────────
+function ExpenseRatiosCard({
+  opRatioPct,
+  opAmount,
+  lifestyleRatioPct,
+  lifestyleAmount,
+  periodLabel,
+  index,
+}: {
+  opRatioPct: number | null;
+  opAmount: number;
+  lifestyleRatioPct: number | null;
+  lifestyleAmount: number;
+  periodLabel: string;
+  index: number;
+}) {
+  const [mode, setMode] = useState<"pct" | "dollar">("pct");
+  const fmtCompact = (n: number) => {
+    const abs = Math.abs(n);
+    const sign = n < 0 ? "-" : "";
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}K`;
+    return `${sign}$${Math.round(abs).toLocaleString()}`;
+  };
+  const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
+  const labelClass = "text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center";
+  const subClass = "text-[0.65rem] leading-tight text-muted-foreground font-mono whitespace-normal break-words text-center";
+  const primaryStyle: React.CSSProperties = { fontSize: 'clamp(1.25rem, 1.6vw, 1.5rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' };
+  const secondaryStyle: React.CSSProperties = { fontSize: 'clamp(0.95rem, 1.2vw, 1.15rem)', lineHeight: 1.15, fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em' };
+
+  const opPrimary = mode === "pct"
+    ? (opRatioPct != null ? `${opRatioPct.toFixed(1)}%` : "N/A")
+    : (opAmount > 0 ? fmtCompact(opAmount) : "—");
+  const lifestylePrimary = mode === "pct"
+    ? (lifestyleRatioPct != null ? `${lifestyleRatioPct.toFixed(1)}%` : "N/A")
+    : (lifestyleAmount > 0 ? fmtCompact(lifestyleAmount) : "—");
+  const opTone = (opRatioPct ?? 0) < 60 ? "text-chart-green" : "text-chart-red";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+      className="stat-card relative overflow-hidden flex flex-col items-center text-center h-full p-3 gap-1"
+      style={{ containerType: 'inline-size' }}
+    >
+      <div className="w-full min-h-[1.5rem] flex items-center justify-center px-1">
+        <p className={titleClass}>EXPENSE RATIOS</p>
+      </div>
+      <div className="min-h-[1.5rem] flex justify-center items-center">
+        <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
+          <button
+            onClick={() => setMode("pct")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${mode === "pct" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >%</button>
+          <button
+            onClick={() => setMode("dollar")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${mode === "dollar" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >$</button>
+        </div>
+      </div>
+      <div className="flex-1 flex flex-col items-center justify-center gap-0.5 w-full min-w-0 text-center">
+        <div className="w-full min-w-0">
+          <p className={labelClass}>OP. EXPENSE</p>
+          <p className={`font-bold font-mono break-words leading-tight ${opTone}`} style={primaryStyle}>{opPrimary}</p>
+          <p className={subClass}>Expenses / Revenue</p>
+        </div>
+        <div className="h-px bg-white/10 my-1 w-2/3 mx-auto" />
+        <div className="w-full min-w-0">
+          <p className={labelClass}>LIFESTYLE</p>
+          <p className="font-bold font-mono break-words leading-tight text-foreground/80" style={secondaryStyle}>{lifestylePrimary}</p>
+          <p className={subClass}>Owner lifestyle / total business cost</p>
+        </div>
+        <p className={subClass + " mt-1 opacity-70"}>{periodLabel}</p>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── EBITDA ──────────────────────────────────────────────────────────
+function EbitdaCard({
+  ebitda,
+  marginPct,
+  periodLabel,
+  index,
+}: {
+  ebitda: number | null;
+  marginPct: number | null;
+  periodLabel: string;
+  index: number;
+}) {
+  const fmtCompact = (n: number) => {
+    const abs = Math.abs(n);
+    const sign = n < 0 ? "-" : "";
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}K`;
+    return `${sign}$${Math.round(abs).toLocaleString()}`;
+  };
+  const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
+  const subClass = "text-[0.65rem] leading-tight text-muted-foreground font-mono whitespace-normal break-words text-center";
+  const figureStyle: React.CSSProperties = { fontSize: 'clamp(1.4rem, 1.9vw, 1.75rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' };
+  const hasData = ebitda != null;
+  const value = hasData ? fmtCompact(ebitda!) : "N/A";
+  const tone = !hasData ? "text-muted-foreground" : (ebitda! >= 0 ? "text-chart-green" : "text-chart-red");
+  const marginStr = marginPct != null ? `${marginPct.toFixed(1)}% margin` : "—";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+      className="stat-card relative overflow-hidden flex flex-col items-center text-center h-full p-3 gap-1"
+      style={{ containerType: 'inline-size' }}
+    >
+      <div className="w-full min-h-[1.5rem] flex items-center justify-center px-1">
+        <p className={titleClass}>EBITDA</p>
+      </div>
+      <div className="flex-1 flex flex-col items-center justify-center gap-1 w-full min-w-0 text-center">
+        <p className={`font-bold font-mono break-words leading-tight ${tone}`} style={figureStyle}>{value}</p>
+        <p className={subClass + " font-semibold"}>{hasData ? `${marginStr} · ${periodLabel}` : `awaiting period data · ${periodLabel}`}</p>
+        <p className={subClass + " opacity-70"}>before interest, tax, D&amp;A</p>
+      </div>
+    </motion.div>
+  );
+}
+
+
+
 function AvgContractCard({
   acvQuoted,
   acvWon,
@@ -2016,6 +2143,46 @@ const DashboardContent = () => {
             const moneyLabels = moneyScopeLabel(moneyScope);
             const monthOptions = availableMonthKeys(revenueProjects);
             const subtitleText = moneyMonth ? monthLabel(moneyMonth) : moneyLabels.subtitle;
+            const periodChip = moneyMonth ? monthLabel(moneyMonth) : (moneyScope === "all" ? "All time" : moneyLabels.pill);
+
+            // ── Money-period scoped aggregates (drives ACV, PerJob, Pipeline Coverage, EBITDA) ──
+            const moneyMonthsSet: Set<string> | null = moneyMonth
+              ? new Set([moneyMonth])
+              : moneyScopeMonths(moneyScope);
+            const _ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+            const dateToMK = (s?: string): string | null => {
+              if (!s) return null;
+              const d = new Date(s);
+              if (isNaN(d.getTime())) return null;
+              return `${_ABBR[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
+            };
+            const inMoney = (mk: string | null) => moneyMonthsSet === null ? true : (mk ? moneyMonthsSet.has(mk) : false);
+
+            const m_revenue = revenueProjects.filter(rp => inMoney(dateToMK(rp.invoiceDate) ?? dateToMK(rp.otherDate)));
+            const m_quotes = quotedJobs.filter(j => inMoney(dateToMK(j.dateQuoted)));
+            const m_won = m_quotes.filter(j => j.status === "won");
+            const m_lost = m_quotes.filter(j => j.status === "lost");
+            const m_revenueExGST = m_revenue.reduce((s,r) => s + (Number(r.valueExclGST)||0), 0);
+            const m_revenueInclGST = m_revenue.reduce((s,r) => s + (Number(r.valueInclGST)||0), 0);
+            const m_cogs = m_revenue.reduce((s,r) => s + (Number(r.totalCOGS)||0), 0);
+            const m_grossProfit = m_revenueExGST - m_cogs;
+            const m_wonCount = m_won.length;
+            const m_quotedCount = m_quotes.length;
+            const m_lostCount = m_lost.length;
+            const m_avgQuoted = m_quotedCount ? m_quotes.reduce((s,j) => s + (j.value||0), 0) / m_quotedCount : 0;
+            const m_avgWon = m_wonCount ? m_won.reduce((s,j) => s + (j.value||0), 0) / m_wonCount : 0;
+            const m_avgLost = m_lostCount ? m_lost.reduce((s,j) => s + (j.value||0), 0) / m_lostCount : 0;
+            const m_totalAllCount = quotedJobs.length;
+            const m_avgTotal = m_totalAllCount ? quotedJobs.reduce((s,j) => s + (j.value||0), 0) / m_totalAllCount : 0;
+            // Pipeline coverage: current open pipeline (always current snapshot) ÷ scoped revenue
+            const m_pipelineVal = quotedJobs
+              .filter(j => j.status === "pending" || j.status === "yellow")
+              .reduce((s,j) => s + (j.value||0), 0);
+            const m_pipelineCoverage = m_revenueExGST > 0 ? m_pipelineVal / m_revenueExGST : 0;
+            // EBITDA (unadjusted): GP − OpEx (excl. tax/interest/D&A — money.opEx already excludes those)
+            const m_hasEbitda = m_revenueExGST > 0 || money.opEx > 0;
+            const m_ebitda = m_hasEbitda ? (m_grossProfit - money.opEx) : null;
+            const m_ebitdaMargin = m_revenueExGST > 0 ? ((m_ebitda ?? 0) / m_revenueExGST) * 100 : null;
 
             return (
             <div className="mt-4 mb-4">
@@ -2034,15 +2201,15 @@ const DashboardContent = () => {
                 subtitle={subtitleText}
               />
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3" style={{ containerType: 'inline-size' }}>
-                {/* 1. Cash Position — relocated. StatCard internals detect label and wire Open/Today/Actual */}
+                {/* 1. Cash Position — current-month snapshot (not period-aggregate). */}
                 <StatCard
                   label="Cash Position"
                   value="—"
-                  change=""
+                  change="Current snapshot"
                   positive={true}
                   index={9}
                   altValue="—"
-                  altChange=""
+                  altChange="Current snapshot"
                   altPositive={true}
                   toggleLabelBase="Open"
                   toggleLabelAlt="Today"
@@ -2050,15 +2217,16 @@ const DashboardContent = () => {
                   greenAltPill={true}
                   emphasis
                 />
-                {/* 2. Invoices Paid / To-be-paid — relocated/built from REVENUE tab */}
+                {/* 2. Invoices Paid / To-be-paid — current-month snapshot */}
                 <InvoicesPaidCard index={10} onJumpToMonth={jumpToRevenueCogsMonth} />
-                {/* 3. PER JOB — merged Revenue/Profit per-job card */}
+                {/* 3. PER JOB — period-scoped */}
                 {(() => {
-                  const wc = sd.wonCount;
-                  const grossRevPerJob = wc > 0 ? sd.revenueInclGST / wc : 0;
-                  const netRevPerJob = wc > 0 ? sd.revenueExGST / wc : 0;
-                  const grossProfitPerJob = wc > 0 ? sd.grossProfit / wc : 0;
-                  const netProfitPerJob = wc > 0 ? sd.netProfit / wc : 0;
+                  const wc = m_wonCount;
+                  const grossRevPerJob = wc > 0 ? m_revenueInclGST / wc : 0;
+                  const netRevPerJob = wc > 0 ? m_revenueExGST / wc : 0;
+                  const grossProfitPerJob = wc > 0 ? m_grossProfit / wc : 0;
+                  // Net profit per job uses period net (revenue − opex) ÷ won
+                  const netProfitPerJob = wc > 0 ? (m_revenueExGST - money.opEx) / wc : 0;
                   return (
                     <PerJobCard
                       grossRevPerJob={grossRevPerJob}
@@ -2070,55 +2238,40 @@ const DashboardContent = () => {
                     />
                   );
                 })()}
-                {/* 4. Avg Contract Value — dual-mode (Quoted vs Total | Won vs Lost), overall */}
-                {(() => {
-                  const qs = (dataStore as any)?.quotesSummary ?? {};
-                  const avgOf = (o: any) => (Number(o?.count) > 0 ? Number(o.value) / Number(o.count) : 0);
-                  const acvQuoted = { avg: avgOf(qs.totalQuoted), count: Number(qs?.totalQuoted?.count ?? 0) };
-                  const acvWon    = { avg: avgOf(qs.totalWon),    count: Number(qs?.totalWon?.count ?? 0) };
-                  const acvLost   = { avg: avgOf(qs.totalLost),   count: Number(qs?.totalLost?.count ?? 0) };
-                  const acvTotal  = { avg: sd.avgTotal, count: sd.totalAllCount };
-                  return (
-                    <AvgContractCard
-                      acvQuoted={acvQuoted}
-                      acvWon={acvWon}
-                      acvLost={acvLost}
-                      acvTotal={acvTotal}
-                      index={12}
-                    />
-                  );
-                })()}
+                {/* 4. Avg Contract Value — period-scoped (Quoted vs Total | Won vs Lost) */}
+                <AvgContractCard
+                  acvQuoted={{ avg: m_avgQuoted, count: m_quotedCount }}
+                  acvWon={{ avg: m_avgWon, count: m_wonCount }}
+                  acvLost={{ avg: m_avgLost, count: m_lostCount }}
+                  acvTotal={{ avg: m_avgTotal, count: m_totalAllCount }}
+                  index={12}
+                />
 
-                {/* 5. Revenue Growth — scope-aware (YTD avg MoM% w/ sparkline, or QoQ%) */}
+                {/* 5. Revenue Growth — period-aware $ override */}
                 <RevenueGrowthCard
                   scope={investorScope}
                   index={13}
                   defaultView="dollar"
-                  dollarOverride={{ value: money.revenueExGST, label: `${moneyLabels.pill} revenue` }}
+                  dollarOverride={{ value: m_revenueExGST, label: `${periodChip} revenue` }}
                 />
                 {/* Row 2 */}
                 <StatCard
                   label="Pipeline Coverage"
-                  value={`${sd.pipelineCoverage.toFixed(1)}x`}
-                  change={fmtVal(sd.pipelineVal) + " pipeline"}
-                  positive={sd.pipelineCoverage >= 2}
+                  value={`${m_pipelineCoverage.toFixed(1)}x`}
+                  change={fmtVal(m_pipelineVal) + " pipeline"}
+                  positive={m_pipelineCoverage >= 2}
                   index={15}
                   variant="centered"
-                  momContext="vs YTD revenue run rate"
+                  momContext={`vs ${periodChip} revenue`}
                 />
-                <StatCard
-                  label="Op. Expense Ratio"
-                  value={money.opExpRatio !== null ? `${money.opExpRatio.toFixed(1)}%` : "N/A"}
-                  change="Expenses / Revenue"
-                  positive={(money.opExpRatio ?? 0) < 60}
+                {/* 6. EXPENSE RATIOS — merged Op + Lifestyle */}
+                <ExpenseRatiosCard
+                  opRatioPct={money.opExpRatio}
+                  opAmount={money.opEx}
+                  lifestyleRatioPct={money.lifestyleExpenseRatio}
+                  lifestyleAmount={money.lifestyleExpense}
+                  periodLabel={periodChip}
                   index={16}
-                  variant="centered"
-                  altValue={fmtVal(money.opEx)}
-                  altChange={`${moneyLabels.pill} operating expenses`}
-                  altPositive={(money.opExpRatio ?? 0) < 60}
-                  toggleLabelBase="%"
-                  toggleLabelAlt="$"
-                  greenAltPill={true}
                 />
 
                 <StatCard
@@ -2129,31 +2282,26 @@ const DashboardContent = () => {
                   index={16}
                   variant="centered"
                   altValue={fmtVal(money.labour)}
-                  altChange={`${moneyLabels.pill} labour`}
+                  altChange={`${periodChip} labour`}
                   altPositive={(money.labourCostRatio ?? 0) < 35}
                   toggleLabelBase="%"
                   toggleLabelAlt="$"
                   greenAltPill={true}
+                  momContext={periodChip}
                 />
-                <StatCard
-                  label="Lifestyle Expense Ratio"
-                  value={money.lifestyleExpenseRatio != null ? `${money.lifestyleExpenseRatio.toFixed(1)}%` : "N/A"}
-                  change="Owner lifestyle vs total business cost"
-                  positive={true}
+                {/* 8. EBITDA — period-scoped */}
+                <EbitdaCard
+                  ebitda={m_ebitda}
+                  marginPct={m_ebitdaMargin}
+                  periodLabel={periodChip}
                   index={17}
-                  variant="centered"
-                  altValue={money.lifestyleExpense ? fmtVal(money.lifestyleExpense) : "–"}
-                  altChange="Owner lifestyle cost"
-                  altPositive={true}
-                  toggleLabelBase="%"
-                  toggleLabelAlt="$"
-                  greenAltPill={true}
                 />
               </div>
 
             </div>
             );
           })()}
+
 
           {/* Active Goals */}
           <GoalsDashboardWidgets
