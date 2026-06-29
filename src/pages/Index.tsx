@@ -2306,7 +2306,7 @@ const DashboardContent = () => {
                   positive={true}
                   index={9}
                   altValue="—"
-                  altChange="Current balance"
+                  altChange="Current Balance"
                   altPositive={true}
                   toggleLabelBase="Open"
                   toggleLabelAlt="Today"
@@ -2315,7 +2315,7 @@ const DashboardContent = () => {
                   emphasis
                   openValueOverride={anchorOpeningBalance}
                   openSubtextOverride={anchorOpeningSubtext}
-                  currentSubtextOverride="Current balance · live"
+                  currentSubtextOverride="Current Xero balance · live"
                 />
                 {/* 2. Invoices — anchored on current month (or selected month). Prev month = To be Paid; Next month = To be Invoiced. */}
                 <InvoicesPaidCard
