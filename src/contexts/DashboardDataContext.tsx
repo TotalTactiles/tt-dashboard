@@ -770,78 +770,49 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
     // Each line item reads its row's latest actual value up to the current
     // month (same behaviour as cfLatest elsewhere). CASHFLOW-native sections.
 
-    const _now = new Date();
+    const _nowExp = new Date();
 
-    const _MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const _MONExp = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-    const _nowKey = `${_MON[_now.getMonth()]}-${String(_now.getFullYear()).slice(-2)}`;
+    const _nowKeyExp = `${_MONExp[_nowExp.getMonth()]}-${String(_nowExp.getFullYear()).slice(-2)}`;
 
-    let _nowIdx = cfMonths.indexOf(_nowKey);
+    let _nowIdxExp = cfMonths.indexOf(_nowKeyExp);
 
-    if (_nowIdx < 0) _nowIdx = cfMonths.length - 1;
+    if (_nowIdxExp < 0) _nowIdxExp = cfMonths.length - 1;
 
     const cfLatestX = (label: string): number => {
-
       const row = findCashflowRowExact(label);
-
       if (!row) return 0;
-
-      for (let i = _nowIdx; i >= 0; i--) {
-
+      for (let i = _nowIdxExp; i >= 0; i--) {
         const v = parseNum(row[cfMonths[i]] ?? 0);
-
         if (v !== 0) return Math.abs(v);
-
       }
-
       return 0;
-
     };
 
     const CF_EXPENSE_SECTIONS: Array<{ title: string; rows: string[] }> = [
-
       { title: "Cost of Sales",      rows: ["Labour Costs", "Tactile Costs", "Other Costs"] },
-
       { title: "Salaries & Wages",   rows: ["Krishan Singh", "Mehmet Kayaf", "Shania Georges Kayaf", "Workers Compensation"] },
-
       { title: "Operating Expenses", rows: ["Bank Fees", "Computer Expenses", "Consulting & Accounting", "Entertainment", "Insurance", "Instant Asset Write-Off", "Interest Expense", "Motor Vehicle Expenses", "Office Expenses", "Printing & Stationery", "Rent", "Repairs and Maintenance", "Subscriptions", "Superannuation", "Telephone & Internet", "Travel - National"] },
-
       { title: "Tax & Obligations",  rows: ["GST Paid", "Integrated Client Account (BAS)", "Income Tax Account"] },
-
       { title: "Finance / Debt",     rows: ["Business Loan Repayment & Monthly Fee", "Motor Vehicle Repayments"] },
-
     ];
 
     const expenseGroups: ExpenseGroup[] = CF_EXPENSE_SECTIONS.map((sec) => {
-
       const items: ExpenseGroupItem[] = sec.rows
-
         .map((label) => {
-
           const monthly = cfLatestX(label);
-
           return { name: label, monthlyCost: monthly, weeklyCost: monthly / 4.333, yearlyCost: monthly * 12 };
-
         })
-
         .filter((i) => i.monthlyCost > 0);
-
       return {
-
         title: sec.title,
-
         items,
-
         totalWeekly: items.reduce((s, i) => s + i.weeklyCost, 0),
-
         totalMonthly: items.reduce((s, i) => s + i.monthlyCost, 0),
-
         totalYearly: items.reduce((s, i) => s + i.yearlyCost, 0),
-
         tracked: false,
-
       };
-
     }).filter((g) => g.items.length > 0);
 
 
