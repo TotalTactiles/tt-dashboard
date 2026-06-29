@@ -150,6 +150,40 @@ export default function PerformanceVsTarget({
     return arr;
   }, [quotedJobs, start, end, today, totalMonths, committedFutureWon]);
 
+  // YLW bucket-by-job-date for the pace chart (only used in With-YLWs mode).
+  const ylwByMonth = useMemo(() => {
+    const arr = new Array<number>(totalMonths + 1).fill(0);
+    if (!withYlw || ylwValue <= 0) return arr;
+    const ylwJobs = (quotedJobs ?? []).filter((j) => j.status === "yellow");
+    let rawSum = 0;
+    const rawByMonth = new Array<number>(totalMonths + 1).fill(0);
+    let unbucketed = 0;
+    for (const j of ylwJobs) {
+      const v = Number(j.value) || 0;
+      if (v <= 0) continue;
+      const d = parseLoose(j.dateQuoted);
+      if (!d || d < start || d > end) {
+        // Missing/out-of-window dates land in current month as banked
+        unbucketed += v;
+        continue;
+      }
+      const m = monthsBetween(start, d) + 1;
+      if (m >= 1 && m <= totalMonths) { rawByMonth[m] += v; rawSum += v; }
+      else { unbucketed += v; }
+    }
+    const curM = Math.min(Math.max(monthsElapsed, 1), totalMonths);
+    rawByMonth[curM] += unbucketed;
+    rawSum += unbucketed;
+    if (rawSum <= 0) {
+      // No per-job ylw data: dump it all into the current month so chart still ties out.
+      arr[curM] = ylwValue;
+      return arr;
+    }
+    const scale = ylwValue / rawSum;
+    for (let i = 1; i <= totalMonths; i++) arr[i] = rawByMonth[i] * scale;
+    return arr;
+  }, [quotedJobs, start, end, totalMonths, monthsElapsed, withYlw, ylwValue]);
+
   // Active CRM pipeline denominator — matches the funnel toggle
   const activePipeline =
     funnelBasis === "leads"
