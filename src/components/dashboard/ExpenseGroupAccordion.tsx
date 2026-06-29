@@ -43,10 +43,7 @@ export default function ExpenseGroupAccordion({
         {groups.map((g) => {
           const isOpen = open.has(g.title);
           return (
-            <div
-              key={g.title}
-              className="rounded-lg border border-border bg-secondary/20 overflow-hidden"
-            >
+            <div key={g.title} className="rounded-lg border border-border bg-secondary/20 overflow-hidden">
               <button
                 type="button"
                 onClick={() => toggle(g.title)}
@@ -134,7 +131,7 @@ export default function ExpenseGroupAccordion({
         <div className="flex flex-col min-w-0">
           <span className="text-xs font-mono uppercase tracking-wider text-foreground">Total</span>
           <span className="text-[10px] font-mono text-muted-foreground/70">
-            selected line items, live from CASHFLOW
+            selected line items, sourced live from CASHFLOW
           </span>
         </div>
         <span className="font-mono font-bold text-lg text-foreground whitespace-nowrap">
