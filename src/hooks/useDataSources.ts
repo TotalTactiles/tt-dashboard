@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const STORAGE_KEY = "dashboard_data_sources";
 const DATA_CACHE_KEY = "dashboard_live_data";
@@ -263,6 +264,8 @@ function saveLiveData(data: LiveData) {
 }
 
 export function useDataSources() {
+  const { session } = useAuth();
+  const isAuthed = !!session?.access_token;
   const [sources, setSources] = useState<DataSourceConfig[]>(loadSavedSources);
   const [liveData, setLiveData] = useState<LiveData>(loadCachedData);
   const [projectKPIData, setProjectKPIData] = useState<ProjectKPIData | null>(loadCachedProjectKPI);
@@ -525,6 +528,7 @@ export function useDataSources() {
   }, []);
 
   useEffect(() => {
+    if (!isAuthed) return;
     // If cached data exists, we're not in initial load
     const hasCachedData = Object.keys(liveData).some((k) => !k.startsWith("_"));
     if (hasCachedData) {
@@ -544,7 +548,7 @@ export function useDataSources() {
       Object.values(abortRefs.current).forEach(c => c.abort());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isAuthed]);
 
   const toggleConnection = useCallback(
     (id: string) => {
@@ -799,6 +803,7 @@ export function useDataSources() {
   }, []);
 
   useEffect(() => {
+    if (!isAuthed) return;
     // Seed Zoho Projects events from longer-lived cache so they appear instantly on load
     try {
       const stored = localStorage.getItem(ZOHO_CALENDAR_CACHE_KEY);
@@ -829,7 +834,7 @@ export function useDataSources() {
       if (calendarInterval.current) clearInterval(calendarInterval.current);
       if (calendarAbortRef.current) calendarAbortRef.current.abort();
     };
-  }, [fetchCalendar]);
+  }, [fetchCalendar, isAuthed]);
 
   return {
     sources,
