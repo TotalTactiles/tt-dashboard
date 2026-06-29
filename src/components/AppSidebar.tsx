@@ -25,10 +25,10 @@ import {
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Deal Flow", url: "/deals", icon: Activity },
+  { title: "Deal Flow - not complete\n", url: "/deals", icon: Activity },
   { title: "Financial Health", url: "/financial-health", icon: HeartPulse },
-  { title: "Calendar", url: "/calendar", icon: CalendarDays },
-  { title: "Employee Centre", url: "/employees", icon: Users },
+  { title: "Calendar - fix", url: "/calendar", icon: CalendarDays },
+  { title: "Employee Centre - connect", url: "/employees", icon: Users },
   { title: "Goals & Targets", url: "/goals", icon: Target },
   { title: "Consulting", url: "/consulting", icon: BrainCircuit },
   { title: "Formulas", url: "/formulas", icon: FunctionSquare },
