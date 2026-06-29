@@ -881,14 +881,15 @@ const ChartsSection = ({
         const month = String(d.month);
         const opCost = Math.max(0, (Number(d.outgoings) || 0) - monthlyDebtFor(month));
         const fullNet = (Number(d.income) || 0) - opCost;
-        const probMargin = probableMarginFor(month);
+        const oldProbMargin = oldProbableMarginFor(month);
+        const ylwUplift = serviceabilityView === "with_ylw" ? ylwMonthlyUplift : 0;
         const net = serviceabilityView === "with_ylw"
-          ? (FORWARD_INCOME_INCLUDES_PROBABLE ? fullNet : fullNet + probMargin)
-          : (FORWARD_INCOME_INCLUDES_PROBABLE ? fullNet - probMargin : fullNet);
+          ? (FORWARD_INCOME_INCLUDES_PROBABLE ? fullNet - oldProbMargin + ylwUplift : fullNet + ylwUplift)
+          : (FORWARD_INCOME_INCLUDES_PROBABLE ? fullNet - oldProbMargin : fullNet);
         return {
           month, net: net * HAIRCUT, type: serviceabilityView,
           _income: Number(d.income) || 0, _opCost: opCost,
-          _probMargin: probMargin, _preHaircut: net,
+          _probMargin: ylwUplift, _preHaircut: net,
         };
       });
 
