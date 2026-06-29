@@ -264,6 +264,8 @@ function saveLiveData(data: LiveData) {
 }
 
 export function useDataSources() {
+  const { session } = useAuth();
+  const isAuthed = !!session?.access_token;
   const [sources, setSources] = useState<DataSourceConfig[]>(loadSavedSources);
   const [liveData, setLiveData] = useState<LiveData>(loadCachedData);
   const [projectKPIData, setProjectKPIData] = useState<ProjectKPIData | null>(loadCachedProjectKPI);
