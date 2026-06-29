@@ -1302,10 +1302,11 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
 
   // 4 Zoho-driven cards
   const zohoCardDefs = [
-    { title: "Projects Due",     icon: <FolderCheck className="w-4 h-4" />, group: "DELIVERY" },
-    { title: "Project Progress", icon: <ListChecks className="w-4 h-4" />,  group: "DELIVERY" },
-    { title: "Labour Efficiency",icon: <Users className="w-4 h-4" />,       group: "DELIVERY" },
-    { title: "Margin Variance",  icon: <TrendingUp className="w-4 h-4" />,  group: "PROFIT" },
+    { title: "Projects Due",      icon: <FolderCheck className="w-4 h-4" />, group: "DELIVERY" },
+    { title: "Project Progress",  icon: <ListChecks className="w-4 h-4" />,  group: "DELIVERY" },
+    { title: "Labour Efficiency", icon: <Users className="w-4 h-4" />,       group: "DELIVERY" },
+    { title: "Labour Cost Ratio", icon: <Users className="w-4 h-4" />,       group: "PROFIT" },
+    { title: "Margin Variance",   icon: <TrendingUp className="w-4 h-4" />,  group: "PROFIT" },
   ];
 
   // ── Period pills (Quarter / YTD / All) ──
