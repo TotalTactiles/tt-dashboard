@@ -38,10 +38,26 @@ function getCostByPeriod(item: { weeklyCost: number; monthlyCost: number; yearly
 interface ExpenseBreakdownProps {
   goals?: Goal[];
   activeGoalIds?: Set<string>;
+  groupsOverride?: import("@/contexts/DashboardDataContext").ExpenseGroup[];
+  title?: string;
+  storageKey?: string;
+  defaultExcluded?: string[];
+  hideGoals?: boolean;
+  hideGrandTotal?: boolean;
 }
 
-const ExpenseBreakdownInner = ({ goals = [], activeGoalIds = new Set() }: ExpenseBreakdownProps) => {
-  const { expenseCategories, grandTotalExpense, dataHealth, variableExpenses, taxObligations, expenseGroups } = useDashboardData();
+const ExpenseBreakdownInner = ({
+  goals = [],
+  activeGoalIds = new Set(),
+  groupsOverride,
+  title = "Business Expenses",
+  storageKey = "tt_expense_excluded_v2",
+  defaultExcluded,
+  hideGoals = false,
+  hideGrandTotal = false,
+}: ExpenseBreakdownProps) => {
+  const { expenseCategories, grandTotalExpense, dataHealth, variableExpenses, taxObligations, expenseGroups: ctxGroups } = useDashboardData();
+  const expenseGroups = groupsOverride ?? ctxGroups;
   const [period, setPeriod] = useState<Period>("monthly");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<{ cardName: string; categoryGroup: string } | null>(null);
@@ -49,14 +65,14 @@ const ExpenseBreakdownInner = ({ goals = [], activeGoalIds = new Set() }: Expens
   // Unticked BY DEFAULT: Cost of Sales (COGS, already in the margin engine)
   // and the Business Loan (counted in the debt section). Users can re-tick
   // any of these; their choice then saves and overrides this default.
-  const DEFAULT_EXCLUDED = [
+  const DEFAULT_EXCLUDED = defaultExcluded ?? [
     "Cost of Sales::Labour Costs",
     "Cost of Sales::Tactile Costs",
     "Cost of Sales::Other Costs",
     "Finance / Debt::Business Loan Repayment & Monthly Fee",
   ];
 
-  const EXPENSE_SEL_KEY = "tt_expense_excluded_v2";
+  const EXPENSE_SEL_KEY = storageKey;
 
   const [excludedKeys, setExcludedKeys] = useState<Set<string>>(() => {
     try {
