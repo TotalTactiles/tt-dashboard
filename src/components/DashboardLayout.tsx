@@ -20,6 +20,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const isTablet = useIsTablet();
   const isDesktop = !isMobile && !isTablet;
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <SidebarProvider defaultOpen={isDesktop}>
