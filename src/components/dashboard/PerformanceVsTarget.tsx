@@ -267,27 +267,32 @@ export default function PerformanceVsTarget({
   const TRACK_H = 56;
   const maxVal = target;
 
-  // Close rate sub-label
+  // Cadence labels follow the funnel toggle
+  const cadenceTitle = funnelBasis === "leads" ? "Leads / Month" : "Opps / Month";
+  const rateNoun = funnelBasis === "leads" ? "pipeline rate" : "close";
+  const funnelNounUpper = funnelBasis === "leads" ? "LEADS" : "OPPS";
+  const funnelNounLower = funnelBasis === "leads" ? "leads" : "opps";
+
+  // Close rate sub-label — "on current pipeline" framing
   let crSub: ReactNode = "—";
   let crSubTone: "muted" | "green" | "red" | "amber" = "muted";
   let crValue = "N/A";
   if (activePipeline <= 0) {
-    crSub = "awaiting CRM pipeline count";
+    crSub = "N/A · awaiting CRM pipeline count";
   } else if (requiredCloseRate == null) {
     crSub = "—";
   } else if (requiredCloseRate > 100) {
     crValue = ">100%";
-    crSub = "pipeline too thin";
+    crSub = `live pipeline too thin — generate new ${funnelNounLower} (see ${funnelNounUpper}/MONTH)`;
     crSubTone = "red";
+  } else if (requiredCloseRate <= closeRatePct) {
+    crValue = `${requiredCloseRate.toFixed(1)}%`;
+    crSub = `your live pipeline covers it (current ${closeRatePct.toFixed(1)}%)`;
+    crSubTone = "green";
   } else {
     crValue = `${requiredCloseRate.toFixed(1)}%`;
-    if (requiredCloseRate <= closeRatePct) {
-      crSub = `vs ${closeRatePct.toFixed(1)}% now — achievable at current rate`;
-      crSubTone = "green";
-    } else {
-      crSub = `vs ${closeRatePct.toFixed(1)}% now — must lift conversion`;
-      crSubTone = "amber";
-    }
+    crSub = `lift live-pipeline conversion to ${requiredCloseRate.toFixed(1)}% (now ${closeRatePct.toFixed(1)}%)`;
+    crSubTone = "amber";
   }
 
 
