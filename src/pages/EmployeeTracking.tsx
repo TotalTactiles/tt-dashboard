@@ -1146,7 +1146,7 @@ const EmployeeTracking = () => {
                     <td className="py-2 pr-2">{displayOf(t.workerName)}</td>
                     <td className="py-2 pr-2">{sourcePill(t.source)}</td>
                     <td className="py-2 pr-2 text-muted-foreground">{t.projectName}</td>
-                    <td className="py-2 pr-2 text-right tabular-nums">{t.hours.toFixed(1)}</td>
+                    <td className="py-2 pr-2 text-right tabular-nums">{(t.hours ?? 0).toFixed(1)}</td>
                     <td className="py-2 pr-2 text-right tabular-nums">{fmtMoney2(t.costAUD)}</td>
                     <td className="py-2 pr-2 text-muted-foreground">{fmtMonthLong(t.month)}</td>
                   </tr>
