@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import type { ExpenseGroup, ExpenseGroupItem } from "@/contexts/DashboardDataContext";
+import { getSectionColor } from "@/lib/expenseColors";
 
 type Period = "weekly" | "monthly" | "yearly";
 
@@ -40,10 +41,15 @@ export default function ExpenseGroupAccordion({
   return (
     <div>
       <div className="space-y-3">
-        {groups.map((g) => {
+        {groups.map((g, gi) => {
           const isOpen = open.has(g.title);
+          const color = getSectionColor(g.title, gi);
           return (
-            <div key={g.title} className="rounded-lg border border-border bg-secondary/20 overflow-hidden">
+            <div
+              key={g.title}
+              className="rounded-lg border border-border bg-secondary/20 overflow-hidden"
+              style={{ borderLeftWidth: 4, borderLeftColor: color }}
+            >
               <button
                 type="button"
                 onClick={() => toggle(g.title)}
@@ -53,7 +59,10 @@ export default function ExpenseGroupAccordion({
                   <ChevronDown
                     className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${isOpen ? "" : "-rotate-90"}`}
                   />
-                  <span className="text-sm font-mono font-semibold text-foreground uppercase tracking-wider">
+                  <span
+                    className="text-sm font-mono font-semibold text-foreground uppercase tracking-wider"
+                    style={{ color }}
+                  >
                     {g.title}
                   </span>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
@@ -131,7 +140,7 @@ export default function ExpenseGroupAccordion({
         <div className="flex flex-col min-w-0">
           <span className="text-xs font-mono uppercase tracking-wider text-foreground">Total</span>
           <span className="text-[10px] font-mono text-muted-foreground/70">
-            selected line items, sourced live from CASHFLOW
+            selected line items, live from CASHFLOW
           </span>
         </div>
         <span className="font-mono font-bold text-lg text-foreground whitespace-nowrap">
