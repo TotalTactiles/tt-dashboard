@@ -2227,24 +2227,32 @@ const DashboardContent = () => {
                 subtitle={subtitleText}
               />
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3" style={{ containerType: 'inline-size' }}>
-                {/* 1. Cash Position — current-month snapshot (not period-aggregate). */}
+                {/* 1. Cash Position — Open is period-aware; Today/Actual stay current snapshots. */}
                 <StatCard
                   label="Cash Position"
                   value="—"
-                  change="Current snapshot"
+                  change={`Balance at start of ${periodChip}`}
                   positive={true}
                   index={9}
                   altValue="—"
-                  altChange="Current snapshot"
+                  altChange="Current balance"
                   altPositive={true}
                   toggleLabelBase="Open"
                   toggleLabelAlt="Today"
                   toggleLabelAlt2="Actual"
                   greenAltPill={true}
                   emphasis
+                  openValueOverride={periodOpeningBalance}
+                  openSubtextOverride={openingSubtext}
+                  currentSubtextOverride="Current balance · live"
                 />
-                {/* 2. Invoices Paid / To-be-paid — current-month snapshot */}
-                <InvoicesPaidCard index={10} onJumpToMonth={jumpToRevenueCogsMonth} />
+                {/* 2. Invoices — period-scoped (To-be-Paid past-dated, To-be-Invoiced future-dated, both within period) */}
+                <InvoicesPaidCard
+                  index={10}
+                  onJumpToMonth={jumpToRevenueCogsMonth}
+                  periodMonths={moneyMonthsSet}
+                  periodLabel={periodChip}
+                />
                 {/* 3. PER JOB — period-scoped */}
                 {(() => {
                   const wc = m_wonCount;
@@ -2273,12 +2281,14 @@ const DashboardContent = () => {
                   index={12}
                 />
 
-                {/* 5. Revenue Growth — period-aware $ override */}
+                {/* 5. Revenue Growth — driven by the active money-period window */}
                 <RevenueGrowthCard
                   scope={investorScope}
                   index={13}
                   defaultView="dollar"
                   dollarOverride={{ value: m_revenueExGST, label: `${periodChip} revenue` }}
+                  periodMonths={moneyMonthsSet}
+                  periodLabel={periodChip}
                 />
                 {/* Row 2 */}
                 <StatCard
@@ -2288,8 +2298,9 @@ const DashboardContent = () => {
                   positive={m_pipelineCoverage >= 2}
                   index={15}
                   variant="centered"
-                  momContext={`vs ${periodChip} revenue`}
+                  momContext="Active pipeline ÷ revenue — forward work runway"
                 />
+
                 {/* 6. EXPENSE RATIOS — merged Op + Lifestyle */}
                 <ExpenseRatiosCard
                   opRatioPct={money.opExpRatio}
