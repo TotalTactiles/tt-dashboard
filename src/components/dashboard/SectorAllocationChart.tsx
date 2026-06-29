@@ -4,8 +4,12 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
 
-const SectorAllocationChart = React.memo(() => {
+type Slice = { name: string; value: number; fill: string };
+
+const SectorAllocationChart = React.memo(({ sections }: { sections?: Slice[] }) => {
   const { expenseAllocation, dataHealth } = useDashboardData();
+  const data: Slice[] = sections && sections.length > 0 ? sections : (expenseAllocation as Slice[]);
+  const total = data.reduce((s, d) => s + d.value, 0);
 
   return (
     <motion.div
@@ -15,14 +19,14 @@ const SectorAllocationChart = React.memo(() => {
       className="chart-container h-full flex flex-col"
     >
       <h3 className="text-sm font-medium text-muted-foreground mb-4">Expense Breakdown by Category</h3>
-      {expenseAllocation.length === 0 ? (
+      {data.length === 0 ? (
         <NoData message="No expense data" healthStatus={dataHealth.expenses.status} />
       ) : (
         <div className="flex-1 flex flex-col justify-center">
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie
-                data={expenseAllocation}
+                data={data}
                 cx="50%"
                 cy="50%"
                 innerRadius={55}
@@ -32,21 +36,19 @@ const SectorAllocationChart = React.memo(() => {
                 animationBegin={500}
                 animationDuration={1200}
               >
-                {expenseAllocation.map((entry, index) => (
+                {data.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.fill} />
                 ))}
               </Pie>
               <Tooltip
                 content={({ active, payload }) => {
                   if (!active || !payload?.length) return null;
-                  const entry = payload[0].payload;
-                  const { name, value, fill } = entry;
-                  const total = expenseAllocation.reduce((s, e) => s + e.value, 0);
-                  const pct = total > 0 ? ((value / total) * 100).toFixed(1) : "";
+                  const e = payload[0].payload as Slice;
+                  const pct = total > 0 ? ((e.value / total) * 100).toFixed(1) : "";
                   return (
                     <div className="bg-popover border border-border rounded-lg shadow-lg" style={{ padding: '10px 14px', minWidth: 140 }}>
-                      <div className="font-bold text-[13px] text-foreground mb-0.5">{name}</div>
-                      <div className="font-semibold text-[15px]" style={{ color: fill }}>${value.toLocaleString()}/yr</div>
+                      <div className="font-bold text-[13px] text-foreground mb-0.5">{e.name}</div>
+                      <div className="font-semibold text-[15px]" style={{ color: e.fill }}>${Math.round(e.value).toLocaleString()}/mo</div>
                       {pct && <div className="text-[12px] text-muted-foreground mt-0.5">{pct}% of total</div>}
                     </div>
                   );
@@ -55,11 +57,11 @@ const SectorAllocationChart = React.memo(() => {
             </PieChart>
           </ResponsiveContainer>
           <div className="flex flex-wrap gap-3 mt-2">
-            {expenseAllocation.map((s) => (
+            {data.map((s) => (
               <div key={s.name} className="flex items-center gap-1.5 text-xs">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.fill }} />
                 <span className="text-muted-foreground">{s.name}</span>
-                <span className="font-mono text-foreground">${s.value.toLocaleString()}</span>
+                <span className="font-mono text-foreground">${Math.round(s.value).toLocaleString()}</span>
               </div>
             ))}
           </div>
@@ -70,5 +72,4 @@ const SectorAllocationChart = React.memo(() => {
 });
 
 SectorAllocationChart.displayName = "SectorAllocationChart";
-
 export default SectorAllocationChart;
