@@ -221,7 +221,7 @@ export default function PerformanceVsTarget({
           }
         />
         <RequiredCard
-          label="Opps / Month"
+          label="Opps or Leads / Month"
           value={requiredOppsPerMonth != null ? String(requiredOppsPerMonth) : "N/A"}
           sub={closeRatePct > 0 ? `at ${closeRatePct.toFixed(1)}% close` : "no close rate"}
         />
