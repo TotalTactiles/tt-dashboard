@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Menu } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { MobileNav } from "@/components/MobileNav";
@@ -8,6 +9,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useIsTablet } from "@/hooks/use-tablet";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -18,6 +20,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const isTablet = useIsTablet();
   const isDesktop = !isMobile && !isTablet;
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <SidebarProvider defaultOpen={isDesktop}>
@@ -31,6 +39,15 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <ThemeToggle />
               <span className="pulse-dot bg-primary" />
               <span className="text-xs text-primary font-mono hidden sm:inline">Live</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="h-8 px-2 text-xs font-mono text-muted-foreground hover:text-foreground"
+              >
+                <LogOut className="w-3.5 h-3.5 mr-1" />
+                Log out
+              </Button>
             </div>
           </header>
 
@@ -45,8 +62,18 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <ThemeToggle />
               <span className="pulse-dot bg-primary" />
               <span className="text-xs text-muted-foreground font-mono">Live</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLogout}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                aria-label="Log out"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
             </div>
           </header>
+
 
 
           <main
