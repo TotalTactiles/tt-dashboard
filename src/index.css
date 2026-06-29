@@ -432,6 +432,30 @@
     width: 100%;
   }
 
+  /* ── Global table safety: prevent vertical-letter header collapse ── */
+  /* Any table inside a horizontal scroll wrapper keeps its cells on one line
+     so columns never squeeze below their content width. */
+  .table-scroll-wrapper table th,
+  .table-scroll-wrapper table td,
+  .overflow-x-auto > table th,
+  .overflow-x-auto > table td {
+    white-space: nowrap;
+  }
+  /* Cells explicitly opted-in to wrap (e.g. long names with truncate) */
+  .table-scroll-wrapper table th.cell-wrap,
+  .table-scroll-wrapper table td.cell-wrap,
+  .overflow-x-auto > table th.cell-wrap,
+  .overflow-x-auto > table td.cell-wrap {
+    white-space: normal;
+  }
+
+  /* ── Recharts / chart safety: never push parent width ── */
+  .recharts-responsive-container { max-width: 100%; }
+  .chart-container { min-width: 0; }
+
+  /* ── Flex/grid children with text or tables must allow shrinking ── */
+  .min-w-0-children > * { min-width: 0; }
+
   /* ── Mobile polish: softer sizing and spacing ── */
   @media (max-width: 767px) {
     .stat-card {

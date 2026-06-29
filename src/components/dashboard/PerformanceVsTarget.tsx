@@ -371,11 +371,11 @@ export default function PerformanceVsTarget({
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
             Cumulative pace <span className="opacity-60">(est.)</span>
           </span>
-          <div className="flex items-center gap-3 text-[8.1px] uppercase tracking-wider text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[8.1px] uppercase tracking-wider text-muted-foreground max-w-full">
             <Legend swatch="bg-muted-foreground/40" label="Target pace" />
             <Legend swatch="bg-chart-green" label="Actual (on/ahead)" />
             <Legend swatch="bg-[#E8B931]" label="Actual (behind)" />
-            {view === "2026" && <Legend swatch="bg-[#2DD4BF]" label={withYlw ? "Committed (won + YLW, future)" : "Committed (won, future)"} />}
+            {view === "2026" && <Legend swatch="bg-[#2DD4BF]" label={withYlw ? "Committed (won+YLW, future)" : "Committed (won, future)"} />}
           </div>
         </div>
 
