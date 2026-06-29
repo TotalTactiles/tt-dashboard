@@ -2206,7 +2206,7 @@ const DashboardContent = () => {
 
           </div>
 
-          {/* Business Expenses — split into Recurring (default-included) and Cost of Sales & Debt */}
+          {/* Business Expenses — split into Business Expenses (default-included) and COS & Debt */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
             <ExpenseBreakdown
               goals={goals}
