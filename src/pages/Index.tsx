@@ -2191,6 +2191,25 @@ const DashboardContent = () => {
             const m_ebitda = m_hasEbitda ? (m_grossProfit - money.opEx) : null;
             const m_ebitdaMargin = m_revenueExGST > 0 ? ((m_ebitda ?? 0) / m_revenueExGST) * 100 : null;
 
+            // ── Period opening balance (Cash Position "Open" mode) ──
+            // Pick the earliest in-period month from incomeOutgoingsData and read its openingBalance.
+            const periodOpeningBalance: number | null = (() => {
+              const inScope = (mk: string) => moneyMonthsSet === null ? true : moneyMonthsSet.has(mk);
+              const candidates = (incomeOutgoingsData ?? [])
+                .filter((p: any) => inScope(p.month))
+                .map((p: any) => {
+                  const mk = String(p.month);
+                  const mIdx = _ABBR.indexOf(mk.split("-")[0]);
+                  const yy = Number(mk.split("-")[1] ?? 0);
+                  return { sortKey: yy * 12 + (mIdx >= 0 ? mIdx : 0), opening: Number(p.openingBalance) || 0 };
+                })
+                .sort((a, b) => a.sortKey - b.sortKey);
+              if (candidates.length === 0) return null;
+              const first = candidates.find(c => c.opening !== 0) ?? candidates[0];
+              return first.opening || null;
+            })();
+            const openingSubtext = `Balance at start of ${periodChip}`;
+
             return (
             <div className="mt-4 mb-4">
               <SectionPeriodHeader
