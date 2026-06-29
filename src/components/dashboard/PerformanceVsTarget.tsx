@@ -441,11 +441,13 @@ export default function PerformanceVsTarget({
 
 function RequiredCard({
   label,
+  subLabel,
   value,
   sub,
   subTone = "muted",
 }: {
   label: string;
+  subLabel?: string;
   value: string;
   sub: ReactNode;
   subTone?: "muted" | "green" | "red" | "amber";
@@ -459,6 +461,9 @@ function RequiredCard({
   return (
     <div className="bg-secondary/30 border border-border/60 rounded px-3 py-2.5">
       <div className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground">{label}</div>
+      {subLabel && (
+        <div className="text-[8px] uppercase tracking-wider text-muted-foreground/70 -mt-0.5">{subLabel}</div>
+      )}
       <div
         className="font-mono tabular-nums font-semibold text-foreground mt-1"
         style={{ fontSize: "clamp(1.1rem, 1.5vw, 1.5rem)", letterSpacing: "-0.015em" }}
