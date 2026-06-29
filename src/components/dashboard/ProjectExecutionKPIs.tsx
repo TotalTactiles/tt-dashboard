@@ -638,8 +638,7 @@ function LabourCostRatioCard({
   const value = mode === "pct"
     ? (ratioPct != null ? `${ratioPct.toFixed(1)}%` : "N/A")
     : (labour > 0 ? fmtCompact(labour) : "—");
-  const isGood = (ratioPct ?? 0) < 35;
-  const tone = ratioPct == null ? "text-muted-foreground" : (isGood ? "text-chart-green" : "text-chart-red");
+  const tone = ratioPct == null ? "text-muted-foreground" : ratioPct > 50 ? "text-chart-red" : ratioPct > 35 ? "text-amber-500" : "text-foreground";
 
   return (
     <motion.div
