@@ -162,7 +162,7 @@ const ExpenseBreakdownInner = ({
 
 
           {/* Goals category from merged goals */}
-          {goalsCategory && (
+          {!hideGoals && goalsCategory && (
             <div className="mb-6">
               <h4 className="text-xs font-mono uppercase tracking-wider mb-3" style={{ color: GOALS_COLOR }}>
                 Goals (Projected)
