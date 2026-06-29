@@ -2247,11 +2247,6 @@ const DashboardContent = () => {
               />
             </div>
 
-            <div style={{ display: "flex", gap: "24px", alignItems: "stretch", flexWrap: "wrap" }}>
-              <div style={{ flex: "1 1 100%", minWidth: 0 }} className="h-full">
-                <SectorAllocationChart />
-              </div>
-            </div>
           </div>
 
         </>
