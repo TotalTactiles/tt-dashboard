@@ -1022,6 +1022,7 @@ const ChartsSection = ({
     return labels[strippedPeriod] ?? "";
   })();
 
+  const [expandedPill, setExpandedPill] = useState<number | null>(null);
 
   return (
 
