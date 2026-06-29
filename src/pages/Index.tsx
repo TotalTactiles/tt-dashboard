@@ -2206,6 +2206,28 @@ const DashboardContent = () => {
 
           </div>
 
+          {/* Business Expenses — split into Recurring (default-included) and Cost of Sales & Debt */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
+            <ExpenseBreakdown
+              goals={goals}
+              activeGoalIds={activeGoalIds}
+              groupsOverride={expenseGroupsDefault}
+              title="Business Expenses — Recurring"
+              storageKey="tt_expense_excluded_default_v1"
+              defaultExcluded={[]}
+              hideGoals
+              hideGrandTotal
+            />
+            <ExpenseBreakdown
+              groupsOverride={expenseGroupsDebt}
+              title="Cost of Sales & Debt"
+              storageKey="tt_expense_excluded_debt_v1"
+              defaultExcluded={[]}
+              hideGoals
+              hideGrandTotal
+            />
+          </div>
+
           <div className="mb-4 md:mb-6">
             <ForecastChart />
           </div>
@@ -2226,10 +2248,7 @@ const DashboardContent = () => {
             </div>
 
             <div style={{ display: "flex", gap: "24px", alignItems: "stretch", flexWrap: "wrap" }}>
-              <div style={{ flex: "1 1 55%", minWidth: 0 }} className="h-full">
-                <ExpenseBreakdown goals={goals} activeGoalIds={activeGoalIds} />
-              </div>
-              <div style={{ flex: "1 1 calc(45% - 24px)", minWidth: 0 }} className="h-full">
+              <div style={{ flex: "1 1 100%", minWidth: 0 }} className="h-full">
                 <SectorAllocationChart />
               </div>
             </div>
