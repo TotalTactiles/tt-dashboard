@@ -346,13 +346,12 @@ function ExpenseRatiosCard({
   const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
   const labelClass = "text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center";
   const subClass = "text-[0.65rem] leading-tight text-muted-foreground font-mono whitespace-normal break-words text-center";
-  const primaryStyle: React.CSSProperties = { fontSize: 'clamp(1.25rem, 1.6vw, 1.5rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' };
-  const secondaryStyle: React.CSSProperties = { fontSize: 'clamp(0.95rem, 1.2vw, 1.15rem)', lineHeight: 1.15, fontWeight: 600, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em' };
+  const figureStyle: React.CSSProperties = { fontSize: 'clamp(1.25rem, 1.6vw, 1.5rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' };
 
-  const opPrimary = mode === "pct"
+  const opValue = mode === "pct"
     ? (opRatioPct != null ? `${opRatioPct.toFixed(1)}%` : "N/A")
     : (opAmount > 0 ? fmtCompact(opAmount) : "—");
-  const lifestylePrimary = mode === "pct"
+  const lifestyleValue = mode === "pct"
     ? (lifestyleRatioPct != null ? `${lifestyleRatioPct.toFixed(1)}%` : "N/A")
     : (lifestyleAmount > 0 ? fmtCompact(lifestyleAmount) : "—");
   const opTone = (opRatioPct ?? 0) < 60 ? "text-chart-green" : "text-chart-red";
@@ -380,20 +379,20 @@ function ExpenseRatiosCard({
           >$</button>
         </div>
       </div>
-      <div className="flex-1 flex flex-col items-center justify-center gap-0.5 w-full min-w-0 text-center">
-        <div className="w-full min-w-0">
+      <div className="flex-1 flex flex-col justify-center w-full min-w-0 text-center">
+        <div className="w-full min-w-0 flex flex-col items-center gap-0.5">
           <p className={labelClass}>OP. EXPENSE</p>
-          <p className={`font-bold font-mono break-words leading-tight ${opTone}`} style={primaryStyle}>{opPrimary}</p>
-          <p className={subClass}>Expenses / Revenue</p>
+          <p className={`font-bold font-mono break-words leading-tight ${opTone}`} style={figureStyle}>{opValue}</p>
+          <p className={subClass}>Operating expenses ÷ revenue</p>
         </div>
-        <div className="h-px bg-white/10 my-1 w-2/3 mx-auto" />
-        <div className="w-full min-w-0">
+        <div className="h-px bg-white/10 my-2 w-2/3 mx-auto" />
+        <div className="w-full min-w-0 flex flex-col items-center gap-0.5">
           <p className={labelClass}>LIFESTYLE</p>
-          <p className="font-bold font-mono break-words leading-tight text-foreground/80" style={secondaryStyle}>{lifestylePrimary}</p>
-          <p className={subClass}>Owner lifestyle / total business cost</p>
+          <p className="font-bold font-mono break-words leading-tight text-foreground/80" style={figureStyle}>{lifestyleValue}</p>
+          <p className={subClass}>Owner lifestyle ÷ total business cost</p>
         </div>
-        <p className={subClass + " mt-1 opacity-70"}>{periodLabel}</p>
       </div>
+      <p className={subClass + " opacity-70"}>{periodLabel}</p>
     </motion.div>
   );
 }
