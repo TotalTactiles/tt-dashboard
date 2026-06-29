@@ -2212,7 +2212,7 @@ const DashboardContent = () => {
               goals={goals}
               activeGoalIds={activeGoalIds}
               groupsOverride={expenseGroupsDefault}
-              title="Business Expenses — Recurring"
+              title="Business Expenses"
               storageKey="tt_expense_excluded_default_v1"
               defaultExcluded={[]}
               hideGoals
@@ -2220,7 +2220,7 @@ const DashboardContent = () => {
             />
             <ExpenseBreakdown
               groupsOverride={expenseGroupsDebt}
-              title="Cost of Sales & Debt"
+              title="COS & Debt"
               storageKey="tt_expense_excluded_debt_v1"
               defaultExcluded={[]}
               hideGoals
