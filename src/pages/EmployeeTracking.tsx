@@ -799,7 +799,7 @@ const EmployeeTracking = () => {
                             )}
                           </td>
                           <td className="py-2 pr-2 text-right tabular-nums">{rate}</td>
-                          <td className="py-2 pr-2 text-right tabular-nums">{w.hoursWorked.toFixed(1)}</td>
+                          <td className="py-2 pr-2 text-right tabular-nums">{(w.hoursWorked ?? 0).toFixed(1)}</td>
                           <td className="py-2 pr-2 text-right tabular-nums">{fmtAUD(w.totalBilledAUD)}</td>
                           <td className="py-2 pr-2">{statusPill(w.status)}</td>
                         </tr>
