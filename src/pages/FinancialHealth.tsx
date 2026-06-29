@@ -844,11 +844,25 @@ const ChartsSection = ({
     for (const d of (Array.isArray(forecastChartData) ? forecastChartData : [])) {
       _fcByMonth[String(d.month)] = d;
     }
-    const probableMarginFor = (month: string) => {
+    const oldProbableMarginFor = (month: string) => {
       const d = _fcByMonth[month];
       if (!d) return 0;
       return (Number(d.probableJobs) || 0) - (Number(d.costOfJobsProbable) || 0);
     };
+
+    // ── YLW probable-pipeline uplift — sourced LIVE from dashboard data ──
+    // ylwValue is the FY YLW pipeline total, pulled from QTS SMMRY via the
+    // Google Sheets automation, so it stays current automatically.
+    // Net margin is taken from the live GP% (also dashboard data). The only
+    // manual lender assumptions are conversion likelihood + spread window.
+    const ylwPipelineValue = Number(ylwValue) || 0;
+    const _liveGpPct = Number(liveData?.investorMetrics?.grossMarginPct ?? liveData?.investorMetrics?.avgGpPct);
+    const YLW_GP_MARGIN = Number.isFinite(_liveGpPct) && _liveGpPct > 0 ? _liveGpPct / 100 : 0.47; // live GP%, else 47%
+    const YLW_WIN_PROB      = 0.50;  // lender assumption — verbal (YLW) conversion likelihood
+    const YLW_SPREAD_MONTHS = 6;     // lender assumption — months to spread the pipeline over
+    const ylwMonthlyUplift = serviceabilityView === "with_ylw"
+      ? (ylwPipelineValue * YLW_GP_MARGIN * YLW_WIN_PROB) / YLW_SPREAD_MONTHS
+      : 0;
 
     // Past actuals — realised net free cash (debt-stripped), completed months
     const _pastActuals = (io ?? [])
@@ -867,14 +881,15 @@ const ChartsSection = ({
         const month = String(d.month);
         const opCost = Math.max(0, (Number(d.outgoings) || 0) - monthlyDebtFor(month));
         const fullNet = (Number(d.income) || 0) - opCost;
-        const probMargin = probableMarginFor(month);
+        const oldProbMargin = oldProbableMarginFor(month);
+        const ylwUplift = serviceabilityView === "with_ylw" ? ylwMonthlyUplift : 0;
         const net = serviceabilityView === "with_ylw"
-          ? (FORWARD_INCOME_INCLUDES_PROBABLE ? fullNet : fullNet + probMargin)
-          : (FORWARD_INCOME_INCLUDES_PROBABLE ? fullNet - probMargin : fullNet);
+          ? (FORWARD_INCOME_INCLUDES_PROBABLE ? fullNet - oldProbMargin + ylwUplift : fullNet + ylwUplift)
+          : (FORWARD_INCOME_INCLUDES_PROBABLE ? fullNet - oldProbMargin : fullNet);
         return {
           month, net: net * HAIRCUT, type: serviceabilityView,
           _income: Number(d.income) || 0, _opCost: opCost,
-          _probMargin: probMargin, _preHaircut: net,
+          _probMargin: ylwUplift, _preHaircut: net,
         };
       });
 
@@ -950,7 +965,7 @@ const ChartsSection = ({
       _pastActuals,
       _forwardContracted,
     };
-  }, [io, liveData, forecastChartData, totalMonthlyRepayment, serviceabilityView]);
+  }, [io, liveData, ylwValue, forecastChartData, totalMonthlyRepayment, serviceabilityView]);
 
 
 
