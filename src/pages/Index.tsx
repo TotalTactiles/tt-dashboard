@@ -2143,6 +2143,46 @@ const DashboardContent = () => {
             const moneyLabels = moneyScopeLabel(moneyScope);
             const monthOptions = availableMonthKeys(revenueProjects);
             const subtitleText = moneyMonth ? monthLabel(moneyMonth) : moneyLabels.subtitle;
+            const periodChip = moneyMonth ? monthLabel(moneyMonth) : (moneyScope === "all" ? "All time" : moneyLabels.pill);
+
+            // ── Money-period scoped aggregates (drives ACV, PerJob, Pipeline Coverage, EBITDA) ──
+            const moneyMonthsSet: Set<string> | null = moneyMonth
+              ? new Set([moneyMonth])
+              : moneyScopeMonths(moneyScope);
+            const _ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+            const dateToMK = (s?: string): string | null => {
+              if (!s) return null;
+              const d = new Date(s);
+              if (isNaN(d.getTime())) return null;
+              return `${_ABBR[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
+            };
+            const inMoney = (mk: string | null) => moneyMonthsSet === null ? true : (mk ? moneyMonthsSet.has(mk) : false);
+
+            const m_revenue = revenueProjects.filter(rp => inMoney(dateToMK(rp.invoiceDate) ?? dateToMK(rp.otherDate)));
+            const m_quotes = quotedJobs.filter(j => inMoney(dateToMK(j.dateQuoted)));
+            const m_won = m_quotes.filter(j => j.status === "won");
+            const m_lost = m_quotes.filter(j => j.status === "lost");
+            const m_revenueExGST = m_revenue.reduce((s,r) => s + (Number(r.valueExclGST)||0), 0);
+            const m_revenueInclGST = m_revenue.reduce((s,r) => s + (Number(r.valueInclGST)||0), 0);
+            const m_cogs = m_revenue.reduce((s,r) => s + (Number(r.totalCOGS)||0), 0);
+            const m_grossProfit = m_revenueExGST - m_cogs;
+            const m_wonCount = m_won.length;
+            const m_quotedCount = m_quotes.length;
+            const m_lostCount = m_lost.length;
+            const m_avgQuoted = m_quotedCount ? m_quotes.reduce((s,j) => s + (j.value||0), 0) / m_quotedCount : 0;
+            const m_avgWon = m_wonCount ? m_won.reduce((s,j) => s + (j.value||0), 0) / m_wonCount : 0;
+            const m_avgLost = m_lostCount ? m_lost.reduce((s,j) => s + (j.value||0), 0) / m_lostCount : 0;
+            const m_totalAllCount = quotedJobs.length;
+            const m_avgTotal = m_totalAllCount ? quotedJobs.reduce((s,j) => s + (j.value||0), 0) / m_totalAllCount : 0;
+            // Pipeline coverage: current open pipeline (always current snapshot) ÷ scoped revenue
+            const m_pipelineVal = quotedJobs
+              .filter(j => j.status === "pending" || j.status === "yellow")
+              .reduce((s,j) => s + (j.value||0), 0);
+            const m_pipelineCoverage = m_revenueExGST > 0 ? m_pipelineVal / m_revenueExGST : 0;
+            // EBITDA (unadjusted): GP − OpEx (excl. tax/interest/D&A — money.opEx already excludes those)
+            const m_hasEbitda = m_revenueExGST > 0 || money.opEx > 0;
+            const m_ebitda = m_hasEbitda ? (m_grossProfit - money.opEx) : null;
+            const m_ebitdaMargin = m_revenueExGST > 0 ? ((m_ebitda ?? 0) / m_revenueExGST) * 100 : null;
 
             return (
             <div className="mt-4 mb-4">
@@ -2161,15 +2201,15 @@ const DashboardContent = () => {
                 subtitle={subtitleText}
               />
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3" style={{ containerType: 'inline-size' }}>
-                {/* 1. Cash Position — relocated. StatCard internals detect label and wire Open/Today/Actual */}
+                {/* 1. Cash Position — current-month snapshot (not period-aggregate). */}
                 <StatCard
                   label="Cash Position"
                   value="—"
-                  change=""
+                  change="Current snapshot"
                   positive={true}
                   index={9}
                   altValue="—"
-                  altChange=""
+                  altChange="Current snapshot"
                   altPositive={true}
                   toggleLabelBase="Open"
                   toggleLabelAlt="Today"
@@ -2177,15 +2217,16 @@ const DashboardContent = () => {
                   greenAltPill={true}
                   emphasis
                 />
-                {/* 2. Invoices Paid / To-be-paid — relocated/built from REVENUE tab */}
+                {/* 2. Invoices Paid / To-be-paid — current-month snapshot */}
                 <InvoicesPaidCard index={10} onJumpToMonth={jumpToRevenueCogsMonth} />
-                {/* 3. PER JOB — merged Revenue/Profit per-job card */}
+                {/* 3. PER JOB — period-scoped */}
                 {(() => {
-                  const wc = sd.wonCount;
-                  const grossRevPerJob = wc > 0 ? sd.revenueInclGST / wc : 0;
-                  const netRevPerJob = wc > 0 ? sd.revenueExGST / wc : 0;
-                  const grossProfitPerJob = wc > 0 ? sd.grossProfit / wc : 0;
-                  const netProfitPerJob = wc > 0 ? sd.netProfit / wc : 0;
+                  const wc = m_wonCount;
+                  const grossRevPerJob = wc > 0 ? m_revenueInclGST / wc : 0;
+                  const netRevPerJob = wc > 0 ? m_revenueExGST / wc : 0;
+                  const grossProfitPerJob = wc > 0 ? m_grossProfit / wc : 0;
+                  // Net profit per job uses period net (revenue − opex) ÷ won
+                  const netProfitPerJob = wc > 0 ? (m_revenueExGST - money.opEx) / wc : 0;
                   return (
                     <PerJobCard
                       grossRevPerJob={grossRevPerJob}
@@ -2197,55 +2238,40 @@ const DashboardContent = () => {
                     />
                   );
                 })()}
-                {/* 4. Avg Contract Value — dual-mode (Quoted vs Total | Won vs Lost), overall */}
-                {(() => {
-                  const qs = (dataStore as any)?.quotesSummary ?? {};
-                  const avgOf = (o: any) => (Number(o?.count) > 0 ? Number(o.value) / Number(o.count) : 0);
-                  const acvQuoted = { avg: avgOf(qs.totalQuoted), count: Number(qs?.totalQuoted?.count ?? 0) };
-                  const acvWon    = { avg: avgOf(qs.totalWon),    count: Number(qs?.totalWon?.count ?? 0) };
-                  const acvLost   = { avg: avgOf(qs.totalLost),   count: Number(qs?.totalLost?.count ?? 0) };
-                  const acvTotal  = { avg: sd.avgTotal, count: sd.totalAllCount };
-                  return (
-                    <AvgContractCard
-                      acvQuoted={acvQuoted}
-                      acvWon={acvWon}
-                      acvLost={acvLost}
-                      acvTotal={acvTotal}
-                      index={12}
-                    />
-                  );
-                })()}
+                {/* 4. Avg Contract Value — period-scoped (Quoted vs Total | Won vs Lost) */}
+                <AvgContractCard
+                  acvQuoted={{ avg: m_avgQuoted, count: m_quotedCount }}
+                  acvWon={{ avg: m_avgWon, count: m_wonCount }}
+                  acvLost={{ avg: m_avgLost, count: m_lostCount }}
+                  acvTotal={{ avg: m_avgTotal, count: m_totalAllCount }}
+                  index={12}
+                />
 
-                {/* 5. Revenue Growth — scope-aware (YTD avg MoM% w/ sparkline, or QoQ%) */}
+                {/* 5. Revenue Growth — period-aware $ override */}
                 <RevenueGrowthCard
                   scope={investorScope}
                   index={13}
                   defaultView="dollar"
-                  dollarOverride={{ value: money.revenueExGST, label: `${moneyLabels.pill} revenue` }}
+                  dollarOverride={{ value: m_revenueExGST, label: `${periodChip} revenue` }}
                 />
                 {/* Row 2 */}
                 <StatCard
                   label="Pipeline Coverage"
-                  value={`${sd.pipelineCoverage.toFixed(1)}x`}
-                  change={fmtVal(sd.pipelineVal) + " pipeline"}
-                  positive={sd.pipelineCoverage >= 2}
+                  value={`${m_pipelineCoverage.toFixed(1)}x`}
+                  change={fmtVal(m_pipelineVal) + " pipeline"}
+                  positive={m_pipelineCoverage >= 2}
                   index={15}
                   variant="centered"
-                  momContext="vs YTD revenue run rate"
+                  momContext={`vs ${periodChip} revenue`}
                 />
-                <StatCard
-                  label="Op. Expense Ratio"
-                  value={money.opExpRatio !== null ? `${money.opExpRatio.toFixed(1)}%` : "N/A"}
-                  change="Expenses / Revenue"
-                  positive={(money.opExpRatio ?? 0) < 60}
+                {/* 6. EXPENSE RATIOS — merged Op + Lifestyle */}
+                <ExpenseRatiosCard
+                  opRatioPct={money.opExpRatio}
+                  opAmount={money.opEx}
+                  lifestyleRatioPct={money.lifestyleExpenseRatio}
+                  lifestyleAmount={money.lifestyleExpense}
+                  periodLabel={periodChip}
                   index={16}
-                  variant="centered"
-                  altValue={fmtVal(money.opEx)}
-                  altChange={`${moneyLabels.pill} operating expenses`}
-                  altPositive={(money.opExpRatio ?? 0) < 60}
-                  toggleLabelBase="%"
-                  toggleLabelAlt="$"
-                  greenAltPill={true}
                 />
 
                 <StatCard
@@ -2256,31 +2282,26 @@ const DashboardContent = () => {
                   index={16}
                   variant="centered"
                   altValue={fmtVal(money.labour)}
-                  altChange={`${moneyLabels.pill} labour`}
+                  altChange={`${periodChip} labour`}
                   altPositive={(money.labourCostRatio ?? 0) < 35}
                   toggleLabelBase="%"
                   toggleLabelAlt="$"
                   greenAltPill={true}
+                  momContext={periodChip}
                 />
-                <StatCard
-                  label="Lifestyle Expense Ratio"
-                  value={money.lifestyleExpenseRatio != null ? `${money.lifestyleExpenseRatio.toFixed(1)}%` : "N/A"}
-                  change="Owner lifestyle vs total business cost"
-                  positive={true}
+                {/* 8. EBITDA — period-scoped */}
+                <EbitdaCard
+                  ebitda={m_ebitda}
+                  marginPct={m_ebitdaMargin}
+                  periodLabel={periodChip}
                   index={17}
-                  variant="centered"
-                  altValue={money.lifestyleExpense ? fmtVal(money.lifestyleExpense) : "–"}
-                  altChange="Owner lifestyle cost"
-                  altPositive={true}
-                  toggleLabelBase="%"
-                  toggleLabelAlt="$"
-                  greenAltPill={true}
                 />
               </div>
 
             </div>
             );
           })()}
+
 
           {/* Active Goals */}
           <GoalsDashboardWidgets
