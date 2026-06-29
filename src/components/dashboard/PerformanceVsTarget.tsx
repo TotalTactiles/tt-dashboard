@@ -1,0 +1,404 @@
+import { useEffect, useMemo, useState, ReactNode } from "react";
+import { motion } from "framer-motion";
+import { formatMetricValue } from "@/lib/formatMetricValue";
+
+const fmtAUD = (n: number) => formatMetricValue(n, "currency");
+
+const cardBase =
+  "relative bg-card border border-border rounded-lg p-4 md:p-5 flex flex-col";
+
+const PERIOD_KEY = "tt_target_period";
+
+type PeriodChoice = "cy2026" | "fy26" | "fy27" | "custom";
+
+type Props = {
+  target: number;
+  wonToDate: number;
+  avgWon: number;
+  closeRatePct: number; // 0-100
+  funnelBasis: "opportunities" | "leads";
+  setFunnelBasis: (v: "opportunities" | "leads") => void;
+};
+
+function loadPeriod(): { choice: PeriodChoice; customStart?: string; customEnd?: string } {
+  try {
+    const raw = localStorage.getItem(PERIOD_KEY);
+    if (raw) {
+      const p = JSON.parse(raw);
+      if (p && typeof p === "object" && p.choice) return p;
+    }
+  } catch {}
+  return { choice: "cy2026" };
+}
+
+function resolveWindow(p: { choice: PeriodChoice; customStart?: string; customEnd?: string }): { start: Date; end: Date; label: string } {
+  switch (p.choice) {
+    case "fy26":
+      return { start: new Date(2025, 6, 1), end: new Date(2026, 5, 30), label: "FY26" };
+    case "fy27":
+      return { start: new Date(2026, 6, 1), end: new Date(2027, 5, 30), label: "FY27" };
+    case "custom": {
+      const s = p.customStart ? new Date(p.customStart) : new Date(2026, 0, 1);
+      const e = p.customEnd ? new Date(p.customEnd) : new Date(2026, 11, 31);
+      return { start: s, end: e, label: "Custom" };
+    }
+    case "cy2026":
+    default:
+      return { start: new Date(2026, 0, 1), end: new Date(2026, 11, 31), label: "CY 2026" };
+  }
+}
+
+function monthsBetween(a: Date, b: Date): number {
+  return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+}
+
+export default function PerformanceVsTarget({
+  target,
+  wonToDate,
+  avgWon,
+  closeRatePct,
+  funnelBasis,
+  setFunnelBasis,
+}: Props) {
+  const [period, setPeriod] = useState(loadPeriod());
+
+  useEffect(() => {
+    try { localStorage.setItem(PERIOD_KEY, JSON.stringify(period)); } catch {}
+  }, [period]);
+
+  const { start, end, label } = resolveWindow(period);
+  const today = new Date();
+
+  // months
+  const totalMonths = Math.max(1, monthsBetween(start, end) + 1);
+  const elapsedRaw = monthsBetween(start, today) + 1;
+  const monthsElapsed = Math.min(Math.max(elapsedRaw, 0), totalMonths);
+  const monthsRemaining = Math.max(totalMonths - monthsElapsed, 0);
+
+  const remaining = Math.max(target - wonToDate, 0);
+  const expectedToDate = target > 0 ? target * (monthsElapsed / totalMonths) : 0;
+  const paceGap = wonToDate - expectedToDate;
+
+  const actualRunRate = monthsElapsed > 0 ? wonToDate / monthsElapsed : 0;
+  const requiredRunRate = monthsRemaining > 0 ? remaining / monthsRemaining : null;
+  const runRateUplift =
+    actualRunRate > 0 && requiredRunRate != null
+      ? (requiredRunRate / actualRunRate - 1) * 100
+      : null;
+
+  const jobsToGoalRaw = avgWon > 0 ? remaining / avgWon : null;
+  const jobsToGoal = jobsToGoalRaw != null ? Math.ceil(jobsToGoalRaw) : null;
+  const requiredJobsPerMonth =
+    jobsToGoalRaw != null && monthsRemaining > 0 ? Math.ceil(jobsToGoalRaw / monthsRemaining) : null;
+  const oppsToGoalRaw =
+    jobsToGoalRaw != null && closeRatePct > 0 ? jobsToGoalRaw / (closeRatePct / 100) : null;
+  const requiredOppsPerMonth =
+    oppsToGoalRaw != null && monthsRemaining > 0 ? Math.ceil(oppsToGoalRaw / monthsRemaining) : null;
+
+  // status
+  type Status = { label: string; tone: "green" | "amber" | "red" | "neutral"; sub: string };
+  const status: Status = useMemo(() => {
+    if (target <= 0) return { label: "NO TARGET", tone: "neutral", sub: "Set a revenue target to track pace." };
+    if (monthsRemaining === 0) {
+      const pct = target > 0 ? (wonToDate / target) * 100 : 0;
+      return {
+        label: "PERIOD CLOSED",
+        tone: "neutral",
+        sub: `Final attainment ${pct.toFixed(1)}% of ${fmtAUD(target)}.`,
+      };
+    }
+    const hi = expectedToDate * 1.02;
+    const lo = expectedToDate * 0.98;
+    if (wonToDate > hi) {
+      return {
+        label: "ABOVE PACE",
+        tone: "green",
+        sub: `${fmtAUD(Math.abs(paceGap))} ahead of where you should be at month ${monthsElapsed} of ${totalMonths}.`,
+      };
+    }
+    if (wonToDate < lo) {
+      const worse15 = paceGap < -target * 0.15;
+      return {
+        label: "BEHIND PACE",
+        tone: worse15 ? "red" : "amber",
+        sub: `${fmtAUD(Math.abs(paceGap))} behind where you should be at month ${monthsElapsed} of ${totalMonths}.`,
+      };
+    }
+    return {
+      label: "ON TRACK",
+      tone: "green",
+      sub: `Within ±2% of linear pace at month ${monthsElapsed} of ${totalMonths}.`,
+    };
+  }, [target, wonToDate, expectedToDate, paceGap, monthsElapsed, totalMonths, monthsRemaining]);
+
+  const toneClass = {
+    green: "bg-chart-green/15 text-chart-green border-chart-green/30",
+    amber: "bg-[#E8B931]/15 text-[#E8B931] border-[#E8B931]/30",
+    red: "bg-chart-red/15 text-chart-red border-chart-red/30",
+    neutral: "bg-muted/40 text-muted-foreground border-border",
+  }[status.tone];
+
+  // cumulative pace chart data
+  const chartData = useMemo(() => {
+    const rows: Array<{ idx: number; target: number; actual: number | null; future: boolean }> = [];
+    if (target <= 0 || totalMonths <= 0) return rows;
+    const perMonthTarget = target / totalMonths;
+    const perMonthActualEst = monthsElapsed > 0 ? wonToDate / monthsElapsed : 0;
+    for (let i = 1; i <= totalMonths; i++) {
+      const cumTarget = perMonthTarget * i;
+      const future = i > monthsElapsed;
+      rows.push({
+        idx: i,
+        target: cumTarget,
+        actual: future ? null : perMonthActualEst * i,
+        future,
+      });
+    }
+    return rows;
+  }, [target, totalMonths, monthsElapsed, wonToDate]);
+
+  const chartMax = useMemo(() => {
+    return chartData.reduce((m, r) => Math.max(m, r.target, r.actual ?? 0), 1);
+  }, [chartData]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, delay: 0.05 }}
+      className={cardBase}
+    >
+      {/* Header */}
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <span className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground/70">
+          Performance vs Target
+        </span>
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          · linear pace · month {monthsElapsed} of {totalMonths}
+        </span>
+        <div className="flex-1" />
+        <PeriodSelector period={period} setPeriod={setPeriod} />
+        <FunnelToggle value={funnelBasis} onChange={setFunnelBasis} />
+      </div>
+
+      {/* Status banner */}
+      <div className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 border rounded-md px-3 py-2 mb-4 ${toneClass}`}>
+        <span className="text-xs font-bold uppercase tracking-wider">{status.label}</span>
+        <span className="text-xs text-muted-foreground">{status.sub}</span>
+        <div className="flex-1" />
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          {label}
+        </span>
+      </div>
+
+      {/* Required performance grid */}
+      <div
+        className="grid gap-3 mb-4"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}
+      >
+        <RequiredCard
+          label="Required Run-Rate"
+          value={requiredRunRate != null ? `${fmtAUD(requiredRunRate)}/mo` : "N/A"}
+          sub={
+            runRateUplift == null
+              ? `current ${actualRunRate > 0 ? fmtAUD(actualRunRate) + "/mo" : "—"}`
+              : `${runRateUplift >= 0 ? "+" : ""}${runRateUplift.toFixed(0)}% vs your ${fmtAUD(actualRunRate)}/mo`
+          }
+          subTone={runRateUplift == null ? "muted" : runRateUplift > 0 ? "red" : "green"}
+        />
+        <RequiredCard
+          label="Jobs / Month"
+          value={requiredJobsPerMonth != null ? String(requiredJobsPerMonth) : "N/A"}
+          sub={
+            jobsToGoal != null && monthsRemaining > 0
+              ? `${jobsToGoal} jobs ÷ ${monthsRemaining} mo`
+              : "—"
+          }
+        />
+        <RequiredCard
+          label="Opps / Month"
+          value={requiredOppsPerMonth != null ? String(requiredOppsPerMonth) : "N/A"}
+          sub={closeRatePct > 0 ? `at ${closeRatePct.toFixed(1)}% close` : "no close rate"}
+        />
+        <RequiredCard
+          label="Close Rate to Hit"
+          value={closeRatePct > 0 ? `${closeRatePct.toFixed(1)}%` : "N/A"}
+          sub={closeRatePct > 0 ? "held flat" : "—"}
+          subTone="muted"
+        />
+      </div>
+
+      {/* Cumulative pace mini-chart */}
+      {chartData.length > 0 && (
+        <div className="border border-border/60 rounded-md p-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              Cumulative pace (est.)
+            </span>
+            <div className="flex items-center gap-3 text-[9px] uppercase tracking-wider text-muted-foreground">
+              <Legend swatch="bg-muted-foreground/40" label="Target pace" />
+              <Legend swatch="bg-chart-green" label="Actual (on/ahead)" />
+              <Legend swatch="bg-[#E8B931]" label="Actual (behind)" />
+            </div>
+          </div>
+          <div className="flex items-end gap-[3px] h-24">
+            {chartData.map((r) => {
+              const tH = (r.target / chartMax) * 100;
+              const aH = r.actual != null ? (r.actual / chartMax) * 100 : 0;
+              const onTrack = r.actual != null && r.actual >= r.target;
+              return (
+                <div key={r.idx} className="flex-1 flex items-end gap-[1px] min-w-0">
+                  <div
+                    className={`flex-1 rounded-sm ${r.future ? "bg-muted-foreground/15" : "bg-muted-foreground/40"}`}
+                    style={{ height: `${Math.max(tH, 2)}%` }}
+                    title={`M${r.idx} target ${fmtAUD(r.target)}`}
+                  />
+                  {!r.future && (
+                    <div
+                      className={`flex-1 rounded-sm ${onTrack ? "bg-chart-green" : "bg-[#E8B931]"}`}
+                      style={{ height: `${Math.max(aH, 2)}%` }}
+                      title={`M${r.idx} actual ${fmtAUD(r.actual ?? 0)}`}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+function RequiredCard({
+  label,
+  value,
+  sub,
+  subTone = "muted",
+}: {
+  label: string;
+  value: string;
+  sub: ReactNode;
+  subTone?: "muted" | "green" | "red" | "amber";
+}) {
+  const subClass = {
+    muted: "text-muted-foreground",
+    green: "text-chart-green",
+    red: "text-chart-red",
+    amber: "text-[#E8B931]",
+  }[subTone];
+  return (
+    <div className="bg-secondary/30 border border-border/60 rounded px-3 py-2.5">
+      <div className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground">{label}</div>
+      <div
+        className="font-mono tabular-nums font-semibold text-foreground mt-1"
+        style={{ fontSize: "clamp(1.1rem, 1.5vw, 1.5rem)", letterSpacing: "-0.015em" }}
+      >
+        {value}
+      </div>
+      <div className={`text-[10px] mt-0.5 ${subClass}`}>{sub}</div>
+    </div>
+  );
+}
+
+function Legend({ swatch, label }: { swatch: string; label: string }) {
+  return (
+    <span className="flex items-center gap-1">
+      <span className={`inline-block w-2 h-2 rounded-sm ${swatch}`} />
+      {label}
+    </span>
+  );
+}
+
+function PeriodSelector({
+  period,
+  setPeriod,
+}: {
+  period: { choice: PeriodChoice; customStart?: string; customEnd?: string };
+  setPeriod: (p: { choice: PeriodChoice; customStart?: string; customEnd?: string }) => void;
+}) {
+  const choices: { id: PeriodChoice; label: string }[] = [
+    { id: "cy2026", label: "CY 2026" },
+    { id: "fy26", label: "FY26" },
+    { id: "fy27", label: "FY27" },
+    { id: "custom", label: "Custom" },
+  ];
+  return (
+    <div className="flex items-center gap-1.5">
+      <div
+        className="flex rounded-full bg-secondary/80 p-0.5 leading-none"
+        style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}
+      >
+        {choices.map((c) => {
+          const active = period.choice === c.id;
+          return (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setPeriod({ ...period, choice: c.id })}
+              className={`px-1.5 py-0.5 rounded-full font-mono whitespace-nowrap transition-colors ${
+                active ? "text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+              style={active ? { backgroundColor: "#3D89DA" } : undefined}
+            >
+              {c.label}
+            </button>
+          );
+        })}
+      </div>
+      {period.choice === "custom" && (
+        <div className="flex items-center gap-1">
+          <input
+            type="date"
+            value={period.customStart ?? ""}
+            onChange={(e) => setPeriod({ ...period, customStart: e.target.value })}
+            className="bg-secondary/60 border border-border rounded px-1.5 py-0.5 text-[10px] font-mono"
+          />
+          <span className="text-[10px] text-muted-foreground">–</span>
+          <input
+            type="date"
+            value={period.customEnd ?? ""}
+            onChange={(e) => setPeriod({ ...period, customEnd: e.target.value })}
+            className="bg-secondary/60 border border-border rounded px-1.5 py-0.5 text-[10px] font-mono"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FunnelToggle({
+  value,
+  onChange,
+}: {
+  value: "opportunities" | "leads";
+  onChange: (v: "opportunities" | "leads") => void;
+}) {
+  return (
+    <div
+      className="flex rounded-full bg-secondary/80 p-0.5 leading-none"
+      style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}
+    >
+      <button
+        type="button"
+        onClick={() => onChange("opportunities")}
+        className={`px-1.5 py-0.5 rounded-full font-mono whitespace-nowrap transition-colors ${
+          value === "opportunities" ? "text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+        }`}
+        style={value === "opportunities" ? { backgroundColor: "#3D89DA" } : undefined}
+      >
+        Opportunities
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("leads")}
+        className={`px-1.5 py-0.5 rounded-full font-mono whitespace-nowrap transition-colors ${
+          value === "leads" ? "text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+        }`}
+        style={value === "leads" ? { backgroundColor: "#3D89DA" } : undefined}
+      >
+        Leads
+      </button>
+    </div>
+  );
+}
