@@ -84,6 +84,8 @@ export default function PerformanceVsTarget({
   closeRatePct,
   funnelBasis,
   setFunnelBasis,
+  withYlw = false,
+  ylwValue = 0,
 }: Props) {
   const { quotedJobs } = useDashboardData();
   const { quotingOpp, totalLeads } = useCrmStages();
