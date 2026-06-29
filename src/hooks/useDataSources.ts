@@ -528,6 +528,7 @@ export function useDataSources() {
   }, []);
 
   useEffect(() => {
+    if (!isAuthed) return;
     // If cached data exists, we're not in initial load
     const hasCachedData = Object.keys(liveData).some((k) => !k.startsWith("_"));
     if (hasCachedData) {
@@ -547,7 +548,7 @@ export function useDataSources() {
       Object.values(abortRefs.current).forEach(c => c.abort());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isAuthed]);
 
   const toggleConnection = useCallback(
     (id: string) => {
