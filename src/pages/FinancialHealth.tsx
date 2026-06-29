@@ -1237,10 +1237,19 @@ const ChartsSection = ({
             ].map((pill, i) => (
               <button
                 key={pill.label}
-                onClick={() => { console.log(serviceabilityView); setExpandedPill(i); }}
-                className="text-left"
+                onClick={() => setExpandedPill(expandedPill === i ? null : i)}
+                className={`text-left bg-white/5 border rounded-lg px-4 py-2 flex-1 min-w-[180px] transition-all cursor-pointer hover:bg-white/10 ${expandedPill === i ? "border-chart-green/50" : "border-white/10"}`}
               >
-                {expandedPill === i ? pill.equation : pill.label}
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-mono">{pill.label}</p>
+                  <span className="text-[10px] text-muted-foreground hover:text-foreground">ⓘ</span>
+                </div>
+                <p className={`text-lg font-mono font-bold ${pill.colorClass}`} style={pill.colorStyle ? { color: pill.colorStyle } : undefined}>{pill.fmt(pill.value)}</p>
+                {expandedPill === i && (
+                  <p className="mt-2 text-[10px] leading-tight text-muted-foreground font-mono border-t border-white/10 pt-2">
+                    {pill.equation}
+                  </p>
+                )}
               </button>
             ))}
           </div>
