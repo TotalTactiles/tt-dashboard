@@ -195,6 +195,29 @@ const EmployeeTracking = () => {
   const [sourceFilter, setSourceFilter] = useState<string>("All Sources");
   const [chartSource, setChartSource] = useState<"all" | "upwork" | "zoho">("all");
   const [bankOpen, setBankOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const { syncNow } = useDashboardData();
+
+  const handleSync = async () => {
+    setSyncing(true);
+    toast.info("Pulling fresh hours from Zoho Projects — this can take up to a minute.");
+    try {
+      const calls: Promise<unknown>[] = [
+        fetch(ZOHO_LABOUR_SYNC_WEBHOOK, { method: "POST" }),
+      ];
+      if (UPWORK_SYNC_WEBHOOK) {
+        calls.push(fetch(UPWORK_SYNC_WEBHOOK, { method: "POST" }).catch(() => null));
+      }
+      await Promise.all(calls);
+      await syncNow("google_sheets");
+      toast.success("Employee data synced");
+    } catch {
+      try { await syncNow("google_sheets"); } catch {}
+      toast.error("Sync hit an issue — showing latest cached data");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   // ===== Worker display config (localStorage) =====
   const rawSourceWorkers = useMemo(() => {
