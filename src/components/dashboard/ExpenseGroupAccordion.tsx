@@ -40,14 +40,12 @@ export default function ExpenseGroupAccordion({
   return (
     <div>
       <div className="space-y-3">
-        {groups.map((g, gi) => {
+        {groups.map((g) => {
           const isOpen = open.has(g.title);
-          const color = getSectionColor(g.title, gi);
           return (
             <div
               key={g.title}
               className="rounded-lg border border-border bg-secondary/20 overflow-hidden"
-              style={{ borderLeftWidth: 4, borderLeftColor: color }}
             >
               <button
                 type="button"
@@ -58,10 +56,7 @@ export default function ExpenseGroupAccordion({
                   <ChevronDown
                     className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${isOpen ? "" : "-rotate-90"}`}
                   />
-                  <span
-                    className="text-sm font-mono font-semibold text-foreground uppercase tracking-wider"
-                    style={{ color }}
-                  >
+                  <span className="text-sm font-mono font-semibold text-foreground uppercase tracking-wider">
                     {g.title}
                   </span>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
