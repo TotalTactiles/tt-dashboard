@@ -11,14 +11,36 @@ import NotFound from "./pages/NotFound";
 import { DashboardDataProvider } from "@/contexts/DashboardDataContext";
 import { Loader2 } from "lucide-react";
 
-// Lazy-load non-index pages — reduces initial bundle size
-const Settings = React.lazy(() => import("./pages/Settings"));
-const CalendarView = React.lazy(() => import("./pages/CalendarView"));
-const GoalsTargets = React.lazy(() => import("./pages/GoalsTargets"));
-const Formulas = React.lazy(() => import("./pages/Formulas"));
-const EmployeeTracking = React.lazy(() => import("./pages/EmployeeTracking"));
-const DealFlow = React.lazy(() => import("./pages/DealFlow"));
-const FinancialHealth = React.lazy(() => import("./pages/FinancialHealth"));
+// Lazy-load non-index pages — reduces initial bundle size.
+// Wrap dynamic imports so a stale chunk hash (after redeploy) triggers a
+// one-time hard reload instead of a blank-screen "Failed to fetch dynamically
+// imported module" error.
+const lazyWithReload = <T extends React.ComponentType<any>>(
+  factory: () => Promise<{ default: T }>,
+) =>
+  React.lazy(() =>
+    factory().catch((err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/dynamically imported module|Failed to fetch|Importing a module script failed/i.test(msg)) {
+        const KEY = "tt_chunk_reload_at";
+        const last = Number(sessionStorage.getItem(KEY) || 0);
+        if (Date.now() - last > 10_000) {
+          sessionStorage.setItem(KEY, String(Date.now()));
+          window.location.reload();
+          return new Promise<{ default: T }>(() => {});
+        }
+      }
+      throw err;
+    }),
+  );
+
+const Settings = lazyWithReload(() => import("./pages/Settings"));
+const CalendarView = lazyWithReload(() => import("./pages/CalendarView"));
+const GoalsTargets = lazyWithReload(() => import("./pages/GoalsTargets"));
+const Formulas = lazyWithReload(() => import("./pages/Formulas"));
+const EmployeeTracking = lazyWithReload(() => import("./pages/EmployeeTracking"));
+const DealFlow = lazyWithReload(() => import("./pages/DealFlow"));
+const FinancialHealth = lazyWithReload(() => import("./pages/FinancialHealth"));
 
 const queryClient = new QueryClient();
 
