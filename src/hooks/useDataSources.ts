@@ -803,6 +803,7 @@ export function useDataSources() {
   }, []);
 
   useEffect(() => {
+    if (!isAuthed) return;
     // Seed Zoho Projects events from longer-lived cache so they appear instantly on load
     try {
       const stored = localStorage.getItem(ZOHO_CALENDAR_CACHE_KEY);
