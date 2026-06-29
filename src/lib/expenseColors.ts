@@ -1,4 +1,5 @@
 export const SECTION_COLORS: Record<string, string> = {
+  "Lifestyle":          "hsl(160, 70%, 45%)",
   "Cost of Sales":      "hsl(200, 80%, 50%)",
   "Salaries & Wages":   "hsl(160, 70%, 45%)",
   "Operating Expenses": "hsl(270, 60%, 55%)",
