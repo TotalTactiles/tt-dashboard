@@ -439,7 +439,7 @@ function EbitdaCard({
       <div className="flex-1 flex flex-col items-center justify-center gap-1 w-full min-w-0 text-center">
         <p className={`font-bold font-mono break-words leading-tight ${tone}`} style={figureStyle}>{value}</p>
         <p className={subClass + " font-semibold"}>{hasData ? `${marginStr} · ${periodLabel}` : `awaiting period data · ${periodLabel}`}</p>
-        <p className={subClass + " opacity-70"}>before interest, tax, D&amp;A</p>
+        <p className={subClass + " opacity-70"}>Core operating profit, before loans, tax &amp; write-downs</p>
       </div>
     </motion.div>
   );
