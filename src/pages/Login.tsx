@@ -52,7 +52,7 @@ const Login = () => {
             <span className="text-primary-foreground font-mono font-black text-xs tracking-widest">TT</span>
           </div>
           <h1 className="text-lg font-mono font-bold tracking-wider uppercase">Total Tactiles</h1>
-          <p className="text-xs text-muted-foreground font-mono">Sign in to continue</p>
+          <p className="text-xs text-muted-foreground font-mono text-center">Do you even know what your EBITDA is? ~ Paulie Walnuts</p>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
