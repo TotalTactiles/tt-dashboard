@@ -557,6 +557,16 @@ const EmployeeTracking = () => {
               Zoho Projects · Not connected
             </span>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSync}
+            disabled={syncing}
+            className="h-8 px-2.5 text-xs font-mono gap-1.5"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Syncing…" : "Sync"}
+          </Button>
         </div>
       </div>
 
