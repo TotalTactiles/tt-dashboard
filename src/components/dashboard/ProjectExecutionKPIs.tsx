@@ -616,6 +616,71 @@ function ScheduleSlippageCard({ data, index }: { data: ProjectKPIData["kpis"]["s
 
 // ── MARGIN VARIANCE CARD ──────────────────────────────────────────
 
+function LabourCostRatioCard({
+  ratioPct,
+  labour,
+  periodLabel,
+  index,
+}: {
+  ratioPct: number | null;
+  labour: number;
+  periodLabel: string;
+  index: number;
+}) {
+  const [mode, setMode] = useState<"pct" | "dollar">("pct");
+  const fmtCompact = (n: number) => {
+    const abs = Math.abs(n);
+    const sign = n < 0 ? "-" : "";
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}K`;
+    return `${sign}$${Math.round(abs).toLocaleString()}`;
+  };
+  const value = mode === "pct"
+    ? (ratioPct != null ? `${ratioPct.toFixed(1)}%` : "N/A")
+    : (labour > 0 ? fmtCompact(labour) : "—");
+  const isGood = (ratioPct ?? 0) < 35;
+  const tone = ratioPct == null ? "text-muted-foreground" : (isGood ? "text-chart-green" : "text-chart-red");
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: index * 0.06 }}
+      className="stat-card relative overflow-hidden flex flex-col min-w-0"
+      style={cardContainerStyle}
+    >
+      <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: 'hidden' }}>
+        <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: 'hidden' }}>
+          <Users className="w-4 h-4 text-muted-foreground shrink-0" />
+          <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>Labour Cost Ratio</p>
+        </div>
+        <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
+          <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap">PROFIT</span>
+        </div>
+      </div>
+
+      <div className="flex gap-1 mb-1">
+        <button
+          type="button"
+          onClick={() => setMode("pct")}
+          className={`px-1.5 py-0.5 rounded-full font-mono text-[9px] transition-colors ${mode === "pct" ? "bg-primary text-primary-foreground" : "bg-secondary/60 text-muted-foreground hover:text-foreground"}`}
+        >%</button>
+        <button
+          type="button"
+          onClick={() => setMode("dollar")}
+          className={`px-1.5 py-0.5 rounded-full font-mono text-[9px] transition-colors ${mode === "dollar" ? "bg-primary text-primary-foreground" : "bg-secondary/60 text-muted-foreground hover:text-foreground"}`}
+        >$</button>
+      </div>
+
+      <div className="flex-1 flex flex-col justify-center min-w-0">
+        <p className={`font-bold font-mono leading-tight ${tone}`} style={{ fontSize: 'clamp(1.4rem, 1.9vw, 1.75rem)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' }}>{value}</p>
+        <p className="font-mono text-muted-foreground leading-tight mt-0.5" style={{ fontSize: 'clamp(9px, 0.75vw, 11px)' }}>Labour ÷ Revenue</p>
+        <p className="font-mono text-muted-foreground/70 leading-tight mt-0.5" style={{ fontSize: 'clamp(9px, 0.7vw, 10px)' }}>{periodLabel || "—"}</p>
+      </div>
+    </motion.div>
+  );
+}
+
 function MarginVarianceCard({ data, index }: { data: import("@/lib/projectExecutionKpis").MarginVarianceResult; index: number }) {
   const [gpTarget, setGpTarget] = useState(loadGPTarget);
   const [showDetail, setShowDetail] = useState(false);
