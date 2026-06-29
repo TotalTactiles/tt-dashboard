@@ -9,7 +9,7 @@ const cardBase =
 
 const PERIOD_KEY = "tt_target_period";
 
-type PeriodChoice = "cy2026" | "fy26" | "fy27" | "custom";
+type PeriodChoice = "2026" | "custom";
 
 type Props = {
   target: number;
@@ -20,37 +20,36 @@ type Props = {
   setFunnelBasis: (v: "opportunities" | "leads") => void;
 };
 
-function loadPeriod(): { choice: PeriodChoice; customStart?: string; customEnd?: string } {
+type PeriodState = { choice: PeriodChoice; customStart?: string; customEnd?: string };
+
+function loadPeriod(): PeriodState {
   try {
     const raw = localStorage.getItem(PERIOD_KEY);
     if (raw) {
       const p = JSON.parse(raw);
-      if (p && typeof p === "object" && p.choice) return p;
+      if (p && typeof p === "object" && p.choice) {
+        const choice: PeriodChoice = p.choice === "custom" ? "custom" : "2026";
+        return { ...p, choice };
+      }
     }
   } catch {}
-  return { choice: "cy2026" };
+  return { choice: "2026" };
 }
 
-function resolveWindow(p: { choice: PeriodChoice; customStart?: string; customEnd?: string }): { start: Date; end: Date; label: string } {
-  switch (p.choice) {
-    case "fy26":
-      return { start: new Date(2025, 6, 1), end: new Date(2026, 5, 30), label: "FY26" };
-    case "fy27":
-      return { start: new Date(2026, 6, 1), end: new Date(2027, 5, 30), label: "FY27" };
-    case "custom": {
-      const s = p.customStart ? new Date(p.customStart) : new Date(2026, 0, 1);
-      const e = p.customEnd ? new Date(p.customEnd) : new Date(2026, 11, 31);
-      return { start: s, end: e, label: "Custom" };
-    }
-    case "cy2026":
-    default:
-      return { start: new Date(2026, 0, 1), end: new Date(2026, 11, 31), label: "CY 2026" };
+function resolveWindow(p: PeriodState): { start: Date; end: Date; label: string } {
+  if (p.choice === "custom") {
+    const s = p.customStart ? new Date(p.customStart) : new Date(2026, 0, 1);
+    const e = p.customEnd ? new Date(p.customEnd) : new Date(2026, 11, 31);
+    return { start: s, end: e, label: "Custom" };
   }
+  return { start: new Date(2026, 0, 1), end: new Date(2026, 11, 31), label: "2026" };
 }
 
 function monthsBetween(a: Date, b: Date): number {
   return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
 }
+
+const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 export default function PerformanceVsTarget({
   target,
@@ -60,7 +59,7 @@ export default function PerformanceVsTarget({
   funnelBasis,
   setFunnelBasis,
 }: Props) {
-  const [period, setPeriod] = useState(loadPeriod());
+  const [period, setPeriod] = useState<PeriodState>(loadPeriod);
 
   useEffect(() => {
     try { localStorage.setItem(PERIOD_KEY, JSON.stringify(period)); } catch {}
@@ -69,7 +68,6 @@ export default function PerformanceVsTarget({
   const { start, end, label } = resolveWindow(period);
   const today = new Date();
 
-  // months
   const totalMonths = Math.max(1, monthsBetween(start, end) + 1);
   const elapsedRaw = monthsBetween(start, today) + 1;
   const monthsElapsed = Math.min(Math.max(elapsedRaw, 0), totalMonths);
@@ -95,7 +93,6 @@ export default function PerformanceVsTarget({
   const requiredOppsPerMonth =
     oppsToGoalRaw != null && monthsRemaining > 0 ? Math.ceil(oppsToGoalRaw / monthsRemaining) : null;
 
-  // status
   type Status = { label: string; tone: "green" | "amber" | "red" | "neutral"; sub: string };
   const status: Status = useMemo(() => {
     if (target <= 0) return { label: "NO TARGET", tone: "neutral", sub: "Set a revenue target to track pace." };
@@ -138,28 +135,36 @@ export default function PerformanceVsTarget({
     neutral: "bg-muted/40 text-muted-foreground border-border",
   }[status.tone];
 
-  // cumulative pace chart data
+  // Deterministic cumulative pace data — always renders when target > 0.
   const chartData = useMemo(() => {
-    const rows: Array<{ idx: number; target: number; actual: number | null; future: boolean }> = [];
+    const rows: Array<{
+      idx: number;
+      label: string;
+      targetCum: number;
+      actualCum: number | null;
+      isFuture: boolean;
+    }> = [];
     if (target <= 0 || totalMonths <= 0) return rows;
-    const perMonthTarget = target / totalMonths;
-    const perMonthActualEst = monthsElapsed > 0 ? wonToDate / monthsElapsed : 0;
-    for (let i = 1; i <= totalMonths; i++) {
-      const cumTarget = perMonthTarget * i;
-      const future = i > monthsElapsed;
+    const startMonthIdx = start.getMonth();
+    for (let m = 1; m <= totalMonths; m++) {
+      const isFuture = m > monthsElapsed;
+      const targetCum = target * (m / totalMonths);
+      const actualCum = isFuture
+        ? null
+        : wonToDate * (m / Math.max(monthsElapsed, 1));
       rows.push({
-        idx: i,
-        target: cumTarget,
-        actual: future ? null : perMonthActualEst * i,
-        future,
+        idx: m,
+        label: MONTH_SHORT[(startMonthIdx + m - 1) % 12],
+        targetCum,
+        actualCum,
+        isFuture,
       });
     }
     return rows;
-  }, [target, totalMonths, monthsElapsed, wonToDate]);
+  }, [target, totalMonths, monthsElapsed, wonToDate, start]);
 
-  const chartMax = useMemo(() => {
-    return chartData.reduce((m, r) => Math.max(m, r.target, r.actual ?? 0), 1);
-  }, [chartData]);
+  const TRACK_H = 56;
+  const maxVal = target;
 
   return (
     <motion.div
@@ -229,43 +234,59 @@ export default function PerformanceVsTarget({
       </div>
 
       {/* Cumulative pace mini-chart */}
-      {chartData.length > 0 && (
-        <div className="border border-border/60 rounded-md p-3">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Cumulative pace (est.)
-            </span>
-            <div className="flex items-center gap-3 text-[9px] uppercase tracking-wider text-muted-foreground">
-              <Legend swatch="bg-muted-foreground/40" label="Target pace" />
-              <Legend swatch="bg-chart-green" label="Actual (on/ahead)" />
-              <Legend swatch="bg-[#E8B931]" label="Actual (behind)" />
-            </div>
-          </div>
-          <div className="flex items-end gap-[3px] h-24">
-            {chartData.map((r) => {
-              const tH = (r.target / chartMax) * 100;
-              const aH = r.actual != null ? (r.actual / chartMax) * 100 : 0;
-              const onTrack = r.actual != null && r.actual >= r.target;
-              return (
-                <div key={r.idx} className="flex-1 flex items-end gap-[1px] min-w-0">
-                  <div
-                    className={`flex-1 rounded-sm ${r.future ? "bg-muted-foreground/15" : "bg-muted-foreground/40"}`}
-                    style={{ height: `${Math.max(tH, 2)}%` }}
-                    title={`M${r.idx} target ${fmtAUD(r.target)}`}
-                  />
-                  {!r.future && (
-                    <div
-                      className={`flex-1 rounded-sm ${onTrack ? "bg-chart-green" : "bg-[#E8B931]"}`}
-                      style={{ height: `${Math.max(aH, 2)}%` }}
-                      title={`M${r.idx} actual ${fmtAUD(r.actual ?? 0)}`}
-                    />
-                  )}
-                </div>
-              );
-            })}
+      <div className="border border-border/60 rounded-md p-3">
+        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Cumulative pace <span className="opacity-60">(est.)</span>
+          </span>
+          <div className="flex items-center gap-3 text-[9px] uppercase tracking-wider text-muted-foreground">
+            <Legend swatch="bg-muted-foreground/40" label="Target pace" />
+            <Legend swatch="bg-chart-green" label="Actual (on/ahead)" />
+            <Legend swatch="bg-[#E8B931]" label="Actual (behind)" />
           </div>
         </div>
-      )}
+
+        {maxVal <= 0 || totalMonths <= 0 || chartData.length === 0 ? (
+          <div className="text-xs text-muted-foreground py-4 text-center">No target set</div>
+        ) : (
+          <>
+            <div className="flex items-end gap-[3px]" style={{ height: TRACK_H }}>
+              {chartData.map((r) => {
+                const tH = Math.round((r.targetCum / maxVal) * TRACK_H);
+                const aRaw = r.actualCum ?? 0;
+                const aH = Math.round((aRaw / maxVal) * TRACK_H);
+                const onTrack = r.actualCum != null && r.actualCum >= r.targetCum;
+                return (
+                  <div key={r.idx} className="flex-1 flex items-end gap-[1px] min-w-0">
+                    <div
+                      className={`flex-1 rounded-sm ${r.isFuture ? "bg-muted-foreground/15" : "bg-muted-foreground/40"}`}
+                      style={{ height: `${Math.max(tH, r.targetCum > 0 ? 2 : 0)}px` }}
+                      title={`${r.label} target ${fmtAUD(r.targetCum)}`}
+                    />
+                    {!r.isFuture && r.actualCum != null && (
+                      <div
+                        className={`flex-1 rounded-sm ${onTrack ? "bg-chart-green" : "bg-[#E8B931]"}`}
+                        style={{ height: `${Math.max(aH, aRaw > 0 ? 2 : 0)}px` }}
+                        title={`${r.label} actual ${fmtAUD(aRaw)}`}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex gap-[3px] mt-1">
+              {chartData.map((r) => (
+                <div
+                  key={r.idx}
+                  className="flex-1 text-center text-[8px] font-mono text-muted-foreground min-w-0 truncate"
+                >
+                  {r.label}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </motion.div>
   );
 }
@@ -314,13 +335,11 @@ function PeriodSelector({
   period,
   setPeriod,
 }: {
-  period: { choice: PeriodChoice; customStart?: string; customEnd?: string };
-  setPeriod: (p: { choice: PeriodChoice; customStart?: string; customEnd?: string }) => void;
+  period: PeriodState;
+  setPeriod: (p: PeriodState) => void;
 }) {
   const choices: { id: PeriodChoice; label: string }[] = [
-    { id: "cy2026", label: "CY 2026" },
-    { id: "fy26", label: "FY26" },
-    { id: "fy27", label: "FY27" },
+    { id: "2026", label: "2026" },
     { id: "custom", label: "Custom" },
   ];
   return (
