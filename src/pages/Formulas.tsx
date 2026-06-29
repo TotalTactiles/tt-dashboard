@@ -8,6 +8,7 @@ import { useDashboardData } from "@/contexts/DashboardDataContext";
 import FormulaCard from "@/components/goals/FormulaCard";
 import FormulaForm from "@/components/goals/FormulaForm";
 import { Badge } from "@/components/ui/badge";
+import DataIntegrityPanel from "@/components/DataIntegrityPanel";
 
 interface FormulaSection {
   key: string;
@@ -207,6 +208,8 @@ const Formulas = () => {
         initial={editingFormula}
         kpiVariables={kpiVariables}
       />
+
+      <DataIntegrityPanel />
     </DashboardLayout>
   );
 };
