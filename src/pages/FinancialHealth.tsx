@@ -695,7 +695,7 @@ const ChartsSection = ({
   };
 
   // ---- Earned vs Debt-Funded Revenue ----
-  const { liveData } = useDashboardData() as any;
+  const { liveData, ylwValue } = useDashboardData() as any;
 
   const earnedVsDebtData = useMemo(() => {
     const rawCashflow = liveData?.cashflow ?? [];
