@@ -45,7 +45,7 @@ import {
 import type { ProjectKPIData } from "@/hooks/useDataSources";
 import SectionHeader from "@/components/dashboard/SectionHeader";
 import SectionPeriodHeader from "@/components/dashboard/SectionPeriodHeader";
-import { scopeLabel as moneyScopeLabel, monthLabel } from "@/lib/moneyPeriod";
+import { scopeLabel as moneyScopeLabel, monthLabel, computeMoneyMetrics } from "@/lib/moneyPeriod";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 
 const PE_MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -615,6 +615,71 @@ function ScheduleSlippageCard({ data, index }: { data: ProjectKPIData["kpis"]["s
 }
 
 // ── MARGIN VARIANCE CARD ──────────────────────────────────────────
+
+function LabourCostRatioCard({
+  ratioPct,
+  labour,
+  periodLabel,
+  index,
+}: {
+  ratioPct: number | null;
+  labour: number;
+  periodLabel: string;
+  index: number;
+}) {
+  const [mode, setMode] = useState<"pct" | "dollar">("pct");
+  const fmtCompact = (n: number) => {
+    const abs = Math.abs(n);
+    const sign = n < 0 ? "-" : "";
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}K`;
+    return `${sign}$${Math.round(abs).toLocaleString()}`;
+  };
+  const value = mode === "pct"
+    ? (ratioPct != null ? `${ratioPct.toFixed(1)}%` : "N/A")
+    : (labour > 0 ? fmtCompact(labour) : "—");
+  const isGood = (ratioPct ?? 0) < 35;
+  const tone = ratioPct == null ? "text-muted-foreground" : (isGood ? "text-chart-green" : "text-chart-red");
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: index * 0.06 }}
+      className="stat-card relative overflow-hidden flex flex-col min-w-0"
+      style={cardContainerStyle}
+    >
+      <div className="flex items-center justify-between gap-1 mb-1" style={{ minWidth: 0, overflow: 'hidden' }}>
+        <div className="flex items-center gap-1.5" style={{ minWidth: 0, overflow: 'hidden' }}>
+          <Users className="w-4 h-4 text-muted-foreground shrink-0" />
+          <p className="text-muted-foreground font-mono font-medium" style={titleStyle}>Labour Cost Ratio</p>
+        </div>
+        <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
+          <span className="text-[8px] font-mono text-muted-foreground/60 bg-secondary/60 rounded px-1 py-0.5 leading-none whitespace-nowrap">PROFIT</span>
+        </div>
+      </div>
+
+      <div className="flex gap-1 mb-1">
+        <button
+          type="button"
+          onClick={() => setMode("pct")}
+          className={`px-1.5 py-0.5 rounded-full font-mono text-[9px] transition-colors ${mode === "pct" ? "bg-primary text-primary-foreground" : "bg-secondary/60 text-muted-foreground hover:text-foreground"}`}
+        >%</button>
+        <button
+          type="button"
+          onClick={() => setMode("dollar")}
+          className={`px-1.5 py-0.5 rounded-full font-mono text-[9px] transition-colors ${mode === "dollar" ? "bg-primary text-primary-foreground" : "bg-secondary/60 text-muted-foreground hover:text-foreground"}`}
+        >$</button>
+      </div>
+
+      <div className="flex-1 flex flex-col justify-center min-w-0">
+        <p className={`font-bold font-mono leading-tight ${tone}`} style={{ fontSize: 'clamp(1.4rem, 1.9vw, 1.75rem)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' }}>{value}</p>
+        <p className="font-mono text-muted-foreground leading-tight mt-0.5" style={{ fontSize: 'clamp(9px, 0.75vw, 11px)' }}>Labour ÷ Revenue</p>
+        <p className="font-mono text-muted-foreground/70 leading-tight mt-0.5" style={{ fontSize: 'clamp(9px, 0.7vw, 10px)' }}>{periodLabel || "—"}</p>
+      </div>
+    </motion.div>
+  );
+}
 
 function MarginVarianceCard({ data, index }: { data: import("@/lib/projectExecutionKpis").MarginVarianceResult; index: number }) {
   const [gpTarget, setGpTarget] = useState(loadGPTarget);
@@ -1192,7 +1257,7 @@ interface ProjectExecutionKPIsProps {
 }
 
 export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange, invoiceFilter: _invoiceFilter, onInvoiceFilterChange: _onInvoiceFilterChange }: ProjectExecutionKPIsProps) {
-  const { quotedJobs, revenueProjects, incomeOutgoingsData, projectKPIData, sources, syncProjectKPIs } = useDashboardData();
+  const { quotedJobs, revenueProjects, incomeOutgoingsData, projectKPIData, sources, syncProjectKPIs, dataStore } = useDashboardData();
   const periodOptions = useMemo(() => buildPeriodOptions(quotedJobs, revenueProjects), [quotedJobs, revenueProjects]);
   const period = periodOptions[selectedPeriodIdx] ?? null;
 
@@ -1212,6 +1277,12 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
 
   const periodLabel = period?.label ?? "";
   const monthSet = useMemo(() => new Set(period?.months ?? []), [period]);
+  const labourMetrics = useMemo(() => computeMoneyMetrics({
+    scope: "all",
+    monthsOverride: period?.months ? new Set(period.months) : null,
+    revenueProjects,
+    cashflowRows: (dataStore as any)?.cashflow ?? [],
+  }), [period, revenueProjects, dataStore]);
   const monthProjects = useMemo(
     () => (projectKPIData?.projects ?? []).filter((p) => {
       const k = invoiceToMonKey(p.invoiceDate);
@@ -1231,10 +1302,11 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
 
   // 4 Zoho-driven cards
   const zohoCardDefs = [
-    { title: "Projects Due",     icon: <FolderCheck className="w-4 h-4" />, group: "DELIVERY" },
-    { title: "Project Progress", icon: <ListChecks className="w-4 h-4" />,  group: "DELIVERY" },
-    { title: "Labour Efficiency",icon: <Users className="w-4 h-4" />,       group: "DELIVERY" },
-    { title: "Margin Variance",  icon: <TrendingUp className="w-4 h-4" />,  group: "PROFIT" },
+    { title: "Projects Due",      icon: <FolderCheck className="w-4 h-4" />, group: "DELIVERY" },
+    { title: "Project Progress",  icon: <ListChecks className="w-4 h-4" />,  group: "DELIVERY" },
+    { title: "Labour Efficiency", icon: <Users className="w-4 h-4" />,       group: "DELIVERY" },
+    { title: "Labour Cost Ratio", icon: <Users className="w-4 h-4" />,       group: "PROFIT" },
+    { title: "Margin Variance",   icon: <TrendingUp className="w-4 h-4" />,  group: "PROFIT" },
   ];
 
   // ── Period pills (Quarter / YTD / All) ──
@@ -1320,7 +1392,7 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
       })()}
 
       <div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 items-stretch"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 items-stretch"
         style={{ gap: "clamp(8px, 1vw, 16px)" }}
       >
         {/* 4 Zoho-driven cards */}
@@ -1346,6 +1418,8 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
             case 2:
               return <LabourEfficiencyCard key={def.title} data={projectKPIData.kpis.labourEfficiency} index={i} />;
             case 3:
+              return <LabourCostRatioCard key={def.title} ratioPct={labourMetrics.labourCostRatio} labour={labourMetrics.labour} periodLabel={periodLabel} index={i} />;
+            case 4:
               return <MarginVarianceCard key={def.title} data={kpis.marginVariance} index={i} />;
             default:
               return null;
