@@ -358,12 +358,13 @@ export default function PerformanceVsTarget({
           }
         />
         <RequiredCard
-          label="Opps or Leads / Month"
+          label={cadenceTitle}
           value={requiredOppsPerMonth != null ? String(requiredOppsPerMonth) : "N/A"}
-          sub={closeRatePct > 0 ? `at ${closeRatePct.toFixed(1)}% close` : "no close rate"}
+          sub={closeRatePct > 0 ? `at ${closeRatePct.toFixed(1)}% ${rateNoun}` : `no ${rateNoun}`}
         />
         <RequiredCard
           label="Close Rate to Hit"
+          subLabel="on current pipeline"
           value={crValue}
           sub={crSub}
           subTone={crSubTone}
