@@ -15,7 +15,9 @@ import { Loader2 } from "lucide-react";
 // Wrap dynamic imports so a stale chunk hash (after redeploy) triggers a
 // one-time hard reload instead of a blank-screen "Failed to fetch dynamically
 // imported module" error.
-const lazyWithReload = <T,>(factory: () => Promise<T>) =>
+const lazyWithReload = <T extends React.ComponentType<any>>(
+  factory: () => Promise<{ default: T }>,
+) =>
   React.lazy(() =>
     factory().catch((err: unknown) => {
       const msg = err instanceof Error ? err.message : String(err);
@@ -25,7 +27,7 @@ const lazyWithReload = <T,>(factory: () => Promise<T>) =>
         if (Date.now() - last > 10_000) {
           sessionStorage.setItem(KEY, String(Date.now()));
           window.location.reload();
-          return new Promise<T>(() => {});
+          return new Promise<{ default: T }>(() => {});
         }
       }
       throw err;
