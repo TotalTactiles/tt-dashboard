@@ -676,8 +676,8 @@ const EmployeeTracking = () => {
                   <tbody>
                     {allWorkers.map((w) => {
                       const rate = w.source === "Upwork"
-                        ? `$${w.rateUSD.toFixed(2)} USD/hr`
-                        : `$${w.rateAUDequiv.toFixed(2)} AUD/hr`;
+                        ? `$${(w.rateUSD ?? 0).toFixed(2)} USD/hr`
+                        : `$${(w.rateAUDequiv ?? 0).toFixed(2)} AUD/hr`;
                       const curRole = roleOf(w.sourceId, w.sourceRole);
                       const curType = typeOf(w.sourceId, w.sourceType);
                       return (
