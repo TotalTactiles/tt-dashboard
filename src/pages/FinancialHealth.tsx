@@ -1227,20 +1227,30 @@ const ChartsSection = ({
 
         {/* Unified card: pills + filters + chart + Financial Position */}
         <div className="chart-container mt-4">
-          {/* TOP ROW — 4 stat pills inline */}
+          {/* TOP ROW — 4 stat pills (click to reveal the equation) */}
           <div className="flex flex-wrap gap-3 mb-5">
             {[
-              { label: "Avg Monthly (3m Actual)", value: debtStripped.avg3, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg3 >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD },
-              { label: serviceabilityView === "actuals" ? "Avg Monthly (6m Actual)" : serviceabilityView === "with_grn" ? "Avg Monthly (6m + GRNs)" : "Avg Monthly (6m + GRN/YLW)", value: debtStripped.avg6Blended, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg6Blended >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD },
-
-
-              { label: "Max New Monthly Repayment", value: debtStripped.maxNewRepayment, colorStyle: ragHex, colorClass: "", fmt: fmtAUD },
-              { label: "Est. Borrowing Capacity", value: debtStripped.borrowingCapacity60, colorStyle: undefined as string | undefined, colorClass: "text-chart-green", fmt: fmtK },
-            ].map(pill => (
-              <div key={pill.label} className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 flex-1 min-w-[180px]">
-                <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-mono mb-1">{pill.label}</p>
+              { label: "Avg Monthly (3m Actual)", value: debtStripped.avg3, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg3 >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD, equation: debtStripped.breakdown.avg3Eq },
+              { label: serviceabilityView === "actuals" ? "Avg Monthly (6m Actual)" : serviceabilityView === "with_grn" ? "Avg Monthly (6m + GRNs)" : "Avg Monthly (6m + GRN/YLW)", value: debtStripped.avg6Blended, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg6Blended >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD, equation: debtStripped.breakdown.avg6Eq },
+              { label: "Max New Monthly Repayment", value: debtStripped.maxNewRepayment, colorStyle: ragHex, colorClass: "", fmt: fmtAUD, equation: debtStripped.breakdown.maxNewEq },
+              { label: "Est. Borrowing Capacity", value: debtStripped.borrowingCapacity60, colorStyle: undefined as string | undefined, colorClass: "text-chart-green", fmt: fmtK, equation: debtStripped.breakdown.capacityEq },
+            ].map((pill, i) => (
+              <button
+                key={pill.label}
+                onClick={() => setExpandedPill(expandedPill === i ? null : i)}
+                className={`text-left bg-white/5 border rounded-lg px-4 py-2 flex-1 min-w-[180px] transition-all cursor-pointer hover:bg-white/10 ${expandedPill === i ? "border-chart-green/50" : "border-white/10"}`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-mono">{pill.label}</p>
+                  <span className="text-[10px] text-muted-foreground hover:text-foreground">ⓘ</span>
+                </div>
                 <p className={`text-lg font-mono font-bold ${pill.colorClass}`} style={pill.colorStyle ? { color: pill.colorStyle } : undefined}>{pill.fmt(pill.value)}</p>
-              </div>
+                {expandedPill === i && (
+                  <p className="mt-2 text-[10px] leading-tight text-muted-foreground font-mono border-t border-white/10 pt-2">
+                    {pill.equation}
+                  </p>
+                )}
+              </button>
             ))}
           </div>
 
