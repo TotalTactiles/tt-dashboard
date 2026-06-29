@@ -488,10 +488,10 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       {mode === "alt2"
         ? isActualNotSet
           ? "Enter your real balance to compare"
-          : "Your real bank balance (entered manually)"
+          : (currentSubtextOverride ?? "Your real bank balance (entered manually)")
           : mode === "alt"
-          ? "Xero balance today · not actual bank balance"
-          : "Balance on the 1st of this month"}
+          ? (currentSubtextOverride ?? "Xero balance today · not actual bank balance")
+          : (openSubtextOverride ?? "Balance on the 1st of this month")}
     </p>
   ) : null;
 
