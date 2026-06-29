@@ -112,77 +112,37 @@ export default function PerformanceVsTarget({
   // wonToDate prop is `effectiveCurrent` (Confirmed or With-YLW) from TargetsGoalsSection.
   const wonTotal = Math.max(0, wonToDate);
 
-  // Partition (NOT re-sum): how much of wonTotal is scheduled in the future window.
-  const committedFutureRaw = useMemo(() => {
+  // Future-scheduled jobs (won + YLW when in With-YLW mode), bucketed by Est. Job Date.
+  // Mirrors cashflow: all future jobs sit in one teal series.
+  const { committedFutureTotal, committedByMonth } = useMemo(() => {
+    const arr = new Array<number>(totalMonths + 1).fill(0);
+    const statuses = withYlw ? ["won", "yellow"] : ["won"];
+    const futureJobs = (quotedJobs ?? []).filter((j) => statuses.includes(j.status));
     let sum = 0;
-    const wonJobs = (quotedJobs ?? []).filter((j) => j.status === "won");
-    for (const j of wonJobs) {
-      const v = Number(j.value) || 0;
-      const d = parseLoose(j.dateQuoted);
-      if (!d) continue;
-      if (d <= today) continue;
-      if (d < start || d > end) continue;
-      sum += v;
-    }
-    return sum;
-  }, [quotedJobs, start, end, today]);
-
-  const committedFutureWon = Math.min(committedFutureRaw, wonTotal);
-  const wonRealizedYTD = Math.max(0, wonTotal - committedFutureWon);
-
-  // Distribute committed-future across remaining months for the pace chart
-  const committedByMonth = useMemo(() => {
-    const arr = new Array<number>(totalMonths + 1).fill(0);
-    if (committedFutureWon <= 0) return arr;
-    const wonJobs = (quotedJobs ?? []).filter((j) => j.status === "won");
-    let rawSum = 0;
-    const rawByMonth = new Array<number>(totalMonths + 1).fill(0);
-    for (const j of wonJobs) {
-      const v = Number(j.value) || 0;
-      const d = parseLoose(j.dateQuoted);
-      if (!d || d <= today || d < start || d > end) continue;
-      const m = monthsBetween(start, d) + 1;
-      if (m >= 1 && m <= totalMonths) { rawByMonth[m] += v; rawSum += v; }
-    }
-    if (rawSum <= 0) return arr;
-    const scale = committedFutureWon / rawSum;
-    for (let i = 1; i <= totalMonths; i++) arr[i] = rawByMonth[i] * scale;
-    return arr;
-  }, [quotedJobs, start, end, today, totalMonths, committedFutureWon]);
-
-  // YLW bucket-by-job-date for the pace chart (only used in With-YLWs mode).
-  const ylwByMonth = useMemo(() => {
-    const arr = new Array<number>(totalMonths + 1).fill(0);
-    if (!withYlw || ylwValue <= 0) return arr;
-    const ylwJobs = (quotedJobs ?? []).filter((j) => j.status === "yellow");
-    let rawSum = 0;
-    const rawByMonth = new Array<number>(totalMonths + 1).fill(0);
-    let unbucketed = 0;
-    for (const j of ylwJobs) {
+    for (const j of futureJobs) {
       const v = Number(j.value) || 0;
       if (v <= 0) continue;
       const d = parseLoose(j.dateQuoted);
-      if (!d || d < start || d > end) {
-        // Missing/out-of-window dates land in current month as banked
-        unbucketed += v;
-        continue;
-      }
+      if (!d || d <= today) continue;
+      if (d < start || d > end) continue;
       const m = monthsBetween(start, d) + 1;
-      if (m >= 1 && m <= totalMonths) { rawByMonth[m] += v; rawSum += v; }
-      else { unbucketed += v; }
+      if (m >= 1 && m <= totalMonths) {
+        arr[m] += v;
+        sum += v;
+      }
     }
-    const curM = Math.min(Math.max(monthsElapsed, 1), totalMonths);
-    rawByMonth[curM] += unbucketed;
-    rawSum += unbucketed;
-    if (rawSum <= 0) {
-      // No per-job ylw data: dump it all into the current month so chart still ties out.
-      arr[curM] = ylwValue;
-      return arr;
+    // Cap to wonTotal so cumulative committed never overshoots the anchored headline.
+    const capped = Math.min(sum, wonTotal);
+    if (sum > 0 && capped < sum) {
+      const scale = capped / sum;
+      for (let i = 1; i <= totalMonths; i++) arr[i] *= scale;
     }
-    const scale = ylwValue / rawSum;
-    for (let i = 1; i <= totalMonths; i++) arr[i] = rawByMonth[i] * scale;
-    return arr;
-  }, [quotedJobs, start, end, totalMonths, monthsElapsed, withYlw, ylwValue]);
+    return { committedFutureTotal: capped, committedByMonth: arr };
+  }, [quotedJobs, start, end, today, totalMonths, withYlw, wonTotal]);
+
+  const committedFutureWon = committedFutureTotal;
+  const wonRealizedYTD = Math.max(0, wonTotal - committedFutureWon);
+
 
   // Active CRM pipeline denominator — matches the funnel toggle
   const activePipeline =
@@ -273,13 +233,11 @@ export default function PerformanceVsTarget({
       targetCum: number;
       actualCum: number | null;
       committedCum: number | null;
-      ylwCum: number | null;
       isFuture: boolean;
     }> = [];
     if (target <= 0 || totalMonths <= 0) return rows;
     const startMonthIdx = start.getMonth();
     let committedRunning = wonRealizedYTD;
-    let ylwRunning = 0;
     for (let m = 1; m <= totalMonths; m++) {
       const isFuture = m > monthsElapsed;
       const targetCum = target * (m / totalMonths);
@@ -288,20 +246,17 @@ export default function PerformanceVsTarget({
         : wonRealizedYTD * (m / Math.max(monthsElapsed, 1));
       if (isFuture) committedRunning += committedByMonth[m] || 0;
       const committedCum = isFuture && view === "2026" ? committedRunning : null;
-      ylwRunning += ylwByMonth[m] || 0;
-      const ylwCum = withYlw ? ylwRunning : null;
       rows.push({
         idx: m,
         label: MONTH_SHORT[(startMonthIdx + m - 1) % 12],
         targetCum,
         actualCum,
         committedCum,
-        ylwCum,
         isFuture,
       });
     }
     return rows;
-  }, [target, totalMonths, monthsElapsed, wonRealizedYTD, start, view, committedByMonth, ylwByMonth, withYlw]);
+  }, [target, totalMonths, monthsElapsed, wonRealizedYTD, start, view, committedByMonth]);
 
   const TRACK_H = 56;
   const maxVal = target;
@@ -419,11 +374,11 @@ export default function PerformanceVsTarget({
           <div className="flex items-center gap-3 text-[9px] uppercase tracking-wider text-muted-foreground">
             <Legend swatch="bg-muted-foreground/40" label="Target pace" />
             <Legend swatch="bg-chart-green" label="Actual (on/ahead)" />
-            {!withYlw && <Legend swatch="bg-[#E8B931]" label="Actual (behind)" />}
-            {view === "2026" && <Legend swatch="bg-[#2DD4BF]" label="Committed (won, scheduled)" />}
-            {withYlw && <Legend swatch="bg-[#E8B931]" label="YLW (verbal)" />}
+            <Legend swatch="bg-[#E8B931]" label="Actual (behind)" />
+            {view === "2026" && <Legend swatch="bg-[#2DD4BF]" label={withYlw ? "Committed (won + YLW, future)" : "Committed (won, future)"} />}
           </div>
         </div>
+
 
         {maxVal <= 0 || totalMonths <= 0 || chartData.length === 0 ? (
           <div className="text-xs text-muted-foreground py-4 text-center">No target set</div>
@@ -436,8 +391,6 @@ export default function PerformanceVsTarget({
                 const aH = Math.round((aRaw / maxVal) * TRACK_H);
                 const cRaw = r.committedCum ?? 0;
                 const cH = Math.round((cRaw / maxVal) * TRACK_H);
-                const yRaw = r.ylwCum ?? 0;
-                const yH = Math.round((yRaw / maxVal) * TRACK_H);
                 const onTrack = r.actualCum != null && r.actualCum >= r.targetCum;
                 return (
                   <div key={r.idx} className="flex-1 flex items-end gap-[1px] min-w-0">
@@ -448,7 +401,7 @@ export default function PerformanceVsTarget({
                     />
                     {!r.isFuture && r.actualCum != null && (
                       <div
-                        className={`flex-1 rounded-sm ${withYlw ? "bg-chart-green" : (onTrack ? "bg-chart-green" : "bg-[#E8B931]")}`}
+                        className={`flex-1 rounded-sm ${onTrack ? "bg-chart-green" : "bg-[#E8B931]"}`}
                         style={{ height: `${Math.max(aH, aRaw > 0 ? 2 : 0)}px` }}
                         title={`${r.label} actual ${fmtAUD(aRaw)}`}
                       />
@@ -458,13 +411,6 @@ export default function PerformanceVsTarget({
                         className="flex-1 rounded-sm bg-[#2DD4BF]"
                         style={{ height: `${Math.max(cH, cRaw > 0 ? 2 : 0)}px` }}
                         title={`${r.label} committed ${fmtAUD(cRaw)}`}
-                      />
-                    )}
-                    {withYlw && r.ylwCum != null && (
-                      <div
-                        className="flex-1 rounded-sm bg-[#E8B931]"
-                        style={{ height: `${Math.max(yH, yRaw > 0 ? 2 : 0)}px` }}
-                        title={`${r.label} YLW ${fmtAUD(yRaw)}`}
                       />
                     )}
                   </div>

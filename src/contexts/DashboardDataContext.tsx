@@ -265,6 +265,19 @@ export interface DashboardData {
   wrYlwFY: number;
   wonValueFY: number;
   lostValueFY: number;
+  salesMetrics: {
+    wonCount: number;
+    lostCount: number;
+    ylwCount: number;
+    wonValue: number;
+    lostValue: number;
+    ylwValue: number;
+    avgWon: number;
+    avgWonWithYlw: number;
+    closeRate: number;
+    closeRateWithYlw: number;
+    pipelineRate: number;
+  };
   kpiStats: KPIStat[];
 
   incomeOutgoingsData: IncomeOutgoingsPoint[];
@@ -1673,6 +1686,26 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       wrYlwFY: ylwCountFY,
       wonValueFY,
       lostValueFY,
+      salesMetrics: (() => {
+        const wc = wonCountFY || quotedJobs.filter(j => j.status === "won").length;
+        const lc = lostCountFY || quotedJobs.filter(j => j.status === "lost").length;
+        const yc = ylwCountFY || ylwCount_quoted;
+        const wv = wonValueFY || quotedJobs.filter(j => j.status === "won").reduce((s, j) => s + (Number(j.value) || 0), 0);
+        const lv = lostValueFY || quotedJobs.filter(j => j.status === "lost").reduce((s, j) => s + (Number(j.value) || 0), 0);
+        const yv = ylwValueFY || ylwValue_quoted;
+        const opps = totalOppsFY || quotedJobs.length;
+        const avgWon = wc > 0 ? wv / wc : 0;
+        const avgWonWithYlw = (wc + yc) > 0 ? (wv + yv) / (wc + yc) : avgWon;
+        const closeRate = (wc + lc) > 0 ? (wc / (wc + lc)) * 100 : 0;
+        const closeRateWithYlw = (wc + yc + lc) > 0 ? ((wc + yc) / (wc + yc + lc)) * 100 : 0;
+        const pipelineRate = opps > 0 ? (wc / opps) * 100 : 0;
+        return {
+          wonCount: wc, lostCount: lc, ylwCount: yc,
+          wonValue: wv, lostValue: lv, ylwValue: yv,
+          avgWon, avgWonWithYlw, closeRate, closeRateWithYlw, pipelineRate,
+        };
+      })(),
+
 
       kpiStats, incomeOutgoingsData, profitMarginData, monthlyInvoicesData, monthlyNetProfitData, forecastChartData, expenseAllocation,
       variableExpenses, taxObligations, expenseGroups,
@@ -1723,6 +1756,12 @@ export function useDashboardData(): DashboardData {
 
 
       wrWonFY: 0, wrLostFY: 0, wrYlwFY: 0, wonValueFY: 0, lostValueFY: 0,
+      salesMetrics: {
+        wonCount: 0, lostCount: 0, ylwCount: 0,
+        wonValue: 0, lostValue: 0, ylwValue: 0,
+        avgWon: 0, avgWonWithYlw: 0,
+        closeRate: 0, closeRateWithYlw: 0, pipelineRate: 0,
+      },
       kpiStats: [], incomeOutgoingsData: [], profitMarginData: [], monthlyInvoicesData: [], monthlyNetProfitData: [],
 
 
