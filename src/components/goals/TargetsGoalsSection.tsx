@@ -27,12 +27,8 @@ const FUNNEL_BASIS_KEY = "tt_funnel_basis";
 export default function TargetsGoalsSection(_props: Props) {
   const { target, setTarget } = useRevenueTarget();
   const {
-    ylwValue,
     wonValueFY,
-    wrWonFY,
-    pipelineConversion,
-    winRateConfirmed,
-    liveData,
+    salesMetrics,
   } = useDashboardData();
 
   // --- Lifted toggle state (persisted) ---
@@ -55,44 +51,18 @@ export default function TargetsGoalsSection(_props: Props) {
     try { localStorage.setItem(FUNNEL_BASIS_KEY, v); } catch {}
   };
 
-  // --- Derived values (reuse existing data) ---
-  const goalConfirmed = wonValueFY;
-  const ylwTopUp = ylwValue;
+  // --- Single source of truth: salesMetrics (matches Win/Loss + Conversion Rates cards) ---
+  const ylwTopUp = salesMetrics.ylwValue;
+  const goalConfirmed = salesMetrics.wonValue || wonValueFY;
   const goalWithYlw = goalConfirmed + ylwTopUp;
   const effectiveCurrent = withYlw ? goalWithYlw : goalConfirmed;
 
-  // Avg Won per basis from quotesSummary (counts + values).
-  const qs: any = (liveData as any)?.quotesSummary ?? {};
-  const wonCount = Number(qs?.totalWon?.count) || 0;
-  const wonValue = Number(qs?.totalWon?.value) || 0;
-  const ylwCount = Number(qs?.totalYellow?.count) || 0;
-  const ylwValueQS = Number(qs?.totalYellow?.value) || 0;
-  const avgWonConfirmed = wonCount > 0 ? wonValue / wonCount : (wrWonFY > 0 ? wonValueFY / wrWonFY : 0);
-  const avgWonWithYlw =
-    (wonCount + ylwCount) > 0
-      ? (wonValue + ylwValueQS) / (wonCount + ylwCount)
-      : avgWonConfirmed;
-  const avgWonDeal = withYlw ? avgWonWithYlw : avgWonConfirmed;
+  const avgWonDeal = withYlw ? salesMetrics.avgWonWithYlw : salesMetrics.avgWon;
+  const closeRatePct =
+    funnelBasis === "leads"
+      ? salesMetrics.pipelineRate
+      : (withYlw ? salesMetrics.closeRateWithYlw : salesMetrics.closeRate);
 
-  const pctConfirmed = target > 0 ? Math.min(100, (goalConfirmed / target) * 100) : 0;
-  const pctYlw =
-    target > 0 && withYlw ? Math.min(100 - pctConfirmed, (ylwTopUp / target) * 100) : 0;
-  const pctTotal = Math.min(100, pctConfirmed + pctYlw);
-
-  const remaining = Math.max(0, target - effectiveCurrent);
-  const jobsToGoal =
-    avgWonDeal > 0 && remaining > 0 ? Math.ceil(remaining / avgWonDeal) : 0;
-
-  // Funnel rate driven by the (lifted) Opportunities | Leads toggle.
-  const rateConfirmed =
-    funnelBasis === "opportunities" ? winRateConfirmed : pipelineConversion;
-  // With-YLW uplift over the SAME implied opportunity/lead base, keeping Confirmed unchanged.
-  const impliedBase = wonCount > 0 && rateConfirmed > 0 ? wonCount / (rateConfirmed / 100) : 0;
-  const rateWithYlw =
-    impliedBase > 0
-      ? Math.min(((wonCount + ylwCount) / impliedBase) * 100, 100)
-      : rateConfirmed;
-  const closeRatePct = withYlw ? rateWithYlw : rateConfirmed;
 
   const oppsToGoal =
     jobsToGoal > 0 && closeRatePct > 0
