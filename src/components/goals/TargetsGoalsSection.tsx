@@ -30,10 +30,9 @@ export default function TargetsGoalsSection(_props: Props) {
     ylwValue,
     wonValueFY,
     wrWonFY,
-    getLeadsToGoal,
-    getLeadsToGoalTrue,
     pipelineConversion,
     winRateConfirmed,
+    liveData,
   } = useDashboardData();
 
   // --- Lifted toggle state (persisted) ---
@@ -62,7 +61,18 @@ export default function TargetsGoalsSection(_props: Props) {
   const goalWithYlw = goalConfirmed + ylwTopUp;
   const effectiveCurrent = withYlw ? goalWithYlw : goalConfirmed;
 
-  const avgWonDeal = wrWonFY > 0 ? wonValueFY / wrWonFY : 0;
+  // Avg Won per basis from quotesSummary (counts + values).
+  const qs: any = (liveData as any)?.quotesSummary ?? {};
+  const wonCount = Number(qs?.totalWon?.count) || 0;
+  const wonValue = Number(qs?.totalWon?.value) || 0;
+  const ylwCount = Number(qs?.totalYellow?.count) || 0;
+  const ylwValueQS = Number(qs?.totalYellow?.value) || 0;
+  const avgWonConfirmed = wonCount > 0 ? wonValue / wonCount : (wrWonFY > 0 ? wonValueFY / wrWonFY : 0);
+  const avgWonWithYlw =
+    (wonCount + ylwCount) > 0
+      ? (wonValue + ylwValueQS) / (wonCount + ylwCount)
+      : avgWonConfirmed;
+  const avgWonDeal = withYlw ? avgWonWithYlw : avgWonConfirmed;
 
   const pctConfirmed = target > 0 ? Math.min(100, (goalConfirmed / target) * 100) : 0;
   const pctYlw =
@@ -73,13 +83,21 @@ export default function TargetsGoalsSection(_props: Props) {
   const jobsToGoal =
     avgWonDeal > 0 && remaining > 0 ? Math.ceil(remaining / avgWonDeal) : 0;
 
-  // Funnel close rate driven by the (lifted) Opportunities | Leads toggle.
-  const closeRatePct =
+  // Funnel rate driven by the (lifted) Opportunities | Leads toggle.
+  const rateConfirmed =
     funnelBasis === "opportunities" ? winRateConfirmed : pipelineConversion;
+  // With-YLW uplift over the SAME implied opportunity/lead base, keeping Confirmed unchanged.
+  const impliedBase = wonCount > 0 && rateConfirmed > 0 ? wonCount / (rateConfirmed / 100) : 0;
+  const rateWithYlw =
+    impliedBase > 0
+      ? Math.min(((wonCount + ylwCount) / impliedBase) * 100, 100)
+      : rateConfirmed;
+  const closeRatePct = withYlw ? rateWithYlw : rateConfirmed;
+
   const oppsToGoal =
-    funnelBasis === "opportunities"
-      ? getLeadsToGoal(jobsToGoal)
-      : getLeadsToGoalTrue(jobsToGoal);
+    jobsToGoal > 0 && closeRatePct > 0
+      ? Math.ceil(jobsToGoal / (closeRatePct / 100))
+      : 0;
 
   return (
     <>
