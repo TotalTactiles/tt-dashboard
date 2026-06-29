@@ -1238,7 +1238,7 @@ const ChartsSection = ({
             ].map((pill, i) => (
               <button
                 key={pill.label}
-                onClick={() => setExpandedPill(i)}
+                onClick={() => { console.log(expandedPill); setExpandedPill(i); }}
                 className="text-left"
               >
                 {expandedPill === i ? pill.equation : pill.label}
