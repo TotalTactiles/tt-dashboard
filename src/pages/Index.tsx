@@ -1305,7 +1305,35 @@ function loadActiveGoalIds(allGoals: {id: string;merge?: boolean;}[]): Set<strin
 
 const DashboardContent = () => {
   const { goals, updateGoal } = useGoals();
-  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, syncCalendar, formulaCache, incomeOutgoingsData, forecastChartData, quotedJobs, investorMetrics, isOffline, lastCachedAt, revenueProjects, dataStore, liveData, inRunningCount, inRunningValue, monthlyInvoicesData, monthlyNetProfitData } = useDashboardData();
+  const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, syncCalendar, formulaCache, incomeOutgoingsData, forecastChartData, quotedJobs, investorMetrics, isOffline, lastCachedAt, revenueProjects, dataStore, liveData, inRunningCount, inRunningValue, monthlyInvoicesData, monthlyNetProfitData, expenseGroups } = useDashboardData();
+
+  // Split expense groups into two cards:
+  //   Card 1 ("default view"): everything except COS, and Finance/Debt with just Motor Vehicle Repayments (renamed "Finance")
+  //   Card 2 ("debt view"): Cost of Sales + Finance/Debt with just Business Loan (renamed "Debt")
+  const expenseGroupsDefault = useMemo(() => {
+    return expenseGroups
+      .filter((g) => g.title !== "Cost of Sales")
+      .map((g) => {
+        if (g.title === "Finance / Debt") {
+          const items = g.items.filter((i) => i.name !== "Business Loan Repayment & Monthly Fee");
+          return { ...g, title: "Finance", items };
+        }
+        return g;
+      })
+      .filter((g) => g.items.length > 0);
+  }, [expenseGroups]);
+
+  const expenseGroupsDebt = useMemo(() => {
+    const out: typeof expenseGroups = [];
+    const cos = expenseGroups.find((g) => g.title === "Cost of Sales");
+    if (cos && cos.items.length > 0) out.push(cos);
+    const fin = expenseGroups.find((g) => g.title === "Finance / Debt");
+    if (fin) {
+      const items = fin.items.filter((i) => i.name === "Business Loan Repayment & Monthly Fee");
+      if (items.length > 0) out.push({ ...fin, title: "Debt", items });
+    }
+    return out;
+  }, [expenseGroups]);
 
   // ── Shared period selector across PortfolioChart / MonthlyInvoices / MonthlyNetProfit ──
   const [periodYear, setPeriodYear] = useState<string>(() => String(new Date().getFullYear()));
