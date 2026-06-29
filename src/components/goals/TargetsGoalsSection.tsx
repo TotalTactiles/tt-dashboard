@@ -132,7 +132,10 @@ export default function TargetsGoalsSection(_props: Props) {
           closeRatePct={closeRatePct}
           funnelBasis={funnelBasis}
           setFunnelBasis={setFunnelBasis}
+          withYlw={withYlw}
+          ylwValue={ylwTopUp}
         />
+
       </div>
     </>
   );
