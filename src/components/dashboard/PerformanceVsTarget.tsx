@@ -239,13 +239,13 @@ export default function PerformanceVsTarget({
     }> = [];
     if (target <= 0 || totalMonths <= 0) return rows;
     const startMonthIdx = start.getMonth();
-    let committedRunning = bankedWon;
+    let committedRunning = wonRealizedYTD;
     for (let m = 1; m <= totalMonths; m++) {
       const isFuture = m > monthsElapsed;
       const targetCum = target * (m / totalMonths);
       const actualCum = isFuture
         ? null
-        : bankedWon * (m / Math.max(monthsElapsed, 1));
+        : wonRealizedYTD * (m / Math.max(monthsElapsed, 1));
       if (isFuture) committedRunning += committedByMonth[m] || 0;
       const committedCum = isFuture && view === "2026" ? committedRunning : null;
       rows.push({
@@ -258,7 +258,7 @@ export default function PerformanceVsTarget({
       });
     }
     return rows;
-  }, [target, totalMonths, monthsElapsed, bankedWon, start, view, committedByMonth]);
+  }, [target, totalMonths, monthsElapsed, wonRealizedYTD, start, view, committedByMonth]);
 
   const TRACK_H = 56;
   const maxVal = target;
