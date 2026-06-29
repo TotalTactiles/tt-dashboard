@@ -374,11 +374,11 @@ export default function PerformanceVsTarget({
           <div className="flex items-center gap-3 text-[9px] uppercase tracking-wider text-muted-foreground">
             <Legend swatch="bg-muted-foreground/40" label="Target pace" />
             <Legend swatch="bg-chart-green" label="Actual (on/ahead)" />
-            {!withYlw && <Legend swatch="bg-[#E8B931]" label="Actual (behind)" />}
-            {view === "2026" && <Legend swatch="bg-[#2DD4BF]" label="Committed (won, scheduled)" />}
-            {withYlw && <Legend swatch="bg-[#E8B931]" label="YLW (verbal)" />}
+            <Legend swatch="bg-[#E8B931]" label="Actual (behind)" />
+            {view === "2026" && <Legend swatch="bg-[#2DD4BF]" label={withYlw ? "Committed (won + YLW, future)" : "Committed (won, future)"} />}
           </div>
         </div>
+
 
         {maxVal <= 0 || totalMonths <= 0 || chartData.length === 0 ? (
           <div className="text-xs text-muted-foreground py-4 text-center">No target set</div>
