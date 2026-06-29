@@ -294,26 +294,26 @@ function InvoicesPaidCard({ index, onJumpToMonth, periodMonths, periodLabel }: {
         <div className="w-full min-w-0">
           <p className={labelClass}>To be Paid</p>
           <p className="leading-tight break-words flex items-baseline justify-center gap-1.5 flex-wrap">
-            <span className="font-bold font-mono text-chart-green" style={figureStyle}>{fmtCompact(paid)}</span>
+            <span className="font-bold font-mono text-chart-green" style={figureStyle}>{fmtCompact(toBePaid)}</span>
             <button
               type="button"
-              onClick={() => onJumpToMonth?.({ year: prev.getFullYear(), month: prev.getMonth(), label: paidJumpLabel })}
+              onClick={() => onJumpToMonth?.({ year: now.getFullYear(), month: now.getMonth(), label: jumpLabel })}
               className={subLinkClass}
-              title={`Filter Revenue & COGS to ${paidJumpLabel}`}
-            >· {paidCount} inv · {paidCtx}</button>
+              title={`Filter Revenue & COGS to ${jumpLabel}`}
+            >· {toBePaidCount} inv · {ctx}</button>
           </p>
         </div>
         <div className="h-px bg-white/10 my-1 w-2/3 mx-auto" />
         <div className="w-full min-w-0">
           <p className={labelClass}>To be Invoiced</p>
           <p className="leading-tight break-words flex items-baseline justify-center gap-1.5 flex-wrap">
-            <span className="font-bold font-mono text-foreground/90" style={figureStyle}>{fmtCompact(toBePaid)}</span>
+            <span className="font-bold font-mono text-foreground/90" style={figureStyle}>{fmtCompact(toBeInvoiced)}</span>
             <button
               type="button"
-              onClick={() => onJumpToMonth?.({ year: now.getFullYear(), month: now.getMonth(), label: toBeJumpLabel })}
+              onClick={() => onJumpToMonth?.({ year: now.getFullYear(), month: now.getMonth(), label: jumpLabel })}
               className={subLinkClass}
-              title={`Filter Revenue & COGS to ${toBeJumpLabel}`}
-            >· {toBePaidCount} inv · {toBeCtx}</button>
+              title={`Filter Revenue & COGS to ${jumpLabel}`}
+            >· {toBeInvoicedCount} inv · {ctx}</button>
           </p>
         </div>
       </div>
