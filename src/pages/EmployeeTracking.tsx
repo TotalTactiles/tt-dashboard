@@ -186,9 +186,26 @@ const KPI = ({ label, value, sub, Icon, active, onClick }: KPIProps) => (
 
 // ============= COMPONENT =============
 const EmployeeTracking = () => {
-  const upwork: typeof MOCK_UPWORK_DATA | null = MOCK_UPWORK_DATA;
-  const zoho: typeof MOCK_ZOHO_DATA | null = MOCK_ZOHO_DATA;
-  const isMockData = true;
+  const { syncNow, liveData } = useDashboardData() as any;
+
+  const upworkLive = !!liveData?.upwork;
+  const zohoLive = !!liveData?.zohoLabour;
+  const liveMode = upworkLive || zohoLive;
+
+  const EMPTY_SOURCE = {
+    source: "",
+    syncTimestamp: null as string | null,
+    summary: { activeWorkers: 0, totalWorkers: 0, totalContractors: 0, totalHours: 0, totalCostAUD: 0, totalCostUSD: 0, avgRateUSD: 0 },
+    workers: [] as any[],
+    timesheets: [] as any[],
+    monthlyData: [] as any[],
+    projects: [] as any[],
+    workerSummary: [] as any[],
+  };
+
+  const upwork: any = liveMode ? (upworkLive ? liveData.upwork : EMPTY_SOURCE) : MOCK_UPWORK_DATA;
+  const zoho: any = liveMode ? (zohoLive ? liveData.zohoLabour : EMPTY_SOURCE) : MOCK_ZOHO_DATA;
+  const isMockData = !liveMode;
 
   const [expandedCard, setExpandedCard] = useState<null | "workers" | "hours" | "spend" | "rate">(null);
   const [monthFilter, setMonthFilter] = useState<string>("all");
@@ -196,7 +213,6 @@ const EmployeeTracking = () => {
   const [chartSource, setChartSource] = useState<"all" | "upwork" | "zoho">("all");
   const [bankOpen, setBankOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const { syncNow } = useDashboardData();
 
   const handleSync = async () => {
     setSyncing(true);
