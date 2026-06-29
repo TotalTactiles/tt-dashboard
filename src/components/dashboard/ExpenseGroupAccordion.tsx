@@ -82,50 +82,67 @@ export default function ExpenseGroupAccordion({
                         latest actuals — tax items are intermittent, not a fixed monthly cost
                       </p>
                     )}
-                    {g.items.map((item) => (
-                      <div
-                        key={item.name}
-                        className="flex items-center justify-between gap-3 py-2 border-b border-border/40 last:border-0"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-mono text-muted-foreground">{item.name}</p>
-                          <p className="text-sm font-mono font-bold text-foreground">
-                            {fmt(itemCost(item, period))}
-                            <span className="text-[10px] text-muted-foreground">{suffix(period)}</span>
-                          </p>
-                        </div>
-                        {item.tracked ? (
-                          <div className="flex items-center gap-3 shrink-0">
-                            <span className="text-[10px] font-mono text-muted-foreground">
-                              avg {fmt(item.avgMonthly ?? 0)}/mo
-                            </span>
-                            {item.series && item.series.length > 0 && (
-                              <div className="w-24 h-8">
-                                <ResponsiveContainer width="100%" height={32}>
-                                  <LineChart data={item.series}>
-                                    <YAxis hide domain={[0, "dataMax"]} />
-                                    <Line
-                                      type="monotone"
-                                      dataKey="value"
-                                      stroke="#F59E0B"
-                                      strokeWidth={1.5}
-                                      dot={false}
-                                      isAnimationActive={false}
-                                    />
-                                  </LineChart>
-                                </ResponsiveContainer>
-                              </div>
+                    {g.items.map((item) => {
+                      const key = `${g.title}::${item.name}`;
+                      const excluded = excludedKeys?.has(key);
+                      return (
+                        <div
+                          key={item.name}
+                          className="flex items-center justify-between gap-3 py-2 border-b border-border/40 last:border-0"
+                        >
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            {onToggle && (
+                              <input
+                                type="checkbox"
+                                checked={!excluded}
+                                onChange={() => onToggle(key)}
+                                className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-primary shrink-0"
+                                aria-label={`Include ${item.name} in total`}
+                              />
                             )}
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-xs font-mono truncate ${excluded ? "text-muted-foreground line-through" : "text-muted-foreground"}`}>
+                                {item.name}
+                              </p>
+                              <p className="text-sm font-mono font-bold text-foreground">
+                                {fmt(itemCost(item, period))}
+                                <span className="text-[10px] text-muted-foreground">{suffix(period)}</span>
+                              </p>
+                            </div>
                           </div>
-                        ) : (
-                          period !== "yearly" && (
-                            <span className="text-[10px] font-mono text-muted-foreground shrink-0">
-                              {fmt(item.yearlyCost)}/yr
-                            </span>
-                          )
-                        )}
-                      </div>
-                    ))}
+                          {item.tracked ? (
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className="text-[10px] font-mono text-muted-foreground">
+                                avg {fmt(item.avgMonthly ?? 0)}/mo
+                              </span>
+                              {item.series && item.series.length > 0 && (
+                                <div className="w-24 h-8">
+                                  <ResponsiveContainer width="100%" height={32}>
+                                    <LineChart data={item.series}>
+                                      <YAxis hide domain={[0, "dataMax"]} />
+                                      <Line
+                                        type="monotone"
+                                        dataKey="value"
+                                        stroke="#F59E0B"
+                                        strokeWidth={1.5}
+                                        dot={false}
+                                        isAnimationActive={false}
+                                      />
+                                    </LineChart>
+                                  </ResponsiveContainer>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            period !== "yearly" && (
+                              <span className="text-[10px] font-mono text-muted-foreground shrink-0">
+                                {fmt(item.yearlyCost)}/yr
+                              </span>
+                            )
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </motion.div>
               )}
