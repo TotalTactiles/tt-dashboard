@@ -2,7 +2,6 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import type { ExpenseGroup, ExpenseGroupItem } from "@/contexts/DashboardDataContext";
-import { getSectionColor } from "@/lib/expenseColors";
 
 type Period = "weekly" | "monthly" | "yearly";
 
