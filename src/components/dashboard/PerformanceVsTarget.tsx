@@ -391,8 +391,6 @@ export default function PerformanceVsTarget({
                 const aH = Math.round((aRaw / maxVal) * TRACK_H);
                 const cRaw = r.committedCum ?? 0;
                 const cH = Math.round((cRaw / maxVal) * TRACK_H);
-                const yRaw = r.ylwCum ?? 0;
-                const yH = Math.round((yRaw / maxVal) * TRACK_H);
                 const onTrack = r.actualCum != null && r.actualCum >= r.targetCum;
                 return (
                   <div key={r.idx} className="flex-1 flex items-end gap-[1px] min-w-0">
@@ -403,7 +401,7 @@ export default function PerformanceVsTarget({
                     />
                     {!r.isFuture && r.actualCum != null && (
                       <div
-                        className={`flex-1 rounded-sm ${withYlw ? "bg-chart-green" : (onTrack ? "bg-chart-green" : "bg-[#E8B931]")}`}
+                        className={`flex-1 rounded-sm ${onTrack ? "bg-chart-green" : "bg-[#E8B931]"}`}
                         style={{ height: `${Math.max(aH, aRaw > 0 ? 2 : 0)}px` }}
                         title={`${r.label} actual ${fmtAUD(aRaw)}`}
                       />
@@ -413,13 +411,6 @@ export default function PerformanceVsTarget({
                         className="flex-1 rounded-sm bg-[#2DD4BF]"
                         style={{ height: `${Math.max(cH, cRaw > 0 ? 2 : 0)}px` }}
                         title={`${r.label} committed ${fmtAUD(cRaw)}`}
-                      />
-                    )}
-                    {withYlw && r.ylwCum != null && (
-                      <div
-                        className="flex-1 rounded-sm bg-[#E8B931]"
-                        style={{ height: `${Math.max(yH, yRaw > 0 ? 2 : 0)}px` }}
-                        title={`${r.label} YLW ${fmtAUD(yRaw)}`}
                       />
                     )}
                   </div>
