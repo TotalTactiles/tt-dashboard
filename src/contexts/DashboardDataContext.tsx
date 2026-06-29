@@ -765,69 +765,84 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       .map(buildSeries)
       .filter((x): x is VariableExpenseSeries => x !== null);
 
-    // ===== CONSOLIDATED EXPENSE GROUPS (collapsible cards) =====
-    const fixedGroupOf = (subCat: string): string => {
-      const s = (subCat || "").toLowerCase();
-      if (s.includes("krishan") || s.includes("mehmet") || s.includes("shania")) return "Wages";
-      if (s.includes("shared"))   return "Shared Expenses";
-      if (s.includes("office"))   return "Office & Misc";
-      if (s.includes("essential")) return "Essentials";
-      return subCat || "Other";
+    // ===== CONSOLIDATED EXPENSE GROUPS — sourced live from CASHFLOW =====
+
+    // Each line item reads its row's latest actual value up to the current
+    // month (same behaviour as cfLatest elsewhere). CASHFLOW-native sections.
+
+    const _now = new Date();
+
+    const _MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+    const _nowKey = `${_MON[_now.getMonth()]}-${String(_now.getFullYear()).slice(-2)}`;
+
+    let _nowIdx = cfMonths.indexOf(_nowKey);
+
+    if (_nowIdx < 0) _nowIdx = cfMonths.length - 1;
+
+    const cfLatestX = (label: string): number => {
+
+      const row = findCashflowRowExact(label);
+
+      if (!row) return 0;
+
+      for (let i = _nowIdx; i >= 0; i--) {
+
+        const v = parseNum(row[cfMonths[i]] ?? 0);
+
+        if (v !== 0) return Math.abs(v);
+
+      }
+
+      return 0;
+
     };
-    const personLabel = (subCat: string): string =>
-      (subCat || "").replace(/\s*\(personal\)\s*/i, "").trim();
 
-    const FIXED_ORDER = ["Essentials", "Office & Misc", "Shared Expenses", "Wages"];
-    const groupBuckets: Record<string, ExpenseGroupItem[]> = {};
-    for (const item of expenseItems) {
-      const g = fixedGroupOf(item.subCategory);
-      const label = g === "Wages" ? personLabel(item.subCategory) : item.name;
-      (groupBuckets[g] ??= []).push({
-        name: label,
-        monthlyCost: item.monthlyCost,
-        yearlyCost: item.yearlyCost,
-        weeklyCost: item.weeklyCost,
-      });
-    }
-    const fixedGroups: ExpenseGroup[] = FIXED_ORDER
-      .filter((g) => groupBuckets[g]?.length)
-      .map((g) => {
-        const items = groupBuckets[g];
-        return {
-          title: g,
-          items,
-          totalWeekly: items.reduce((s, i) => s + i.weeklyCost, 0),
-          totalMonthly: items.reduce((s, i) => s + i.monthlyCost, 0),
-          totalYearly: items.reduce((s, i) => s + i.yearlyCost, 0),
-          tracked: false,
-        };
-      });
+    const CF_EXPENSE_SECTIONS: Array<{ title: string; rows: string[] }> = [
 
-    const trackedToItem = (t: VariableExpenseSeries): ExpenseGroupItem => ({
-      name: t.name,
-      monthlyCost: t.current,
-      yearlyCost: t.current * 12,
-      weeklyCost: t.current / 4.333,
-      tracked: true,
-      series: t.series,
-      avgMonthly: t.avg,
-    });
-    const taxItems: ExpenseGroupItem[] = [
-      ...taxObligations.map(trackedToItem),
-      ...variableExpenses.map(trackedToItem),
+      { title: "Cost of Sales",      rows: ["Labour Costs", "Tactile Costs", "Other Costs"] },
+
+      { title: "Salaries & Wages",   rows: ["Krishan Singh", "Mehmet Kayaf", "Shania Georges Kayaf", "Workers Compensation"] },
+
+      { title: "Operating Expenses", rows: ["Bank Fees", "Computer Expenses", "Consulting & Accounting", "Entertainment", "Insurance", "Instant Asset Write-Off", "Interest Expense", "Motor Vehicle Expenses", "Office Expenses", "Printing & Stationery", "Rent", "Repairs and Maintenance", "Subscriptions", "Superannuation", "Telephone & Internet", "Travel - National"] },
+
+      { title: "Tax & Obligations",  rows: ["GST Paid", "Integrated Client Account (BAS)", "Income Tax Account"] },
+
+      { title: "Finance / Debt",     rows: ["Business Loan Repayment & Monthly Fee", "Motor Vehicle Repayments"] },
+
     ];
-    const taxGroup: ExpenseGroup | null = taxItems.length
-      ? {
-          title: "Tax & Obligations",
-          items: taxItems,
-          totalWeekly: taxItems.reduce((s, i) => s + i.weeklyCost, 0),
-          totalMonthly: taxItems.reduce((s, i) => s + i.monthlyCost, 0),
-          totalYearly: taxItems.reduce((s, i) => s + i.yearlyCost, 0),
-          tracked: true,
-        }
-      : null;
 
-    const expenseGroups: ExpenseGroup[] = [...fixedGroups, ...(taxGroup ? [taxGroup] : [])];
+    const expenseGroups: ExpenseGroup[] = CF_EXPENSE_SECTIONS.map((sec) => {
+
+      const items: ExpenseGroupItem[] = sec.rows
+
+        .map((label) => {
+
+          const monthly = cfLatestX(label);
+
+          return { name: label, monthlyCost: monthly, weeklyCost: monthly / 4.333, yearlyCost: monthly * 12 };
+
+        })
+
+        .filter((i) => i.monthlyCost > 0);
+
+      return {
+
+        title: sec.title,
+
+        items,
+
+        totalWeekly: items.reduce((s, i) => s + i.weeklyCost, 0),
+
+        totalMonthly: items.reduce((s, i) => s + i.monthlyCost, 0),
+
+        totalYearly: items.reduce((s, i) => s + i.yearlyCost, 0),
+
+        tracked: false,
+
+      };
+
+    }).filter((g) => g.items.length > 0);
 
 
 
