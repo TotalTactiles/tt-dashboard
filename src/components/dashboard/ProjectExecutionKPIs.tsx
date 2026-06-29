@@ -1418,6 +1418,8 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
             case 2:
               return <LabourEfficiencyCard key={def.title} data={projectKPIData.kpis.labourEfficiency} index={i} />;
             case 3:
+              return <LabourCostRatioCard key={def.title} ratioPct={labourMetrics.labourCostRatio} labour={labourMetrics.labour} periodLabel={periodLabel} index={i} />;
+            case 4:
               return <MarginVarianceCard key={def.title} data={kpis.marginVariance} index={i} />;
             default:
               return null;
