@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, ReactNode } from "react";
 import { motion } from "framer-motion";
 import { formatMetricValue } from "@/lib/formatMetricValue";
+import { useDashboardData } from "@/contexts/DashboardDataContext";
 
 const fmtAUD = (n: number) => formatMetricValue(n, "currency");
 
@@ -8,8 +9,10 @@ const cardBase =
   "relative bg-card border border-border rounded-lg p-4 md:p-5 flex flex-col";
 
 const PERIOD_KEY = "tt_target_period";
+const VIEW_KEY = "tt_pace_view";
 
 type PeriodChoice = "2026" | "custom";
+type PaceView = "ytd" | "2026";
 
 type Props = {
   target: number;
@@ -36,6 +39,14 @@ function loadPeriod(): PeriodState {
   return { choice: "2026" };
 }
 
+function loadView(): PaceView {
+  try {
+    const raw = localStorage.getItem(VIEW_KEY);
+    if (raw === "ytd" || raw === "2026") return raw;
+  } catch {}
+  return "2026";
+}
+
 function resolveWindow(p: PeriodState): { start: Date; end: Date; label: string } {
   if (p.choice === "custom") {
     const s = p.customStart ? new Date(p.customStart) : new Date(2026, 0, 1);
@@ -49,6 +60,18 @@ function monthsBetween(a: Date, b: Date): number {
   return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
 }
 
+function parseLoose(s: string): Date | null {
+  if (!s) return null;
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d;
+  const m = s.match(/^(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})/);
+  if (m) {
+    const dt = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]));
+    if (!isNaN(dt.getTime())) return dt;
+  }
+  return null;
+}
+
 const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 export default function PerformanceVsTarget({
@@ -59,11 +82,17 @@ export default function PerformanceVsTarget({
   funnelBasis,
   setFunnelBasis,
 }: Props) {
+  const { quotedJobs } = useDashboardData();
+
   const [period, setPeriod] = useState<PeriodState>(loadPeriod);
+  const [view, setView] = useState<PaceView>(loadView);
 
   useEffect(() => {
     try { localStorage.setItem(PERIOD_KEY, JSON.stringify(period)); } catch {}
   }, [period]);
+  useEffect(() => {
+    try { localStorage.setItem(VIEW_KEY, view); } catch {}
+  }, [view]);
 
   const { start, end, label } = resolveWindow(period);
   const today = new Date();
@@ -73,11 +102,42 @@ export default function PerformanceVsTarget({
   const monthsElapsed = Math.min(Math.max(elapsedRaw, 0), totalMonths);
   const monthsRemaining = Math.max(totalMonths - monthsElapsed, 0);
 
-  const remaining = Math.max(target - wonToDate, 0);
-  const expectedToDate = target > 0 ? target * (monthsElapsed / totalMonths) : 0;
-  const paceGap = wonToDate - expectedToDate;
+  // ===== Won buckets from quotedJobs =====
+  const { wonBankedYTD, committedFutureWon, committedByMonth } = useMemo(() => {
+    let banked = 0;
+    let future = 0;
+    const byMonth = new Array<number>(totalMonths + 1).fill(0); // 1-indexed
+    const wonJobs = (quotedJobs ?? []).filter((j) => j.status === "won");
+    for (const j of wonJobs) {
+      const v = Number(j.value) || 0;
+      const d = parseLoose(j.dateQuoted);
+      if (!d) { banked += v; continue; }
+      if (d < start || d > end) continue;
+      if (d <= today) {
+        banked += v;
+      } else {
+        future += v;
+        const m = monthsBetween(start, d) + 1;
+        if (m >= 1 && m <= totalMonths) byMonth[m] += v;
+      }
+    }
+    return { wonBankedYTD: banked, committedFutureWon: future, committedByMonth: byMonth };
+  }, [quotedJobs, start, end, today, totalMonths]);
 
-  const actualRunRate = monthsElapsed > 0 ? wonToDate / monthsElapsed : 0;
+  const openOpps = useMemo(
+    () => (quotedJobs ?? []).filter((j) => j.status === "pending" || j.status === "yellow").length,
+    [quotedJobs],
+  );
+
+  const bankedWon = wonBankedYTD || wonToDate; // fallback
+  const securedTotal = view === "2026" ? bankedWon + committedFutureWon : bankedWon;
+  const remaining = Math.max(target - securedTotal, 0);
+
+  // Status banner uses banked vs linear expected (NOT toggle-sensitive)
+  const expectedToDate = target > 0 ? target * (monthsElapsed / totalMonths) : 0;
+  const paceGap = bankedWon - expectedToDate;
+
+  const actualRunRate = monthsElapsed > 0 ? bankedWon / monthsElapsed : 0;
   const requiredRunRate = monthsRemaining > 0 ? remaining / monthsRemaining : null;
   const runRateUplift =
     actualRunRate > 0 && requiredRunRate != null
@@ -93,11 +153,18 @@ export default function PerformanceVsTarget({
   const requiredOppsPerMonth =
     oppsToGoalRaw != null && monthsRemaining > 0 ? Math.ceil(oppsToGoalRaw / monthsRemaining) : null;
 
+  // Required close rate to hit
+  const netRemainJobs = avgWon > 0 ? remaining / avgWon : null;
+  const requiredCloseRate =
+    netRemainJobs != null && openOpps > 0 && Number.isFinite(netRemainJobs)
+      ? (netRemainJobs / openOpps) * 100
+      : null;
+
   type Status = { label: string; tone: "green" | "amber" | "red" | "neutral"; sub: string };
   const status: Status = useMemo(() => {
     if (target <= 0) return { label: "NO TARGET", tone: "neutral", sub: "Set a revenue target to track pace." };
     if (monthsRemaining === 0) {
-      const pct = target > 0 ? (wonToDate / target) * 100 : 0;
+      const pct = target > 0 ? (bankedWon / target) * 100 : 0;
       return {
         label: "PERIOD CLOSED",
         tone: "neutral",
@@ -106,14 +173,14 @@ export default function PerformanceVsTarget({
     }
     const hi = expectedToDate * 1.02;
     const lo = expectedToDate * 0.98;
-    if (wonToDate > hi) {
+    if (bankedWon > hi) {
       return {
         label: "ABOVE PACE",
         tone: "green",
         sub: `${fmtAUD(Math.abs(paceGap))} ahead of where you should be at month ${monthsElapsed} of ${totalMonths}.`,
       };
     }
-    if (wonToDate < lo) {
+    if (bankedWon < lo) {
       const worse15 = paceGap < -target * 0.15;
       return {
         label: "BEHIND PACE",
@@ -126,7 +193,7 @@ export default function PerformanceVsTarget({
       tone: "green",
       sub: `Within ±2% of linear pace at month ${monthsElapsed} of ${totalMonths}.`,
     };
-  }, [target, wonToDate, expectedToDate, paceGap, monthsElapsed, totalMonths, monthsRemaining]);
+  }, [target, bankedWon, expectedToDate, paceGap, monthsElapsed, totalMonths, monthsRemaining]);
 
   const toneClass = {
     green: "bg-chart-green/15 text-chart-green border-chart-green/30",
@@ -135,36 +202,64 @@ export default function PerformanceVsTarget({
     neutral: "bg-muted/40 text-muted-foreground border-border",
   }[status.tone];
 
-  // Deterministic cumulative pace data — always renders when target > 0.
+  // Deterministic cumulative pace data
   const chartData = useMemo(() => {
     const rows: Array<{
       idx: number;
       label: string;
       targetCum: number;
       actualCum: number | null;
+      committedCum: number | null;
       isFuture: boolean;
     }> = [];
     if (target <= 0 || totalMonths <= 0) return rows;
     const startMonthIdx = start.getMonth();
+    let committedRunning = bankedWon;
     for (let m = 1; m <= totalMonths; m++) {
       const isFuture = m > monthsElapsed;
       const targetCum = target * (m / totalMonths);
       const actualCum = isFuture
         ? null
-        : wonToDate * (m / Math.max(monthsElapsed, 1));
+        : bankedWon * (m / Math.max(monthsElapsed, 1));
+      if (isFuture) committedRunning += committedByMonth[m] || 0;
+      const committedCum = isFuture && view === "2026" ? committedRunning : null;
       rows.push({
         idx: m,
         label: MONTH_SHORT[(startMonthIdx + m - 1) % 12],
         targetCum,
         actualCum,
+        committedCum,
         isFuture,
       });
     }
     return rows;
-  }, [target, totalMonths, monthsElapsed, wonToDate, start]);
+  }, [target, totalMonths, monthsElapsed, bankedWon, start, view, committedByMonth]);
 
   const TRACK_H = 56;
   const maxVal = target;
+
+  // Close rate sub-label
+  let crSub: ReactNode = "—";
+  let crSubTone: "muted" | "green" | "red" | "amber" = "muted";
+  let crValue = "N/A";
+  if (openOpps === 0) {
+    crSub = "no open opps in pipeline";
+  } else if (requiredCloseRate == null) {
+    crSub = "—";
+  } else if (requiredCloseRate > 100) {
+    crValue = ">100%";
+    crSub = "need more leads";
+    crSubTone = "red";
+  } else {
+    crValue = `${requiredCloseRate.toFixed(1)}%`;
+    if (requiredCloseRate <= closeRatePct) {
+      crSub = `vs ${closeRatePct.toFixed(1)}% now — achievable`;
+      crSubTone = "green";
+    } else {
+      crSub = `vs ${closeRatePct.toFixed(1)}% now — must improve`;
+      crSubTone = "amber";
+    }
+  }
 
   return (
     <motion.div
@@ -183,11 +278,12 @@ export default function PerformanceVsTarget({
         </span>
         <div className="flex-1" />
         <PeriodSelector period={period} setPeriod={setPeriod} />
+        <ViewToggle value={view} onChange={setView} />
         <FunnelToggle value={funnelBasis} onChange={setFunnelBasis} />
       </div>
 
       {/* Status banner */}
-      <div className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 border rounded-md px-3 py-2 mb-4 ${toneClass}`}>
+      <div className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 border rounded-md px-3 py-2 mb-1 ${toneClass}`}>
         <span className="text-xs font-bold uppercase tracking-wider">{status.label}</span>
         <span className="text-xs text-muted-foreground">{status.sub}</span>
         <div className="flex-1" />
@@ -195,6 +291,12 @@ export default function PerformanceVsTarget({
           {label}
         </span>
       </div>
+      {view === "2026" && committedFutureWon > 0 && (
+        <div className="text-[10px] text-muted-foreground mb-4 px-1">
+          committed wins cover {fmtAUD(committedFutureWon)} of the remaining gap
+        </div>
+      )}
+      {!(view === "2026" && committedFutureWon > 0) && <div className="mb-4" />}
 
       {/* Required performance grid */}
       <div
@@ -227,9 +329,9 @@ export default function PerformanceVsTarget({
         />
         <RequiredCard
           label="Close Rate to Hit"
-          value={closeRatePct > 0 ? `${closeRatePct.toFixed(1)}%` : "N/A"}
-          sub={closeRatePct > 0 ? "held flat" : "—"}
-          subTone="muted"
+          value={crValue}
+          sub={crSub}
+          subTone={crSubTone}
         />
       </div>
 
@@ -243,6 +345,7 @@ export default function PerformanceVsTarget({
             <Legend swatch="bg-muted-foreground/40" label="Target pace" />
             <Legend swatch="bg-chart-green" label="Actual (on/ahead)" />
             <Legend swatch="bg-[#E8B931]" label="Actual (behind)" />
+            {view === "2026" && <Legend swatch="bg-[#2DD4BF]" label="Committed (won, scheduled)" />}
           </div>
         </div>
 
@@ -255,6 +358,8 @@ export default function PerformanceVsTarget({
                 const tH = Math.round((r.targetCum / maxVal) * TRACK_H);
                 const aRaw = r.actualCum ?? 0;
                 const aH = Math.round((aRaw / maxVal) * TRACK_H);
+                const cRaw = r.committedCum ?? 0;
+                const cH = Math.round((cRaw / maxVal) * TRACK_H);
                 const onTrack = r.actualCum != null && r.actualCum >= r.targetCum;
                 return (
                   <div key={r.idx} className="flex-1 flex items-end gap-[1px] min-w-0">
@@ -268,6 +373,13 @@ export default function PerformanceVsTarget({
                         className={`flex-1 rounded-sm ${onTrack ? "bg-chart-green" : "bg-[#E8B931]"}`}
                         style={{ height: `${Math.max(aH, aRaw > 0 ? 2 : 0)}px` }}
                         title={`${r.label} actual ${fmtAUD(aRaw)}`}
+                      />
+                    )}
+                    {r.isFuture && r.committedCum != null && (
+                      <div
+                        className="flex-1 rounded-sm bg-[#2DD4BF]"
+                        style={{ height: `${Math.max(cH, cRaw > 0 ? 2 : 0)}px` }}
+                        title={`${r.label} committed ${fmtAUD(cRaw)}`}
                       />
                     )}
                   </div>
@@ -382,6 +494,42 @@ function PeriodSelector({
           />
         </div>
       )}
+    </div>
+  );
+}
+
+function ViewToggle({
+  value,
+  onChange,
+}: {
+  value: PaceView;
+  onChange: (v: PaceView) => void;
+}) {
+  const opts: { id: PaceView; label: string }[] = [
+    { id: "ytd", label: "YTD" },
+    { id: "2026", label: "2026" },
+  ];
+  return (
+    <div
+      className="flex rounded-full bg-secondary/80 p-0.5 leading-none"
+      style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}
+    >
+      {opts.map((o) => {
+        const active = value === o.id;
+        return (
+          <button
+            key={o.id}
+            type="button"
+            onClick={() => onChange(o.id)}
+            className={`px-1.5 py-0.5 rounded-full font-mono whitespace-nowrap transition-colors ${
+              active ? "text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+            style={active ? { backgroundColor: "#3D89DA" } : undefined}
+          >
+            {o.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
