@@ -1308,40 +1308,46 @@ const DashboardContent = () => {
   const { goals, updateGoal } = useGoals();
   const { formulas, kpiStats, hasLiveData, connectedCount, dataHealth, isLoading, isRefreshing, lastUpdated, sources, syncNow, syncCalendar, formulaCache, incomeOutgoingsData, forecastChartData, quotedJobs, investorMetrics, isOffline, lastCachedAt, revenueProjects, dataStore, liveData, inRunningCount, inRunningValue, monthlyInvoicesData, monthlyNetProfitData, expenseGroups } = useDashboardData();
 
-  // Split expense groups into two cards:
-  //   Card 1 ("default view"): everything except COS, and Finance/Debt with just Motor Vehicle Repayments (renamed "Finance")
-  //   Card 2 ("debt view"): Cost of Sales + Finance/Debt with just Business Loan (renamed "Debt")
-  const expenseGroupsDefault = useMemo(() => {
-    return expenseGroups
-      .filter((g) => g.title !== "Cost of Sales")
-      .map((g) => {
-        if (g.title === "Finance / Debt") {
-          const items = g.items.filter((i) => i.name !== "Business Loan Repayment & Monthly Fee");
-          return { ...g, title: "Finance", items };
-        }
-        return g;
-      })
-      .filter((g) => g.items.length > 0);
-  }, [expenseGroups]);
-
-  const expenseGroupsDebt = useMemo(() => {
+  // Single merged card: all six CASHFLOW sections in order
+  const expenseGroupsAll = useMemo(() => {
     const out: typeof expenseGroups = [];
-    const cos = expenseGroups.find((g) => g.title === "Cost of Sales");
-    if (cos && cos.items.length > 0) out.push(cos);
+    const push = (t: string) => { const g = expenseGroups.find((x) => x.title === t); if (g && g.items.length) out.push(g); };
+    push("Salaries & Wages");
+    push("Operating Expenses");
+    push("Tax & Obligations");
     const fin = expenseGroups.find((g) => g.title === "Finance / Debt");
     if (fin) {
-      const items = fin.items.filter((i) => i.name === "Business Loan Repayment & Monthly Fee");
-      if (items.length > 0) out.push({ ...fin, title: "Debt", items });
+      const finItems = fin.items.filter((i) => i.name !== "Business Loan Repayment & Monthly Fee");
+      if (finItems.length) out.push({ ...fin, title: "Finance", items: finItems });
+    }
+    push("Cost of Sales");
+    if (fin) {
+      const debtItems = fin.items.filter((i) => i.name === "Business Loan Repayment & Monthly Fee");
+      if (debtItems.length) out.push({ ...fin, title: "Debt", items: debtItems });
     }
     return out;
   }, [expenseGroups]);
 
   const expensePieSections = useMemo(() => {
-    const sumMonthly = (g: any) => g.items.reduce((s: number, i: any) => s + (i.monthlyCost || 0), 0);
-    return [...expenseGroupsDefault, ...expenseGroupsDebt]
-      .map((g: any) => ({ name: g.title, value: sumMonthly(g), fill: getSectionColor(g.title) }))
-      .filter((d) => d.value > 0);
-  }, [expenseGroupsDefault, expenseGroupsDebt]);
+    const find = (t: string) => expenseGroups.find((g) => g.title === t);
+    const sumItems = (g: any) => (g ? g.items.reduce((s: number, i: any) => s + (i.monthlyCost || 0), 0) : 0);
+    const itemVal = (g: any, name: string) => (g ? (g.items.find((i: any) => i.name === name)?.monthlyCost || 0) : 0);
+    const sal = find("Salaries & Wages");
+    const opx = find("Operating Expenses");
+    const tax = find("Tax & Obligations");
+    const cos = find("Cost of Sales");
+    const fin = find("Finance / Debt");
+    const superVal = itemVal(opx, "Superannuation");
+    const carFinance = itemVal(fin, "Motor Vehicle Repayments");
+    const businessLoan = itemVal(fin, "Business Loan Repayment & Monthly Fee");
+    return [
+      { name: "Lifestyle",          value: sumItems(sal) + superVal + carFinance, fill: getSectionColor("Lifestyle") },
+      { name: "Operating Expenses", value: Math.max(0, sumItems(opx) - superVal), fill: getSectionColor("Operating Expenses") },
+      { name: "Tax & Obligations",  value: sumItems(tax),                         fill: getSectionColor("Tax & Obligations") },
+      { name: "Cost of Sales",      value: sumItems(cos),                         fill: getSectionColor("Cost of Sales") },
+      { name: "Debt",               value: businessLoan,                          fill: getSectionColor("Debt") },
+    ].filter((d) => d.value > 0);
+  }, [expenseGroups]);
 
   // ── Shared period selector across PortfolioChart / MonthlyInvoices / MonthlyNetProfit ──
   const [periodYear, setPeriodYear] = useState<string>(() => String(new Date().getFullYear()));
