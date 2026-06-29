@@ -228,30 +228,38 @@ function WinLossSummaryCard({
 // Paid (top)        = last calendar month's invoices (received THIS month)
 // To be paid (bot.) = this calendar month's invoices (received NEXT month)
 // Source: revenueProjects (REVENUE tab), valueInclGST, invoiceDate.
-function InvoicesPaidCard({ index, onJumpToMonth }: { index: number; onJumpToMonth?: (target: { year: number; month: number; label: string }) => void }) {
+function InvoicesPaidCard({ index, onJumpToMonth, periodMonths, periodLabel }: { index: number; onJumpToMonth?: (target: { year: number; month: number; label: string }) => void; periodMonths?: Set<string> | null; periodLabel?: string }) {
   const { revenueProjects } = useDashboardData();
 
-  const { paid, toBePaid, paidCount, toBePaidCount } = useMemo(() => {
-    const now = new Date();
-    const curY = now.getFullYear();
-    const curM = now.getMonth();
-    const prev = new Date(curY, curM - 1, 1);
-    const prevY = prev.getFullYear();
-    const prevM = prev.getMonth();
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const MONTHS_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const mkKey = (y: number, m: number) => `${MONTHS[m]}-${String(y).slice(-2)}`;
 
-    let paid = 0, toBePaid = 0, paidCount = 0, toBePaidCount = 0;
+  const { toBePaid, toBeInvoiced, toBePaidCount, toBeInvoicedCount } = useMemo(() => {
+    const now = new Date();
+    // periodMonths === undefined → fall back to original "current month" behaviour
+    // periodMonths === null → "All time" (no month filter)
+    const inPeriod = (y: number, m: number): boolean => {
+      if (periodMonths === undefined) return y === now.getFullYear() && m === now.getMonth();
+      if (periodMonths === null) return true;
+      return periodMonths.has(mkKey(y, m));
+    };
+    let toBePaid = 0, toBeInvoiced = 0, toBePaidCount = 0, toBeInvoicedCount = 0;
     for (const rp of revenueProjects) {
       if (!rp.invoiceDate) continue;
       const d = new Date(rp.invoiceDate);
       if (isNaN(d.getTime())) continue;
-      const y = d.getFullYear();
-      const m = d.getMonth();
+      if (!inPeriod(d.getFullYear(), d.getMonth())) continue;
       const v = rp.valueInclGST || 0;
-      if (y === prevY && m === prevM) { paid += v; paidCount++; }
-      else if (y === curY && m === curM) { toBePaid += v; toBePaidCount++; }
+      const isPaid = String((rp as any).status ?? "").toLowerCase().includes("paid");
+      if (isPaid) continue;
+      // Heuristic: future invoiceDate => "To be Invoiced"; today-or-past => "To be Paid"
+      const isFuture = d.getTime() > now.getTime();
+      if (isFuture) { toBeInvoiced += v; toBeInvoicedCount++; }
+      else { toBePaid += v; toBePaidCount++; }
     }
-    return { paid, toBePaid, paidCount, toBePaidCount };
-  }, [revenueProjects]);
+    return { toBePaid, toBeInvoiced, toBePaidCount, toBeInvoicedCount };
+  }, [revenueProjects, periodMonths]);
 
   const fmtCompact = (n: number) => {
     const abs = Math.abs(n);
@@ -261,14 +269,9 @@ function InvoicesPaidCard({ index, onJumpToMonth }: { index: number; onJumpToMon
     return `${sign}$${Math.round(abs).toLocaleString()}`;
   };
 
-  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const MONTHS_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   const now = new Date();
-  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const paidCtx = MONTHS[prev.getMonth()];
-  const toBeCtx = MONTHS[now.getMonth()];
-  const paidJumpLabel = `${MONTHS_FULL[prev.getMonth()]} ${prev.getFullYear()}`;
-  const toBeJumpLabel = `${MONTHS_FULL[now.getMonth()]} ${now.getFullYear()}`;
+  const ctx = periodLabel ?? MONTHS[now.getMonth()];
+  const jumpLabel = `${MONTHS_FULL[now.getMonth()]} ${now.getFullYear()}`;
 
   const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
   const labelClass = "text-[0.7rem] font-semibold tracking-wide text-foreground/80 font-mono text-center";
