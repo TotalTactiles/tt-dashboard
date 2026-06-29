@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, ReactNode } from "react";
 import { motion } from "framer-motion";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
+import { useCrmStages } from "@/hooks/useCrmStages";
 
 const fmtAUD = (n: number) => formatMetricValue(n, "currency");
 
