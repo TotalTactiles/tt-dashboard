@@ -8,7 +8,10 @@ import { ThemeProvider } from "next-themes";
 import Index from "./pages/Index";
 import InvestmentMemorandum from "./pages/InvestmentMemorandum";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
 import { DashboardDataProvider } from "@/contexts/DashboardDataContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { Loader2 } from "lucide-react";
 
 // Lazy-load non-index pages — reduces initial bundle size.
@@ -50,31 +53,38 @@ const PageFallback = () => (
   </div>
 );
 
+const Protected = ({ children }: { children: React.ReactNode }) => (
+  <ProtectedRoute>{children}</ProtectedRoute>
+);
+
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="dark" storageKey="km-theme" enableSystem>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <DashboardDataProvider>
-          <BrowserRouter>
-            <Suspense fallback={<PageFallback />}>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/consulting" element={<InvestmentMemorandum />} />
-                <Route path="/calendar" element={<CalendarView />} />
-                <Route path="/employees" element={<EmployeeTracking />} />
-                <Route path="/goals" element={<GoalsTargets />} />
-                <Route path="/formulas" element={<Formulas />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/deals" element={<DealFlow />} />
-                <Route path="/financial-health" element={<FinancialHealth />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </DashboardDataProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <DashboardDataProvider>
+              <Suspense fallback={<PageFallback />}>
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/" element={<Protected><Index /></Protected>} />
+                  <Route path="/consulting" element={<Protected><InvestmentMemorandum /></Protected>} />
+                  <Route path="/calendar" element={<Protected><CalendarView /></Protected>} />
+                  <Route path="/employees" element={<Protected><EmployeeTracking /></Protected>} />
+                  <Route path="/goals" element={<Protected><GoalsTargets /></Protected>} />
+                  <Route path="/formulas" element={<Protected><Formulas /></Protected>} />
+                  <Route path="/settings" element={<Protected><Settings /></Protected>} />
+                  <Route path="/deals" element={<Protected><DealFlow /></Protected>} />
+                  <Route path="/financial-health" element={<Protected><FinancialHealth /></Protected>} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </DashboardDataProvider>
+          </AuthProvider>
+        </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
   </ThemeProvider>
