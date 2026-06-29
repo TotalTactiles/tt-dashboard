@@ -19,9 +19,11 @@ type Props = {
   target: number;
   wonToDate: number;
   avgWon: number;
-  closeRatePct: number; // 0-100
+  closeRatePct: number; // 0-100 — basis-appropriate displayed rate (close for opps, pipeline for leads)
   funnelBasis: "opportunities" | "leads";
   setFunnelBasis: (v: "opportunities" | "leads") => void;
+  withYlw?: boolean;
+  ylwValue?: number;
 };
 
 type PeriodState = { choice: PeriodChoice; customStart?: string; customEnd?: string };
