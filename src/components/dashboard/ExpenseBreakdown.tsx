@@ -38,10 +38,26 @@ function getCostByPeriod(item: { weeklyCost: number; monthlyCost: number; yearly
 interface ExpenseBreakdownProps {
   goals?: Goal[];
   activeGoalIds?: Set<string>;
+  groupsOverride?: import("@/contexts/DashboardDataContext").ExpenseGroup[];
+  title?: string;
+  storageKey?: string;
+  defaultExcluded?: string[];
+  hideGoals?: boolean;
+  hideGrandTotal?: boolean;
 }
 
-const ExpenseBreakdownInner = ({ goals = [], activeGoalIds = new Set() }: ExpenseBreakdownProps) => {
-  const { expenseCategories, grandTotalExpense, dataHealth, variableExpenses, taxObligations, expenseGroups } = useDashboardData();
+const ExpenseBreakdownInner = ({
+  goals = [],
+  activeGoalIds = new Set(),
+  groupsOverride,
+  title = "Business Expenses",
+  storageKey = "tt_expense_excluded_v2",
+  defaultExcluded,
+  hideGoals = false,
+  hideGrandTotal = false,
+}: ExpenseBreakdownProps) => {
+  const { expenseCategories, grandTotalExpense, dataHealth, variableExpenses, taxObligations, expenseGroups: ctxGroups } = useDashboardData();
+  const expenseGroups = groupsOverride ?? ctxGroups;
   const [period, setPeriod] = useState<Period>("monthly");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<{ cardName: string; categoryGroup: string } | null>(null);
@@ -49,14 +65,14 @@ const ExpenseBreakdownInner = ({ goals = [], activeGoalIds = new Set() }: Expens
   // Unticked BY DEFAULT: Cost of Sales (COGS, already in the margin engine)
   // and the Business Loan (counted in the debt section). Users can re-tick
   // any of these; their choice then saves and overrides this default.
-  const DEFAULT_EXCLUDED = [
+  const DEFAULT_EXCLUDED = defaultExcluded ?? [
     "Cost of Sales::Labour Costs",
     "Cost of Sales::Tactile Costs",
     "Cost of Sales::Other Costs",
     "Finance / Debt::Business Loan Repayment & Monthly Fee",
   ];
 
-  const EXPENSE_SEL_KEY = "tt_expense_excluded_v2";
+  const EXPENSE_SEL_KEY = storageKey;
 
   const [excludedKeys, setExcludedKeys] = useState<Set<string>>(() => {
     try {
@@ -118,7 +134,7 @@ const ExpenseBreakdownInner = ({ goals = [], activeGoalIds = new Set() }: Expens
     >
       {/* Header with toggle */}
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-sm font-medium text-muted-foreground">Business Expenses</h3>
+        <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
         <div className="flex items-center gap-1 rounded-lg border border-border bg-secondary/30 p-0.5">
           {(["weekly", "monthly", "yearly"] as Period[]).map((p) => (
             <button
@@ -146,7 +162,7 @@ const ExpenseBreakdownInner = ({ goals = [], activeGoalIds = new Set() }: Expens
 
 
           {/* Goals category from merged goals */}
-          {goalsCategory && (
+          {!hideGoals && goalsCategory && (
             <div className="mb-6">
               <h4 className="text-xs font-mono uppercase tracking-wider mb-3" style={{ color: GOALS_COLOR }}>
                 Goals (Projected)
@@ -231,7 +247,7 @@ const ExpenseBreakdownInner = ({ goals = [], activeGoalIds = new Set() }: Expens
           </div>
 
           {/* Grand Total Summary Strip */}
-          {grandTotalExpense && (
+          {!hideGrandTotal && grandTotalExpense && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
