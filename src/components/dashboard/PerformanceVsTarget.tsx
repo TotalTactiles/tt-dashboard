@@ -19,9 +19,11 @@ type Props = {
   target: number;
   wonToDate: number;
   avgWon: number;
-  closeRatePct: number; // 0-100
+  closeRatePct: number; // 0-100 — basis-appropriate displayed rate (close for opps, pipeline for leads)
   funnelBasis: "opportunities" | "leads";
   setFunnelBasis: (v: "opportunities" | "leads") => void;
+  withYlw?: boolean;
+  ylwValue?: number;
 };
 
 type PeriodState = { choice: PeriodChoice; customStart?: string; customEnd?: string };
@@ -82,6 +84,8 @@ export default function PerformanceVsTarget({
   closeRatePct,
   funnelBasis,
   setFunnelBasis,
+  withYlw = false,
+  ylwValue = 0,
 }: Props) {
   const { quotedJobs } = useDashboardData();
   const { quotingOpp, totalLeads } = useCrmStages();
@@ -145,6 +149,40 @@ export default function PerformanceVsTarget({
     for (let i = 1; i <= totalMonths; i++) arr[i] = rawByMonth[i] * scale;
     return arr;
   }, [quotedJobs, start, end, today, totalMonths, committedFutureWon]);
+
+  // YLW bucket-by-job-date for the pace chart (only used in With-YLWs mode).
+  const ylwByMonth = useMemo(() => {
+    const arr = new Array<number>(totalMonths + 1).fill(0);
+    if (!withYlw || ylwValue <= 0) return arr;
+    const ylwJobs = (quotedJobs ?? []).filter((j) => j.status === "yellow");
+    let rawSum = 0;
+    const rawByMonth = new Array<number>(totalMonths + 1).fill(0);
+    let unbucketed = 0;
+    for (const j of ylwJobs) {
+      const v = Number(j.value) || 0;
+      if (v <= 0) continue;
+      const d = parseLoose(j.dateQuoted);
+      if (!d || d < start || d > end) {
+        // Missing/out-of-window dates land in current month as banked
+        unbucketed += v;
+        continue;
+      }
+      const m = monthsBetween(start, d) + 1;
+      if (m >= 1 && m <= totalMonths) { rawByMonth[m] += v; rawSum += v; }
+      else { unbucketed += v; }
+    }
+    const curM = Math.min(Math.max(monthsElapsed, 1), totalMonths);
+    rawByMonth[curM] += unbucketed;
+    rawSum += unbucketed;
+    if (rawSum <= 0) {
+      // No per-job ylw data: dump it all into the current month so chart still ties out.
+      arr[curM] = ylwValue;
+      return arr;
+    }
+    const scale = ylwValue / rawSum;
+    for (let i = 1; i <= totalMonths; i++) arr[i] = rawByMonth[i] * scale;
+    return arr;
+  }, [quotedJobs, start, end, totalMonths, monthsElapsed, withYlw, ylwValue]);
 
   // Active CRM pipeline denominator — matches the funnel toggle
   const activePipeline =
@@ -235,11 +273,13 @@ export default function PerformanceVsTarget({
       targetCum: number;
       actualCum: number | null;
       committedCum: number | null;
+      ylwCum: number | null;
       isFuture: boolean;
     }> = [];
     if (target <= 0 || totalMonths <= 0) return rows;
     const startMonthIdx = start.getMonth();
     let committedRunning = wonRealizedYTD;
+    let ylwRunning = 0;
     for (let m = 1; m <= totalMonths; m++) {
       const isFuture = m > monthsElapsed;
       const targetCum = target * (m / totalMonths);
@@ -248,42 +288,50 @@ export default function PerformanceVsTarget({
         : wonRealizedYTD * (m / Math.max(monthsElapsed, 1));
       if (isFuture) committedRunning += committedByMonth[m] || 0;
       const committedCum = isFuture && view === "2026" ? committedRunning : null;
+      ylwRunning += ylwByMonth[m] || 0;
+      const ylwCum = withYlw ? ylwRunning : null;
       rows.push({
         idx: m,
         label: MONTH_SHORT[(startMonthIdx + m - 1) % 12],
         targetCum,
         actualCum,
         committedCum,
+        ylwCum,
         isFuture,
       });
     }
     return rows;
-  }, [target, totalMonths, monthsElapsed, wonRealizedYTD, start, view, committedByMonth]);
+  }, [target, totalMonths, monthsElapsed, wonRealizedYTD, start, view, committedByMonth, ylwByMonth, withYlw]);
 
   const TRACK_H = 56;
   const maxVal = target;
 
-  // Close rate sub-label
+  // Cadence labels follow the funnel toggle
+  const cadenceTitle = funnelBasis === "leads" ? "Leads / Month" : "Opps / Month";
+  const rateNoun = funnelBasis === "leads" ? "pipeline rate" : "close";
+  const funnelNounUpper = funnelBasis === "leads" ? "LEADS" : "OPPS";
+  const funnelNounLower = funnelBasis === "leads" ? "leads" : "opps";
+
+  // Close rate sub-label — "on current pipeline" framing
   let crSub: ReactNode = "—";
   let crSubTone: "muted" | "green" | "red" | "amber" = "muted";
   let crValue = "N/A";
   if (activePipeline <= 0) {
-    crSub = "awaiting CRM pipeline count";
+    crSub = "N/A · awaiting CRM pipeline count";
   } else if (requiredCloseRate == null) {
     crSub = "—";
   } else if (requiredCloseRate > 100) {
     crValue = ">100%";
-    crSub = "pipeline too thin";
+    crSub = `live pipeline too thin — generate new ${funnelNounLower} (see ${funnelNounUpper}/MONTH)`;
     crSubTone = "red";
+  } else if (requiredCloseRate <= closeRatePct) {
+    crValue = `${requiredCloseRate.toFixed(1)}%`;
+    crSub = `your live pipeline covers it (current ${closeRatePct.toFixed(1)}%)`;
+    crSubTone = "green";
   } else {
     crValue = `${requiredCloseRate.toFixed(1)}%`;
-    if (requiredCloseRate <= closeRatePct) {
-      crSub = `vs ${closeRatePct.toFixed(1)}% now — achievable at current rate`;
-      crSubTone = "green";
-    } else {
-      crSub = `vs ${closeRatePct.toFixed(1)}% now — must lift conversion`;
-      crSubTone = "amber";
-    }
+    crSub = `lift live-pipeline conversion to ${requiredCloseRate.toFixed(1)}% (now ${closeRatePct.toFixed(1)}%)`;
+    crSubTone = "amber";
   }
 
 
@@ -349,12 +397,13 @@ export default function PerformanceVsTarget({
           }
         />
         <RequiredCard
-          label="Opps or Leads / Month"
+          label={cadenceTitle}
           value={requiredOppsPerMonth != null ? String(requiredOppsPerMonth) : "N/A"}
-          sub={closeRatePct > 0 ? `at ${closeRatePct.toFixed(1)}% close` : "no close rate"}
+          sub={closeRatePct > 0 ? `at ${closeRatePct.toFixed(1)}% ${rateNoun}` : `no ${rateNoun}`}
         />
         <RequiredCard
           label="Close Rate to Hit"
+          subLabel="on current pipeline"
           value={crValue}
           sub={crSub}
           subTone={crSubTone}
@@ -370,8 +419,9 @@ export default function PerformanceVsTarget({
           <div className="flex items-center gap-3 text-[9px] uppercase tracking-wider text-muted-foreground">
             <Legend swatch="bg-muted-foreground/40" label="Target pace" />
             <Legend swatch="bg-chart-green" label="Actual (on/ahead)" />
-            <Legend swatch="bg-[#E8B931]" label="Actual (behind)" />
+            {!withYlw && <Legend swatch="bg-[#E8B931]" label="Actual (behind)" />}
             {view === "2026" && <Legend swatch="bg-[#2DD4BF]" label="Committed (won, scheduled)" />}
+            {withYlw && <Legend swatch="bg-[#E8B931]" label="YLW (verbal)" />}
           </div>
         </div>
 
@@ -386,6 +436,8 @@ export default function PerformanceVsTarget({
                 const aH = Math.round((aRaw / maxVal) * TRACK_H);
                 const cRaw = r.committedCum ?? 0;
                 const cH = Math.round((cRaw / maxVal) * TRACK_H);
+                const yRaw = r.ylwCum ?? 0;
+                const yH = Math.round((yRaw / maxVal) * TRACK_H);
                 const onTrack = r.actualCum != null && r.actualCum >= r.targetCum;
                 return (
                   <div key={r.idx} className="flex-1 flex items-end gap-[1px] min-w-0">
@@ -396,7 +448,7 @@ export default function PerformanceVsTarget({
                     />
                     {!r.isFuture && r.actualCum != null && (
                       <div
-                        className={`flex-1 rounded-sm ${onTrack ? "bg-chart-green" : "bg-[#E8B931]"}`}
+                        className={`flex-1 rounded-sm ${withYlw ? "bg-chart-green" : (onTrack ? "bg-chart-green" : "bg-[#E8B931]")}`}
                         style={{ height: `${Math.max(aH, aRaw > 0 ? 2 : 0)}px` }}
                         title={`${r.label} actual ${fmtAUD(aRaw)}`}
                       />
@@ -406,6 +458,13 @@ export default function PerformanceVsTarget({
                         className="flex-1 rounded-sm bg-[#2DD4BF]"
                         style={{ height: `${Math.max(cH, cRaw > 0 ? 2 : 0)}px` }}
                         title={`${r.label} committed ${fmtAUD(cRaw)}`}
+                      />
+                    )}
+                    {withYlw && r.ylwCum != null && (
+                      <div
+                        className="flex-1 rounded-sm bg-[#E8B931]"
+                        style={{ height: `${Math.max(yH, yRaw > 0 ? 2 : 0)}px` }}
+                        title={`${r.label} YLW ${fmtAUD(yRaw)}`}
                       />
                     )}
                   </div>
@@ -431,11 +490,13 @@ export default function PerformanceVsTarget({
 
 function RequiredCard({
   label,
+  subLabel,
   value,
   sub,
   subTone = "muted",
 }: {
   label: string;
+  subLabel?: string;
   value: string;
   sub: ReactNode;
   subTone?: "muted" | "green" | "red" | "amber";
@@ -449,6 +510,9 @@ function RequiredCard({
   return (
     <div className="bg-secondary/30 border border-border/60 rounded px-3 py-2.5">
       <div className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground">{label}</div>
+      {subLabel && (
+        <div className="text-[8px] uppercase tracking-wider text-muted-foreground/70 -mt-0.5">{subLabel}</div>
+      )}
       <div
         className="font-mono tabular-nums font-semibold text-foreground mt-1"
         style={{ fontSize: "clamp(1.1rem, 1.5vw, 1.5rem)", letterSpacing: "-0.015em" }}
