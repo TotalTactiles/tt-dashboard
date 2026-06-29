@@ -1257,7 +1257,7 @@ interface ProjectExecutionKPIsProps {
 }
 
 export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange, invoiceFilter: _invoiceFilter, onInvoiceFilterChange: _onInvoiceFilterChange }: ProjectExecutionKPIsProps) {
-  const { quotedJobs, revenueProjects, incomeOutgoingsData, projectKPIData, sources, syncProjectKPIs } = useDashboardData();
+  const { quotedJobs, revenueProjects, incomeOutgoingsData, projectKPIData, sources, syncProjectKPIs, dataStore } = useDashboardData();
   const periodOptions = useMemo(() => buildPeriodOptions(quotedJobs, revenueProjects), [quotedJobs, revenueProjects]);
   const period = periodOptions[selectedPeriodIdx] ?? null;
 
