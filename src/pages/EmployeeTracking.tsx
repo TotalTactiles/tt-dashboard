@@ -10,7 +10,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Users, Clock, DollarSign, TrendingUp, ChevronDown, Pencil, Check as CheckIcon, Plus } from "lucide-react";
+import { Users, Clock, DollarSign, TrendingUp, ChevronDown, Pencil, Check as CheckIcon, Plus, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
+import { useDashboardData } from "@/contexts/DashboardDataContext";
+
+const ZOHO_LABOUR_SYNC_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-employee-sync";
+// Upwork sync is not live yet. Leave empty until the Upwork workflow has its own
+// webhook trigger; when ready, paste its production webhook URL here and it will
+// be included in the sync automatically. Empty = skipped.
+const UPWORK_SYNC_WEBHOOK = "";
 import {
   ResponsiveContainer,
   ComposedChart,
