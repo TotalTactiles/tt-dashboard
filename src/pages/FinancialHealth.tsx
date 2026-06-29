@@ -947,6 +947,7 @@ const ChartsSection = ({
       maxNewRepayment,
       borrowingCapacity60,
       existingMonthlyDebt,
+      breakdown: { avg3Eq, avg6Eq, maxNewEq, capacityEq },
       _pastActuals,
       _forwardContracted,
     };
