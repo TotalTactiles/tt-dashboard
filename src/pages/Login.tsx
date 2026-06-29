@@ -6,6 +6,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import ttWordmark from "@/assets/tt-wordmark.png.asset.json";
+import ttProducts from "@/assets/tt-products.png.asset.json";
+
 
 const Login = () => {
   const { session, loading } = useAuth();
