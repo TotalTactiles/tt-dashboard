@@ -834,7 +834,7 @@ export function useDataSources() {
       if (calendarInterval.current) clearInterval(calendarInterval.current);
       if (calendarAbortRef.current) calendarAbortRef.current.abort();
     };
-  }, [fetchCalendar]);
+  }, [fetchCalendar, isAuthed]);
 
   return {
     sources,
