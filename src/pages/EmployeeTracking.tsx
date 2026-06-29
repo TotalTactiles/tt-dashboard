@@ -555,7 +555,7 @@ const EmployeeTracking = () => {
           <p className="text-fluid-xs text-muted-foreground font-mono">Digital freelancers & casual labour · combined view</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {upwork ? (
+          {upworkLive && upwork?.syncTimestamp ? (
             <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-mono bg-chart-green/15 text-chart-green">
               Upwork · Last synced: {fmtSync(upwork.syncTimestamp)}
             </span>
@@ -564,7 +564,7 @@ const EmployeeTracking = () => {
               Upwork · Not connected
             </span>
           )}
-          {zoho ? (
+          {zohoLive && zoho?.syncTimestamp ? (
             <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-mono bg-chart-blue/15 text-chart-blue">
               Zoho Projects · Last synced: {fmtSync(zoho.syncTimestamp)}
             </span>
@@ -586,11 +586,15 @@ const EmployeeTracking = () => {
         </div>
       </div>
 
-      {isMockData && (
+      {isMockData ? (
         <div className="mb-4 px-3 py-2 rounded-md border border-chart-orange/40 bg-chart-orange/10 text-[11px] font-mono text-chart-orange">
           Showing sample data — live Upwork & Zoho Projects sync not yet connected.
         </div>
-      )}
+      ) : (!upworkLive || !zohoLive) ? (
+        <div className="mb-4 px-3 py-2 rounded-md border border-border bg-muted/30 text-[11px] font-mono text-muted-foreground">
+          Live · {zohoLive ? "Zoho Projects connected" : "Zoho Projects sync pending"}. {upworkLive ? "Upwork connected" : "Upwork sync pending"}.
+        </div>
+      ) : null}
 
       {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4 mb-4">
