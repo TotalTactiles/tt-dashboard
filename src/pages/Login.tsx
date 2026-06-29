@@ -6,6 +6,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import ttWordmark from "@/assets/tt-wordmark.png.asset.json";
+import ttProducts from "@/assets/tt-products.png.asset.json";
+
 
 const Login = () => {
   const { session, loading } = useAuth();
@@ -47,13 +50,25 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm border border-border rounded-xl p-6 bg-card">
-        <div className="mb-6 flex flex-col items-center gap-2">
-          <div className="w-10 h-10 rounded-sm bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-mono font-black text-xs tracking-widest">TT</span>
+        <div className="mb-6 flex flex-col items-center gap-4">
+          <div
+            className="w-20 h-20 overflow-hidden border-2"
+            style={{ borderRadius: 16, borderColor: "#3D89DA" }}
+          >
+            <img
+              src={ttProducts.url}
+              alt="Total Tactiles products"
+              className="w-full h-full object-cover"
+            />
           </div>
-          <h1 className="text-lg font-mono font-bold tracking-wider uppercase">Total Tactiles</h1>
+          <img
+            src={ttWordmark.url}
+            alt="Total Tactiles"
+            className="w-[220px] h-auto"
+          />
           <p className="text-xs text-muted-foreground font-mono text-center">Do you even know what your EBITDA is? ~ Paulie Walnuts</p>
         </div>
+
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-1.5">
