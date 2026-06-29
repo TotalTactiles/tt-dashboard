@@ -73,7 +73,7 @@ const ExpenseBreakdownInner = ({ goals = [], activeGoalIds = new Set() }: Expens
   // Goals expense category
   const goalsCategory = useMemo(() => getGoalExpenseCategory(goals, activeGoalIds), [goals, activeGoalIds]);
 
-  const allItems = useMemo(() => expenseCategories.flatMap((c) => c.items), [expenseCategories]);
+  
   const basePieData = useMemo(() => expenseGroups.map((g, gi) => ({
     name: g.title,
     value: g.items
