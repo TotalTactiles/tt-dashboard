@@ -38,6 +38,12 @@ interface StatCardProps {
   toggleLabelAlt2?: string;
   emphasis?: boolean;
   variant?: "default" | "centered";
+  /** Cash Position only: override the "Open" mode value (e.g. period-start opening balance). */
+  openValueOverride?: number | null;
+  /** Cash Position only: override the "Open" mode subtext line. */
+  openSubtextOverride?: string;
+  /** Cash Position only: override the "Today" mode subtext line. */
+  currentSubtextOverride?: string;
 }
 
 // Unified emphasis figure style — one compact type scale across every Quick Look Sales card.
