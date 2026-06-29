@@ -46,14 +46,23 @@ const ExpenseBreakdownInner = ({ goals = [], activeGoalIds = new Set() }: Expens
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<{ cardName: string; categoryGroup: string } | null>(null);
 
-  const EXPENSE_SEL_KEY = "tt_expense_excluded_v1";
+  // Unticked BY DEFAULT: Cost of Sales (COGS, already in the margin engine)
+  // and the Business Loan (counted in the debt section). Users can re-tick
+  // any of these; their choice then saves and overrides this default.
+  const DEFAULT_EXCLUDED = [
+    "Cost of Sales::Labour Costs",
+    "Cost of Sales::Tactile Costs",
+    "Cost of Sales::Other Costs",
+    "Finance / Debt::Business Loan Repayment & Monthly Fee",
+  ];
+
+  const EXPENSE_SEL_KEY = "tt_expense_excluded_v2";
 
   const [excludedKeys, setExcludedKeys] = useState<Set<string>>(() => {
-
-    try { const raw = localStorage.getItem(EXPENSE_SEL_KEY); return new Set(raw ? JSON.parse(raw) : []); }
-
-    catch { return new Set(); }
-
+    try {
+      const raw = localStorage.getItem(EXPENSE_SEL_KEY);
+      return raw !== null ? new Set(JSON.parse(raw)) : new Set(DEFAULT_EXCLUDED);
+    } catch { return new Set(DEFAULT_EXCLUDED); }
   });
 
   const xKey = (groupTitle: string, name: string) => `${groupTitle}::${name}`;
