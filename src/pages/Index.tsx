@@ -29,6 +29,7 @@ import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { applyGoalMerge } from "@/lib/goalMerge";
 import { buildPeriodOptions, getCurrentMonthKey } from "@/lib/projectExecutionKpis";
 import { parseMonthKey } from "@/lib/reportDataAssembler";
+import { getSectionColor } from "@/lib/expenseColors";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1335,6 +1336,13 @@ const DashboardContent = () => {
     return out;
   }, [expenseGroups]);
 
+  const expensePieSections = useMemo(() => {
+    const sumMonthly = (g: any) => g.items.reduce((s: number, i: any) => s + (i.monthlyCost || 0), 0);
+    return [...expenseGroupsDefault, ...expenseGroupsDebt]
+      .map((g: any) => ({ name: g.title, value: sumMonthly(g), fill: getSectionColor(g.title) }))
+      .filter((d) => d.value > 0);
+  }, [expenseGroupsDefault, expenseGroupsDebt]);
+
   // ── Shared period selector across PortfolioChart / MonthlyInvoices / MonthlyNetProfit ──
   const [periodYear, setPeriodYear] = useState<string>(() => String(new Date().getFullYear()));
   const [periodQuarter, setPeriodQuarter] = useState<QuarterFilter>(() => {
@@ -2218,14 +2226,17 @@ const DashboardContent = () => {
               hideGoals
               hideGrandTotal
             />
-            <ExpenseBreakdown
-              groupsOverride={expenseGroupsDebt}
-              title="COS & Debt"
-              storageKey="tt_expense_excluded_debt_v1"
-              defaultExcluded={[]}
-              hideGoals
-              hideGrandTotal
-            />
+            <div className="flex flex-col gap-3 md:gap-4 h-full">
+              <ExpenseBreakdown
+                groupsOverride={expenseGroupsDebt}
+                title="COS & Debt"
+                storageKey="tt_expense_excluded_debt_v1"
+                defaultExcluded={[]}
+                hideGoals
+                hideGrandTotal
+              />
+              <SectorAllocationChart sections={expensePieSections} />
+            </div>
           </div>
 
           <div className="mb-4 md:mb-6">
@@ -2247,11 +2258,6 @@ const DashboardContent = () => {
               />
             </div>
 
-            <div style={{ display: "flex", gap: "24px", alignItems: "stretch", flexWrap: "wrap" }}>
-              <div style={{ flex: "1 1 100%", minWidth: 0 }} className="h-full">
-                <SectorAllocationChart />
-              </div>
-            </div>
           </div>
 
         </>
