@@ -267,24 +267,25 @@ export default function PerformanceVsTarget({
   let crSub: ReactNode = "—";
   let crSubTone: "muted" | "green" | "red" | "amber" = "muted";
   let crValue = "N/A";
-  if (openOpps === 0) {
-    crSub = "no open opps in pipeline";
+  if (activePipeline <= 0) {
+    crSub = "awaiting CRM pipeline count";
   } else if (requiredCloseRate == null) {
     crSub = "—";
   } else if (requiredCloseRate > 100) {
     crValue = ">100%";
-    crSub = "need more leads";
+    crSub = "pipeline too thin";
     crSubTone = "red";
   } else {
     crValue = `${requiredCloseRate.toFixed(1)}%`;
     if (requiredCloseRate <= closeRatePct) {
-      crSub = `vs ${closeRatePct.toFixed(1)}% now — achievable`;
+      crSub = `vs ${closeRatePct.toFixed(1)}% now — achievable at current rate`;
       crSubTone = "green";
     } else {
-      crSub = `vs ${closeRatePct.toFixed(1)}% now — must improve`;
+      crSub = `vs ${closeRatePct.toFixed(1)}% now — must lift conversion`;
       crSubTone = "amber";
     }
   }
+
 
   return (
     <motion.div
