@@ -186,9 +186,26 @@ const KPI = ({ label, value, sub, Icon, active, onClick }: KPIProps) => (
 
 // ============= COMPONENT =============
 const EmployeeTracking = () => {
-  const upwork: typeof MOCK_UPWORK_DATA | null = MOCK_UPWORK_DATA;
-  const zoho: typeof MOCK_ZOHO_DATA | null = MOCK_ZOHO_DATA;
-  const isMockData = true;
+  const { syncNow, liveData } = useDashboardData() as any;
+
+  const upworkLive = !!liveData?.upwork;
+  const zohoLive = !!liveData?.zohoLabour;
+  const liveMode = upworkLive || zohoLive;
+
+  const EMPTY_SOURCE = {
+    source: "",
+    syncTimestamp: null as string | null,
+    summary: { activeWorkers: 0, totalWorkers: 0, totalContractors: 0, totalHours: 0, totalCostAUD: 0, totalCostUSD: 0, avgRateUSD: 0 },
+    workers: [] as any[],
+    timesheets: [] as any[],
+    monthlyData: [] as any[],
+    projects: [] as any[],
+    workerSummary: [] as any[],
+  };
+
+  const upwork: any = liveMode ? (upworkLive ? liveData.upwork : EMPTY_SOURCE) : MOCK_UPWORK_DATA;
+  const zoho: any = liveMode ? (zohoLive ? liveData.zohoLabour : EMPTY_SOURCE) : MOCK_ZOHO_DATA;
+  const isMockData = !liveMode;
 
   const [expandedCard, setExpandedCard] = useState<null | "workers" | "hours" | "spend" | "rate">(null);
   const [monthFilter, setMonthFilter] = useState<string>("all");
@@ -196,7 +213,6 @@ const EmployeeTracking = () => {
   const [chartSource, setChartSource] = useState<"all" | "upwork" | "zoho">("all");
   const [bankOpen, setBankOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const { syncNow } = useDashboardData();
 
   const handleSync = async () => {
     setSyncing(true);
@@ -539,7 +555,7 @@ const EmployeeTracking = () => {
           <p className="text-fluid-xs text-muted-foreground font-mono">Digital freelancers & casual labour · combined view</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {upwork ? (
+          {upworkLive && upwork?.syncTimestamp ? (
             <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-mono bg-chart-green/15 text-chart-green">
               Upwork · Last synced: {fmtSync(upwork.syncTimestamp)}
             </span>
@@ -548,7 +564,7 @@ const EmployeeTracking = () => {
               Upwork · Not connected
             </span>
           )}
-          {zoho ? (
+          {zohoLive && zoho?.syncTimestamp ? (
             <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-mono bg-chart-blue/15 text-chart-blue">
               Zoho Projects · Last synced: {fmtSync(zoho.syncTimestamp)}
             </span>
@@ -570,11 +586,15 @@ const EmployeeTracking = () => {
         </div>
       </div>
 
-      {isMockData && (
+      {isMockData ? (
         <div className="mb-4 px-3 py-2 rounded-md border border-chart-orange/40 bg-chart-orange/10 text-[11px] font-mono text-chart-orange">
           Showing sample data — live Upwork & Zoho Projects sync not yet connected.
         </div>
-      )}
+      ) : (!upworkLive || !zohoLive) ? (
+        <div className="mb-4 px-3 py-2 rounded-md border border-border bg-muted/30 text-[11px] font-mono text-muted-foreground">
+          Live · {zohoLive ? "Zoho Projects connected" : "Zoho Projects sync pending"}. {upworkLive ? "Upwork connected" : "Upwork sync pending"}.
+        </div>
+      ) : null}
 
       {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4 mb-4">
