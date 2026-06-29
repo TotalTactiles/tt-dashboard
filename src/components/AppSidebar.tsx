@@ -53,7 +53,7 @@ export function AppSidebar() {
             {!collapsed &&
             <div>
                 <p className="text-sm font-mono font-bold tracking-wider text-foreground uppercase">Total Tactiles</p>
-                <p className="text-[9px] text-muted-foreground font-mono tracking-widest uppercase">Ops Dashboard</p>
+                <p className="text-[9px] text-muted-foreground font-mono tracking-widest uppercase">LEGACY VIEW</p>
               </div>
             }
           </div>

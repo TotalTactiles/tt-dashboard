@@ -1779,7 +1779,7 @@ const DashboardContent = () => {
       <div className="mb-4 md:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="min-w-0">
           <h1 className="font-semibold" style={{ fontSize: "clamp(20px, 3vw, 32px)" }}>TT Biz Dashboard</h1>
-          <p className="text-muted-foreground font-mono" style={{ fontSize: "clamp(9px, 1vw, 11px)" }}>K & M Legacy View</p>
+          <p className="text-muted-foreground font-mono" style={{ fontSize: "clamp(9px, 1vw, 11px)" }}>Total Tactiles Legacy View</p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <div className="text-right">
