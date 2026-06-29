@@ -1141,38 +1141,38 @@ function ProjectsTable({
           {showAll ? "No active projects." : `No projects with a job date in ${periodLabel || "this period"}.`}
         </p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs font-mono">
+        <div className="table-scroll-wrapper">
+          <table className="w-full min-w-[680px] text-xs font-mono">
             <thead>
               <tr className="text-muted-foreground border-b border-border/50">
-                <th className="text-left font-medium py-2 pr-3">Project</th>
-                <th className="text-right font-medium py-2 px-3">% Complete</th>
-                <th className="text-right font-medium py-2 px-3">Hours</th>
-                <th className="text-right font-medium py-2 px-3">Job Date</th>
-                <th className="text-right font-medium py-2 px-3">Est. Cost</th>
-                <th className="text-right font-medium py-2 pl-3">Est. Revenue</th>
+                <th className="text-left font-medium py-2 pr-3 whitespace-nowrap">Project</th>
+                <th className="text-right font-medium py-2 px-3 whitespace-nowrap">% Complete</th>
+                <th className="text-right font-medium py-2 px-3 whitespace-nowrap">Hours</th>
+                <th className="text-right font-medium py-2 px-3 whitespace-nowrap">Job Date</th>
+                <th className="text-right font-medium py-2 px-3 whitespace-nowrap">Est. Cost</th>
+                <th className="text-right font-medium py-2 pl-3 whitespace-nowrap">Est. Revenue</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((p, i) => (
                 <tr key={i} className="border-b border-border/30">
-                  <td className="text-left py-2 pr-3 text-foreground"><span className="block max-w-[260px] truncate">{p.name}</span></td>
-                  <td className="text-right py-2 px-3 text-foreground">{p.pctComplete != null ? `${p.pctComplete}%` : "—"}</td>
-                  <td className="text-right py-2 px-3 text-muted-foreground">{p.loggedHours ?? 0}h</td>
-                  <td className="text-right py-2 px-3 text-muted-foreground">{p.invoiceDate ?? "—"}</td>
-                  <td className="text-right py-2 px-3 text-chart-red">{p.estCost != null ? $(p.estCost) : "—"}</td>
-                  <td className="text-right py-2 pl-3 text-chart-green">{p.estRevenue != null ? $(p.estRevenue) : "—"}</td>
+                  <td className="text-left py-2 pr-3 text-foreground"><span className="block max-w-[180px] sm:max-w-[260px] truncate" title={p.name}>{p.name}</span></td>
+                  <td className="text-right py-2 px-3 text-foreground whitespace-nowrap">{p.pctComplete != null ? `${p.pctComplete}%` : "—"}</td>
+                  <td className="text-right py-2 px-3 text-muted-foreground whitespace-nowrap">{p.loggedHours ?? 0}h</td>
+                  <td className="text-right py-2 px-3 text-muted-foreground whitespace-nowrap">{p.invoiceDate ?? "—"}</td>
+                  <td className="text-right py-2 px-3 text-chart-red whitespace-nowrap">{p.estCost != null ? $(p.estCost) : "—"}</td>
+                  <td className="text-right py-2 pl-3 text-chart-green whitespace-nowrap">{p.estRevenue != null ? $(p.estRevenue) : "—"}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-border font-bold">
-                <td className="text-left py-2 pr-3 text-foreground">Total ({rows.length})</td>
+                <td className="text-left py-2 pr-3 text-foreground whitespace-nowrap">Total ({rows.length})</td>
                 <td className="text-right py-2 px-3" />
-                <td className="text-right py-2 px-3 text-foreground">{totalHours}h</td>
+                <td className="text-right py-2 px-3 text-foreground whitespace-nowrap">{totalHours}h</td>
                 <td className="text-right py-2 px-3" />
-                <td className="text-right py-2 px-3 text-chart-red">{$(totalCost)}</td>
-                <td className="text-right py-2 pl-3 text-chart-green">{$(totalRev)}</td>
+                <td className="text-right py-2 px-3 text-chart-red whitespace-nowrap">{$(totalCost)}</td>
+                <td className="text-right py-2 pl-3 text-chart-green whitespace-nowrap">{$(totalRev)}</td>
               </tr>
             </tfoot>
           </table>
