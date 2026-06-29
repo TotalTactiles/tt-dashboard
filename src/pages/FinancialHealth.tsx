@@ -824,59 +824,72 @@ const ChartsSection = ({
       return { month, earnedRevenue, operatingCosts, debtBurden: monthlyDebt, netFreeCash };
     });
 
-    // ── SERVICEABILITY CALCULATION ──────────────────────────────────────
-    // Past actuals: income - outgoings for completed months
+    // ── SERVICEABILITY CALCULATION (monthly-row method) ──────────────────
+    // Net free cash PER MONTH = income − operating costs (debt excluded),
+    // from the MONTHLY rows. We deliberately do NOT diff the cumulative
+    // "Anticipated Cash Surplus/(Deficit)" row (a running BALANCE), whose
+    // month-to-month delta goes negative in drawdown months and zeroed out
+    // real forward income — collapsing all three modes to actuals-only.
+    const HAIRCUT = 0.70;
+    // ASSUMPTION A — confirm vs the CASHFLOW model. Does a forward month's
+    // Total Income already include probable (YLW) jobs? Workbook says YES.
+    // If forward Total Income is contracted-only, set this to false.
+    const FORWARD_INCOME_INCLUDES_PROBABLE = true;
+
+    const monthlyDebtFor = (month: string) =>
+      Math.abs(parseNum(businessLoanRow?.[month] ?? 0)) +
+      Math.abs(parseNum(vehicleRepaymentRow?.[month] ?? 0));
+
+    const _fcByMonth: Record<string, any> = {};
+    for (const d of (Array.isArray(forecastChartData) ? forecastChartData : [])) {
+      _fcByMonth[String(d.month)] = d;
+    }
+    const probableMarginFor = (month: string) => {
+      const d = _fcByMonth[month];
+      if (!d) return 0;
+      return (Number(d.probableJobs) || 0) - (Number(d.costOfJobsProbable) || 0);
+    };
+
+    // Past actuals — realised net free cash (debt-stripped), completed months
     const _pastActuals = (io ?? [])
       .filter((d: any) => !d?.isFuture && (Number(d?.income) || 0) > 0)
-      .map((d: any) => ({ month: d.month, net: (Number(d.income) || 0) - (Number(d.outgoings) || 0), type: "actual" as const }));
+      .map((d: any) => {
+        const opCost = Math.max(0, (Number(d.outgoings) || 0) - monthlyDebtFor(String(d.month)));
+        return { month: d.month, net: (Number(d.income) || 0) - opCost, type: "actual" as const };
+      });
 
-    // Forward contracted — derive monthly movement from cumulative anticipatedSurplus
-    const _fcdAll = Array.isArray(forecastChartData) ? forecastChartData : [];
-    const _fcdSorted = _fcdAll.filter((d: any) => !_pastActuals.some((p) => p.month === d.month));
-    const _lastPastMonth = _fcdAll
-      .filter((d: any) => _pastActuals.some((p) => p.month === d.month))
-      .slice(-1)[0];
-    const _baseSurplus = Number(_lastPastMonth?.anticipatedSurplus) || 0;
-
-    const _forwardContracted = _fcdSorted
-      .filter((d: any) => {
-        if (serviceabilityView === "actuals") return false;
-        if (serviceabilityView === "with_grn") return Number(d?.anticipatedSurplus) > 0;
-        if (serviceabilityView === "with_ylw") return Number(d?.surplusIncludingProbable) > 0;
-        return false;
-      })
+    // Forward — next forward months, debt-stripped, 70% haircut.
+    // GRN = contracted only; YLW = contracted + probable.
+    const _forwardContracted = (io ?? [])
+      .filter((d: any) => d?.isFuture && serviceabilityView !== "actuals")
       .slice(0, 6)
-      .map((d: any, i: number, arr: any[]) => {
-        const prevCumulative = i === 0
-          ? _baseSurplus
-          : (serviceabilityView === "with_ylw"
-              ? Number(arr[i - 1].surplusIncludingProbable) || 0
-              : Number(arr[i - 1].anticipatedSurplus) || 0);
-        const currentCumulative = serviceabilityView === "with_ylw"
-          ? Number(d.surplusIncludingProbable) || 0
-          : Number(d.anticipatedSurplus) || 0;
-        const monthlyMovement = currentCumulative - prevCumulative;
+      .map((d: any) => {
+        const month = String(d.month);
+        const opCost = Math.max(0, (Number(d.outgoings) || 0) - monthlyDebtFor(month));
+        const fullNet = (Number(d.income) || 0) - opCost;
+        const probMargin = probableMarginFor(month);
+        const net = serviceabilityView === "with_ylw"
+          ? (FORWARD_INCOME_INCLUDES_PROBABLE ? fullNet : fullNet + probMargin)
+          : (FORWARD_INCOME_INCLUDES_PROBABLE ? fullNet - probMargin : fullNet);
         return {
-          month: d.month,
-          net: Math.max(0, monthlyMovement) * 0.70,
-          type: serviceabilityView,
-          _raw: currentCumulative,
-          _prev: prevCumulative,
-          _movement: monthlyMovement,
+          month, net: net * HAIRCUT, type: serviceabilityView,
+          _income: Number(d.income) || 0, _opCost: opCost,
+          _probMargin: probMargin, _preHaircut: net,
         };
-      })
-      .filter((d: any) => d.net > 0);
-
+      });
 
     const _allMonths = [..._pastActuals, ..._forwardContracted];
 
+    // ASSUMPTION B — the "6m blended" window:
+    // actuals → trailing 6 realised; GRN/YLW → trailing 3 + next 3 forward.
     const _p3 = _pastActuals.slice(-3);
     const _p6 = _pastActuals.slice(-6);
-    const _b6 = _allMonths.slice(-6);
+    const _fwd3 = _forwardContracted.slice(0, 3);
+    const _b6 = serviceabilityView === "actuals" ? _p6 : [..._p3, ..._fwd3];
 
-    const avg3MonthNetFree = _p3.length > 0 ? _p3.reduce((s, d) => s + d.net, 0) / _p3.length : 0;
-    const avg6MonthNetFree = _p6.length > 0 ? _p6.reduce((s, d) => s + d.net, 0) / _p6.length : 0;
-    const avg6MonthBlended = _b6.length > 0 ? _b6.reduce((s, d) => s + d.net, 0) / _b6.length : 0;
+    const avg3MonthNetFree  = _p3.length  > 0 ? _p3.reduce((s, d) => s + d.net, 0) / _p3.length  : 0;
+    const avg6MonthNetFree  = _p6.length  > 0 ? _p6.reduce((s, d) => s + d.net, 0) / _p6.length  : 0;
+    const avg6MonthBlended  = _b6.length  > 0 ? _b6.reduce((s, d) => s + d.net, 0) / _b6.length  : 0;
     const avg12MonthNetFree = _allMonths.length > 0 ? _allMonths.reduce((s, d) => s + d.net, 0) / _allMonths.length : 0;
 
     const existingMonthlyDebt = totalMonthlyRepayment;
@@ -1153,7 +1166,7 @@ const ChartsSection = ({
                         {included ? `$${fwd?.net.toFixed(0)}` : "—"}
                       </td>
                       <td className="pr-4 text-right text-yellow-400">
-                        {included ? `$${fwd?._movement?.toFixed(0) ?? "—"}` : "—"}
+                        {included ? `$${fwd?._preHaircut?.toFixed(0) ?? "—"}` : "—"}
                       </td>
                     </tr>
                   );
