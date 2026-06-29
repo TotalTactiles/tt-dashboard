@@ -112,77 +112,37 @@ export default function PerformanceVsTarget({
   // wonToDate prop is `effectiveCurrent` (Confirmed or With-YLW) from TargetsGoalsSection.
   const wonTotal = Math.max(0, wonToDate);
 
-  // Partition (NOT re-sum): how much of wonTotal is scheduled in the future window.
-  const committedFutureRaw = useMemo(() => {
+  // Future-scheduled jobs (won + YLW when in With-YLW mode), bucketed by Est. Job Date.
+  // Mirrors cashflow: all future jobs sit in one teal series.
+  const { committedFutureTotal, committedByMonth } = useMemo(() => {
+    const arr = new Array<number>(totalMonths + 1).fill(0);
+    const statuses = withYlw ? ["won", "yellow"] : ["won"];
+    const futureJobs = (quotedJobs ?? []).filter((j) => statuses.includes(j.status));
     let sum = 0;
-    const wonJobs = (quotedJobs ?? []).filter((j) => j.status === "won");
-    for (const j of wonJobs) {
-      const v = Number(j.value) || 0;
-      const d = parseLoose(j.dateQuoted);
-      if (!d) continue;
-      if (d <= today) continue;
-      if (d < start || d > end) continue;
-      sum += v;
-    }
-    return sum;
-  }, [quotedJobs, start, end, today]);
-
-  const committedFutureWon = Math.min(committedFutureRaw, wonTotal);
-  const wonRealizedYTD = Math.max(0, wonTotal - committedFutureWon);
-
-  // Distribute committed-future across remaining months for the pace chart
-  const committedByMonth = useMemo(() => {
-    const arr = new Array<number>(totalMonths + 1).fill(0);
-    if (committedFutureWon <= 0) return arr;
-    const wonJobs = (quotedJobs ?? []).filter((j) => j.status === "won");
-    let rawSum = 0;
-    const rawByMonth = new Array<number>(totalMonths + 1).fill(0);
-    for (const j of wonJobs) {
-      const v = Number(j.value) || 0;
-      const d = parseLoose(j.dateQuoted);
-      if (!d || d <= today || d < start || d > end) continue;
-      const m = monthsBetween(start, d) + 1;
-      if (m >= 1 && m <= totalMonths) { rawByMonth[m] += v; rawSum += v; }
-    }
-    if (rawSum <= 0) return arr;
-    const scale = committedFutureWon / rawSum;
-    for (let i = 1; i <= totalMonths; i++) arr[i] = rawByMonth[i] * scale;
-    return arr;
-  }, [quotedJobs, start, end, today, totalMonths, committedFutureWon]);
-
-  // YLW bucket-by-job-date for the pace chart (only used in With-YLWs mode).
-  const ylwByMonth = useMemo(() => {
-    const arr = new Array<number>(totalMonths + 1).fill(0);
-    if (!withYlw || ylwValue <= 0) return arr;
-    const ylwJobs = (quotedJobs ?? []).filter((j) => j.status === "yellow");
-    let rawSum = 0;
-    const rawByMonth = new Array<number>(totalMonths + 1).fill(0);
-    let unbucketed = 0;
-    for (const j of ylwJobs) {
+    for (const j of futureJobs) {
       const v = Number(j.value) || 0;
       if (v <= 0) continue;
       const d = parseLoose(j.dateQuoted);
-      if (!d || d < start || d > end) {
-        // Missing/out-of-window dates land in current month as banked
-        unbucketed += v;
-        continue;
-      }
+      if (!d || d <= today) continue;
+      if (d < start || d > end) continue;
       const m = monthsBetween(start, d) + 1;
-      if (m >= 1 && m <= totalMonths) { rawByMonth[m] += v; rawSum += v; }
-      else { unbucketed += v; }
+      if (m >= 1 && m <= totalMonths) {
+        arr[m] += v;
+        sum += v;
+      }
     }
-    const curM = Math.min(Math.max(monthsElapsed, 1), totalMonths);
-    rawByMonth[curM] += unbucketed;
-    rawSum += unbucketed;
-    if (rawSum <= 0) {
-      // No per-job ylw data: dump it all into the current month so chart still ties out.
-      arr[curM] = ylwValue;
-      return arr;
+    // Cap to wonTotal so cumulative committed never overshoots the anchored headline.
+    const capped = Math.min(sum, wonTotal);
+    if (sum > 0 && capped < sum) {
+      const scale = capped / sum;
+      for (let i = 1; i <= totalMonths; i++) arr[i] *= scale;
     }
-    const scale = ylwValue / rawSum;
-    for (let i = 1; i <= totalMonths; i++) arr[i] = rawByMonth[i] * scale;
-    return arr;
-  }, [quotedJobs, start, end, totalMonths, monthsElapsed, withYlw, ylwValue]);
+    return { committedFutureTotal: capped, committedByMonth: arr };
+  }, [quotedJobs, start, end, today, totalMonths, withYlw, wonTotal]);
+
+  const committedFutureWon = committedFutureTotal;
+  const wonRealizedYTD = Math.max(0, wonTotal - committedFutureWon);
+
 
   // Active CRM pipeline denominator — matches the funnel toggle
   const activePipeline =
