@@ -2344,31 +2344,22 @@ const DashboardContent = () => {
                   momContext="Active pipeline ÷ revenue — forward work runway"
                 />
 
-                {/* 6. EXPENSE RATIOS — merged Op + Lifestyle */}
-                <ExpenseRatiosCard
-                  opRatioPct={money.opExpRatio}
-                  opAmount={money.opEx}
-                  lifestyleRatioPct={money.lifestyleExpenseRatio}
-                  lifestyleAmount={money.lifestyleExpense}
+                {/* 6. OP EXPENSE RATIO — standalone */}
+                <OpExpenseRatioCard
+                  ratioPct={money.opExpRatio}
+                  amount={money.opEx}
                   periodLabel={periodChip}
                   index={16}
                 />
 
-                <StatCard
-                  label="Labour Cost Ratio"
-                  value={money.labourCostRatio !== null ? `${money.labourCostRatio.toFixed(1)}%` : "N/A"}
-                  change="Labour / Revenue"
-                  positive={(money.labourCostRatio ?? 0) < 35}
+                {/* 7. LIFESTYLE EXPENSE RATIO — standalone, adjacent */}
+                <LifestyleExpenseRatioCard
+                  ratioPct={money.lifestyleExpenseRatio}
+                  amount={money.lifestyleExpense}
+                  periodLabel={periodChip}
                   index={16}
-                  variant="centered"
-                  altValue={fmtVal(money.labour)}
-                  altChange={`${periodChip} labour`}
-                  altPositive={(money.labourCostRatio ?? 0) < 35}
-                  toggleLabelBase="%"
-                  toggleLabelAlt="$"
-                  greenAltPill={true}
-                  momContext={periodChip}
                 />
+
                 {/* 8. EBITDA — period-scoped */}
                 <EbitdaCard
                   ebitda={m_ebitda}
@@ -2377,6 +2368,8 @@ const DashboardContent = () => {
                   index={17}
                 />
               </div>
+
+
 
             </div>
             );
