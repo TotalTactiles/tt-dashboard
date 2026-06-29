@@ -211,7 +211,7 @@ const FinancialHealth = () => {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [autoEditId, setAutoEditId] = useState<string | null>(null);
   const [activeTile, setActiveTile] = useState<string | null>(null);
-  const [expandedPill, setExpandedPill] = useState<number | null>(null);
+  const [expandedPill, setExpandedPill] = useState(null);
   const debtRegisterInitialised = useRef(false);
 
 
