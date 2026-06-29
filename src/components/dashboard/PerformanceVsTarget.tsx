@@ -84,6 +84,7 @@ export default function PerformanceVsTarget({
   setFunnelBasis,
 }: Props) {
   const { quotedJobs } = useDashboardData();
+  const { quotingOpp, totalLeads } = useCrmStages();
 
   const [period, setPeriod] = useState<PeriodState>(loadPeriod);
   const [view, setView] = useState<PaceView>(loadView);
@@ -103,42 +104,62 @@ export default function PerformanceVsTarget({
   const monthsElapsed = Math.min(Math.max(elapsedRaw, 0), totalMonths);
   const monthsRemaining = Math.max(totalMonths - monthsElapsed, 0);
 
-  // ===== Won buckets from quotedJobs =====
-  const { wonBankedYTD, committedFutureWon, committedByMonth } = useMemo(() => {
-    let banked = 0;
-    let future = 0;
-    const byMonth = new Array<number>(totalMonths + 1).fill(0); // 1-indexed
+  // ===== ANCHORED WON TOTAL — single source of truth = Revenue Goal card =====
+  // wonToDate prop is `effectiveCurrent` (Confirmed or With-YLW) from TargetsGoalsSection.
+  const wonTotal = Math.max(0, wonToDate);
+
+  // Partition (NOT re-sum): how much of wonTotal is scheduled in the future window.
+  const committedFutureRaw = useMemo(() => {
+    let sum = 0;
     const wonJobs = (quotedJobs ?? []).filter((j) => j.status === "won");
     for (const j of wonJobs) {
       const v = Number(j.value) || 0;
       const d = parseLoose(j.dateQuoted);
-      if (!d) { banked += v; continue; }
+      if (!d) continue;
+      if (d <= today) continue;
       if (d < start || d > end) continue;
-      if (d <= today) {
-        banked += v;
-      } else {
-        future += v;
-        const m = monthsBetween(start, d) + 1;
-        if (m >= 1 && m <= totalMonths) byMonth[m] += v;
-      }
+      sum += v;
     }
-    return { wonBankedYTD: banked, committedFutureWon: future, committedByMonth: byMonth };
-  }, [quotedJobs, start, end, today, totalMonths]);
+    return sum;
+  }, [quotedJobs, start, end, today]);
 
-  const openOpps = useMemo(
-    () => (quotedJobs ?? []).filter((j) => j.status === "pending" || j.status === "yellow").length,
-    [quotedJobs],
-  );
+  const committedFutureWon = Math.min(committedFutureRaw, wonTotal);
+  const wonRealizedYTD = Math.max(0, wonTotal - committedFutureWon);
 
-  const bankedWon = wonBankedYTD || wonToDate; // fallback
-  const securedTotal = view === "2026" ? bankedWon + committedFutureWon : bankedWon;
+  // Distribute committed-future across remaining months for the pace chart
+  const committedByMonth = useMemo(() => {
+    const arr = new Array<number>(totalMonths + 1).fill(0);
+    if (committedFutureWon <= 0) return arr;
+    const wonJobs = (quotedJobs ?? []).filter((j) => j.status === "won");
+    let rawSum = 0;
+    const rawByMonth = new Array<number>(totalMonths + 1).fill(0);
+    for (const j of wonJobs) {
+      const v = Number(j.value) || 0;
+      const d = parseLoose(j.dateQuoted);
+      if (!d || d <= today || d < start || d > end) continue;
+      const m = monthsBetween(start, d) + 1;
+      if (m >= 1 && m <= totalMonths) { rawByMonth[m] += v; rawSum += v; }
+    }
+    if (rawSum <= 0) return arr;
+    const scale = committedFutureWon / rawSum;
+    for (let i = 1; i <= totalMonths; i++) arr[i] = rawByMonth[i] * scale;
+    return arr;
+  }, [quotedJobs, start, end, today, totalMonths, committedFutureWon]);
+
+  // Active CRM pipeline denominator — matches the funnel toggle
+  const activePipeline =
+    funnelBasis === "leads"
+      ? Number(totalLeads) || 0
+      : Number(quotingOpp?.count) || 0;
+
+  const securedTotal = view === "2026" ? wonTotal : wonRealizedYTD;
   const remaining = Math.max(target - securedTotal, 0);
 
-  // Status banner uses banked vs linear expected (NOT toggle-sensitive)
+  // Status banner: banked vs linear expected (not toggle-sensitive)
   const expectedToDate = target > 0 ? target * (monthsElapsed / totalMonths) : 0;
-  const paceGap = bankedWon - expectedToDate;
+  const paceGap = securedTotal - expectedToDate;
 
-  const actualRunRate = monthsElapsed > 0 ? bankedWon / monthsElapsed : 0;
+  const actualRunRate = monthsElapsed > 0 ? securedTotal / monthsElapsed : 0;
   const requiredRunRate = monthsRemaining > 0 ? remaining / monthsRemaining : null;
   const runRateUplift =
     actualRunRate > 0 && requiredRunRate != null
@@ -154,12 +175,15 @@ export default function PerformanceVsTarget({
   const requiredOppsPerMonth =
     oppsToGoalRaw != null && monthsRemaining > 0 ? Math.ceil(oppsToGoalRaw / monthsRemaining) : null;
 
-  // Required close rate to hit
-  const netRemainJobs = avgWon > 0 ? remaining / avgWon : null;
+  // Required close rate to hit — denominator = active CRM pipeline (matches funnel toggle)
   const requiredCloseRate =
-    netRemainJobs != null && openOpps > 0 && Number.isFinite(netRemainJobs)
-      ? (netRemainJobs / openOpps) * 100
+    jobsToGoalRaw != null && activePipeline > 0 && Number.isFinite(jobsToGoalRaw)
+      ? (jobsToGoalRaw / activePipeline) * 100
       : null;
+
+  // bankedWon retained for status banner phrasing parity
+  const bankedWon = securedTotal;
+
 
   type Status = { label: string; tone: "green" | "amber" | "red" | "neutral"; sub: string };
   const status: Status = useMemo(() => {
