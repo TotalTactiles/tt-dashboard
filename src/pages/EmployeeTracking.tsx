@@ -676,8 +676,8 @@ const EmployeeTracking = () => {
                   <tbody>
                     {allWorkers.map((w) => {
                       const rate = w.source === "Upwork"
-                        ? `$${w.rateUSD.toFixed(2)} USD/hr`
-                        : `$${w.rateAUDequiv.toFixed(2)} AUD/hr`;
+                        ? `$${(w.rateUSD ?? 0).toFixed(2)} USD/hr`
+                        : `$${(w.rateAUDequiv ?? 0).toFixed(2)} AUD/hr`;
                       const curRole = roleOf(w.sourceId, w.sourceRole);
                       const curType = typeOf(w.sourceId, w.sourceType);
                       return (
@@ -799,7 +799,7 @@ const EmployeeTracking = () => {
                             )}
                           </td>
                           <td className="py-2 pr-2 text-right tabular-nums">{rate}</td>
-                          <td className="py-2 pr-2 text-right tabular-nums">{w.hoursWorked.toFixed(1)}</td>
+                          <td className="py-2 pr-2 text-right tabular-nums">{(w.hoursWorked ?? 0).toFixed(1)}</td>
                           <td className="py-2 pr-2 text-right tabular-nums">{fmtAUD(w.totalBilledAUD)}</td>
                           <td className="py-2 pr-2">{statusPill(w.status)}</td>
                         </tr>
@@ -1146,7 +1146,7 @@ const EmployeeTracking = () => {
                     <td className="py-2 pr-2">{displayOf(t.workerName)}</td>
                     <td className="py-2 pr-2">{sourcePill(t.source)}</td>
                     <td className="py-2 pr-2 text-muted-foreground">{t.projectName}</td>
-                    <td className="py-2 pr-2 text-right tabular-nums">{t.hours.toFixed(1)}</td>
+                    <td className="py-2 pr-2 text-right tabular-nums">{(t.hours ?? 0).toFixed(1)}</td>
                     <td className="py-2 pr-2 text-right tabular-nums">{fmtMoney2(t.costAUD)}</td>
                     <td className="py-2 pr-2 text-muted-foreground">{fmtMonthLong(t.month)}</td>
                   </tr>
