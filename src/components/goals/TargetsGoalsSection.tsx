@@ -64,6 +64,14 @@ export default function TargetsGoalsSection(_props: Props) {
       : (withYlw ? salesMetrics.closeRateWithYlw : salesMetrics.closeRate);
 
 
+  const pctConfirmed = target > 0 ? Math.min(100, (goalConfirmed / target) * 100) : 0;
+  const pctYlw =
+    target > 0 && withYlw ? Math.min(100 - pctConfirmed, (ylwTopUp / target) * 100) : 0;
+  const pctTotal = Math.min(100, pctConfirmed + pctYlw);
+
+  const remaining = Math.max(0, target - effectiveCurrent);
+  const jobsToGoal =
+    avgWonDeal > 0 && remaining > 0 ? Math.ceil(remaining / avgWonDeal) : 0;
   const oppsToGoal =
     jobsToGoal > 0 && closeRatePct > 0
       ? Math.ceil(jobsToGoal / (closeRatePct / 100))
