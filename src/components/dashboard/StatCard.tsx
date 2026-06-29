@@ -38,6 +38,12 @@ interface StatCardProps {
   toggleLabelAlt2?: string;
   emphasis?: boolean;
   variant?: "default" | "centered";
+  /** Cash Position only: override the "Open" mode value (e.g. period-start opening balance). */
+  openValueOverride?: number | null;
+  /** Cash Position only: override the "Open" mode subtext line. */
+  openSubtextOverride?: string;
+  /** Cash Position only: override the "Today" mode subtext line. */
+  currentSubtextOverride?: string;
 }
 
 // Unified emphasis figure style — one compact type scale across every Quick Look Sales card.
@@ -150,7 +156,7 @@ const noteStyle: React.CSSProperties = {
 
 type ToggleMode = "base" | "alt" | "alt2";
 
-const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted, toggleLabelBase, toggleLabelAlt, momDelta, altMomDelta, momContext, altMomContext, greenAltPill, altValue2, altChange2, altPositive2, toggleLabelAlt2, emphasis, variant = "default" }: StatCardProps) => {
+const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted, toggleLabelBase, toggleLabelAlt, momDelta, altMomDelta, momContext, altMomContext, greenAltPill, altValue2, altChange2, altPositive2, toggleLabelAlt2, emphasis, variant = "default", openValueOverride, openSubtextOverride, currentSubtextOverride }: StatCardProps) => {
   const isCentered = variant === "centered";
   const { kpiVariables, formulaCache, formulas } = useDashboardData();
   const [mode, setMode] = useState<ToggleMode>("base");
@@ -216,8 +222,10 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
   const resolvedActualDate = localActualDate ? `Actual · ${localActualDate}` : "";
 
   const isCashflowPosition = label === "Cashflow Position" || label === "Cash Position";
-  const openValue = isCashflowPosition && kpiVariables?.XeroCashOpening && kpiVariables.XeroCashOpening !== 0
-    ? kpiVariables.XeroCashOpening
+  const openValue = isCashflowPosition
+    ? (openValueOverride != null && openValueOverride !== 0
+        ? openValueOverride
+        : (kpiVariables?.XeroCashOpening && kpiVariables.XeroCashOpening !== 0 ? kpiVariables.XeroCashOpening : null))
     : null;
   const todayValue = isCashflowPosition && kpiVariables?.XeroCashCurrent && kpiVariables.XeroCashCurrent !== 0
     ? kpiVariables.XeroCashCurrent
@@ -480,10 +488,10 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
       {mode === "alt2"
         ? isActualNotSet
           ? "Enter your real balance to compare"
-          : "Your real bank balance (entered manually)"
+          : (currentSubtextOverride ?? "Your real bank balance (entered manually)")
           : mode === "alt"
-          ? "Xero balance today · not actual bank balance"
-          : "Balance on the 1st of this month"}
+          ? (currentSubtextOverride ?? "Xero balance today · not actual bank balance")
+          : (openSubtextOverride ?? "Balance on the 1st of this month")}
     </p>
   ) : null;
 

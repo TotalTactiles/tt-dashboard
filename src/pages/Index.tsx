@@ -228,30 +228,38 @@ function WinLossSummaryCard({
 // Paid (top)        = last calendar month's invoices (received THIS month)
 // To be paid (bot.) = this calendar month's invoices (received NEXT month)
 // Source: revenueProjects (REVENUE tab), valueInclGST, invoiceDate.
-function InvoicesPaidCard({ index, onJumpToMonth }: { index: number; onJumpToMonth?: (target: { year: number; month: number; label: string }) => void }) {
+function InvoicesPaidCard({ index, onJumpToMonth, periodMonths, periodLabel }: { index: number; onJumpToMonth?: (target: { year: number; month: number; label: string }) => void; periodMonths?: Set<string> | null; periodLabel?: string }) {
   const { revenueProjects } = useDashboardData();
 
-  const { paid, toBePaid, paidCount, toBePaidCount } = useMemo(() => {
-    const now = new Date();
-    const curY = now.getFullYear();
-    const curM = now.getMonth();
-    const prev = new Date(curY, curM - 1, 1);
-    const prevY = prev.getFullYear();
-    const prevM = prev.getMonth();
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const MONTHS_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const mkKey = (y: number, m: number) => `${MONTHS[m]}-${String(y).slice(-2)}`;
 
-    let paid = 0, toBePaid = 0, paidCount = 0, toBePaidCount = 0;
+  const { toBePaid, toBeInvoiced, toBePaidCount, toBeInvoicedCount } = useMemo(() => {
+    const now = new Date();
+    // periodMonths === undefined → fall back to original "current month" behaviour
+    // periodMonths === null → "All time" (no month filter)
+    const inPeriod = (y: number, m: number): boolean => {
+      if (periodMonths === undefined) return y === now.getFullYear() && m === now.getMonth();
+      if (periodMonths === null) return true;
+      return periodMonths.has(mkKey(y, m));
+    };
+    let toBePaid = 0, toBeInvoiced = 0, toBePaidCount = 0, toBeInvoicedCount = 0;
     for (const rp of revenueProjects) {
       if (!rp.invoiceDate) continue;
       const d = new Date(rp.invoiceDate);
       if (isNaN(d.getTime())) continue;
-      const y = d.getFullYear();
-      const m = d.getMonth();
+      if (!inPeriod(d.getFullYear(), d.getMonth())) continue;
       const v = rp.valueInclGST || 0;
-      if (y === prevY && m === prevM) { paid += v; paidCount++; }
-      else if (y === curY && m === curM) { toBePaid += v; toBePaidCount++; }
+      const isPaid = String((rp as any).status ?? "").toLowerCase().includes("paid");
+      if (isPaid) continue;
+      // Heuristic: future invoiceDate => "To be Invoiced"; today-or-past => "To be Paid"
+      const isFuture = d.getTime() > now.getTime();
+      if (isFuture) { toBeInvoiced += v; toBeInvoicedCount++; }
+      else { toBePaid += v; toBePaidCount++; }
     }
-    return { paid, toBePaid, paidCount, toBePaidCount };
-  }, [revenueProjects]);
+    return { toBePaid, toBeInvoiced, toBePaidCount, toBeInvoicedCount };
+  }, [revenueProjects, periodMonths]);
 
   const fmtCompact = (n: number) => {
     const abs = Math.abs(n);
@@ -261,14 +269,9 @@ function InvoicesPaidCard({ index, onJumpToMonth }: { index: number; onJumpToMon
     return `${sign}$${Math.round(abs).toLocaleString()}`;
   };
 
-  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const MONTHS_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   const now = new Date();
-  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const paidCtx = MONTHS[prev.getMonth()];
-  const toBeCtx = MONTHS[now.getMonth()];
-  const paidJumpLabel = `${MONTHS_FULL[prev.getMonth()]} ${prev.getFullYear()}`;
-  const toBeJumpLabel = `${MONTHS_FULL[now.getMonth()]} ${now.getFullYear()}`;
+  const ctx = periodLabel ?? MONTHS[now.getMonth()];
+  const jumpLabel = `${MONTHS_FULL[now.getMonth()]} ${now.getFullYear()}`;
 
   const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
   const labelClass = "text-[0.7rem] font-semibold tracking-wide text-foreground/80 font-mono text-center";
@@ -291,26 +294,26 @@ function InvoicesPaidCard({ index, onJumpToMonth }: { index: number; onJumpToMon
         <div className="w-full min-w-0">
           <p className={labelClass}>To be Paid</p>
           <p className="leading-tight break-words flex items-baseline justify-center gap-1.5 flex-wrap">
-            <span className="font-bold font-mono text-chart-green" style={figureStyle}>{fmtCompact(paid)}</span>
+            <span className="font-bold font-mono text-chart-green" style={figureStyle}>{fmtCompact(toBePaid)}</span>
             <button
               type="button"
-              onClick={() => onJumpToMonth?.({ year: prev.getFullYear(), month: prev.getMonth(), label: paidJumpLabel })}
+              onClick={() => onJumpToMonth?.({ year: now.getFullYear(), month: now.getMonth(), label: jumpLabel })}
               className={subLinkClass}
-              title={`Filter Revenue & COGS to ${paidJumpLabel}`}
-            >· {paidCount} inv · {paidCtx}</button>
+              title={`Filter Revenue & COGS to ${jumpLabel}`}
+            >· {toBePaidCount} inv · {ctx}</button>
           </p>
         </div>
         <div className="h-px bg-white/10 my-1 w-2/3 mx-auto" />
         <div className="w-full min-w-0">
           <p className={labelClass}>To be Invoiced</p>
           <p className="leading-tight break-words flex items-baseline justify-center gap-1.5 flex-wrap">
-            <span className="font-bold font-mono text-foreground/90" style={figureStyle}>{fmtCompact(toBePaid)}</span>
+            <span className="font-bold font-mono text-foreground/90" style={figureStyle}>{fmtCompact(toBeInvoiced)}</span>
             <button
               type="button"
-              onClick={() => onJumpToMonth?.({ year: now.getFullYear(), month: now.getMonth(), label: toBeJumpLabel })}
+              onClick={() => onJumpToMonth?.({ year: now.getFullYear(), month: now.getMonth(), label: jumpLabel })}
               className={subLinkClass}
-              title={`Filter Revenue & COGS to ${toBeJumpLabel}`}
-            >· {toBePaidCount} inv · {toBeCtx}</button>
+              title={`Filter Revenue & COGS to ${jumpLabel}`}
+            >· {toBeInvoicedCount} inv · {ctx}</button>
           </p>
         </div>
       </div>
@@ -533,7 +536,7 @@ function AvgContractCard({
 
 
 // ── REVENUE GROWTH — scope-aware (% growth or $ total) ─────────────────
-function RevenueGrowthCard({ scope, index, defaultView = "pct", dollarOverride }: { scope: "ytd" | "quarter"; index: number; defaultView?: "pct" | "dollar"; dollarOverride?: { value: number; label: string } | null }) {
+function RevenueGrowthCard({ scope, index, defaultView = "pct", dollarOverride, periodMonths, periodLabel }: { scope: "ytd" | "quarter"; index: number; defaultView?: "pct" | "dollar"; dollarOverride?: { value: number; label: string } | null; periodMonths?: Set<string> | null; periodLabel?: string }) {
   const { incomeOutgoingsData } = useDashboardData();
   const [view, setView] = useState<"pct" | "dollar">(defaultView);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -557,13 +560,17 @@ function RevenueGrowthCard({ scope, index, defaultView = "pct", dollarOverride }
     for (const pt of incomeOutgoingsData) {
       const k = parseMonthKey(pt.month);
       if (!k) continue;
-      if (k.year !== curYear) continue;
-      if (k.monthIdx > curMonth) continue;
+      if (periodMonths !== undefined) {
+        if (periodMonths !== null && !periodMonths.has(pt.month)) continue;
+      } else {
+        if (k.year !== curYear) continue;
+        if (k.monthIdx > curMonth) continue;
+      }
       monthly.push({ monthIdx: k.monthIdx, income: pt.income || 0 });
     }
     monthly.sort((a, b) => a.monthIdx - b.monthIdx);
 
-    // YTD pct
+    // Window pct (avg MoM)
     const rates: number[] = [];
     for (let i = 1; i < monthly.length; i++) {
       const prev = monthly[i - 1].income;
@@ -594,9 +601,10 @@ function RevenueGrowthCard({ scope, index, defaultView = "pct", dollarOverride }
       firstM, lastM,
       qIdx, qPct, qPctNA, qTotal, prevTotal, qDelta,
     };
-  }, [incomeOutgoingsData]);
+  }, [incomeOutgoingsData, periodMonths]);
 
-  const isYTD = scope === "ytd";
+  // Period-driven window takes precedence over scope (quarter/ytd).
+  const isYTD = periodMonths !== undefined ? true : scope === "ytd";
   const isPct = view === "pct";
 
   // Headline + sub + color
@@ -2183,6 +2191,25 @@ const DashboardContent = () => {
             const m_ebitda = m_hasEbitda ? (m_grossProfit - money.opEx) : null;
             const m_ebitdaMargin = m_revenueExGST > 0 ? ((m_ebitda ?? 0) / m_revenueExGST) * 100 : null;
 
+            // ── Period opening balance (Cash Position "Open" mode) ──
+            // Pick the earliest in-period month from incomeOutgoingsData and read its openingBalance.
+            const periodOpeningBalance: number | null = (() => {
+              const inScope = (mk: string) => moneyMonthsSet === null ? true : moneyMonthsSet.has(mk);
+              const candidates = (incomeOutgoingsData ?? [])
+                .filter((p: any) => inScope(p.month))
+                .map((p: any) => {
+                  const mk = String(p.month);
+                  const mIdx = _ABBR.indexOf(mk.split("-")[0]);
+                  const yy = Number(mk.split("-")[1] ?? 0);
+                  return { sortKey: yy * 12 + (mIdx >= 0 ? mIdx : 0), opening: Number(p.openingBalance) || 0 };
+                })
+                .sort((a, b) => a.sortKey - b.sortKey);
+              if (candidates.length === 0) return null;
+              const first = candidates.find(c => c.opening !== 0) ?? candidates[0];
+              return first.opening || null;
+            })();
+            const openingSubtext = `Balance at start of ${periodChip}`;
+
             return (
             <div className="mt-4 mb-4">
               <SectionPeriodHeader
@@ -2200,24 +2227,32 @@ const DashboardContent = () => {
                 subtitle={subtitleText}
               />
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3" style={{ containerType: 'inline-size' }}>
-                {/* 1. Cash Position — current-month snapshot (not period-aggregate). */}
+                {/* 1. Cash Position — Open is period-aware; Today/Actual stay current snapshots. */}
                 <StatCard
                   label="Cash Position"
                   value="—"
-                  change="Current snapshot"
+                  change={`Balance at start of ${periodChip}`}
                   positive={true}
                   index={9}
                   altValue="—"
-                  altChange="Current snapshot"
+                  altChange="Current balance"
                   altPositive={true}
                   toggleLabelBase="Open"
                   toggleLabelAlt="Today"
                   toggleLabelAlt2="Actual"
                   greenAltPill={true}
                   emphasis
+                  openValueOverride={periodOpeningBalance}
+                  openSubtextOverride={openingSubtext}
+                  currentSubtextOverride="Current balance · live"
                 />
-                {/* 2. Invoices Paid / To-be-paid — current-month snapshot */}
-                <InvoicesPaidCard index={10} onJumpToMonth={jumpToRevenueCogsMonth} />
+                {/* 2. Invoices — period-scoped (To-be-Paid past-dated, To-be-Invoiced future-dated, both within period) */}
+                <InvoicesPaidCard
+                  index={10}
+                  onJumpToMonth={jumpToRevenueCogsMonth}
+                  periodMonths={moneyMonthsSet}
+                  periodLabel={periodChip}
+                />
                 {/* 3. PER JOB — period-scoped */}
                 {(() => {
                   const wc = m_wonCount;
@@ -2246,12 +2281,14 @@ const DashboardContent = () => {
                   index={12}
                 />
 
-                {/* 5. Revenue Growth — period-aware $ override */}
+                {/* 5. Revenue Growth — driven by the active money-period window */}
                 <RevenueGrowthCard
                   scope={investorScope}
                   index={13}
                   defaultView="dollar"
                   dollarOverride={{ value: m_revenueExGST, label: `${periodChip} revenue` }}
+                  periodMonths={moneyMonthsSet}
+                  periodLabel={periodChip}
                 />
                 {/* Row 2 */}
                 <StatCard
@@ -2261,8 +2298,9 @@ const DashboardContent = () => {
                   positive={m_pipelineCoverage >= 2}
                   index={15}
                   variant="centered"
-                  momContext={`vs ${periodChip} revenue`}
+                  momContext="Active pipeline ÷ revenue — forward work runway"
                 />
+
                 {/* 6. EXPENSE RATIOS — merged Op + Lifestyle */}
                 <ExpenseRatiosCard
                   opRatioPct={money.opExpRatio}
