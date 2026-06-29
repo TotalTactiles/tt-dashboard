@@ -16,9 +16,13 @@ const fmt = (n: number) => `$${Math.round(n).toLocaleString()}`;
 export default function ExpenseGroupAccordion({
   groups,
   period,
+  excludedKeys,
+  onToggle,
 }: {
   groups: ExpenseGroup[];
   period: Period;
+  excludedKeys?: Set<string>;
+  onToggle?: (key: string) => void;
 }) {
   const [open, setOpen] = useState<Set<string>>(new Set());
   const toggle = (t: string) =>
