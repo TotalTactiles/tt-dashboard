@@ -385,7 +385,7 @@ function ExpenseRatiosCard({
           <p className={`font-bold font-mono break-words leading-tight ${opTone}`} style={figureStyle}>{opValue}</p>
           <p className={subClass}>Operating expenses ÷ revenue</p>
         </div>
-        <div className="h-px bg-white/10 w-2/3 mx-auto" />
+        <div className="h-px bg-white/10 my-2 w-2/3 mx-auto" />
         <div className="w-full min-w-0 flex flex-col items-center gap-0.5">
           <p className={labelClass}>LIFESTYLE</p>
           <p className="font-bold font-mono break-words leading-tight text-foreground/80" style={figureStyle}>{lifestyleValue}</p>
