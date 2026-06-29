@@ -10,7 +10,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Users, Clock, DollarSign, TrendingUp, ChevronDown, Pencil, Check as CheckIcon, Plus } from "lucide-react";
+import { Users, Clock, DollarSign, TrendingUp, ChevronDown, Pencil, Check as CheckIcon, Plus, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
+import { useDashboardData } from "@/contexts/DashboardDataContext";
+
+const ZOHO_LABOUR_SYNC_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-employee-sync";
+// Upwork sync is not live yet. Leave empty until the Upwork workflow has its own
+// webhook trigger; when ready, paste its production webhook URL here and it will
+// be included in the sync automatically. Empty = skipped.
+const UPWORK_SYNC_WEBHOOK = "";
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -187,6 +195,29 @@ const EmployeeTracking = () => {
   const [sourceFilter, setSourceFilter] = useState<string>("All Sources");
   const [chartSource, setChartSource] = useState<"all" | "upwork" | "zoho">("all");
   const [bankOpen, setBankOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const { syncNow } = useDashboardData();
+
+  const handleSync = async () => {
+    setSyncing(true);
+    toast.info("Pulling fresh hours from Zoho Projects — this can take up to a minute.");
+    try {
+      const calls: Promise<unknown>[] = [
+        fetch(ZOHO_LABOUR_SYNC_WEBHOOK, { method: "POST" }),
+      ];
+      if (UPWORK_SYNC_WEBHOOK) {
+        calls.push(fetch(UPWORK_SYNC_WEBHOOK, { method: "POST" }).catch(() => null));
+      }
+      await Promise.all(calls);
+      await syncNow("google_sheets");
+      toast.success("Employee data synced");
+    } catch {
+      try { await syncNow("google_sheets"); } catch {}
+      toast.error("Sync hit an issue — showing latest cached data");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   // ===== Worker display config (localStorage) =====
   const rawSourceWorkers = useMemo(() => {
@@ -526,6 +557,16 @@ const EmployeeTracking = () => {
               Zoho Projects · Not connected
             </span>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSync}
+            disabled={syncing}
+            className="h-8 px-2.5 text-xs font-mono gap-1.5"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Syncing…" : "Sync"}
+          </Button>
         </div>
       </div>
 
