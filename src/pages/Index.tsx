@@ -2257,6 +2257,30 @@ const DashboardContent = () => {
             })();
             const openingSubtext = `Balance at start of ${periodChip}`;
 
+            // ── Anchor month for monthly-horizon cards (Cash Position & Invoices) ──
+            // Default = current month; override only when a specific month is picked.
+            const _MFULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+            const _nowAnchor = new Date();
+            const _parsedAnchor = (() => {
+              if (!moneyMonth) return null;
+              const parts = String(moneyMonth).split("-");
+              const mi = _ABBR.indexOf(parts[0]);
+              const yy = Number(parts[1]);
+              if (mi < 0 || isNaN(yy)) return null;
+              return { y: 2000 + yy, m: mi };
+            })();
+            const anchorYear = _parsedAnchor ? _parsedAnchor.y : _nowAnchor.getFullYear();
+            const anchorMonth = _parsedAnchor ? _parsedAnchor.m : _nowAnchor.getMonth();
+            const anchorKey = `${_ABBR[anchorMonth]}-${String(anchorYear).slice(-2)}`;
+            const anchorLabel = `${_MFULL[anchorMonth]} ${anchorYear}`;
+            const anchorOpeningBalance: number | null = (() => {
+              const match = (incomeOutgoingsData ?? []).find((p: any) => String(p.month) === anchorKey);
+              if (!match) return null;
+              const v = Number(match.openingBalance) || 0;
+              return v || null;
+            })();
+            const anchorOpeningSubtext = `Balance at start of ${anchorLabel}`;
+
             return (
             <div className="mt-4 mb-4">
               <SectionPeriodHeader
@@ -2274,11 +2298,11 @@ const DashboardContent = () => {
                 subtitle={subtitleText}
               />
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3" style={{ containerType: 'inline-size' }}>
-                {/* 1. Cash Position — Open is period-aware; Today/Actual stay current snapshots. */}
+                {/* 1. Cash Position — anchored on current month (or selected month). Today/Actual stay live snapshots. */}
                 <StatCard
                   label="Cash Position"
                   value="—"
-                  change={`Balance at start of ${periodChip}`}
+                  change={anchorOpeningSubtext}
                   positive={true}
                   index={9}
                   altValue="—"
@@ -2289,17 +2313,19 @@ const DashboardContent = () => {
                   toggleLabelAlt2="Actual"
                   greenAltPill={true}
                   emphasis
-                  openValueOverride={periodOpeningBalance}
-                  openSubtextOverride={openingSubtext}
+                  openValueOverride={anchorOpeningBalance}
+                  openSubtextOverride={anchorOpeningSubtext}
                   currentSubtextOverride="Current balance · live"
                 />
-                {/* 2. Invoices — period-scoped (To-be-Paid past-dated, To-be-Invoiced future-dated, both within period) */}
+                {/* 2. Invoices — anchored on current month (or selected month). Prev month = To be Paid; Next month = To be Invoiced. */}
                 <InvoicesPaidCard
                   index={10}
                   onJumpToMonth={jumpToRevenueCogsMonth}
-                  periodMonths={moneyMonthsSet}
-                  periodLabel={periodChip}
+                  anchorYear={anchorYear}
+                  anchorMonth={anchorMonth}
+                  anchorLabel={anchorLabel}
                 />
+
                 {/* 3. PER JOB — period-scoped */}
                 {(() => {
                   const wc = m_wonCount;
