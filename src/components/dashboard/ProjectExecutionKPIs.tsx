@@ -1277,6 +1277,12 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
 
   const periodLabel = period?.label ?? "";
   const monthSet = useMemo(() => new Set(period?.months ?? []), [period]);
+  const labourMetrics = useMemo(() => computeMoneyMetrics({
+    scope: "all",
+    monthsOverride: period?.months ? new Set(period.months) : null,
+    revenueProjects,
+    cashflowRows: (dataStore as any)?.cashflow ?? [],
+  }), [period, revenueProjects, dataStore]);
   const monthProjects = useMemo(
     () => (projectKPIData?.projects ?? []).filter((p) => {
       const k = invoiceToMonKey(p.invoiceDate);
