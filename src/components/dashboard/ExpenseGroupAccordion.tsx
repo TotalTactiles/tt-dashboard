@@ -18,10 +18,10 @@ export default function ExpenseGroupAccordion({
 }: {
   groups: ExpenseGroup[];
   period: Period;
-  excludedKeys: Set;
+  excludedKeys: Set<string>;
   onToggle: (key: string) => void;
 }) {
-  const [open, setOpen] = useState>(new Set());
+  const [open, setOpen] = useState<Set<string>>(new Set());
   const toggle = (t: string) =>
     setOpen((prev) => {
       const next = new Set(prev);
