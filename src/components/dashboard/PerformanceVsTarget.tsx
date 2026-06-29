@@ -371,7 +371,7 @@ export default function PerformanceVsTarget({
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
             Cumulative pace <span className="opacity-60">(est.)</span>
           </span>
-          <div className="flex items-center gap-3 text-[9px] uppercase tracking-wider text-muted-foreground">
+          <div className="flex items-center gap-3 text-[8.1px] uppercase tracking-wider text-muted-foreground">
             <Legend swatch="bg-muted-foreground/40" label="Target pace" />
             <Legend swatch="bg-chart-green" label="Actual (on/ahead)" />
             <Legend swatch="bg-[#E8B931]" label="Actual (behind)" />
