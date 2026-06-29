@@ -5,6 +5,7 @@ import { useDashboardData } from "@/contexts/DashboardDataContext";
 import NoData from "./NoData";
 
 type Slice = { name: string; value: number; fill: string };
+const fmt = (n: number) => `$${Math.round(n).toLocaleString()}`;
 
 const SectorAllocationChart = React.memo(({ sections }: { sections?: Slice[] }) => {
   const { expenseAllocation, dataHealth } = useDashboardData();
@@ -36,8 +37,8 @@ const SectorAllocationChart = React.memo(({ sections }: { sections?: Slice[] }) 
                 animationBegin={500}
                 animationDuration={1200}
               >
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                {data.map((entry, i) => (
+                  <Cell key={`cell-${i}`} fill={entry.fill} />
                 ))}
               </Pie>
               <Tooltip
@@ -46,9 +47,11 @@ const SectorAllocationChart = React.memo(({ sections }: { sections?: Slice[] }) 
                   const e = payload[0].payload as Slice;
                   const pct = total > 0 ? ((e.value / total) * 100).toFixed(1) : "";
                   return (
-                    <div className="bg-popover border border-border rounded-lg shadow-lg" style={{ padding: '10px 14px', minWidth: 140 }}>
+                    <div className="bg-popover border border-border rounded-lg shadow-lg p-2.5 min-w-[140px]">
                       <div className="font-bold text-[13px] text-foreground mb-0.5">{e.name}</div>
-                      <div className="font-semibold text-[15px]" style={{ color: e.fill }}>${Math.round(e.value).toLocaleString()}/mo</div>
+                      <div className="font-semibold text-[15px]" style={{ color: e.fill }}>
+                        {fmt(e.value)}/mo
+                      </div>
                       {pct && <div className="text-[12px] text-muted-foreground mt-0.5">{pct}% of total</div>}
                     </div>
                   );
@@ -61,7 +64,7 @@ const SectorAllocationChart = React.memo(({ sections }: { sections?: Slice[] }) 
               <div key={s.name} className="flex items-center gap-1.5 text-xs">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.fill }} />
                 <span className="text-muted-foreground">{s.name}</span>
-                <span className="font-mono text-foreground">${Math.round(s.value).toLocaleString()}</span>
+                <span className="font-mono text-foreground">{fmt(s.value)}</span>
               </div>
             ))}
           </div>
