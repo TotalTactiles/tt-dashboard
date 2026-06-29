@@ -2206,13 +2206,13 @@ const DashboardContent = () => {
 
           </div>
 
-          {/* Business Expenses — split into Recurring (default-included) and Cost of Sales & Debt */}
+          {/* Business Expenses — split into Business Expenses (default-included) and COS & Debt */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
             <ExpenseBreakdown
               goals={goals}
               activeGoalIds={activeGoalIds}
               groupsOverride={expenseGroupsDefault}
-              title="Business Expenses — Recurring"
+              title="Business Expenses"
               storageKey="tt_expense_excluded_default_v1"
               defaultExcluded={[]}
               hideGoals
@@ -2220,7 +2220,7 @@ const DashboardContent = () => {
             />
             <ExpenseBreakdown
               groupsOverride={expenseGroupsDebt}
-              title="Cost of Sales & Debt"
+              title="COS & Debt"
               storageKey="tt_expense_excluded_debt_v1"
               defaultExcluded={[]}
               hideGoals
