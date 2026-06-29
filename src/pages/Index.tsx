@@ -353,7 +353,7 @@ function OpExpenseRatioCard({
   const value = mode === "pct"
     ? (ratioPct != null ? `${ratioPct.toFixed(1)}%` : "N/A")
     : (amount > 0 ? fmtCompact(amount) : "—");
-  const tone = (ratioPct ?? 0) < 60 ? "text-chart-green" : "text-chart-red";
+  const tone = "text-foreground";
 
   return (
     <motion.div
