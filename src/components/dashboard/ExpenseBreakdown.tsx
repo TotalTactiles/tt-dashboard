@@ -133,7 +133,7 @@ const ExpenseBreakdownInner = ({
       className="chart-container"
     >
       {/* Header with toggle */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
         <div className="flex items-center gap-1 rounded-lg border border-border bg-secondary/30 p-0.5">
           {(["weekly", "monthly", "yearly"] as Period[]).map((p) => (
@@ -156,7 +156,7 @@ const ExpenseBreakdownInner = ({
         <NoData message="No expense data" healthStatus={dataHealth.expenses.status} />
       ) : (
         <>
-          <div className="mb-6">
+          <div className="mb-3">
             <ExpenseGroupAccordion groups={expenseGroups} period={period} excludedKeys={excludedKeys} onToggle={toggleExpenseItem} />
           </div>
 
