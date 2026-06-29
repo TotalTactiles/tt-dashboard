@@ -1166,7 +1166,7 @@ const ChartsSection = ({
                         {included ? `$${fwd?.net.toFixed(0)}` : "—"}
                       </td>
                       <td className="pr-4 text-right text-yellow-400">
-                        {included ? `$${fwd?._movement?.toFixed(0) ?? "—"}` : "—"}
+                        {included ? `$${fwd?._preHaircut?.toFixed(0) ?? "—"}` : "—"}
                       </td>
                     </tr>
                   );
