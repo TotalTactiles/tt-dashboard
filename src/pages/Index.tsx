@@ -2220,29 +2220,24 @@ const DashboardContent = () => {
 
           </div>
 
-          {/* Business Expenses — split into Business Expenses (default-included) and COS & Debt */}
+          {/* Business Expenses — all sections in one card with donut breakdown */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4 md:mb-6">
             <ExpenseBreakdown
               goals={goals}
               activeGoalIds={activeGoalIds}
-              groupsOverride={expenseGroupsDefault}
+              groupsOverride={expenseGroupsAll}
               title="Business Expenses"
-              storageKey="tt_expense_excluded_default_v1"
-              defaultExcluded={[]}
+              storageKey="tt_expense_excluded_all_v1"
+              defaultExcluded={[
+                "Cost of Sales::Labour Costs",
+                "Cost of Sales::Tactile Costs",
+                "Cost of Sales::Other Costs",
+                "Debt::Business Loan Repayment & Monthly Fee",
+              ]}
               hideGoals
               hideGrandTotal
             />
-            <div className="flex flex-col gap-3 md:gap-4 h-full">
-              <ExpenseBreakdown
-                groupsOverride={expenseGroupsDebt}
-                title="COS & Debt"
-                storageKey="tt_expense_excluded_debt_v1"
-                defaultExcluded={[]}
-                hideGoals
-                hideGrandTotal
-              />
-              <SectorAllocationChart sections={expensePieSections} />
-            </div>
+            <SectorAllocationChart sections={expensePieSections} />
           </div>
 
           <div className="mb-4 md:mb-6">
