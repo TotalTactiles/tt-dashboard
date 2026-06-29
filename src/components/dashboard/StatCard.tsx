@@ -481,9 +481,9 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
         ? isActualNotSet
           ? "Enter your real balance to compare"
           : "Your real bank balance (entered manually)"
-        : mode === "alt"
-        ? "Live cash balance right now"
-        : "Balance on the 1st of this month"}
+          : mode === "alt"
+          ? "Xero balance today · not actual bank balance"
+          : "Balance on the 1st of this month"}
     </p>
   ) : null;
 
