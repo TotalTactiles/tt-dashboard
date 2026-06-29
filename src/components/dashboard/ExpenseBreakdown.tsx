@@ -247,7 +247,7 @@ const ExpenseBreakdownInner = ({
           </div>
 
           {/* Grand Total Summary Strip */}
-          {grandTotalExpense && (
+          {!hideGrandTotal && grandTotalExpense && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
