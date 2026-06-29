@@ -855,7 +855,10 @@ const ChartsSection = ({
     // Google Sheets automation, so it stays current automatically.
     // Net margin is taken from the live GP% (also dashboard data). The only
     // manual lender assumptions are conversion likelihood + spread window.
-    const ylwPipelineValue = Number(ylwValue) || 0;
+    const ylwPipelineValue =
+      Number(liveData?.quotesSummary?.totalYellow?.value) ||
+      Number(ylwValue) ||
+      0;
     const _liveGpPct = Number(liveData?.investorMetrics?.grossMarginPct ?? liveData?.investorMetrics?.avgGpPct);
     const YLW_GP_MARGIN = Number.isFinite(_liveGpPct) && _liveGpPct > 0 ? _liveGpPct / 100 : 0.47; // live GP%, else 47%
     const YLW_WIN_PROB      = 0.50;  // lender assumption — verbal (YLW) conversion likelihood
@@ -961,6 +964,8 @@ const ChartsSection = ({
       maxNewRepayment,
       borrowingCapacity60,
       existingMonthlyDebt,
+      ylwPipelineValue,
+      ylwMonthlyUplift,
       breakdown: { avg3Eq, avg6Eq, maxNewEq, capacityEq },
       _pastActuals,
       _forwardContracted,
@@ -1234,6 +1239,10 @@ const ChartsSection = ({
               <div className="text-white">${debtStripped.lenderUsableIncome.toFixed(0)}</div>
               <div className="text-white/50">maxNewRepayment:</div>
               <div className="text-emerald-400">${debtStripped.maxNewRepayment.toFixed(0)}</div>
+              <div className="text-white/50">ylwPipelineValue (live):</div>
+              <div className="text-yellow-400">${(debtStripped.ylwPipelineValue ?? 0).toFixed(0)}</div>
+              <div className="text-white/50">ylwMonthlyUplift (this view):</div>
+              <div className="text-yellow-400">${(debtStripped.ylwMonthlyUplift ?? 0).toFixed(0)}</div>
               <div className="text-white/50">borrowingCapacity60:</div>
               <div className="text-emerald-400">${debtStripped.borrowingCapacity60.toFixed(0)}</div>
             </div>
