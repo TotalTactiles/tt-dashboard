@@ -132,7 +132,7 @@ const ExpenseBreakdownInner = ({ goals = [], activeGoalIds = new Set() }: Expens
       ) : (
         <>
           <div className="mb-6">
-            <ExpenseGroupAccordion groups={expenseGroups} period={period} />
+            <ExpenseGroupAccordion groups={expenseGroups} period={period} excludedKeys={excludedKeys} onToggle={toggleExpenseItem} />
           </div>
 
 
