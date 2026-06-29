@@ -322,19 +322,15 @@ function InvoicesPaidCard({ index, onJumpToMonth, periodMonths, periodLabel }: {
 }
 
 
-// ── EXPENSE RATIOS — merged Op + Lifestyle ──────────────────────────
-function ExpenseRatiosCard({
-  opRatioPct,
-  opAmount,
-  lifestyleRatioPct,
-  lifestyleAmount,
+// ── OP EXPENSE RATIO (standalone) ──────────────────────────────────
+function OpExpenseRatioCard({
+  ratioPct,
+  amount,
   periodLabel,
   index,
 }: {
-  opRatioPct: number | null;
-  opAmount: number;
-  lifestyleRatioPct: number | null;
-  lifestyleAmount: number;
+  ratioPct: number | null;
+  amount: number;
   periodLabel: string;
   index: number;
 }) {
@@ -347,17 +343,13 @@ function ExpenseRatiosCard({
     return `${sign}$${Math.round(abs).toLocaleString()}`;
   };
   const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
-  const labelClass = "text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-foreground/80 font-mono text-center";
   const subClass = "text-[0.65rem] leading-tight text-muted-foreground font-mono whitespace-normal break-words text-center";
-  const figureStyle: React.CSSProperties = { fontSize: 'clamp(1.25rem, 1.6vw, 1.5rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' };
+  const figureStyle: React.CSSProperties = { fontSize: 'clamp(1.4rem, 1.9vw, 1.75rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' };
 
-  const opValue = mode === "pct"
-    ? (opRatioPct != null ? `${opRatioPct.toFixed(1)}%` : "N/A")
-    : (opAmount > 0 ? fmtCompact(opAmount) : "—");
-  const lifestyleValue = mode === "pct"
-    ? (lifestyleRatioPct != null ? `${lifestyleRatioPct.toFixed(1)}%` : "N/A")
-    : (lifestyleAmount > 0 ? fmtCompact(lifestyleAmount) : "—");
-  const opTone = (opRatioPct ?? 0) < 60 ? "text-chart-green" : "text-chart-red";
+  const value = mode === "pct"
+    ? (ratioPct != null ? `${ratioPct.toFixed(1)}%` : "N/A")
+    : (amount > 0 ? fmtCompact(amount) : "—");
+  const tone = (ratioPct ?? 0) < 60 ? "text-chart-green" : "text-chart-red";
 
   return (
     <motion.div
@@ -368,7 +360,7 @@ function ExpenseRatiosCard({
       style={{ containerType: 'inline-size' }}
     >
       <div className="w-full min-h-[1.5rem] flex items-center justify-center px-1">
-        <p className={titleClass}>EXPENSE RATIOS</p>
+        <p className={titleClass}>OP. EXPENSE RATIO</p>
       </div>
       <div className="min-h-[1.5rem] flex justify-center items-center">
         <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
@@ -382,18 +374,69 @@ function ExpenseRatiosCard({
           >$</button>
         </div>
       </div>
-      <div className="flex-1 flex flex-col justify-center w-full min-w-0 text-center">
-        <div className="w-full min-w-0 flex flex-col items-center gap-0.5">
-          <p className={labelClass}>OP. EXPENSE</p>
-          <p className={`font-bold font-mono break-words leading-tight ${opTone}`} style={figureStyle}>{opValue}</p>
-          <p className={subClass}>Operating expenses ÷ revenue</p>
+      <div className="flex-1 flex flex-col justify-center w-full min-w-0 text-center gap-1">
+        <p className={`font-bold font-mono break-words leading-tight ${tone}`} style={figureStyle}>{value}</p>
+        <p className={subClass}>Operating expenses ÷ revenue</p>
+      </div>
+      <p className={subClass + " opacity-70"}>{periodLabel}</p>
+    </motion.div>
+  );
+}
+
+// ── LIFESTYLE EXPENSE RATIO (standalone) ───────────────────────────
+function LifestyleExpenseRatioCard({
+  ratioPct,
+  amount,
+  periodLabel,
+  index,
+}: {
+  ratioPct: number | null;
+  amount: number;
+  periodLabel: string;
+  index: number;
+}) {
+  const [mode, setMode] = useState<"pct" | "dollar">("pct");
+  const fmtCompact = (n: number) => {
+    const abs = Math.abs(n);
+    const sign = n < 0 ? "-" : "";
+    if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+    if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}K`;
+    return `${sign}$${Math.round(abs).toLocaleString()}`;
+  };
+  const titleClass = "font-mono font-semibold uppercase text-foreground/70 tracking-[0.12em] text-[0.7rem] whitespace-normal break-words leading-tight text-center";
+  const subClass = "text-[0.65rem] leading-tight text-muted-foreground font-mono whitespace-normal break-words text-center";
+  const figureStyle: React.CSSProperties = { fontSize: 'clamp(1.4rem, 1.9vw, 1.75rem)', lineHeight: 1.15, fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.015em' };
+
+  const value = mode === "pct"
+    ? (ratioPct != null ? `${ratioPct.toFixed(1)}%` : "N/A")
+    : (amount > 0 ? fmtCompact(amount) : "—");
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+      className="stat-card relative overflow-hidden flex flex-col items-center text-center h-full p-3 gap-1"
+      style={{ containerType: 'inline-size' }}
+    >
+      <div className="w-full min-h-[1.5rem] flex items-center justify-center px-1">
+        <p className={titleClass}>LIFESTYLE EXPENSE RATIO</p>
+      </div>
+      <div className="min-h-[1.5rem] flex justify-center items-center">
+        <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
+          <button
+            onClick={() => setMode("pct")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${mode === "pct" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >%</button>
+          <button
+            onClick={() => setMode("dollar")}
+            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${mode === "dollar" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+          >$</button>
         </div>
-        <div className="h-px bg-white/10 my-2 w-2/3 mx-auto" />
-        <div className="w-full min-w-0 flex flex-col items-center gap-0.5">
-          <p className={labelClass}>LIFESTYLE</p>
-          <p className="font-bold font-mono break-words leading-tight text-foreground/80" style={figureStyle}>{lifestyleValue}</p>
-          <p className={subClass}>Owner lifestyle ÷ total business cost</p>
-        </div>
+      </div>
+      <div className="flex-1 flex flex-col justify-center w-full min-w-0 text-center gap-1">
+        <p className="font-bold font-mono break-words leading-tight text-foreground/90" style={figureStyle}>{value}</p>
+        <p className={subClass}>Owner lifestyle ÷ total business cost</p>
       </div>
       <p className={subClass + " opacity-70"}>{periodLabel}</p>
     </motion.div>
