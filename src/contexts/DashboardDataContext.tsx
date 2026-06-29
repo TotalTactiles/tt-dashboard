@@ -265,6 +265,19 @@ export interface DashboardData {
   wrYlwFY: number;
   wonValueFY: number;
   lostValueFY: number;
+  salesMetrics: {
+    wonCount: number;
+    lostCount: number;
+    ylwCount: number;
+    wonValue: number;
+    lostValue: number;
+    ylwValue: number;
+    avgWon: number;
+    avgWonWithYlw: number;
+    closeRate: number;
+    closeRateWithYlw: number;
+    pipelineRate: number;
+  };
   kpiStats: KPIStat[];
 
   incomeOutgoingsData: IncomeOutgoingsPoint[];
