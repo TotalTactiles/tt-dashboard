@@ -130,7 +130,7 @@ const ExpenseBreakdownInner = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.8 }}
-      className="chart-container col-span-full"
+      className="chart-container"
     >
       {/* Header with toggle */}
       <div className="flex items-center justify-between mb-6">
