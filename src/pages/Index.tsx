@@ -560,13 +560,17 @@ function RevenueGrowthCard({ scope, index, defaultView = "pct", dollarOverride, 
     for (const pt of incomeOutgoingsData) {
       const k = parseMonthKey(pt.month);
       if (!k) continue;
-      if (k.year !== curYear) continue;
-      if (k.monthIdx > curMonth) continue;
+      if (periodMonths !== undefined) {
+        if (periodMonths !== null && !periodMonths.has(pt.month)) continue;
+      } else {
+        if (k.year !== curYear) continue;
+        if (k.monthIdx > curMonth) continue;
+      }
       monthly.push({ monthIdx: k.monthIdx, income: pt.income || 0 });
     }
     monthly.sort((a, b) => a.monthIdx - b.monthIdx);
 
-    // YTD pct
+    // Window pct (avg MoM)
     const rates: number[] = [];
     for (let i = 1; i < monthly.length; i++) {
       const prev = monthly[i - 1].income;
@@ -597,9 +601,10 @@ function RevenueGrowthCard({ scope, index, defaultView = "pct", dollarOverride, 
       firstM, lastM,
       qIdx, qPct, qPctNA, qTotal, prevTotal, qDelta,
     };
-  }, [incomeOutgoingsData]);
+  }, [incomeOutgoingsData, periodMonths]);
 
-  const isYTD = scope === "ytd";
+  // Period-driven window takes precedence over scope (quarter/ytd).
+  const isYTD = periodMonths !== undefined ? true : scope === "ytd";
   const isPct = view === "pct";
 
   // Headline + sub + color
