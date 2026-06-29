@@ -46,6 +46,30 @@ const ExpenseBreakdownInner = ({ goals = [], activeGoalIds = new Set() }: Expens
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedCard, setSelectedCard] = useState<{ cardName: string; categoryGroup: string } | null>(null);
 
+  const EXPENSE_SEL_KEY = "tt_expense_excluded_v1";
+
+  const [excludedKeys, setExcludedKeys] = useState<Set<string>>(() => {
+
+    try { const raw = localStorage.getItem(EXPENSE_SEL_KEY); return new Set(raw ? JSON.parse(raw) : []); }
+
+    catch { return new Set(); }
+
+  });
+
+  const xKey = (groupTitle: string, name: string) => `${groupTitle}::${name}`;
+
+  const toggleExpenseItem = (key: string) => setExcludedKeys((prev) => {
+
+    const next = new Set(prev);
+
+    if (next.has(key)) next.delete(key); else next.add(key);
+
+    try { localStorage.setItem(EXPENSE_SEL_KEY, JSON.stringify([...next])); } catch {}
+
+    return next;
+
+  });
+
   // Goals expense category
   const goalsCategory = useMemo(() => getGoalExpenseCategory(goals, activeGoalIds), [goals, activeGoalIds]);
 
