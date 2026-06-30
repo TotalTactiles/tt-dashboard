@@ -47,9 +47,10 @@ function loadPace(): PaceState {
 
 function resolveWindow(p: PaceState): { start: Date; end: Date; label: string; creditCommitted: boolean } {
   if (p.choice === "ytd") {
+    // YTD shares the full CY2026 timeline; only the "secured" basis differs (no future-committed).
     return {
       start: new Date(2026, 0, 1),
-      end: new Date(),
+      end: new Date(2026, 11, 31),
       label: "YTD",
       creditCommitted: false,
     };
@@ -66,6 +67,7 @@ function resolveWindow(p: PaceState): { start: Date; end: Date; label: string; c
     creditCommitted: true,
   };
 }
+
 
 
 function monthsBetween(a: Date, b: Date): number {
