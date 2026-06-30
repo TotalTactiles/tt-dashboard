@@ -772,6 +772,41 @@ const ChartsSection = ({
     try { window.localStorage.setItem(BORROW_CALC_KEY, JSON.stringify(borrowCalc)); } catch {}
   }, [borrowCalc]);
 
+  // ---- Facility presets (AU market averages, June 2026 — editable + persisted) ----
+  type FacilityKey = "vehicle" | "equipment" | "commercial_property" | "residential_property" | "unsecured" | "custom";
+  type FacilityPreset = { key: FacilityKey; label: string; rate: number | null; termMonths: number | null };
+  const FACILITY_PRESETS_KEY = "tt_facility_presets_v1";
+  const DEFAULT_FACILITY_PRESETS: FacilityPreset[] = [
+    { key: "vehicle",              label: "Vehicle / car finance",          rate: 7.5,  termMonths: 60  },
+    { key: "equipment",            label: "Equipment finance (chattel)",    rate: 7.5,  termMonths: 60  },
+    { key: "commercial_property",  label: "Commercial property (owner-occ)",rate: 7.0,  termMonths: 180 },
+    { key: "residential_property", label: "Residential property",           rate: 6.0,  termMonths: 360 },
+    { key: "unsecured",            label: "Unsecured business loan",        rate: 13.0, termMonths: 36  },
+    { key: "custom",               label: "Custom",                          rate: null, termMonths: null },
+  ];
+  const [facilityPresets, setFacilityPresets] = useState<FacilityPreset[]>(() => {
+    if (typeof window === "undefined") return DEFAULT_FACILITY_PRESETS;
+    try {
+      const raw = window.localStorage.getItem(FACILITY_PRESETS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as FacilityPreset[];
+        // Merge with defaults to ensure all keys present
+        return DEFAULT_FACILITY_PRESETS.map(def => {
+          const found = parsed.find(p => p.key === def.key);
+          return found ? { ...def, rate: found.rate, termMonths: found.termMonths } : def;
+        });
+      }
+    } catch {}
+    return DEFAULT_FACILITY_PRESETS;
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem(FACILITY_PRESETS_KEY, JSON.stringify(facilityPresets)); } catch {}
+  }, [facilityPresets]);
+  const [selectedFacilityKey, setSelectedFacilityKey] = useState<FacilityKey>("equipment");
+  const updateFacilityPreset = (key: FacilityKey, patch: Partial<FacilityPreset>) => {
+    setFacilityPresets(prev => prev.map(p => p.key === key ? { ...p, ...patch } : p));
+  };
+
   const debtStripped = useMemo(() => {
     const rawCashflow = liveData?.cashflow ?? [];
     const findRow = (label: string) => {
