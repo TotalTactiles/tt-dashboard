@@ -9,11 +9,9 @@ const fmtAUD = (n: number) => formatMetricValue(n, "currency");
 const cardBase =
   "relative bg-card border border-border rounded-lg p-4 md:p-5 flex flex-col";
 
-const PERIOD_KEY = "tt_target_period";
 const VIEW_KEY = "tt_pace_view";
 
-type PeriodChoice = "2026" | "custom";
-type PaceView = "ytd" | "2026";
+type PaceChoice = "ytd" | "2026" | "custom";
 
 type Props = {
   target: number;
@@ -26,38 +24,49 @@ type Props = {
   ylwValue?: number;
 };
 
-type PeriodState = { choice: PeriodChoice; customStart?: string; customEnd?: string };
+type PaceState = { choice: PaceChoice; customStart?: string; customEnd?: string };
 
-function loadPeriod(): PeriodState {
+function loadPace(): PaceState {
   try {
-    const raw = localStorage.getItem(PERIOD_KEY);
+    const raw = localStorage.getItem(VIEW_KEY);
     if (raw) {
+      // Back-compat: old raw values 'ytd' | '2026'
+      if (raw === "ytd" || raw === "2026" || raw === "custom") {
+        return { choice: raw as PaceChoice };
+      }
       const p = JSON.parse(raw);
-      if (p && typeof p === "object" && p.choice) {
-        const choice: PeriodChoice = p.choice === "custom" ? "custom" : "2026";
-        return { ...p, choice };
+      if (p && typeof p === "object") {
+        const choice: PaceChoice =
+          p.choice === "ytd" || p.choice === "custom" ? p.choice : "2026";
+        return { choice, customStart: p.customStart, customEnd: p.customEnd };
       }
     }
   } catch {}
   return { choice: "2026" };
 }
 
-function loadView(): PaceView {
-  try {
-    const raw = localStorage.getItem(VIEW_KEY);
-    if (raw === "ytd" || raw === "2026") return raw;
-  } catch {}
-  return "2026";
-}
-
-function resolveWindow(p: PeriodState): { start: Date; end: Date; label: string } {
+function resolveWindow(p: PaceState): { start: Date; end: Date; label: string; creditCommitted: boolean } {
+  if (p.choice === "ytd") {
+    return {
+      start: new Date(2026, 0, 1),
+      end: new Date(),
+      label: "YTD",
+      creditCommitted: false,
+    };
+  }
   if (p.choice === "custom") {
     const s = p.customStart ? new Date(p.customStart) : new Date(2026, 0, 1);
     const e = p.customEnd ? new Date(p.customEnd) : new Date(2026, 11, 31);
-    return { start: s, end: e, label: "Custom" };
+    return { start: s, end: e, label: "Custom", creditCommitted: true };
   }
-  return { start: new Date(2026, 0, 1), end: new Date(2026, 11, 31), label: "2026" };
+  return {
+    start: new Date(2026, 0, 1),
+    end: new Date(2026, 11, 31),
+    label: "2026",
+    creditCommitted: true,
+  };
 }
+
 
 function monthsBetween(a: Date, b: Date): number {
   return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
