@@ -541,12 +541,7 @@ function PaceSelector({
   );
 }
 
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+
 
 function FunnelToggle({
   value,
