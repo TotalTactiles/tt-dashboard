@@ -740,8 +740,6 @@ const ChartsSection = ({
     return { totalDebt, avgNet, debtPct };
   }, [earnedVsDebtData]);
 
-  const [earnedPeriod, setEarnedPeriod] = useState<"Q1"|"Q2"|"Q3"|"Q4"|"All">("All");
-  const [earnedMonth, setEarnedMonth] = useState<string>("");
   const quarterMonths: Record<string, string[]> = {
     Q1: ["Jan-26","Feb-26","Mar-26"],
     Q2: ["Apr-26","May-26","Jun-26"],
@@ -749,48 +747,7 @@ const ChartsSection = ({
     Q4: ["Oct-26","Nov-26","Dec-26"],
     All: [],
   };
-  const filteredEarnedData = useMemo(() => {
-    if (earnedMonth) return earnedVsDebtData.rows.filter((d: any) => d.month === earnedMonth);
-    if (earnedPeriod === "All") return earnedVsDebtData.rows;
-    return earnedVsDebtData.rows.filter((d: any) => quarterMonths[earnedPeriod].includes(d.month));
-  }, [earnedPeriod, earnedMonth, earnedVsDebtData]);
 
-  const periodFigures = useMemo(() => {
-    const periodRevenue = filteredEarnedData.reduce((s: number, d: any) => s + (d.earnedRevenue || 0), 0);
-    const periodDebtRepayments = filteredEarnedData.reduce((s: number, d: any) => s + (d.debtDrawdown || 0), 0);
-    const periodOutgoings = filteredEarnedData.reduce((s: number, d: any) => s + (d.operatingCosts || 0), 0);
-    const totalBorrowedToDate = debts.reduce((s, f) => s + (Number(f.originalPrincipal) || 0), 0);
-    const totalStillOwed = debts.reduce((s, f) => s + (Number(f.balance) || 0), 0);
-    const totalRepaidToDate = Math.max(0, totalBorrowedToDate - totalStillOwed);
-    const netPosition = periodRevenue - periodOutgoings - periodDebtRepayments;
-    return { periodRevenue, periodDebtRepayments, periodOutgoings, totalBorrowedToDate, totalRepaidToDate, totalStillOwed, netPosition };
-  }, [filteredEarnedData, debts]);
-
-  const periodLabel = (() => {
-    if (earnedMonth) return earnedMonth;
-    if (earnedPeriod === "All") return "Full Year 2026";
-    const labels: Record<string, string> = {
-      Q1: "Q1 2026 · Jan–Mar",
-      Q2: "Q2 2026 · Apr–Jun",
-      Q3: "Q3 2026 · Jul–Sep",
-      Q4: "Q4 2026 · Oct–Dec",
-    };
-    return labels[earnedPeriod] ?? "";
-  })();
-
-  const EarnedTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload?.length) return null;
-    return (
-      <div style={TOOLTIP_STYLE} className="px-3 py-2">
-        <p className="text-foreground font-medium mb-1">{label}</p>
-        {payload.map((p: any) => (
-          <p key={p.dataKey} style={{ color: p.color }}>
-            {p.name}: {fmtAUD(p.value)}
-          </p>
-        ))}
-      </div>
-    );
-  };
 
   // ---- Debt-Stripped Earnings & Lender Serviceability ----
   const [serviceabilityView, setServiceabilityView] = useState<"actuals"|"with_grn"|"with_ylw">("with_grn");
