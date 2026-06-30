@@ -113,6 +113,8 @@ function RevenueGoalCard({
   remaining,
   withYlw,
   setWithYlw,
+  funnelBasis,
+  setFunnelBasis,
   ylwValue,
   jobsToGoal,
   avgWonDeal,
@@ -129,6 +131,8 @@ function RevenueGoalCard({
   remaining: number;
   withYlw: boolean;
   setWithYlw: (v: boolean) => void;
+  funnelBasis: "opportunities" | "leads";
+  setFunnelBasis: (v: "opportunities" | "leads") => void;
   ylwValue: number;
   jobsToGoal: number;
   avgWonDeal: number;
@@ -163,12 +167,16 @@ function RevenueGoalCard({
       transition={{ duration: 0.25 }}
       className={cardBase}
     >
-      <div className="flex items-center justify-between mb-2 gap-2">
+      <div className="flex items-start justify-between mb-2 gap-2 flex-wrap">
         <span className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground/70">
           Revenue Goal
         </span>
-        <ConfirmedYlwToggle withYlw={withYlw} setWithYlw={setWithYlw} />
+        <div className="flex flex-col items-end gap-1">
+          <ConfirmedYlwToggle withYlw={withYlw} setWithYlw={setWithYlw} />
+          <FunnelBasisToggle value={funnelBasis} onChange={setFunnelBasis} />
+        </div>
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-[minmax(220px,320px)_1fr] gap-4 md:gap-6 items-center">
         {/* Gauge */}
