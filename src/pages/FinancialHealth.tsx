@@ -1004,66 +1004,10 @@ const ChartsSection = ({
   return (
 
     <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold text-foreground">Debt vs Business Performance</h2>
-        <p className="text-xs text-muted-foreground">Live cashflow data overlaid with debt obligations</p>
-      </div>
+      {/* Debt vs Business Performance section removed — unique disclosure
+          (debt capital injected, % of income) is now surfaced as a footnote
+          beneath the "Monthly Net Free Cash After All Debt" chart below. */}
 
-      {/* Chart 0: Earned vs Debt-Funded Revenue */}
-      <div className="chart-container">
-        <p className="text-sm font-medium text-foreground mb-0.5">What We Earned vs What Was Borrowed</p>
-        <p className="text-xs text-muted-foreground mb-3">Monthly income from operations vs capital injected via debt facilities</p>
-
-        {!earnedVsDebtData.hasAnySource ? (
-          <div className="flex items-center justify-center text-center text-xs text-muted-foreground" style={{ height: 120 }}>
-            No debt-funded facilities identified. Add facilities with 'Vinny' in the name to see this breakdown.
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-              <div className="flex items-center gap-1.5">
-                {(["All","Q1","Q2","Q3","Q4"] as const).map(p => (
-                  <button
-                    key={p}
-                    onClick={() => { setEarnedPeriod(p); setEarnedMonth(""); }}
-                    className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all
-                      ${earnedPeriod === p && !earnedMonth
-                        ? "bg-chart-green text-black"
-                        : "bg-white/5 text-muted-foreground hover:bg-white/10"}`}
-                  >{p}</button>
-                ))}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2 mb-4">
-              <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2">
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Avg Monthly Earned</div>
-                <div className="text-base font-mono font-semibold text-green-500">{fmtAUD(earnedStats.avgNet)}</div>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2">
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Debt Capital Injected</div>
-                <div className="text-base font-mono font-semibold text-blue-500">{fmtAUD(earnedStats.totalDebt)}</div>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2">
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Debt as % of Total Income</div>
-                <div className="text-base font-mono font-semibold text-amber-500">{earnedStats.debtPct.toFixed(1)}%</div>
-              </div>
-            </div>
-            <ResponsiveContainer width="100%" height={280}>
-              <ComposedChart data={filteredEarnedData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-                <CartesianGrid stroke={GRID_STROKE} strokeDasharray="3 3" />
-                <XAxis dataKey="month" tick={CHART_TICK} />
-                <YAxis tick={CHART_TICK} tickFormatter={fmtKAxis} />
-                <Tooltip content={<EarnedTooltip />} contentStyle={{ backgroundColor: "#1a1a2e", border: "1px solid #ffffff20", borderRadius: "8px", fontSize: "12px" }} />
-                <Legend wrapperStyle={{ fontSize: 11, color: "#9ca3af" }} />
-                <ReferenceLine y={0} stroke="#ffffff20" />
-                <Bar dataKey="earnedRevenue" name="Total Income" fill="#22c55e" fillOpacity={0.8} />
-                <Bar dataKey="debtDrawdown" name="Debt Capital (Vinny)" fill="#3b82f6" fillOpacity={0.7} />
-                <Line type="monotone" dataKey="netEarned" name="True Earned (ex-Debt)" stroke="#f59e0b" strokeWidth={2.5} dot={false} />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </>
-        )}
-      </div>
 
 
       {/* Debt-Stripped Earnings & Lender Serviceability */}
