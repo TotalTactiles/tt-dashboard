@@ -21,9 +21,6 @@ type Props = {
 const cardBase =
   "relative bg-card border border-border rounded-lg p-4 md:p-5 flex flex-col";
 
-const REV_BASIS_KEY = "tt_revenue_basis";
-const FUNNEL_BASIS_KEY = "tt_funnel_basis";
-
 export default function TargetsGoalsSection(_props: Props) {
   const { target, setTarget } = useRevenueTarget();
   const {
@@ -31,25 +28,9 @@ export default function TargetsGoalsSection(_props: Props) {
     salesMetrics,
   } = useDashboardData();
 
-  // --- Lifted toggle state (persisted) ---
-  const [withYlw, setWithYlwState] = useState<boolean>(() => {
-    try { return localStorage.getItem(REV_BASIS_KEY) === "withYlw"; } catch { return false; }
-  });
-  const setWithYlw = (v: boolean) => {
-    setWithYlwState(v);
-    try { localStorage.setItem(REV_BASIS_KEY, v ? "withYlw" : "confirmed"); } catch {}
-  };
-
-  const [funnelBasis, setFunnelBasisState] = useState<"opportunities" | "leads">(() => {
-    try {
-      const v = localStorage.getItem(FUNNEL_BASIS_KEY);
-      return v === "leads" ? "leads" : "opportunities";
-    } catch { return "opportunities"; }
-  });
-  const setFunnelBasis = (v: "opportunities" | "leads") => {
-    setFunnelBasisState(v);
-    try { localStorage.setItem(FUNNEL_BASIS_KEY, v); } catch {}
-  };
+  // --- Lifted toggle state — defaults always Confirmed + Opportunities each load ---
+  const [withYlw, setWithYlw] = useState<boolean>(false);
+  const [funnelBasis, setFunnelBasis] = useState<"opportunities" | "leads">("opportunities");
 
   // --- Single source of truth: salesMetrics (matches Win/Loss + Conversion Rates cards) ---
   const ylwTopUp = salesMetrics.ylwValue;
