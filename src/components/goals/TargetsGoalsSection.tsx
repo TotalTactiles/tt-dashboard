@@ -325,3 +325,39 @@ function MiniStat({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+function FunnelBasisToggle({
+  value,
+  onChange,
+}: {
+  value: "opportunities" | "leads";
+  onChange: (v: "opportunities" | "leads") => void;
+}) {
+  return (
+    <div
+      className="flex rounded-full bg-secondary/80 p-0.5 leading-none"
+      style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}
+    >
+      <button
+        type="button"
+        onClick={() => onChange("opportunities")}
+        className={`px-1.5 py-0.5 rounded-full font-mono whitespace-nowrap transition-colors ${
+          value === "opportunities" ? "text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+        }`}
+        style={value === "opportunities" ? { backgroundColor: "#3D89DA" } : undefined}
+      >
+        Opportunities
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("leads")}
+        className={`px-1.5 py-0.5 rounded-full font-mono whitespace-nowrap transition-colors ${
+          value === "leads" ? "text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+        }`}
+        style={value === "leads" ? { backgroundColor: "#3D89DA" } : undefined}
+      >
+        Leads
+      </button>
+    </div>
+  );
+}
