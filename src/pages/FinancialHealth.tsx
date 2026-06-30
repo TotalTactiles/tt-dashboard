@@ -730,15 +730,6 @@ const ChartsSection = ({
     return { rows, hasAnySource };
   }, [io, debts, liveData]);
 
-  const earnedStats = useMemo(() => {
-    const r = earnedVsDebtData.rows;
-    const totalEarned = r.reduce((s, x) => s + x.earnedRevenue, 0);
-    const totalDebt = r.reduce((s, x) => s + x.debtDrawdown, 0);
-    const activeMonths = r.filter((x: any) => x.earnedRevenue > 0);
-    const avgNet = activeMonths.length ? activeMonths.reduce((s, x) => s + x.netEarned, 0) / activeMonths.length : 0;
-    const debtPct = totalEarned > 0 ? (totalDebt / totalEarned) * 100 : 0;
-    return { totalDebt, avgNet, debtPct };
-  }, [earnedVsDebtData]);
 
   const quarterMonths: Record<string, string[]> = {
     Q1: ["Jan-26","Feb-26","Mar-26"],
@@ -797,20 +788,9 @@ const ChartsSection = ({
     const businessLoanRow = findRow("BUSINESS LOAN REPAYMENT");
     const vehicleRepaymentRow = findRow("MOTOR VEHICLE REPAYMENT");
 
-    // Per-month Vinny debt drawdown — reuse the SAME source earnedVsDebtData uses
-    // (field: debtDrawdown, sourced from CASHFLOW "BUSINESS LOAN REPAYMENT" row,
-    // falling back to summed Vinny facility monthlyRepayment from the debt register).
-    // We do NOT re-derive it here.
-    const vinnyDrawdownByMonth: Record<string, number> = {};
-    for (const r of earnedVsDebtData.rows) {
-      vinnyDrawdownByMonth[String(r.month)] = Number(r.debtDrawdown) || 0;
-    }
-    const vinnyDrawdownFor = (month: string) => vinnyDrawdownByMonth[String(month)] || 0;
-
     const rows = io.map((row) => {
       const month = String(row?.month ?? "");
-      const rawIncome = Number(row?.income) || 0;
-      const earnedRevenue = Math.max(0, rawIncome - vinnyDrawdownFor(month)); // ex-debt operating income
+      const earnedRevenue = Number(row?.income) || 0; // operating income; loan repayment is an outflow, not an income reduction
       const totalCosts = Math.abs(Number(row?.outgoings) || 0);
       const monthlyDebt =
         Math.abs(parseNum(businessLoanRow?.[month] ?? 0)) +
