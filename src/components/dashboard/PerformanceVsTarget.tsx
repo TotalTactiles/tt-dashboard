@@ -9,11 +9,9 @@ const fmtAUD = (n: number) => formatMetricValue(n, "currency");
 const cardBase =
   "relative bg-card border border-border rounded-lg p-4 md:p-5 flex flex-col";
 
-const PERIOD_KEY = "tt_target_period";
 const VIEW_KEY = "tt_pace_view";
 
-type PeriodChoice = "2026" | "custom";
-type PaceView = "ytd" | "2026";
+type PaceChoice = "ytd" | "2026" | "custom";
 
 type Props = {
   target: number;
@@ -26,38 +24,49 @@ type Props = {
   ylwValue?: number;
 };
 
-type PeriodState = { choice: PeriodChoice; customStart?: string; customEnd?: string };
+type PaceState = { choice: PaceChoice; customStart?: string; customEnd?: string };
 
-function loadPeriod(): PeriodState {
+function loadPace(): PaceState {
   try {
-    const raw = localStorage.getItem(PERIOD_KEY);
+    const raw = localStorage.getItem(VIEW_KEY);
     if (raw) {
+      // Back-compat: old raw values 'ytd' | '2026'
+      if (raw === "ytd" || raw === "2026" || raw === "custom") {
+        return { choice: raw as PaceChoice };
+      }
       const p = JSON.parse(raw);
-      if (p && typeof p === "object" && p.choice) {
-        const choice: PeriodChoice = p.choice === "custom" ? "custom" : "2026";
-        return { ...p, choice };
+      if (p && typeof p === "object") {
+        const choice: PaceChoice =
+          p.choice === "ytd" || p.choice === "custom" ? p.choice : "2026";
+        return { choice, customStart: p.customStart, customEnd: p.customEnd };
       }
     }
   } catch {}
   return { choice: "2026" };
 }
 
-function loadView(): PaceView {
-  try {
-    const raw = localStorage.getItem(VIEW_KEY);
-    if (raw === "ytd" || raw === "2026") return raw;
-  } catch {}
-  return "2026";
-}
-
-function resolveWindow(p: PeriodState): { start: Date; end: Date; label: string } {
+function resolveWindow(p: PaceState): { start: Date; end: Date; label: string; creditCommitted: boolean } {
+  if (p.choice === "ytd") {
+    return {
+      start: new Date(2026, 0, 1),
+      end: new Date(),
+      label: "YTD",
+      creditCommitted: false,
+    };
+  }
   if (p.choice === "custom") {
     const s = p.customStart ? new Date(p.customStart) : new Date(2026, 0, 1);
     const e = p.customEnd ? new Date(p.customEnd) : new Date(2026, 11, 31);
-    return { start: s, end: e, label: "Custom" };
+    return { start: s, end: e, label: "Custom", creditCommitted: true };
   }
-  return { start: new Date(2026, 0, 1), end: new Date(2026, 11, 31), label: "2026" };
+  return {
+    start: new Date(2026, 0, 1),
+    end: new Date(2026, 11, 31),
+    label: "2026",
+    creditCommitted: true,
+  };
 }
+
 
 function monthsBetween(a: Date, b: Date): number {
   return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
@@ -90,18 +99,16 @@ export default function PerformanceVsTarget({
   const { quotedJobs } = useDashboardData();
   const { quotingOpp, totalLeads } = useCrmStages();
 
-  const [period, setPeriod] = useState<PeriodState>(loadPeriod);
-  const [view, setView] = useState<PaceView>(loadView);
+  const [pace, setPace] = useState<PaceState>(loadPace);
 
   useEffect(() => {
-    try { localStorage.setItem(PERIOD_KEY, JSON.stringify(period)); } catch {}
-  }, [period]);
-  useEffect(() => {
-    try { localStorage.setItem(VIEW_KEY, view); } catch {}
-  }, [view]);
+    try { localStorage.setItem(VIEW_KEY, JSON.stringify(pace)); } catch {}
+  }, [pace]);
 
-  const { start, end, label } = resolveWindow(period);
+  const { start, end, label, creditCommitted } = resolveWindow(pace);
+  const view: "ytd" | "2026" = creditCommitted ? "2026" : "ytd";
   const today = new Date();
+
 
   const totalMonths = Math.max(1, monthsBetween(start, end) + 1);
   const elapsedRaw = monthsBetween(start, today) + 1;
@@ -306,10 +313,9 @@ export default function PerformanceVsTarget({
           · linear pace · month {monthsElapsed} of {totalMonths}
         </span>
         <div className="flex-1" />
-        <PeriodSelector period={period} setPeriod={setPeriod} />
-        <ViewToggle value={view} onChange={setView} />
-
+        <PaceSelector pace={pace} setPace={setPace} />
       </div>
+
 
       {/* Status banner */}
       <div className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 border rounded-md px-3 py-2 mb-1 ${toneClass}`}>
@@ -479,30 +485,31 @@ function Legend({ swatch, label }: { swatch: string; label: string }) {
   );
 }
 
-function PeriodSelector({
-  period,
-  setPeriod,
+function PaceSelector({
+  pace,
+  setPace,
 }: {
-  period: PeriodState;
-  setPeriod: (p: PeriodState) => void;
+  pace: PaceState;
+  setPace: (p: PaceState) => void;
 }) {
-  const choices: { id: PeriodChoice; label: string }[] = [
+  const choices: { id: PaceChoice; label: string }[] = [
+    { id: "ytd", label: "YTD" },
     { id: "2026", label: "2026" },
     { id: "custom", label: "Custom" },
   ];
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1.5 flex-wrap">
       <div
         className="flex rounded-full bg-secondary/80 p-0.5 leading-none"
         style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}
       >
         {choices.map((c) => {
-          const active = period.choice === c.id;
+          const active = pace.choice === c.id;
           return (
             <button
               key={c.id}
               type="button"
-              onClick={() => setPeriod({ ...period, choice: c.id })}
+              onClick={() => setPace({ ...pace, choice: c.id })}
               className={`px-1.5 py-0.5 rounded-full font-mono whitespace-nowrap transition-colors ${
                 active ? "text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
               }`}
@@ -513,19 +520,19 @@ function PeriodSelector({
           );
         })}
       </div>
-      {period.choice === "custom" && (
+      {pace.choice === "custom" && (
         <div className="flex items-center gap-1">
           <input
             type="date"
-            value={period.customStart ?? ""}
-            onChange={(e) => setPeriod({ ...period, customStart: e.target.value })}
+            value={pace.customStart ?? ""}
+            onChange={(e) => setPace({ ...pace, customStart: e.target.value })}
             className="bg-secondary/60 border border-border rounded px-1.5 py-0.5 text-[10px] font-mono"
           />
           <span className="text-[10px] text-muted-foreground">–</span>
           <input
             type="date"
-            value={period.customEnd ?? ""}
-            onChange={(e) => setPeriod({ ...period, customEnd: e.target.value })}
+            value={pace.customEnd ?? ""}
+            onChange={(e) => setPace({ ...pace, customEnd: e.target.value })}
             className="bg-secondary/60 border border-border rounded px-1.5 py-0.5 text-[10px] font-mono"
           />
         </div>
@@ -534,41 +541,7 @@ function PeriodSelector({
   );
 }
 
-function ViewToggle({
-  value,
-  onChange,
-}: {
-  value: PaceView;
-  onChange: (v: PaceView) => void;
-}) {
-  const opts: { id: PaceView; label: string }[] = [
-    { id: "ytd", label: "YTD" },
-    { id: "2026", label: "2026" },
-  ];
-  return (
-    <div
-      className="flex rounded-full bg-secondary/80 p-0.5 leading-none"
-      style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}
-    >
-      {opts.map((o) => {
-        const active = value === o.id;
-        return (
-          <button
-            key={o.id}
-            type="button"
-            onClick={() => onChange(o.id)}
-            className={`px-1.5 py-0.5 rounded-full font-mono whitespace-nowrap transition-colors ${
-              active ? "text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-            style={active ? { backgroundColor: "#3D89DA" } : undefined}
-          >
-            {o.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+
 
 function FunnelToggle({
   value,
