@@ -313,10 +313,9 @@ export default function PerformanceVsTarget({
           · linear pace · month {monthsElapsed} of {totalMonths}
         </span>
         <div className="flex-1" />
-        <PeriodSelector period={period} setPeriod={setPeriod} />
-        <ViewToggle value={view} onChange={setView} />
-
+        <PaceSelector pace={pace} setPace={setPace} />
       </div>
+
 
       {/* Status banner */}
       <div className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 border rounded-md px-3 py-2 mb-1 ${toneClass}`}>
