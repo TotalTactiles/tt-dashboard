@@ -1239,7 +1239,13 @@ const ChartsSection = ({
                     />
                   </ComposedChart>
                 </ResponsiveContainer>
+                {earnedStats.totalDebt > 0 && (
+                  <p className="text-[10px] font-mono text-muted-foreground mt-2">
+                    Debt capital injected to date: {fmtAUD(earnedStats.totalDebt)} ({earnedStats.debtPct.toFixed(1)}% of total income) — included within Earned Revenue above as a financing inflow.
+                  </p>
+                )}
               </div>
+
 
               {/* Lender Serviceability — fills remaining space below chart */}
               <div className="border-t border-white/10 pt-4">
