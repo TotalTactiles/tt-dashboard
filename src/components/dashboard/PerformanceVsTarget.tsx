@@ -308,7 +308,7 @@ export default function PerformanceVsTarget({
         <div className="flex-1" />
         <PeriodSelector period={period} setPeriod={setPeriod} />
         <ViewToggle value={view} onChange={setView} />
-        <FunnelToggle value={funnelBasis} onChange={setFunnelBasis} />
+
       </div>
 
       {/* Status banner */}
