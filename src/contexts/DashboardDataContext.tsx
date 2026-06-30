@@ -277,6 +277,8 @@ export interface DashboardData {
     closeRate: number;
     closeRateWithYlw: number;
     pipelineRate: number;
+    pipelineRateWithYlw: number;
+
   };
   kpiStats: KPIStat[];
 
