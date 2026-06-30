@@ -78,6 +78,8 @@ export default function TargetsGoalsSection(_props: Props) {
           remaining={remaining}
           withYlw={withYlw}
           setWithYlw={setWithYlw}
+          funnelBasis={funnelBasis}
+          setFunnelBasis={setFunnelBasis}
           ylwValue={ylwTopUp}
           jobsToGoal={jobsToGoal}
           avgWonDeal={avgWonDeal}
