@@ -99,18 +99,16 @@ export default function PerformanceVsTarget({
   const { quotedJobs } = useDashboardData();
   const { quotingOpp, totalLeads } = useCrmStages();
 
-  const [period, setPeriod] = useState<PeriodState>(loadPeriod);
-  const [view, setView] = useState<PaceView>(loadView);
+  const [pace, setPace] = useState<PaceState>(loadPace);
 
   useEffect(() => {
-    try { localStorage.setItem(PERIOD_KEY, JSON.stringify(period)); } catch {}
-  }, [period]);
-  useEffect(() => {
-    try { localStorage.setItem(VIEW_KEY, view); } catch {}
-  }, [view]);
+    try { localStorage.setItem(VIEW_KEY, JSON.stringify(pace)); } catch {}
+  }, [pace]);
 
-  const { start, end, label } = resolveWindow(period);
+  const { start, end, label, creditCommitted } = resolveWindow(pace);
+  const view: "ytd" | "2026" = creditCommitted ? "2026" : "ytd";
   const today = new Date();
+
 
   const totalMonths = Math.max(1, monthsBetween(start, end) + 1);
   const elapsedRaw = monthsBetween(start, today) + 1;
