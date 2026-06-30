@@ -1285,7 +1285,7 @@ const ChartsSection = ({
                 </ResponsiveContainer>
                 {earnedStats.totalDebt > 0 && (
                   <p className="text-[10px] font-mono text-muted-foreground mt-2">
-                    Debt capital injected to date: {fmtAUD(earnedStats.totalDebt)} ({earnedStats.debtPct.toFixed(1)}% of total income) — included within Earned Revenue above as a financing inflow.
+                    Debt capital injected to date: {fmtAUD(earnedStats.totalDebt)} ({earnedStats.debtPct.toFixed(1)}% of total income) — excluded from Earned Revenue above (financing inflow, not earnings).
                   </p>
                 )}
               </div>
