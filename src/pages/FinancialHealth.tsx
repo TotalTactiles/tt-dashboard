@@ -1212,13 +1212,12 @@ const ChartsSection = ({
 
         {/* Unified card: pills + filters + chart + Financial Position */}
         <div className="chart-container mt-4">
-          {/* TOP ROW — 4 stat pills (click to reveal the equation) */}
+          {/* TOP ROW — 3 stat pills + facility-type capacity tile */}
           <div className="flex flex-wrap gap-3 mb-5">
             {[
               { label: "Avg Monthly (3m Actual)", value: debtStripped.avg3, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg3 >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD, equation: debtStripped.breakdown.avg3Eq },
               { label: serviceabilityView === "actuals" ? "Avg Monthly (6m Actual)" : serviceabilityView === "with_grn" ? "Avg Monthly (6m + GRNs)" : "Avg Monthly (6m + GRN/YLW)", value: debtStripped.avg6Blended, colorStyle: undefined as string | undefined, colorClass: debtStripped.avg6Blended >= 0 ? "text-chart-green" : "text-red-400", fmt: fmtAUD, equation: debtStripped.breakdown.avg6Eq },
               { label: "Max New Monthly Repayment", value: debtStripped.maxNewRepayment, colorStyle: ragHex, colorClass: "", fmt: fmtAUD, equation: debtStripped.breakdown.maxNewEq },
-              { label: "Est. Borrowing Capacity", value: debtStripped.borrowingCapacity60, colorStyle: undefined as string | undefined, colorClass: "text-chart-green", fmt: fmtK, equation: debtStripped.breakdown.capacityEq },
             ].map((pill, i) => (
               <button
                 key={pill.label}
@@ -1237,6 +1236,86 @@ const ChartsSection = ({
                 )}
               </button>
             ))}
+
+            {/* EST. BORROWING CAPACITY — facility-type tile */}
+            {(() => {
+              const M = debtStripped.maxNewRepayment;
+              const preset = facilityPresets.find(p => p.key === selectedFacilityKey) ?? facilityPresets[1];
+              const rate = preset.rate;
+              const termMonths = preset.termMonths;
+              const r = rate != null ? rate / 100 / 12 : null;
+              const capacity = (M > 0 && r != null && r > 0 && termMonths != null && termMonths > 0)
+                ? M * ((1 - Math.pow(1 + r, -termMonths)) / r)
+                : 0;
+              const termYrsDisp = termMonths != null ? (termMonths % 12 === 0 ? `${termMonths / 12}` : (termMonths / 12).toFixed(1)) : "—";
+              return (
+                <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 flex-1 min-w-[260px]">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-mono">Est. Borrowing Capacity</p>
+                  </div>
+                  <p className="text-lg font-mono font-bold text-chart-green">{fmtK(capacity)}</p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground font-mono leading-tight">
+                    {preset.label} · {rate != null ? `${rate}% p.a.` : "—% p.a."} · {termMonths != null ? `${termYrsDisp} yr` : "— yr"} · on {fmtAUD(M)}/mo serviceability
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <Select value={selectedFacilityKey} onValueChange={(v) => setSelectedFacilityKey(v as FacilityKey)}>
+                      <SelectTrigger className="h-7 text-[11px] font-mono w-[180px] bg-white/5 border-white/10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {facilityPresets.map(p => (
+                          <SelectItem key={p.key} value={p.key} className="text-xs font-mono">{p.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <label className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono">
+                      Rate
+                      <input
+                        type="number"
+                        step="0.05"
+                        value={rate ?? ""}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          updateFacilityPreset(preset.key, { rate: v === "" ? null : parseFloat(v) });
+                        }}
+                        placeholder="—"
+                        className="w-14 h-6 px-1 rounded bg-white/5 border border-white/10 text-[11px] font-mono text-foreground"
+                      />
+                      %
+                    </label>
+                    <label className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono">
+                      Term
+                      <input
+                        type="number"
+                        step="1"
+                        value={termMonths ?? ""}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          updateFacilityPreset(preset.key, { termMonths: v === "" ? null : parseInt(v, 10) });
+                        }}
+                        placeholder="—"
+                        className="w-14 h-6 px-1 rounded bg-white/5 border border-white/10 text-[11px] font-mono text-foreground"
+                      />
+                      mo
+                    </label>
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between gap-2">
+                    <p className="text-[9px] text-muted-foreground/70 italic">Indicative AU market averages, June 2026 — editable. Confirm actual rate/term with your broker.</p>
+                    <button
+                      type="button"
+                      disabled={rate == null || termMonths == null}
+                      onClick={() => {
+                        if (rate == null || termMonths == null) return;
+                        setBorrowCalc(prev => ({ ...prev, rate: String(rate), term: String(termMonths) }));
+                      }}
+                      className="text-[10px] font-mono text-chart-green hover:underline disabled:opacity-40 disabled:no-underline whitespace-nowrap"
+                    >
+                      Use in calculator →
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* MAIN ROW — left column (filter + chart + lender) | right column (Financial Position) */}
