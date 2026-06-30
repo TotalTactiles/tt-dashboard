@@ -277,6 +277,8 @@ export interface DashboardData {
     closeRate: number;
     closeRateWithYlw: number;
     pipelineRate: number;
+    pipelineRateWithYlw: number;
+
   };
   kpiStats: KPIStat[];
 
@@ -1699,12 +1701,18 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
         const closeRate = (wc + lc) > 0 ? (wc / (wc + lc)) * 100 : 0;
         const closeRateWithYlw = (wc + yc + lc) > 0 ? ((wc + yc) / (wc + yc + lc)) * 100 : 0;
         const pipelineRate = opps > 0 ? (wc / opps) * 100 : 0;
+        // With-YLW variant of the Leads rate — same implied leads base, YLW counted as wins.
+        const impliedLeadsBase = pipelineRate > 0 ? wc / (pipelineRate / 100) : 0;
+        const pipelineRateWithYlw = impliedLeadsBase > 0
+          ? Math.min(((wc + yc) / impliedLeadsBase) * 100, 100)
+          : pipelineRate;
         return {
           wonCount: wc, lostCount: lc, ylwCount: yc,
           wonValue: wv, lostValue: lv, ylwValue: yv,
-          avgWon, avgWonWithYlw, closeRate, closeRateWithYlw, pipelineRate,
+          avgWon, avgWonWithYlw, closeRate, closeRateWithYlw, pipelineRate, pipelineRateWithYlw,
         };
       })(),
+
 
 
       kpiStats, incomeOutgoingsData, profitMarginData, monthlyInvoicesData, monthlyNetProfitData, forecastChartData, expenseAllocation,
@@ -1760,7 +1768,7 @@ export function useDashboardData(): DashboardData {
         wonCount: 0, lostCount: 0, ylwCount: 0,
         wonValue: 0, lostValue: 0, ylwValue: 0,
         avgWon: 0, avgWonWithYlw: 0,
-        closeRate: 0, closeRateWithYlw: 0, pipelineRate: 0,
+        closeRate: 0, closeRateWithYlw: 0, pipelineRate: 0, pipelineRateWithYlw: 0,
       },
       kpiStats: [], incomeOutgoingsData: [], profitMarginData: [], monthlyInvoicesData: [], monthlyNetProfitData: [],
 
