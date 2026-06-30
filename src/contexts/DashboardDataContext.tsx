@@ -1768,7 +1768,7 @@ export function useDashboardData(): DashboardData {
         wonCount: 0, lostCount: 0, ylwCount: 0,
         wonValue: 0, lostValue: 0, ylwValue: 0,
         avgWon: 0, avgWonWithYlw: 0,
-        closeRate: 0, closeRateWithYlw: 0, pipelineRate: 0,
+        closeRate: 0, closeRateWithYlw: 0, pipelineRate: 0, pipelineRateWithYlw: 0,
       },
       kpiStats: [], incomeOutgoingsData: [], profitMarginData: [], monthlyInvoicesData: [], monthlyNetProfitData: [],
 
