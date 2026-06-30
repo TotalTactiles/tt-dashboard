@@ -863,23 +863,28 @@ const ChartsSection = ({
       ? (ylwPipelineValue * YLW_GP_MARGIN * YLW_WIN_PROB) / YLW_SPREAD_MONTHS
       : 0;
 
-    // Past actuals — realised net free cash (debt-stripped), completed months
+    // Past actuals — realised net free cash (debt-stripped), completed months.
+    // Income base is ex-debt operating income (Vinny drawdown removed) so borrowed
+    // capital is NOT counted as earnings in the serviceability average.
     const _pastActuals = (io ?? [])
       .filter((d: any) => !d?.isFuture && (Number(d?.income) || 0) > 0)
       .map((d: any) => {
-        const opCost = Math.max(0, (Number(d.outgoings) || 0) - monthlyDebtFor(String(d.month)));
-        return { month: d.month, net: (Number(d.income) || 0) - opCost, type: "actual" as const };
+        const month = String(d.month);
+        const exDebtIncome = Math.max(0, (Number(d.income) || 0) - vinnyDrawdownFor(month));
+        const opCost = Math.max(0, (Number(d.outgoings) || 0) - monthlyDebtFor(month));
+        return { month: d.month, net: exDebtIncome - opCost, type: "actual" as const };
       });
 
     // Forward — next forward months, debt-stripped, 70% haircut.
-    // GRN = contracted only; YLW = contracted + probable.
+    // GRN = contracted only; YLW = contracted + probable. Income is ex-debt.
     const _forwardContracted = (io ?? [])
       .filter((d: any) => d?.isFuture && serviceabilityView !== "actuals")
       .slice(0, 6)
       .map((d: any) => {
         const month = String(d.month);
+        const exDebtIncome = Math.max(0, (Number(d.income) || 0) - vinnyDrawdownFor(month));
         const opCost = Math.max(0, (Number(d.outgoings) || 0) - monthlyDebtFor(month));
-        const fullNet = (Number(d.income) || 0) - opCost;
+        const fullNet = exDebtIncome - opCost;
         const oldProbMargin = oldProbableMarginFor(month);
         const ylwUplift = serviceabilityView === "with_ylw" ? ylwMonthlyUplift : 0;
         const net = serviceabilityView === "with_ylw"
@@ -887,7 +892,7 @@ const ChartsSection = ({
           : (FORWARD_INCOME_INCLUDES_PROBABLE ? fullNet - oldProbMargin : fullNet);
         return {
           month, net: net * HAIRCUT, type: serviceabilityView,
-          _income: Number(d.income) || 0, _opCost: opCost,
+          _income: exDebtIncome, _opCost: opCost,
           _probMargin: ylwUplift, _preHaircut: net,
         };
       });
