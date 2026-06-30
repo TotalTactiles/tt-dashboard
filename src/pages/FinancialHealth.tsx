@@ -753,6 +753,34 @@ const ChartsSection = ({
   const [serviceabilityView, setServiceabilityView] = useState<"actuals"|"with_grn"|"with_ylw">("with_grn");
   const [showSvcDebug, setShowSvcDebug] = useState(false);
 
+  // Borrowing-capacity editable inputs + Lender Calculation period toggle
+  type BorrowCalcState = {
+    loanAmount: string; // keep as string for input UX
+    rate: string;       // % p.a.
+    term: string;       // months
+    period: "monthly" | "weekly" | "yearly";
+  };
+  const BORROW_CALC_KEY = "tt_borrowing_calc_v1";
+  const [borrowCalc, setBorrowCalc] = useState<BorrowCalcState>(() => {
+    if (typeof window === "undefined") return { loanAmount: "", rate: "7", term: "60", period: "monthly" };
+    try {
+      const raw = window.localStorage.getItem(BORROW_CALC_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        return {
+          loanAmount: typeof p.loanAmount === "string" ? p.loanAmount : "",
+          rate: typeof p.rate === "string" ? p.rate : "7",
+          term: typeof p.term === "string" ? p.term : "60",
+          period: p.period === "weekly" || p.period === "yearly" ? p.period : "monthly",
+        };
+      }
+    } catch {}
+    return { loanAmount: "", rate: "7", term: "60", period: "monthly" };
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem(BORROW_CALC_KEY, JSON.stringify(borrowCalc)); } catch {}
+  }, [borrowCalc]);
+
   const debtStripped = useMemo(() => {
     const rawCashflow = liveData?.cashflow ?? [];
     const findRow = (label: string) => {
