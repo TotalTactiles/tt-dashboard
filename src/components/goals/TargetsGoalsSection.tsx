@@ -41,8 +41,9 @@ export default function TargetsGoalsSection(_props: Props) {
   const avgWonDeal = withYlw ? salesMetrics.avgWonWithYlw : salesMetrics.avgWon;
   const closeRatePct =
     funnelBasis === "leads"
-      ? salesMetrics.pipelineRate
+      ? (withYlw ? salesMetrics.pipelineRateWithYlw : salesMetrics.pipelineRate)
       : (withYlw ? salesMetrics.closeRateWithYlw : salesMetrics.closeRate);
+
 
 
   const pctConfirmed = target > 0 ? Math.min(100, (goalConfirmed / target) * 100) : 0;
