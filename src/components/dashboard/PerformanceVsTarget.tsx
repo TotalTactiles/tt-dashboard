@@ -485,30 +485,31 @@ function Legend({ swatch, label }: { swatch: string; label: string }) {
   );
 }
 
-function PeriodSelector({
-  period,
-  setPeriod,
+function PaceSelector({
+  pace,
+  setPace,
 }: {
-  period: PeriodState;
-  setPeriod: (p: PeriodState) => void;
+  pace: PaceState;
+  setPace: (p: PaceState) => void;
 }) {
-  const choices: { id: PeriodChoice; label: string }[] = [
+  const choices: { id: PaceChoice; label: string }[] = [
+    { id: "ytd", label: "YTD" },
     { id: "2026", label: "2026" },
     { id: "custom", label: "Custom" },
   ];
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1.5 flex-wrap">
       <div
         className="flex rounded-full bg-secondary/80 p-0.5 leading-none"
         style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}
       >
         {choices.map((c) => {
-          const active = period.choice === c.id;
+          const active = pace.choice === c.id;
           return (
             <button
               key={c.id}
               type="button"
-              onClick={() => setPeriod({ ...period, choice: c.id })}
+              onClick={() => setPace({ ...pace, choice: c.id })}
               className={`px-1.5 py-0.5 rounded-full font-mono whitespace-nowrap transition-colors ${
                 active ? "text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
               }`}
@@ -519,19 +520,19 @@ function PeriodSelector({
           );
         })}
       </div>
-      {period.choice === "custom" && (
+      {pace.choice === "custom" && (
         <div className="flex items-center gap-1">
           <input
             type="date"
-            value={period.customStart ?? ""}
-            onChange={(e) => setPeriod({ ...period, customStart: e.target.value })}
+            value={pace.customStart ?? ""}
+            onChange={(e) => setPace({ ...pace, customStart: e.target.value })}
             className="bg-secondary/60 border border-border rounded px-1.5 py-0.5 text-[10px] font-mono"
           />
           <span className="text-[10px] text-muted-foreground">–</span>
           <input
             type="date"
-            value={period.customEnd ?? ""}
-            onChange={(e) => setPeriod({ ...period, customEnd: e.target.value })}
+            value={pace.customEnd ?? ""}
+            onChange={(e) => setPace({ ...pace, customEnd: e.target.value })}
             className="bg-secondary/60 border border-border rounded px-1.5 py-0.5 text-[10px] font-mono"
           />
         </div>
@@ -540,35 +541,6 @@ function PeriodSelector({
   );
 }
 
-function ViewToggle({
-  value,
-  onChange,
-}: {
-  value: PaceView;
-  onChange: (v: PaceView) => void;
-}) {
-  const opts: { id: PaceView; label: string }[] = [
-    { id: "ytd", label: "YTD" },
-    { id: "2026", label: "2026" },
-  ];
-  return (
-    <div
-      className="flex rounded-full bg-secondary/80 p-0.5 leading-none"
-      style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}
-    >
-      {opts.map((o) => {
-        const active = value === o.id;
-        return (
-          <button
-            key={o.id}
-            type="button"
-            onClick={() => onChange(o.id)}
-            className={`px-1.5 py-0.5 rounded-full font-mono whitespace-nowrap transition-colors ${
-              active ? "text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-            style={active ? { backgroundColor: "#3D89DA" } : undefined}
-          >
-            {o.label}
           </button>
         );
       })}
