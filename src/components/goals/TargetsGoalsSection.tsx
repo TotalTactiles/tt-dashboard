@@ -21,9 +21,6 @@ type Props = {
 const cardBase =
   "relative bg-card border border-border rounded-lg p-4 md:p-5 flex flex-col";
 
-const REV_BASIS_KEY = "tt_revenue_basis";
-const FUNNEL_BASIS_KEY = "tt_funnel_basis";
-
 export default function TargetsGoalsSection(_props: Props) {
   const { target, setTarget } = useRevenueTarget();
   const {
@@ -31,25 +28,9 @@ export default function TargetsGoalsSection(_props: Props) {
     salesMetrics,
   } = useDashboardData();
 
-  // --- Lifted toggle state (persisted) ---
-  const [withYlw, setWithYlwState] = useState<boolean>(() => {
-    try { return localStorage.getItem(REV_BASIS_KEY) === "withYlw"; } catch { return false; }
-  });
-  const setWithYlw = (v: boolean) => {
-    setWithYlwState(v);
-    try { localStorage.setItem(REV_BASIS_KEY, v ? "withYlw" : "confirmed"); } catch {}
-  };
-
-  const [funnelBasis, setFunnelBasisState] = useState<"opportunities" | "leads">(() => {
-    try {
-      const v = localStorage.getItem(FUNNEL_BASIS_KEY);
-      return v === "leads" ? "leads" : "opportunities";
-    } catch { return "opportunities"; }
-  });
-  const setFunnelBasis = (v: "opportunities" | "leads") => {
-    setFunnelBasisState(v);
-    try { localStorage.setItem(FUNNEL_BASIS_KEY, v); } catch {}
-  };
+  // --- Lifted toggle state — defaults always Confirmed + Opportunities each load ---
+  const [withYlw, setWithYlw] = useState<boolean>(false);
+  const [funnelBasis, setFunnelBasis] = useState<"opportunities" | "leads">("opportunities");
 
   // --- Single source of truth: salesMetrics (matches Win/Loss + Conversion Rates cards) ---
   const ylwTopUp = salesMetrics.ylwValue;
@@ -97,6 +78,8 @@ export default function TargetsGoalsSection(_props: Props) {
           remaining={remaining}
           withYlw={withYlw}
           setWithYlw={setWithYlw}
+          funnelBasis={funnelBasis}
+          setFunnelBasis={setFunnelBasis}
           ylwValue={ylwTopUp}
           jobsToGoal={jobsToGoal}
           avgWonDeal={avgWonDeal}
@@ -130,6 +113,8 @@ function RevenueGoalCard({
   remaining,
   withYlw,
   setWithYlw,
+  funnelBasis,
+  setFunnelBasis,
   ylwValue,
   jobsToGoal,
   avgWonDeal,
@@ -146,6 +131,8 @@ function RevenueGoalCard({
   remaining: number;
   withYlw: boolean;
   setWithYlw: (v: boolean) => void;
+  funnelBasis: "opportunities" | "leads";
+  setFunnelBasis: (v: "opportunities" | "leads") => void;
   ylwValue: number;
   jobsToGoal: number;
   avgWonDeal: number;
@@ -180,12 +167,16 @@ function RevenueGoalCard({
       transition={{ duration: 0.25 }}
       className={cardBase}
     >
-      <div className="flex items-center justify-between mb-2 gap-2">
+      <div className="flex items-start justify-between mb-2 gap-2 flex-wrap">
         <span className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground/70">
           Revenue Goal
         </span>
-        <ConfirmedYlwToggle withYlw={withYlw} setWithYlw={setWithYlw} />
+        <div className="flex flex-col items-end gap-1">
+          <ConfirmedYlwToggle withYlw={withYlw} setWithYlw={setWithYlw} />
+          <FunnelBasisToggle value={funnelBasis} onChange={setFunnelBasis} />
+        </div>
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-[minmax(220px,320px)_1fr] gap-4 md:gap-6 items-center">
         {/* Gauge */}
@@ -331,6 +322,42 @@ function MiniStat({ label, value }: { label: string; value: string }) {
       >
         {value}
       </span>
+    </div>
+  );
+}
+
+function FunnelBasisToggle({
+  value,
+  onChange,
+}: {
+  value: "opportunities" | "leads";
+  onChange: (v: "opportunities" | "leads") => void;
+}) {
+  return (
+    <div
+      className="flex rounded-full bg-secondary/80 p-0.5 leading-none"
+      style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}
+    >
+      <button
+        type="button"
+        onClick={() => onChange("opportunities")}
+        className={`px-1.5 py-0.5 rounded-full font-mono whitespace-nowrap transition-colors ${
+          value === "opportunities" ? "text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+        }`}
+        style={value === "opportunities" ? { backgroundColor: "#3D89DA" } : undefined}
+      >
+        Opportunities
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("leads")}
+        className={`px-1.5 py-0.5 rounded-full font-mono whitespace-nowrap transition-colors ${
+          value === "leads" ? "text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+        }`}
+        style={value === "leads" ? { backgroundColor: "#3D89DA" } : undefined}
+      >
+        Leads
+      </button>
     </div>
   );
 }
