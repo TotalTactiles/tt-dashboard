@@ -1281,58 +1281,181 @@ const ChartsSection = ({
                 <p className="text-[10px] text-muted-foreground mb-3">How a bank or broker assesses your capacity for new debt</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {/* Lender Calculation */}
-                  <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
-                    <p className="text-xs font-semibold text-foreground mb-3">Lender Calculation</p>
-                    <div className="flex justify-between items-center py-2 border-b border-white/5">
-                      <span className="text-xs text-muted-foreground">Usable income (80% buffer)</span>
-                      <span className="text-xs font-mono font-semibold text-foreground">{fmtAUD(debtStripped.lenderUsableIncome)}</span>
-                    </div>
-                    <p className="text-[9px] text-muted-foreground italic mt-0.5">
-                      {serviceabilityView === "actuals" && "Based on past 6m actuals only"}
-                      {serviceabilityView === "with_grn" && "6m blended: actuals + signed contracts at 70%"}
-                      {serviceabilityView === "with_ylw" && "6m blended: actuals + all pipeline at 70%"}
+                  {(() => {
+                    const period = borrowCalc.period;
+                    const factor = period === "weekly" ? 12 / 52 : period === "yearly" ? 12 : 1;
+                    const periodSuffix = period === "weekly" ? "/wk" : period === "yearly" ? "/yr" : "/mo";
+                    const conv = (n: number) => (Number.isFinite(n) ? n * factor : 0);
+                    const fmtPeriod = (n: number) => `${fmtAUD(conv(n))}${periodSuffix}`;
+                    return (
+                      <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
+                        <div className="flex items-center justify-between mb-3 gap-2">
+                          <p className="text-xs font-semibold text-foreground">Lender Calculation</p>
+                          <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none text-[10px]">
+                            {(["monthly","weekly","yearly"] as const).map((p) => (
+                              <button
+                                key={p}
+                                onClick={() => setBorrowCalc((s) => ({ ...s, period: p }))}
+                                className={`px-2 py-0.5 rounded-full font-mono capitalize transition-all ${
+                                  period === p ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                                }`}
+                              >
+                                {p}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-white/5">
+                          <span className="text-xs text-muted-foreground">Usable income (80% buffer)</span>
+                          <span className="text-xs font-mono font-semibold text-foreground">{fmtPeriod(debtStripped.lenderUsableIncome)}</span>
+                        </div>
+                        <p className="text-[9px] text-muted-foreground italic mt-0.5">
+                          {serviceabilityView === "actuals" && "Based on past 6m actuals only"}
+                          {serviceabilityView === "with_grn" && "6m blended: actuals + signed contracts at 70%"}
+                          {serviceabilityView === "with_ylw" && "6m blended: actuals + all pipeline at 70%"}
+                        </p>
+                        <div className="flex justify-between items-center py-2 border-b border-white/5">
+                          <span className="text-xs text-muted-foreground">Less existing commitments</span>
+                          <span className="text-xs font-mono font-semibold text-foreground">{fmtPeriod(totalMonthlyRepayment)}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 pb-1 mt-1"
+                          style={{ borderTop: "2px solid rgba(255,255,255,0.15)", borderBottom: "3px double rgba(255,255,255,0.15)" }}>
+                          <span className="text-xs font-semibold text-foreground">Available for new debt</span>
+                          <span className={`text-sm font-mono font-bold ${debtStripped.maxNewRepayment > 2000 ? "text-emerald-400" : debtStripped.maxNewRepayment > 500 ? "text-amber-400" : "text-red-400"}`}>
+                            {fmtPeriod(debtStripped.maxNewRepayment)}
+                          </span>
+                        </div>
+                        <p className="text-[9px] text-muted-foreground/70 italic mt-2">
+                          Borrowing capacity is always assessed on the monthly figure.
+                        </p>
+                      </div>
+                    );
+                  })()}
 
-                    </p>
+                  {/* Borrowing Capacity — editable */}
+                  {(() => {
+                    const M = Number(debtStripped.maxNewRepayment) || 0;
+                    const rate = parseFloat(borrowCalc.rate);
+                    const term = parseFloat(borrowCalc.term);
+                    const loanRaw = borrowCalc.loanAmount.trim();
+                    const loan = loanRaw === "" ? null : parseFloat(loanRaw);
+                    const validBase = Number.isFinite(rate) && rate >= 0 && Number.isFinite(term) && term >= 1;
+                    const r = validBase ? rate / 100 / 12 : NaN;
+                    const n = validBase ? term : NaN;
+                    const capacity = validBase
+                      ? (r > 0 ? M * (1 - Math.pow(1 + r, -n)) / r : M * n)
+                      : NaN;
+                    const modeB = loan !== null && Number.isFinite(loan) && loan >= 0;
+                    const requiredMonthly = modeB && validBase
+                      ? (r > 0 ? (loan as number) * r / (1 - Math.pow(1 + r, -n)) : (loan as number) / n)
+                      : NaN;
+                    const headroom = modeB && Number.isFinite(requiredMonthly) ? M - requiredMonthly : NaN;
+                    const utilisation = modeB && M > 0 && Number.isFinite(requiredMonthly) ? (requiredMonthly / M) * 100 : NaN;
+                    const yrs = Number.isFinite(term) ? (term / 12).toFixed(1) : "—";
 
-                    <div className="flex justify-between items-center py-2 border-b border-white/5">
-                      <span className="text-xs text-muted-foreground">Less existing commitments</span>
-                      <span className="text-xs font-mono font-semibold text-foreground">{fmtAUD(totalMonthlyRepayment)}</span>
-                    </div>
-                    <div className="flex justify-between items-center pt-2 pb-1 mt-1"
-                      style={{ borderTop: "2px solid rgba(255,255,255,0.15)", borderBottom: "3px double rgba(255,255,255,0.15)" }}>
-                      <span className="text-xs font-semibold text-foreground">Available for new debt</span>
-                      <span className={`text-sm font-mono font-bold ${debtStripped.maxNewRepayment > 2000 ? "text-emerald-400" : debtStripped.maxNewRepayment > 500 ? "text-amber-400" : "text-red-400"}`}>
-                        {fmtAUD(debtStripped.maxNewRepayment)}
-                      </span>
-                    </div>
-                  </div>
+                    let statusTone: "green" | "amber" | "red" = "green";
+                    let statusText = "Comfortably serviceable — within your capacity.";
+                    if (modeB && Number.isFinite(headroom)) {
+                      if (headroom < 0) {
+                        statusTone = "red";
+                        statusText = `Exceeds current serviceability by ${fmtAUD(-headroom)}/mo.`;
+                      } else if (Number.isFinite(utilisation) && utilisation > 80) {
+                        statusTone = "amber";
+                        statusText = "Serviceable but tight — uses most of your headroom.";
+                      }
+                    } else {
+                      if (M > 2000) { statusTone = "green"; statusText = "Serviceability is strong. You could likely support a new facility."; }
+                      else if (M > 500) { statusTone = "amber"; statusText = "Marginal serviceability. A lender may require additional security."; }
+                      else { statusTone = "red"; statusText = "Insufficient net free cash. Strengthen earnings before applying."; }
+                    }
+                    const toneText = statusTone === "green" ? "text-emerald-400" : statusTone === "amber" ? "text-amber-400" : "text-red-400";
+                    const toneDot = statusTone === "green" ? "bg-emerald-400" : statusTone === "amber" ? "bg-amber-400" : "bg-red-400";
+                    const inputCls = "w-24 bg-background/40 border border-white/10 rounded px-2 py-0.5 text-xs font-mono text-right text-foreground focus:outline-none focus:border-primary/60";
 
-                  {/* Borrowing Capacity */}
-                  <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
-                    <p className="text-xs font-semibold text-foreground mb-3">Borrowing Capacity</p>
-                    <div className="flex justify-between items-center py-2 border-b border-white/5">
-                      <span className="text-xs text-muted-foreground">At current serviceability</span>
-                      <span className="text-sm font-mono font-bold text-emerald-400">{fmtAUD(debtStripped.borrowingCapacity60)}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 border-b border-white/5">
-                      <span className="text-xs text-muted-foreground">Assumes 60 month term</span>
-                      <span className="text-xs font-mono text-muted-foreground">—</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 border-b border-white/5">
-                      <span className="text-xs text-muted-foreground">Assumes ~7% interest rate</span>
-                      <span className="text-xs font-mono text-muted-foreground">—</span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-3">
-                      <div className={`w-2 h-2 rounded-full shrink-0 ${debtStripped.maxNewRepayment > 2000 ? "bg-emerald-400" : debtStripped.maxNewRepayment > 500 ? "bg-amber-400" : "bg-red-400"}`} />
-                      <p className={`text-xs font-medium ${debtStripped.maxNewRepayment > 2000 ? "text-emerald-400" : debtStripped.maxNewRepayment > 500 ? "text-amber-400" : "text-red-400"}`}>
-                        {debtStripped.maxNewRepayment > 2000
-                          ? "Serviceability is strong. You could likely support a new facility."
-                          : debtStripped.maxNewRepayment > 500
-                          ? "Marginal serviceability. A lender may require additional security."
-                          : "Insufficient net free cash. Strengthen earnings before applying."}
-                      </p>
-                    </div>
-                  </div>
+                    return (
+                      <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
+                        <p className="text-xs font-semibold text-foreground mb-3">Borrowing Capacity</p>
+
+                        {!modeB ? (
+                          <div className="flex justify-between items-center py-2 border-b border-white/5">
+                            <span className="text-xs text-muted-foreground">Maximum borrowing capacity</span>
+                            <span className="text-sm font-mono font-bold text-emerald-400">
+                              {Number.isFinite(capacity) ? fmtAUD(capacity) : "—"}
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex justify-between items-center py-2 border-b border-white/5">
+                              <span className="text-xs text-muted-foreground">Monthly repayment</span>
+                              <span className="text-sm font-mono font-bold text-foreground">
+                                {Number.isFinite(requiredMonthly) ? fmtAUD(requiredMonthly) : "—"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center py-2 border-b border-white/5">
+                              <span className="text-xs text-muted-foreground">Uses of serviceability</span>
+                              <span className="text-xs font-mono font-semibold text-foreground">
+                                {Number.isFinite(utilisation) ? `${Math.round(utilisation)}%` : "—"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center py-2 border-b border-white/5">
+                              <span className="text-xs text-muted-foreground">Headroom</span>
+                              <span className={`text-xs font-mono font-semibold ${Number.isFinite(headroom) && headroom >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                {Number.isFinite(headroom) ? `${fmtAUD(headroom)}/mo` : "—"}
+                              </span>
+                            </div>
+                          </>
+                        )}
+
+                        <div className="flex justify-between items-center py-2 border-b border-white/5">
+                          <label className="text-xs text-muted-foreground">Loan amount ($)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            inputMode="decimal"
+                            value={borrowCalc.loanAmount}
+                            placeholder="Leave blank for max capacity"
+                            onChange={(e) => setBorrowCalc((s) => ({ ...s, loanAmount: e.target.value }))}
+                            className={`${inputCls} w-40 placeholder:text-muted-foreground/50 placeholder:text-[10px]`}
+                          />
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-white/5">
+                          <label className="text-xs text-muted-foreground">Interest rate (% p.a.)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            step={0.1}
+                            value={borrowCalc.rate}
+                            onChange={(e) => setBorrowCalc((s) => ({ ...s, rate: e.target.value }))}
+                            className={inputCls}
+                          />
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-white/5">
+                          <label className="text-xs text-muted-foreground">
+                            Term (months) <span className="text-muted-foreground/60">· {yrs} yr</span>
+                          </label>
+                          <input
+                            type="number"
+                            min={1}
+                            step={1}
+                            value={borrowCalc.term}
+                            onChange={(e) => setBorrowCalc((s) => ({ ...s, term: e.target.value }))}
+                            className={inputCls}
+                          />
+                        </div>
+
+                        {!modeB && (
+                          <p className="text-[9px] text-muted-foreground/70 italic mt-2">
+                            Based on {fmtAUD(M)}/mo serviceability · {Number.isFinite(term) ? term : "—"} mo · {Number.isFinite(rate) ? rate : "—"}% p.a.
+                          </p>
+                        )}
+
+                        <div className="flex items-center gap-2 mt-3">
+                          <div className={`w-2 h-2 rounded-full shrink-0 ${toneDot}`} />
+                          <p className={`text-xs font-medium ${toneText}`}>{statusText}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
