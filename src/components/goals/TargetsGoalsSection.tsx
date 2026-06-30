@@ -302,7 +302,7 @@ function RevenueGoalCard({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
             <MiniStat label="Jobs to Goal" value={target > 0 ? (remaining === 0 ? "✓" : String(jobsToGoal)) : "—"} />
             <MiniStat label="Avg Won" value={avgWonDeal > 0 ? fmtAUD(avgWonDeal) : "—"} />
-            <MiniStat label="Opps to Goal" value={target > 0 && oppsToGoal > 0 ? String(oppsToGoal) : "—"} />
+            <MiniStat label={funnelBasis === "leads" ? "Leads to Goal" : "Opps to Goal"} value={target > 0 && oppsToGoal > 0 ? String(oppsToGoal) : "—"} />
             <MiniStat label="Close Rate" value={closeRatePct > 0 ? `${closeRatePct.toFixed(1)}%` : "—"} />
           </div>
         </div>
