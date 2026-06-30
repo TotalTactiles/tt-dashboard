@@ -797,9 +797,20 @@ const ChartsSection = ({
     const businessLoanRow = findRow("BUSINESS LOAN REPAYMENT");
     const vehicleRepaymentRow = findRow("MOTOR VEHICLE REPAYMENT");
 
+    // Per-month Vinny debt drawdown — reuse the SAME source earnedVsDebtData uses
+    // (field: debtDrawdown, sourced from CASHFLOW "BUSINESS LOAN REPAYMENT" row,
+    // falling back to summed Vinny facility monthlyRepayment from the debt register).
+    // We do NOT re-derive it here.
+    const vinnyDrawdownByMonth: Record<string, number> = {};
+    for (const r of earnedVsDebtData.rows) {
+      vinnyDrawdownByMonth[String(r.month)] = Number(r.debtDrawdown) || 0;
+    }
+    const vinnyDrawdownFor = (month: string) => vinnyDrawdownByMonth[String(month)] || 0;
+
     const rows = io.map((row) => {
       const month = String(row?.month ?? "");
-      const earnedRevenue = Number(row?.income) || 0;
+      const rawIncome = Number(row?.income) || 0;
+      const earnedRevenue = Math.max(0, rawIncome - vinnyDrawdownFor(month)); // ex-debt operating income
       const totalCosts = Math.abs(Number(row?.outgoings) || 0);
       const monthlyDebt =
         Math.abs(parseNum(businessLoanRow?.[month] ?? 0)) +
@@ -852,23 +863,28 @@ const ChartsSection = ({
       ? (ylwPipelineValue * YLW_GP_MARGIN * YLW_WIN_PROB) / YLW_SPREAD_MONTHS
       : 0;
 
-    // Past actuals — realised net free cash (debt-stripped), completed months
+    // Past actuals — realised net free cash (debt-stripped), completed months.
+    // Income base is ex-debt operating income (Vinny drawdown removed) so borrowed
+    // capital is NOT counted as earnings in the serviceability average.
     const _pastActuals = (io ?? [])
       .filter((d: any) => !d?.isFuture && (Number(d?.income) || 0) > 0)
       .map((d: any) => {
-        const opCost = Math.max(0, (Number(d.outgoings) || 0) - monthlyDebtFor(String(d.month)));
-        return { month: d.month, net: (Number(d.income) || 0) - opCost, type: "actual" as const };
+        const month = String(d.month);
+        const exDebtIncome = Math.max(0, (Number(d.income) || 0) - vinnyDrawdownFor(month));
+        const opCost = Math.max(0, (Number(d.outgoings) || 0) - monthlyDebtFor(month));
+        return { month: d.month, net: exDebtIncome - opCost, type: "actual" as const };
       });
 
     // Forward — next forward months, debt-stripped, 70% haircut.
-    // GRN = contracted only; YLW = contracted + probable.
+    // GRN = contracted only; YLW = contracted + probable. Income is ex-debt.
     const _forwardContracted = (io ?? [])
       .filter((d: any) => d?.isFuture && serviceabilityView !== "actuals")
       .slice(0, 6)
       .map((d: any) => {
         const month = String(d.month);
+        const exDebtIncome = Math.max(0, (Number(d.income) || 0) - vinnyDrawdownFor(month));
         const opCost = Math.max(0, (Number(d.outgoings) || 0) - monthlyDebtFor(month));
-        const fullNet = (Number(d.income) || 0) - opCost;
+        const fullNet = exDebtIncome - opCost;
         const oldProbMargin = oldProbableMarginFor(month);
         const ylwUplift = serviceabilityView === "with_ylw" ? ylwMonthlyUplift : 0;
         const net = serviceabilityView === "with_ylw"
@@ -876,7 +892,7 @@ const ChartsSection = ({
           : (FORWARD_INCOME_INCLUDES_PROBABLE ? fullNet - oldProbMargin : fullNet);
         return {
           month, net: net * HAIRCUT, type: serviceabilityView,
-          _income: Number(d.income) || 0, _opCost: opCost,
+          _income: exDebtIncome, _opCost: opCost,
           _probMargin: ylwUplift, _preHaircut: net,
         };
       });
@@ -955,7 +971,7 @@ const ChartsSection = ({
       _pastActuals,
       _forwardContracted,
     };
-  }, [io, liveData, ylwValue, forecastChartData, totalMonthlyRepayment, serviceabilityView]);
+  }, [io, liveData, ylwValue, forecastChartData, totalMonthlyRepayment, serviceabilityView, earnedVsDebtData]);
 
 
 
@@ -1269,7 +1285,7 @@ const ChartsSection = ({
                 </ResponsiveContainer>
                 {earnedStats.totalDebt > 0 && (
                   <p className="text-[10px] font-mono text-muted-foreground mt-2">
-                    Debt capital injected to date: {fmtAUD(earnedStats.totalDebt)} ({earnedStats.debtPct.toFixed(1)}% of total income) — included within Earned Revenue above as a financing inflow.
+                    Debt capital injected to date: {fmtAUD(earnedStats.totalDebt)} ({earnedStats.debtPct.toFixed(1)}% of total income) — excluded from Earned Revenue above (financing inflow, not earnings).
                   </p>
                 )}
               </div>
