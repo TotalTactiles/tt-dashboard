@@ -1347,15 +1347,16 @@ const ChartsSection = ({
   }, [strippedMonth, strippedPeriod]);
 
   const debtPositionAsOf = useMemo(() => {
-    let drawn = 0, outstanding = 0;
+    let drawn = 0, outstanding = 0, interest = 0;
     for (const d of debts) {
       const start = d.startDate ? new Date(d.startDate) : null;
       if (!start || start > asOfDebtDate) continue;
       const a = computeAmortisation(d, asOfDebtDate);
       drawn += Number(d.originalPrincipal) || 0;
       outstanding += a.balance;
+      interest += a.interestPaid;
     }
-    return { drawn, outstanding, repaid: drawn - outstanding };
+    return { drawn, outstanding, repaid: drawn - outstanding, interest };
   }, [debts, asOfDebtDate]);
 
   const asOfDebtLabel = useMemo(() => {
