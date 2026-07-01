@@ -805,6 +805,9 @@ const ChartsSection = ({
   const [selectedFacilityKey, setSelectedFacilityKey] = useState<FacilityKey>("equipment");
   const updateFacilityPreset = (key: FacilityKey, patch: Partial<FacilityPreset>) => {
     setFacilityPresets(prev => prev.map(p => p.key === key ? { ...p, ...patch } : p));
+  };
+
+
 
   // ---- Lender benchmarks (AU standards, editable + persisted) ----
   const LENDER_BENCHMARKS_KEY = "tt_lender_benchmarks_v1";
