@@ -813,6 +813,7 @@ const ChartsSection = ({
       }) ?? null;
     };
     const loanRepaymentRow = findCashflowRow("BUSINESS LOAN REPAYMENT");
+    const vehicleRepaymentRow = findCashflowRow("MOTOR VEHICLE REPAYMENT");
 
     const parseNum = (v: any) => {
       if (v === null || v === undefined || v === "") return 0;
@@ -825,16 +826,22 @@ const ChartsSection = ({
     const rows = io.map((row) => {
       const month = String(row?.month ?? "");
       const earnedRevenue = Number(row?.income) || 0;
-      const cashflowVal = loanRepaymentRow ? Math.abs(parseNum(loanRepaymentRow[month])) : 0;
+      // Debt Repayments = row 57 (Business Loan) + row 58 (Motor Vehicle) from CASHFLOW.
+      // Both are debt service (car finance = Krish Hilux, Shania Volvo). Keeps this in
+      // lockstep with the Net Free Cash chart's red "Debt Repayments" series (debtStripped).
+      const businessLoanCash = loanRepaymentRow ? Math.abs(parseNum(loanRepaymentRow[month])) : 0;
+      const vehicleCash = vehicleRepaymentRow ? Math.abs(parseNum(vehicleRepaymentRow[month])) : 0;
+      const cashflowVal = businessLoanCash + vehicleCash;
       const debtDrawdown = cashflowVal > 0 ? cashflowVal : vinnyFallback;
       const totalCosts = Math.abs(Number(row?.outgoings) || 0);
       const operatingCosts = Math.max(0, totalCosts - debtDrawdown);
       return { month, earnedRevenue, debtDrawdown, operatingCosts, netEarned: earnedRevenue - debtDrawdown };
     });
 
-    const hasAnySource = loanRepaymentRow !== null || vinnyFacilities.length > 0;
+    const hasAnySource = loanRepaymentRow !== null || vehicleRepaymentRow !== null || vinnyFacilities.length > 0;
     return { rows, hasAnySource };
   }, [io, debts, liveData]);
+
 
 
   const quarterMonths: Record<string, string[]> = {
