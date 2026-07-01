@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Send, RefreshCw, BrainCircuit, Paperclip, Crown } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
