@@ -332,7 +332,7 @@ const FinancialHealth = () => {
     const asOf = new Date();
     return debts.map((d) => {
       const a = computeAmortisation(d, asOf);
-      return { ...d, balance: a.balance, principalRepaid: a.principalRepaid, _flat: a.flat };
+      return { ...d, balance: a.balance, principalRepaid: a.principalRepaid, _flat: a.flat, paymentsMade: a.paymentsMade };
     });
   }, [debts]);
 
