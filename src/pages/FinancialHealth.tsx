@@ -2064,6 +2064,13 @@ const ChartsSection = ({
                 <span className="text-xs font-semibold text-foreground">Still Outstanding</span>
                 <span className="text-sm font-mono font-bold text-red-400">{fmtAUD(debtPositionAsOf.outstanding)}</span>
               </div>
+              <div className="flex justify-between items-center py-2 border-b border-white/5">
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground">Repayments Remaining (P&I)</span>
+                  <span className="text-[10px] text-muted-foreground/60 italic">Future interest & fees: {fmtAUD(Math.max(0, debtPositionAsOf.repaymentsRemaining - debtPositionAsOf.outstanding))}</span>
+                </div>
+                <span className="text-sm font-mono font-semibold text-rose-300/90">{fmtAUD(debtPositionAsOf.repaymentsRemaining)}</span>
+              </div>
             </div>
           </div>
         </div>
