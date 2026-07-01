@@ -941,8 +941,8 @@ const ChartsSection = ({
   type FacilityPreset = { key: FacilityKey; label: string; rate: number | null; termMonths: number | null };
   const FACILITY_PRESETS_KEY = "tt_facility_presets_v2";
   const DEFAULT_FACILITY_PRESETS: FacilityPreset[] = [
-    { key: "unsecured",            label: "Unsecured business loan", rate: 15.0,  termMonths: 36  },
-    { key: "secured_business",     label: "Secured business loan",   rate: 10.99, termMonths: 84  },
+    { key: "unsecured",            label: "Unsecured business loan", rate: 10.99, termMonths: 84  },
+    { key: "secured_business",     label: "Secured business loan",   rate: 7.5,   termMonths: 60  },
     { key: "residential_property", label: "Residential property",    rate: 6.0,   termMonths: 360 },
     { key: "commercial_property",  label: "Commercial property",     rate: 7.0,   termMonths: 180 },
     { key: "vehicle",              label: "Vehicle finance",         rate: 7.5,   termMonths: 60  },
@@ -973,8 +973,8 @@ const ChartsSection = ({
     setFacilityPresets(prev => prev.map(p => p.key === key ? { ...p, ...patch } : p));
   };
 
-  // Seed `secured_business` preset live from the Debt Register's primary CommBank
-  // term-loan facility (Vinny #1) so it self-updates on refinance. Rate stays editable.
+  // Seed `unsecured` preset live from the Debt Register's Vinny #1 facility
+  // (the business's actual unsecured loan) so it self-updates on refinance. Rate stays editable.
   useEffect(() => {
     const vinny =
       debts.find(d => /vinny\s*#?\s*1/i.test(d.name || "")) ??
@@ -991,7 +991,7 @@ const ChartsSection = ({
       }
     }
     setFacilityPresets(prev => prev.map(p => {
-      if (p.key !== "secured_business") return p;
+      if (p.key !== "unsecured") return p;
       const nextRate = Number.isFinite(rate) && rate > 0 ? rate : p.rate;
       const nextTerm = termMonths ?? p.termMonths;
       if (p.rate === nextRate && p.termMonths === nextTerm) return p;
@@ -1490,10 +1490,10 @@ const ChartsSection = ({
               </button>
             ))}
 
-            {/* EST. BORROWING CAPACITY — Secured business loan glance (seeded from Vinny #1) */}
+            {/* EST. BORROWING CAPACITY — Unsecured business loan glance (seeded from Vinny #1) */}
             {(() => {
               const M = debtStripped.maxNewRepayment;
-              const preset = facilityPresets.find(p => p.key === "secured_business") ?? { key: "secured_business" as FacilityKey, label: "Secured business loan", rate: 10.99, termMonths: 84 };
+              const preset = facilityPresets.find(p => p.key === "unsecured") ?? { key: "unsecured" as FacilityKey, label: "Unsecured business loan", rate: 10.99, termMonths: 84 };
               const rate = preset.rate;
               const termMonths = preset.termMonths;
               const r = rate != null ? rate / 100 / 12 : null;
@@ -1506,7 +1506,7 @@ const ChartsSection = ({
                   <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-mono">Est. Borrowing Capacity</p>
                   <p className="text-lg font-mono font-bold text-chart-green">{fmtK(capacity)}</p>
                   <p className="mt-0.5 text-[10px] text-muted-foreground font-mono leading-tight">
-                    Secured business loan · {rate != null ? `${rate}% p.a.` : "—% p.a."} · {termMonths != null ? `${termYrsDisp} yr` : "— yr"} · on {fmtAUD(M)}/mo serviceability
+                    Unsecured business loan · {rate != null ? `${rate}% p.a.` : "—% p.a."} · {termMonths != null ? `${termYrsDisp} yr` : "— yr"} · on {fmtAUD(M)}/mo serviceability
                   </p>
                 </div>
               );
