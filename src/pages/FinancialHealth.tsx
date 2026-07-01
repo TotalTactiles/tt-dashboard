@@ -1120,7 +1120,7 @@ const ChartsSection = ({
     // "Anticipated Cash Surplus/(Deficit)" row (a running BALANCE), whose
     // month-to-month delta goes negative in drawdown months and zeroed out
     // real forward income — collapsing all three modes to actuals-only.
-    const HAIRCUT = 0.70;
+    // Legacy flat haircut removed — replaced by editable grnFactor / ylwFactor.
     // ASSUMPTION A — confirm vs the CASHFLOW model. Does a forward month's
     // Total Income already include probable (YLW) jobs? Workbook says YES.
     // If forward Total Income is contracted-only, set this to false.
