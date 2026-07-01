@@ -2430,17 +2430,23 @@ const LenderFitPanel = ({
       {/* Matrix */}
       <div className="mt-3 space-y-1">
         {matrix.map((row) => {
-          const sig = rowSignal(row);
+          const isResidential = row.key === "residential_property";
+          const sig = isResidential
+            ? { tone: "amber" as const, reason: "assessed on personal income (APRA +3% buffer, DTI ≤6×, HEM) — separate from business DSCR" }
+            : rowSignal(row);
+          const verdictLabel = isResidential
+            ? "Personal"
+            : (sig.tone === "green" ? "Eligible" : sig.tone === "amber" ? "Marginal" : "Not yet");
           return (
             <div key={row.key} className={`flex items-center gap-2 px-2 py-1.5 rounded border text-[10px] ${toneClasses(sig.tone)}`}>
               <div className="flex-1 min-w-0">
                 <p className="text-foreground font-medium truncate">{row.facility}</p>
                 <p className="text-muted-foreground font-mono truncate">
-                  {row.rateLow.toFixed(1)}–{row.rateHigh.toFixed(1)}% · {Math.round(row.termMonths / 12)}yr · DSCR ≥ {row.dscrMin.toFixed(2)} · {row.security}
+                  {row.rateLow.toFixed(1)}–{row.rateHigh.toFixed(1)}% · {Math.round(row.termMonths / 12)}yr · {isResidential ? "consumer rules" : `DSCR ≥ ${row.dscrMin.toFixed(2)}`} · {row.security}
                 </p>
               </div>
               <div className="text-right shrink-0 max-w-[45%]">
-                <p className="font-mono uppercase tracking-wider">{sig.tone === "green" ? "Eligible" : sig.tone === "amber" ? "Marginal" : "Not yet"}</p>
+                <p className="font-mono uppercase tracking-wider">{verdictLabel}</p>
                 <p className="text-muted-foreground truncate">{sig.reason}</p>
               </div>
             </div>
