@@ -618,7 +618,7 @@ const FinancialHealth = () => {
                 })}
 
                 {debts.length === 0 && (
-                  <tr><td colSpan={12} className="py-6 text-center text-muted-foreground whitespace-nowrap">No facilities. Click "Add Facility" to start.</td></tr>
+                  <tr><td colSpan={13} className="py-6 text-center text-muted-foreground whitespace-nowrap">No facilities. Click "Add Facility" to start.</td></tr>
                 )}
               </tbody>
               {debts.length > 0 && (
@@ -628,6 +628,7 @@ const FinancialHealth = () => {
                     <td className="py-2 px-2 font-semibold text-left whitespace-nowrap" colSpan={3}>Totals</td>
                     <td className="py-2 px-2 text-right font-semibold whitespace-nowrap">{fmtCurrency(totals.totalPrincipal)}</td>
                     <td className="py-2 px-2 text-right font-semibold whitespace-nowrap text-rose-300/90">{fmtCurrency(totals.totalBalance)}</td>
+                    <td className="py-2 px-2 text-right font-semibold whitespace-nowrap text-rose-300/90">{fmtCurrency(totals.totalInterest)}</td>
                     <td className="py-2 px-2 text-right font-semibold whitespace-nowrap">{totals.blendedRate.toFixed(2)}%</td>
                     <td className="py-2 px-2 text-right font-semibold whitespace-nowrap">{fmtCurrency(totals.totalMonthly)}</td>
                     <td colSpan={3} className="whitespace-nowrap"></td>
