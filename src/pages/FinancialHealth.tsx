@@ -19,13 +19,60 @@ export interface DebtFacility {
   lender: string;
   type: DebtType;
   originalPrincipal: number;
+  /** @deprecated Balance is now computed via amortisation from terms; retained for legacy caches. */
   balance: number;
   rate: number;
   monthlyRepayment: number;
   startDate: string;
   maturityDate: string;
   purpose: DebtPurpose;
+  /** Optional balloon/residual at maturity. Blank = full amortisation to $0. */
+  balloon?: number;
 }
+
+// ---------- Amortisation helper (computed reducing balance) ----------
+const _monthsBetween = (start: Date, end: Date): number => {
+  let m = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+  if (end.getDate() < start.getDate()) m -= 1;
+  return m;
+};
+
+export const computeAmortisation = (
+  f: Pick<DebtFacility, "originalPrincipal" | "rate" | "startDate" | "maturityDate" | "balloon">,
+  asOf: Date = new Date()
+): { balance: number; principalRepaid: number; flat: boolean } => {
+  const P = Number(f.originalPrincipal) || 0;
+  const annualRate = Number(f.rate) || 0;
+  const i = annualRate / 100 / 12;
+  const balloon = Number(f.balloon) || 0;
+  const start = f.startDate ? new Date(f.startDate) : null;
+  const maturity = f.maturityDate ? new Date(f.maturityDate) : null;
+  if (!P || !start || !maturity || isNaN(start.getTime()) || isNaN(maturity.getTime())) {
+    return { balance: P, principalRepaid: 0, flat: false };
+  }
+  const nTotal = Math.max(1, _monthsBetween(start, maturity));
+  if (asOf < start) return { balance: P, principalRepaid: 0, flat: false };
+  if (asOf >= maturity) return { balance: balloon, principalRepaid: Math.max(0, P - balloon), flat: false };
+  const elapsed = Math.max(0, Math.min(nTotal, _monthsBetween(start, asOf)));
+  let pi: number;
+  if (i > 0) {
+    pi = (P - balloon / Math.pow(1 + i, nTotal)) * i / (1 - Math.pow(1 + i, -nTotal));
+  } else {
+    pi = (P - balloon) / nTotal;
+  }
+  const firstInterest = P * i;
+  const flat = i > 0 && pi <= firstInterest;
+  let balance: number;
+  if (flat) {
+    balance = P;
+  } else if (i > 0) {
+    balance = P * Math.pow(1 + i, elapsed) - pi * (Math.pow(1 + i, elapsed) - 1) / i;
+  } else {
+    balance = P - pi * elapsed;
+  }
+  balance = Math.max(balloon, Math.min(P, balance));
+  return { balance, principalRepaid: Math.max(0, P - balance), flat };
+};
 
 export const DEBT_CACHE_KEY = "tt_debt_register";
 export const CACHE_WEBHOOK_GET = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
