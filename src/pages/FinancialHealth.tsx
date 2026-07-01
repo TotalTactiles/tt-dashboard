@@ -203,7 +203,7 @@ const DebtRegisterRow = memo(({
       <td className="py-1.5 px-2 text-right whitespace-nowrap">
         {isEditing ? (
           <div className="flex flex-col items-end gap-0.5">
-            <span className="text-xs font-semibold" title="Computed reducing balance as of today">
+            <span className="text-xs font-semibold text-rose-300/90" title="Computed reducing balance as of today">
               {fmtCurrency(computedBalance)}
               {flat ? <span className="ml-1 text-amber-400" title="Repayment does not cover interest">⚠</span> : null}
             </span>
@@ -217,11 +217,11 @@ const DebtRegisterRow = memo(({
           </div>
         ) : (
           <div className="flex flex-col items-end leading-tight">
-            <span>
+            <span className="text-rose-300/90">
               {fmtCurrency(computedBalance)}
               {flat ? <span className="ml-1 text-amber-400" title="Repayment does not cover interest — balance held flat">⚠</span> : null}
             </span>
-            <span className="text-[9px] text-muted-foreground">Repaid {fmtCurrency(computedRepaid)}{(row.balloon ?? 0) > 0 ? ` · Balloon ${fmtCurrency(row.balloon || 0)}` : ""}</span>
+            <span className="text-[9px] text-chart-green">Repaid {fmtCurrency(computedRepaid)}{(row.balloon ?? 0) > 0 ? ` · Balloon ${fmtCurrency(row.balloon || 0)}` : ""}</span>
           </div>
         )}
       </td>
