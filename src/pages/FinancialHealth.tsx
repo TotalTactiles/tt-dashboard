@@ -126,7 +126,7 @@ interface DebtRegisterRowProps {
 }
 
 const DebtRegisterRow = memo(({
-  facility, isDragOver, autoEdit,
+  facility, computedBalance, computedRepaid, flat, isDragOver, autoEdit,
   onSave, onDelete, onAutoEditConsumed,
   onDragStart, onDragOver, onDrop, onDragEnd,
 }: DebtRegisterRowProps) => {
