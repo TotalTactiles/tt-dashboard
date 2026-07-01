@@ -1181,14 +1181,18 @@ const ChartsSection = ({
         const opCost = Math.max(0, (Number(d.outgoings) || 0) - monthlyDebtFor(month));
         const fullNet = income - opCost;
         const oldProbMargin = oldProbableMarginFor(month);
-        const ylwUplift = serviceabilityView === "with_ylw" ? ylwMonthlyUplift : 0;
-        const net = serviceabilityView === "with_ylw"
-          ? (FORWARD_INCOME_INCLUDES_PROBABLE ? fullNet - oldProbMargin + ylwUplift : fullNet + ylwUplift)
-          : (FORWARD_INCOME_INCLUDES_PROBABLE ? fullNet - oldProbMargin : fullNet);
+        // Separate the two revenue layers so each gets its own factor.
+        // GRN portion = contracted forward net (strip out legacy probable margin baked into forward Total Income).
+        // YLW portion = the probable-pipeline uplift (only added in with_ylw mode).
+        const grnPortion = FORWARD_INCOME_INCLUDES_PROBABLE ? (fullNet - oldProbMargin) : fullNet;
+        const ylwPortion = serviceabilityView === "with_ylw" ? ylwMonthlyUplift : 0;
+        const preFactor = grnPortion + ylwPortion;
+        const net = grnPortion * grnFactor + ylwPortion * ylwFactor;
         return {
-          month, net: net * HAIRCUT, type: serviceabilityView,
+          month, net, type: serviceabilityView,
           _income: income, _opCost: opCost,
-          _probMargin: ylwUplift, _preHaircut: net,
+          _grnPortion: grnPortion, _ylwPortion: ylwPortion,
+          _probMargin: ylwPortion, _preHaircut: preFactor,
         };
       });
 
