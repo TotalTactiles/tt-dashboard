@@ -19,13 +19,60 @@ export interface DebtFacility {
   lender: string;
   type: DebtType;
   originalPrincipal: number;
+  /** @deprecated Balance is now computed via amortisation from terms; retained for legacy caches. */
   balance: number;
   rate: number;
   monthlyRepayment: number;
   startDate: string;
   maturityDate: string;
   purpose: DebtPurpose;
+  /** Optional balloon/residual at maturity. Blank = full amortisation to $0. */
+  balloon?: number;
 }
+
+// ---------- Amortisation helper (computed reducing balance) ----------
+const _monthsBetween = (start: Date, end: Date): number => {
+  let m = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+  if (end.getDate() < start.getDate()) m -= 1;
+  return m;
+};
+
+export const computeAmortisation = (
+  f: Pick<DebtFacility, "originalPrincipal" | "rate" | "startDate" | "maturityDate" | "balloon">,
+  asOf: Date = new Date()
+): { balance: number; principalRepaid: number; flat: boolean } => {
+  const P = Number(f.originalPrincipal) || 0;
+  const annualRate = Number(f.rate) || 0;
+  const i = annualRate / 100 / 12;
+  const balloon = Number(f.balloon) || 0;
+  const start = f.startDate ? new Date(f.startDate) : null;
+  const maturity = f.maturityDate ? new Date(f.maturityDate) : null;
+  if (!P || !start || !maturity || isNaN(start.getTime()) || isNaN(maturity.getTime())) {
+    return { balance: P, principalRepaid: 0, flat: false };
+  }
+  const nTotal = Math.max(1, _monthsBetween(start, maturity));
+  if (asOf < start) return { balance: P, principalRepaid: 0, flat: false };
+  if (asOf >= maturity) return { balance: balloon, principalRepaid: Math.max(0, P - balloon), flat: false };
+  const elapsed = Math.max(0, Math.min(nTotal, _monthsBetween(start, asOf)));
+  let pi: number;
+  if (i > 0) {
+    pi = (P - balloon / Math.pow(1 + i, nTotal)) * i / (1 - Math.pow(1 + i, -nTotal));
+  } else {
+    pi = (P - balloon) / nTotal;
+  }
+  const firstInterest = P * i;
+  const flat = i > 0 && pi <= firstInterest;
+  let balance: number;
+  if (flat) {
+    balance = P;
+  } else if (i > 0) {
+    balance = P * Math.pow(1 + i, elapsed) - pi * (Math.pow(1 + i, elapsed) - 1) / i;
+  } else {
+    balance = P - pi * elapsed;
+  }
+  balance = Math.max(balloon, Math.min(P, balance));
+  return { balance, principalRepaid: Math.max(0, P - balance), flat };
+};
 
 export const DEBT_CACHE_KEY = "tt_debt_register";
 export const CACHE_WEBHOOK_GET = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
@@ -64,6 +111,9 @@ const fmtCurrency = (n: number) => `$${(n || 0).toLocaleString("en-AU", { maximu
 // ---------- Debt Register Row (memoised to isolate keystroke re-renders) ----------
 interface DebtRegisterRowProps {
   facility: DebtFacility;
+  computedBalance: number;
+  computedRepaid: number;
+  flat: boolean;
   isDragOver: boolean;
   autoEdit: boolean;
   onSave: (updated: DebtFacility) => void;
@@ -76,7 +126,7 @@ interface DebtRegisterRowProps {
 }
 
 const DebtRegisterRow = memo(({
-  facility, isDragOver, autoEdit,
+  facility, computedBalance, computedRepaid, flat, isDragOver, autoEdit,
   onSave, onDelete, onAutoEditConsumed,
   onDragStart, onDragOver, onDrop, onDragEnd,
 }: DebtRegisterRowProps) => {
@@ -142,8 +192,28 @@ const DebtRegisterRow = memo(({
       </td>
       <td className="py-1.5 px-2 text-right whitespace-nowrap">
         {isEditing ? (
-          <Input type="number" value={row.balance} onChange={(e) => update("balance", Number(e.target.value))} className="h-7 text-xs text-right" />
-        ) : fmtCurrency(row.balance)}
+          <div className="flex flex-col items-end gap-0.5">
+            <span className="text-xs font-semibold" title="Computed reducing balance as of today">
+              {fmtCurrency(computedBalance)}
+              {flat ? <span className="ml-1 text-amber-400" title="Repayment does not cover interest">⚠</span> : null}
+            </span>
+            <Input
+              type="number"
+              placeholder="Balloon (opt)"
+              value={row.balloon ?? ""}
+              onChange={(e) => update("balloon", e.target.value === "" ? undefined : Number(e.target.value))}
+              className="h-6 text-[10px] text-right w-24"
+            />
+          </div>
+        ) : (
+          <div className="flex flex-col items-end leading-tight">
+            <span>
+              {fmtCurrency(computedBalance)}
+              {flat ? <span className="ml-1 text-amber-400" title="Repayment does not cover interest — balance held flat">⚠</span> : null}
+            </span>
+            <span className="text-[9px] text-muted-foreground">Repaid {fmtCurrency(computedRepaid)}{(row.balloon ?? 0) > 0 ? ` · Balloon ${fmtCurrency(row.balloon || 0)}` : ""}</span>
+          </div>
+        )}
       </td>
       <td className="py-1.5 px-2 text-right whitespace-nowrap">
         {isEditing ? (
@@ -245,14 +315,34 @@ const FinancialHealth = () => {
     writeCache(DEBT_CACHE_KEY, JSON.stringify(debts));
   }, [debts]);
 
-  const totals = useMemo(() => {
-    const totalPrincipal = debts.reduce((s, d) => s + (Number(d.originalPrincipal) || 0), 0);
-    const totalBalance = debts.reduce((s, d) => s + (Number(d.balance) || 0), 0);
-    const totalMonthly = debts.reduce((s, d) => s + (Number(d.monthlyRepayment) || 0), 0);
-    const weightedSum = debts.reduce((s, d) => s + (Number(d.balance) || 0) * (Number(d.rate) || 0), 0);
-    const blendedRate = totalBalance > 0 ? weightedSum / totalBalance : 0;
-    return { totalPrincipal, totalBalance, totalMonthly, blendedRate };
+  // Computed reducing balances (as of today) for every facility.
+  // Balance/principalRepaid are derived from the amortisation schedule; the stored
+  // `balance` field on legacy caches is ignored.
+  const computedDebts = useMemo(() => {
+    const asOf = new Date();
+    return debts.map((d) => {
+      const a = computeAmortisation(d, asOf);
+      return { ...d, balance: a.balance, principalRepaid: a.principalRepaid, _flat: a.flat };
+    });
   }, [debts]);
+
+  const totals = useMemo(() => {
+    const totalPrincipal = computedDebts.reduce((s, d) => s + (Number(d.originalPrincipal) || 0), 0);
+    const totalBalance = computedDebts.reduce((s, d) => s + (Number(d.balance) || 0), 0);
+    const totalRepaid = computedDebts.reduce((s, d) => s + (Number(d.principalRepaid) || 0), 0);
+    const totalMonthly = computedDebts.reduce((s, d) => s + (Number(d.monthlyRepayment) || 0), 0);
+    const weightedSum = computedDebts.reduce((s, d) => s + (Number(d.balance) || 0) * (Number(d.rate) || 0), 0);
+    const blendedRate = totalBalance > 0 ? weightedSum / totalBalance : 0;
+    // Dev reconciliation: Drawn − Repaid should equal Outstanding.
+    if (typeof window !== "undefined" && import.meta.env?.DEV) {
+      const diff = totalPrincipal - totalRepaid - totalBalance;
+      if (Math.abs(diff) > 1) {
+        // eslint-disable-next-line no-console
+        console.warn("[DebtRegister] Drawn − Repaid ≠ Outstanding", { totalPrincipal, totalRepaid, totalBalance, diff });
+      }
+    }
+    return { totalPrincipal, totalBalance, totalRepaid, totalMonthly, blendedRate };
+  }, [computedDebts]);
 
   const handleRowSave = (updated: DebtFacility) => {
     setDebts((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
@@ -427,10 +517,15 @@ const FinancialHealth = () => {
                 </tr>
               </thead>
               <tbody className="font-mono">
-                {debts.map((d, index) => (
+                {debts.map((d, index) => {
+                  const c = computedDebts[index];
+                  return (
                   <DebtRegisterRow
                     key={d.id}
                     facility={d}
+                    computedBalance={c?.balance ?? 0}
+                    computedRepaid={c?.principalRepaid ?? 0}
+                    flat={!!c?._flat}
                     isDragOver={dragOverIndex === index}
                     autoEdit={autoEditId === d.id}
                     onAutoEditConsumed={() => setAutoEditId(null)}
@@ -454,7 +549,8 @@ const FinancialHealth = () => {
                     }}
                     onDragEnd={() => { setDragOverIndex(null); dragIndexRef.current = null; }}
                   />
-                ))}
+                  );
+                })}
 
                 {debts.length === 0 && (
                   <tr><td colSpan={12} className="py-6 text-center text-muted-foreground whitespace-nowrap">No facilities. Click "Add Facility" to start.</td></tr>
@@ -576,6 +672,15 @@ const ChartsSection = ({
   const io: any[] = Array.isArray(incomeOutgoingsData) ? incomeOutgoingsData : [];
   const fc: any[] = Array.isArray(forecastChartData) ? forecastChartData : [];
 
+  // Computed reducing balances (mirrors DebtRegister — as of today).
+  const computedDebts = useMemo(() => {
+    const asOf = new Date();
+    return debts.map((d) => {
+      const a = computeAmortisation(d, asOf);
+      return { ...d, balance: a.balance, principalRepaid: a.principalRepaid };
+    });
+  }, [debts]);
+
   // ---- Waterfall dataset ----
   const waterfallData = useMemo(() => {
     const fcByMonth = new Map<string, any>();
@@ -607,10 +712,10 @@ const ChartsSection = ({
 
   // ---- Debt composition ----
   const compositionData = useMemo(() => {
-    return debts
+    return computedDebts
       .filter((d) => Number(d.balance) > 0)
       .map((d) => ({ name: d.name || "Unnamed", value: Number(d.balance) || 0 }));
-  }, [debts]);
+  }, [computedDebts]);
   const compositionTotal = compositionData.reduce((s, d) => s + d.value, 0);
 
   // ---- Burden % of GP monthly ----
@@ -1076,12 +1181,20 @@ const ChartsSection = ({
     const periodRevenue = rows.reduce((s: number, d: any) => s + (d.earnedRevenue || 0), 0);
     const periodDebtRepayments = rows.reduce((s: number, d: any) => s + (d.debtDrawdown || 0), 0);
     const periodOutgoings = rows.reduce((s: number, d: any) => s + (d.operatingCosts || 0), 0);
-    const totalBorrowedToDate = debts.reduce((s, f) => s + (Number(f.originalPrincipal) || 0), 0);
-    const totalStillOwed = debts.reduce((s, f) => s + (Number(f.balance) || 0), 0);
-    const totalRepaidToDate = Math.max(0, totalBorrowedToDate - totalStillOwed);
+    const totalBorrowedToDate = computedDebts.reduce((s, f) => s + (Number(f.originalPrincipal) || 0), 0);
+    const totalStillOwed = computedDebts.reduce((s, f) => s + (Number(f.balance) || 0), 0);
+    const totalRepaidToDate = computedDebts.reduce((s, f) => s + (Number(f.principalRepaid) || 0), 0);
+    // Dev reconciliation: Drawn − Repaid should equal Outstanding.
+    if (typeof window !== "undefined" && import.meta.env?.DEV) {
+      const diff = totalBorrowedToDate - totalRepaidToDate - totalStillOwed;
+      if (Math.abs(diff) > 1) {
+        // eslint-disable-next-line no-console
+        console.warn("[DebtRegister] Drawn − Repaid ≠ Outstanding", { totalBorrowedToDate, totalRepaidToDate, totalStillOwed, diff });
+      }
+    }
     const netPosition = periodRevenue - periodOutgoings - periodDebtRepayments;
     return { periodRevenue, periodDebtRepayments, periodOutgoings, totalBorrowedToDate, totalRepaidToDate, totalStillOwed, netPosition };
-  }, [strippedMonthsFilter, earnedVsDebtData, debts]);
+  }, [strippedMonthsFilter, earnedVsDebtData, computedDebts]);
   const strippedPeriodLabel = (() => {
     if (strippedMonth) return strippedMonth;
     if (strippedPeriod === "All") return "Full Year 2026";
@@ -1865,7 +1978,7 @@ const ChartsSection = ({
       {/* Chart 2: Debt Payoff Trajectory */}
       {(() => {
         const PAYOFF_COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#8b5cf6", "#ef4444"];
-        const activeFacilities = debts.filter((d) => Number(d.balance) > 0);
+        const activeFacilities = computedDebts.filter((d) => Number(d.balance) > 0);
         const totalDebtToday = activeFacilities.reduce((s, d) => s + (Number(d.balance) || 0), 0);
 
         if (activeFacilities.length === 0) {
