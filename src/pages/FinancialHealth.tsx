@@ -588,6 +588,7 @@ const FinancialHealth = () => {
                     facility={d}
                     computedBalance={c?.balance ?? 0}
                     computedRepaid={c?.principalRepaid ?? 0}
+                    computedInterest={c?.interestPaid ?? 0}
                     flat={!!c?._flat}
                     isDragOver={dragOverIndex === index}
                     autoEdit={autoEditId === d.id}
