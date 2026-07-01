@@ -2116,6 +2116,391 @@ const Pill = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
+// ---------- Lender Fit & Borrowing Readiness ----------
+
+type LenderRow = {
+  key: string; facility: string; tier: string;
+  rateLow: number; rateHigh: number; termMonths: number;
+  minTradingYrs: number; security: string; dscrMin: number;
+};
+
+const LENDER_MATRIX_KEY = "tt_lender_matrix_v1";
+const BORROWER_PROFILE_KEY = "tt_borrower_profile_v1";
+
+const DEFAULT_LENDER_MATRIX: LenderRow[] = [
+  { key: "secured_term",        facility: "Secured business term loan", tier: "Bank (Big 4)",       rateLow: 6.8, rateHigh: 8.2,  termMonths: 60,  minTradingYrs: 2,   security: "Property/asset",        dscrMin: 1.25 },
+  { key: "equipment",           facility: "Equipment / chattel mortgage", tier: "Bank / non-bank",  rateLow: 7.0, rateHigh: 10.0, termMonths: 60,  minTradingYrs: 1,   security: "The asset",             dscrMin: 1.25 },
+  { key: "vehicle",             facility: "Vehicle finance",             tier: "Bank / non-bank",   rateLow: 7.5, rateHigh: 9.0,  termMonths: 60,  minTradingYrs: 0.5, security: "The vehicle",           dscrMin: 1.25 },
+  { key: "commercial_property", facility: "Commercial property loan",    tier: "Bank / non-bank",   rateLow: 6.5, rateHigh: 10.0, termMonths: 180, minTradingYrs: 2,   security: "Property (LVR 65–70%)", dscrMin: 1.25 },
+  { key: "unsecured",           facility: "Unsecured business loan",     tier: "Fintech / non-bank",rateLow: 9.5, rateHigh: 18.0, termMonths: 36,  minTradingYrs: 0.5, security: "None",                  dscrMin: 1.50 },
+];
+
+type BorrowerProfile = {
+  tradingYears: number | null;   // null = auto-derive
+  annualTurnover: number | null; // null = auto-derive
+  securityAvailable: boolean;
+};
+
+const pmt = (principal: number, annualRatePct: number, months: number) => {
+  const r = (annualRatePct / 100) / 12;
+  if (!principal || !months) return 0;
+  if (r === 0) return principal / months;
+  return (principal * r) / (1 - Math.pow(1 + r, -months));
+};
+
+interface LenderFitPanelProps {
+  blendedIncome: number;
+  existingCommitments: number;
+  availableForNewDebt: number;
+  defaultFacilityKey: string;
+  debts: any[];
+  monthlyIncomeSeries: number[];
+}
+
+const LenderFitPanel = ({
+  blendedIncome,
+  existingCommitments,
+  availableForNewDebt,
+  defaultFacilityKey,
+  debts,
+  monthlyIncomeSeries,
+}: LenderFitPanelProps) => {
+  const navigate = useNavigate();
+  const M = Math.max(0, availableForNewDebt);
+
+  // ---- Auto-derived defaults ----
+  const autoTradingYears = useMemo(() => {
+    const active = monthlyIncomeSeries.filter((v) => v > 0).length;
+    return Math.max(0, active / 12);
+  }, [monthlyIncomeSeries]);
+  const autoAnnualTurnover = useMemo(() => {
+    if (!monthlyIncomeSeries.length) return 0;
+    const last12 = monthlyIncomeSeries.slice(-12);
+    const sum = last12.reduce((s, v) => s + v, 0);
+    const n = last12.length || 1;
+    return (sum / n) * 12;
+  }, [monthlyIncomeSeries]);
+
+  // ---- Lender matrix (persisted, editable) ----
+  const [matrix, setMatrix] = useState<LenderRow[]>(() => {
+    if (typeof window === "undefined") return DEFAULT_LENDER_MATRIX;
+    try {
+      const raw = window.localStorage.getItem(LENDER_MATRIX_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as LenderRow[];
+        return DEFAULT_LENDER_MATRIX.map((def) => {
+          const found = parsed.find((p) => p.key === def.key);
+          return found ? { ...def, ...found } : def;
+        });
+      }
+    } catch {}
+    return DEFAULT_LENDER_MATRIX;
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem(LENDER_MATRIX_KEY, JSON.stringify(matrix)); } catch {}
+  }, [matrix]);
+
+  // ---- Borrower profile ----
+  const [profile, setProfile] = useState<BorrowerProfile>(() => {
+    if (typeof window === "undefined") return { tradingYears: null, annualTurnover: null, securityAvailable: false };
+    try {
+      const raw = window.localStorage.getItem(BORROWER_PROFILE_KEY);
+      if (raw) return JSON.parse(raw) as BorrowerProfile;
+    } catch {}
+    return { tradingYears: null, annualTurnover: null, securityAvailable: false };
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem(BORROWER_PROFILE_KEY, JSON.stringify(profile)); } catch {}
+  }, [profile]);
+
+  const tradingYears = profile.tradingYears ?? autoTradingYears;
+  const annualTurnover = profile.annualTurnover ?? autoAnnualTurnover;
+  const currentDSCR = existingCommitments > 0 ? blendedIncome / existingCommitments : Infinity;
+
+  // ---- Eligibility signal per row ----
+  const rowSignal = (row: LenderRow) => {
+    const needsSecurity = row.security !== "None";
+    const hasTrading = tradingYears >= row.minTradingYrs;
+    const hasSec = !needsSecurity || profile.securityAvailable;
+    const dscrOk = currentDSCR >= row.dscrMin;
+    const dscrClose = currentDSCR >= row.dscrMin - 0.15;
+    let tone: "green" | "amber" | "red" = "red";
+    let reason = "";
+    if (hasTrading && hasSec && dscrOk) {
+      tone = "green";
+      reason = `DSCR ${isFinite(currentDSCR) ? currentDSCR.toFixed(2) : "∞"} ≥ ${row.dscrMin.toFixed(2)} ✓${row.minTradingYrs > 0 ? `, ${row.minTradingYrs}+ yr ✓` : ""}`;
+    } else if (hasTrading && (dscrClose || (needsSecurity && !profile.securityAvailable && dscrOk))) {
+      tone = "amber";
+      const parts: string[] = [];
+      if (needsSecurity && !profile.securityAvailable) parts.push("needs security confirmed");
+      if (!dscrOk && dscrClose) parts.push(`DSCR ${currentDSCR.toFixed(2)} near ${row.dscrMin.toFixed(2)}`);
+      reason = parts.join(" · ") || "borderline";
+    } else {
+      const parts: string[] = [];
+      if (!hasTrading) parts.push(`needs ${row.minTradingYrs}+ yrs trading`);
+      if (needsSecurity && !profile.securityAvailable) parts.push("needs asset security");
+      if (!dscrOk && !dscrClose) parts.push(`DSCR ${isFinite(currentDSCR) ? currentDSCR.toFixed(2) : "∞"} < ${row.dscrMin.toFixed(2)}`);
+      reason = parts.join(" · ");
+    }
+    return { tone, reason };
+  };
+
+  // ---- Reverse solver ----
+  const mapDefaultToMatrixKey = (k: string): string => {
+    if (matrix.some((r) => r.key === k)) return k;
+    if (k === "residential_property") return "commercial_property";
+    if (k === "custom") return "secured_term";
+    return "secured_term";
+  };
+  const [solverFacilityKey, setSolverFacilityKey] = useState<string>(mapDefaultToMatrixKey(defaultFacilityKey));
+  const [targetInput, setTargetInput] = useState<string>("");
+  const [solverRate, setSolverRate] = useState<string>("");
+  const [solverTerm, setSolverTerm] = useState<string>("");
+
+  const solverRow = matrix.find((r) => r.key === solverFacilityKey) ?? matrix[0];
+  const midRate = (solverRow.rateLow + solverRow.rateHigh) / 2;
+  const activeRate = Number(solverRate) > 0 ? Number(solverRate) : midRate;
+  const activeTerm = Number(solverTerm) > 0 ? Number(solverTerm) : solverRow.termMonths;
+  const target = Number(targetInput) > 0 ? Number(targetInput) : 0;
+
+  const requiredMonthly = target > 0 ? pmt(target, activeRate, activeTerm) : 0;
+  const impliedDSCR = target > 0 && (existingCommitments + requiredMonthly) > 0
+    ? blendedIncome / (existingCommitments + requiredMonthly)
+    : currentDSCR;
+  const serviceabilityGap = M - requiredMonthly;
+
+  // Levers when short
+  const levers = useMemo(() => {
+    if (target <= 0 || serviceabilityGap >= 0) return null;
+    const shortfall = requiredMonthly - M;
+    const incomeLift = shortfall / 0.80;
+    // Existing facilities sorted smallest-first whose removal would bridge shortfall
+    const sorted = [...debts]
+      .map((d) => ({ name: d.name || "facility", monthly: Number(d.monthlyRepayment) || 0 }))
+      .filter((d) => d.monthly > 0)
+      .sort((a, b) => a.monthly - b.monthly);
+    const closes: { name: string; monthly: number }[] = [];
+    let running = 0;
+    for (const f of sorted) {
+      if (running >= shortfall) break;
+      closes.push(f);
+      running += f.monthly;
+    }
+    // Longer term
+    let longerTerm: number | null = null;
+    for (const t of [72, 84, 96, 120, 180, 240]) {
+      if (t <= activeTerm) continue;
+      const req = pmt(target, activeRate, t);
+      if (req <= M) { longerTerm = t; break; }
+    }
+    return { shortfall, incomeLift, closes, longerTerm };
+  }, [target, serviceabilityGap, requiredMonthly, M, debts, activeRate, activeTerm]);
+
+  const fmt = (n: number) => `$${Math.round(n || 0).toLocaleString("en-AU")}`;
+  const dscrOkForSolver = impliedDSCR >= solverRow.dscrMin;
+  const serviceable = target > 0 && serviceabilityGap >= 0 && dscrOkForSolver;
+
+  // ---- Consultant handoff ----
+  const handoff = () => {
+    const summary = target > 0
+      ? `We want to borrow ${fmt(target)} as a ${solverRow.facility.toLowerCase()}. On our figures we're at implied DSCR ${impliedDSCR.toFixed(2)} with ${fmt(M)}/mo serviceability. Which current AU lenders offer this near ${activeRate.toFixed(1)}%, what would they require from us, and would we qualify?`
+      : `We're exploring a ${solverRow.facility.toLowerCase()}. Current serviceability is ${fmt(M)}/mo, blended income ${fmt(blendedIncome)}/mo, existing commitments ${fmt(existingCommitments)}/mo, DSCR ${isFinite(currentDSCR) ? currentDSCR.toFixed(2) : "n/a"}. Which current AU lenders should we look at, and what would they require?`;
+    const context = [
+      "LENDER FIT CONTEXT (from Financial Health):",
+      `• Target: ${target > 0 ? fmt(target) : "not specified"}`,
+      `• Facility: ${solverRow.facility} (tier: ${solverRow.tier})`,
+      `• Rate assumed: ${activeRate.toFixed(2)}% p.a. · Term: ${activeTerm} mo`,
+      `• Available for new debt (M): ${fmt(M)}/mo`,
+      `• Blended income (6m): ${fmt(blendedIncome)}/mo`,
+      `• Existing commitments: ${fmt(existingCommitments)}/mo`,
+      `• Current DSCR: ${isFinite(currentDSCR) ? currentDSCR.toFixed(2) : "n/a"}`,
+      `• Required monthly for target: ${fmt(requiredMonthly)}`,
+      `• Implied DSCR after new debt: ${target > 0 ? impliedDSCR.toFixed(2) : "n/a"} (min ${solverRow.dscrMin.toFixed(2)})`,
+      `• Serviceability gap: ${fmt(serviceabilityGap)}/mo`,
+      `• Trading years: ${tradingYears.toFixed(1)} · Annual turnover: ${fmt(annualTurnover)}`,
+      `• Security available: ${profile.securityAvailable ? "yes" : "no"}`,
+      levers ? `• Levers to close gap: reduce commitments by ${fmt(levers.shortfall)}/mo, or lift blended income ~${fmt(levers.incomeLift)}/mo${levers.longerTerm ? `, or extend term to ${levers.longerTerm} mo` : ""}.` : "",
+      "",
+      summary,
+    ].filter(Boolean).join("\n");
+    navigate("/consulting", { state: { prefill: context } });
+  };
+
+  const toneClasses = (t: "green" | "amber" | "red") =>
+    t === "green" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+    : t === "amber" ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+    : "bg-red-500/10 text-red-400 border-red-500/30";
+
+  return (
+    <div className="chart-container">
+      <div className="flex items-start justify-between mb-1 gap-2">
+        <div>
+          <p className="text-sm font-medium text-foreground">Lender Fit & Borrowing Readiness</p>
+          <p className="text-[10px] text-muted-foreground font-mono">Indicative AU averages, June 2026 — editable</p>
+        </div>
+        <button
+          type="button"
+          onClick={handoff}
+          className="text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded border border-white/15 hover:bg-white/5 text-foreground shrink-0"
+          title="Prefill the Consigliere with this context"
+        >
+          Take this to the Consultant →
+        </button>
+      </div>
+
+      {/* Profile row */}
+      <div className="mt-2 grid grid-cols-3 gap-2 text-[10px]">
+        <div className="bg-white/5 rounded px-2 py-1.5">
+          <p className="text-muted-foreground uppercase tracking-wider">Trading yrs</p>
+          <input
+            type="number" min={0} step={0.5}
+            value={profile.tradingYears ?? ""}
+            placeholder={autoTradingYears.toFixed(1)}
+            onChange={(e) => setProfile((s) => ({ ...s, tradingYears: e.target.value === "" ? null : Number(e.target.value) }))}
+            className="w-full bg-transparent font-mono text-foreground text-xs outline-none"
+          />
+        </div>
+        <div className="bg-white/5 rounded px-2 py-1.5">
+          <p className="text-muted-foreground uppercase tracking-wider">Turnover</p>
+          <input
+            type="number" min={0} step={10000}
+            value={profile.annualTurnover ?? ""}
+            placeholder={Math.round(autoAnnualTurnover).toString()}
+            onChange={(e) => setProfile((s) => ({ ...s, annualTurnover: e.target.value === "" ? null : Number(e.target.value) }))}
+            className="w-full bg-transparent font-mono text-foreground text-xs outline-none"
+          />
+        </div>
+        <label className="bg-white/5 rounded px-2 py-1.5 flex flex-col cursor-pointer">
+          <span className="text-muted-foreground uppercase tracking-wider">Security</span>
+          <span className="flex items-center gap-1.5 mt-0.5">
+            <input
+              type="checkbox"
+              checked={profile.securityAvailable}
+              onChange={(e) => setProfile((s) => ({ ...s, securityAvailable: e.target.checked }))}
+              className="accent-emerald-500"
+            />
+            <span className="font-mono text-xs text-foreground">{profile.securityAvailable ? "Available" : "None"}</span>
+          </span>
+        </label>
+      </div>
+
+      <p className="text-[9px] text-muted-foreground/70 font-mono mt-1">
+        Current DSCR (blended income ÷ existing commitments): <span className="text-foreground">{isFinite(currentDSCR) ? currentDSCR.toFixed(2) : "∞"}</span>
+      </p>
+
+      {/* Matrix */}
+      <div className="mt-3 space-y-1">
+        {matrix.map((row) => {
+          const sig = rowSignal(row);
+          return (
+            <div key={row.key} className={`flex items-center gap-2 px-2 py-1.5 rounded border text-[10px] ${toneClasses(sig.tone)}`}>
+              <div className="flex-1 min-w-0">
+                <p className="text-foreground font-medium truncate">{row.facility}</p>
+                <p className="text-muted-foreground font-mono truncate">
+                  {row.rateLow.toFixed(1)}–{row.rateHigh.toFixed(1)}% · {Math.round(row.termMonths / 12)}yr · DSCR ≥ {row.dscrMin.toFixed(2)} · {row.security}
+                </p>
+              </div>
+              <div className="text-right shrink-0 max-w-[45%]">
+                <p className="font-mono uppercase tracking-wider">{sig.tone === "green" ? "Eligible" : sig.tone === "amber" ? "Marginal" : "Not yet"}</p>
+                <p className="text-muted-foreground truncate">{sig.reason}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Reverse solver */}
+      <div className="mt-3 pt-3 border-t border-white/10">
+        <p className="text-xs font-medium text-foreground mb-2">Reverse solver — can we borrow X?</p>
+        <div className="grid grid-cols-2 gap-2 text-[10px]">
+          <div className="bg-white/5 rounded px-2 py-1.5">
+            <p className="text-muted-foreground uppercase tracking-wider">Target amount</p>
+            <input
+              type="number" min={0} step={10000}
+              value={targetInput}
+              placeholder="e.g. 200000"
+              onChange={(e) => setTargetInput(e.target.value)}
+              className="w-full bg-transparent font-mono text-foreground text-xs outline-none"
+            />
+          </div>
+          <div className="bg-white/5 rounded px-2 py-1.5">
+            <p className="text-muted-foreground uppercase tracking-wider">Facility</p>
+            <select
+              value={solverFacilityKey}
+              onChange={(e) => { setSolverFacilityKey(e.target.value); setSolverRate(""); setSolverTerm(""); }}
+              className="w-full bg-transparent font-mono text-foreground text-xs outline-none"
+            >
+              {matrix.map((r) => (
+                <option key={r.key} value={r.key} className="bg-[#1a1a2e]">{r.facility}</option>
+              ))}
+            </select>
+          </div>
+          <div className="bg-white/5 rounded px-2 py-1.5">
+            <p className="text-muted-foreground uppercase tracking-wider">Rate % p.a.</p>
+            <input
+              type="number" min={0} step={0.1}
+              value={solverRate}
+              placeholder={midRate.toFixed(2)}
+              onChange={(e) => setSolverRate(e.target.value)}
+              className="w-full bg-transparent font-mono text-foreground text-xs outline-none"
+            />
+          </div>
+          <div className="bg-white/5 rounded px-2 py-1.5">
+            <p className="text-muted-foreground uppercase tracking-wider">Term (mo)</p>
+            <input
+              type="number" min={1} step={1}
+              value={solverTerm}
+              placeholder={String(solverRow.termMonths)}
+              onChange={(e) => setSolverTerm(e.target.value)}
+              className="w-full bg-transparent font-mono text-foreground text-xs outline-none"
+            />
+          </div>
+        </div>
+
+        {target > 0 ? (
+          <div className="mt-3 text-[11px] leading-relaxed">
+            <div className="flex justify-between font-mono">
+              <span className="text-muted-foreground">Required monthly</span>
+              <span className="text-foreground">{fmt(requiredMonthly)}</span>
+            </div>
+            <div className="flex justify-between font-mono">
+              <span className="text-muted-foreground">Available (M)</span>
+              <span className="text-foreground">{fmt(M)}</span>
+            </div>
+            <div className="flex justify-between font-mono">
+              <span className="text-muted-foreground">Implied DSCR</span>
+              <span className={dscrOkForSolver ? "text-emerald-400" : "text-red-400"}>
+                {impliedDSCR.toFixed(2)} (min {solverRow.dscrMin.toFixed(2)})
+              </span>
+            </div>
+            <p className={`mt-2 ${serviceable ? "text-emerald-400" : "text-red-400"}`}>
+              {serviceable
+                ? `Serviceable now — ${solverRow.facility.toLowerCase()} at ~${activeRate.toFixed(1)}% over ${(activeTerm/12).toFixed(activeTerm % 12 === 0 ? 0 : 1)} yr needs ${fmt(requiredMonthly)}/mo; you have ${fmt(M)}/mo (DSCR ${impliedDSCR.toFixed(2)}).`
+                : `To borrow ${fmt(target)} as ${solverRow.facility.toLowerCase()}: ${serviceabilityGap < 0 ? `${fmt(Math.abs(serviceabilityGap))}/mo short` : `serviceable but DSCR ${impliedDSCR.toFixed(2)} < ${solverRow.dscrMin.toFixed(2)}`}.`}
+            </p>
+            {levers && (
+              <div className="mt-1.5 text-muted-foreground">
+                <p>Levers to close gap:</p>
+                <ul className="list-disc list-inside space-y-0.5 mt-0.5">
+                  <li>Lift blended income ~{fmt(levers.incomeLift)}/mo (80% buffer).</li>
+                  {levers.closes.length > 0 && (
+                    <li>Close {levers.closes.map((c) => `${c.name} (+${fmt(c.monthly)}/mo)`).join(", ")}.</li>
+                  )}
+                  {levers.longerTerm && (
+                    <li>Extend term to {levers.longerTerm} mo → req {fmt(pmt(target, activeRate, levers.longerTerm))}/mo.</li>
+                  )}
+                </ul>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="mt-3 text-[10px] text-muted-foreground italic">Enter a target amount to run the solver.</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const ScorecardDetailPanel = ({
   activeTile, onClose, metrics,
   grossProfitYTD, annualInterestCost, totalMonthlyRepayment,
