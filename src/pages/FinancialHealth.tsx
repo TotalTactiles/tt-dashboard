@@ -2286,10 +2286,9 @@ const LenderFitPanel = ({
 
   // ---- Reverse solver ----
   const mapDefaultToMatrixKey = (k: string): string => {
+    if (k === "custom") return "custom";
     if (matrix.some((r) => r.key === k)) return k;
-    if (k === "residential_property") return "commercial_property";
-    if (k === "custom") return "secured_term";
-    return "secured_term";
+    return "secured_business";
   };
   const [solverFacilityKey, setSolverFacilityKey] = useState<string>(mapDefaultToMatrixKey(defaultFacilityKey));
   const [targetInput, setTargetInput] = useState<string>("");
