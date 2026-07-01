@@ -1481,7 +1481,7 @@ const ChartsSection = ({
                         </p>
 
                         {lenderExpanded && (() => {
-                          const blended = Number(debtStripped.avg6MonthBlended) || 0;
+                          const blended = Number(debtStripped.avg6Blended) || 0;
                           const usable = Number(debtStripped.lenderUsableIncome) || 0;
                           const commitments = Number(totalMonthlyRepayment) || 0;
                           const M = Number(debtStripped.maxNewRepayment) || 0;
