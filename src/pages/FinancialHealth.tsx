@@ -3,7 +3,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Check, X, Trash2, GripVertical } from "lucide-react";
+import { Plus, Pencil, Check, X, Trash2, GripVertical, ChevronDown } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import {
   BarChart, Bar, LineChart, Line, ComposedChart, PieChart, Pie, Cell,
