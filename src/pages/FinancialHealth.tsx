@@ -1274,7 +1274,7 @@ const ChartsSection = ({
       _pastActuals,
       _forwardContracted,
     };
-  }, [io, liveData, ylwValue, forecastChartData, totalMonthlyRepayment, serviceabilityView, earnedVsDebtData]);
+  }, [io, liveData, ylwValue, forecastChartData, totalMonthlyRepayment, serviceabilityView, earnedVsDebtData, grnFactor, ylwFactor]);
 
 
 
