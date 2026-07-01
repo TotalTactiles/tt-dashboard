@@ -2040,6 +2040,13 @@ const ChartsSection = ({
                 <span className="text-xs text-muted-foreground">Principal Repaid to Date</span>
                 <span className="text-sm font-mono font-semibold text-emerald-400">{fmtAUD(debtPositionAsOf.repaid)}</span>
               </div>
+              <div className="flex justify-between items-center py-2 border-b border-white/5">
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground">Interest Paid to Date</span>
+                  <span className="text-[10px] text-muted-foreground/60 italic">Principal + interest: {fmtAUD(debtPositionAsOf.repaid + debtPositionAsOf.interest)}</span>
+                </div>
+                <span className="text-sm font-mono font-semibold text-rose-300/90">{fmtAUD(debtPositionAsOf.interest)}</span>
+              </div>
               <div className="flex justify-between items-center pt-2 pb-1 mt-1"
                 style={{ borderTop: "2px solid rgba(255,255,255,0.15)", borderBottom: "3px double rgba(255,255,255,0.15)" }}>
                 <span className="text-xs font-semibold text-foreground">Still Outstanding</span>
