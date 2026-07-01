@@ -131,6 +131,7 @@ interface DebtRegisterRowProps {
   computedBalance: number;
   computedRepaid: number;
   computedInterest: number;
+  computedRepaymentsRemaining: number;
   flat: boolean;
   isDragOver: boolean;
   autoEdit: boolean;
@@ -144,7 +145,7 @@ interface DebtRegisterRowProps {
 }
 
 const DebtRegisterRow = memo(({
-  facility, computedBalance, computedRepaid, computedInterest, flat, isDragOver, autoEdit,
+  facility, computedBalance, computedRepaid, computedInterest, computedRepaymentsRemaining, flat, isDragOver, autoEdit,
   onSave, onDelete, onAutoEditConsumed,
   onDragStart, onDragOver, onDrop, onDragEnd,
 }: DebtRegisterRowProps) => {
