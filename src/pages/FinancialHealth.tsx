@@ -2306,126 +2306,161 @@ const LenderFitPanel = ({
   const annualTurnover = profile.annualTurnover ?? autoAnnualTurnover;
   const currentDSCR = existingCommitments > 0 ? blendedIncome / existingCommitments : Infinity;
 
-  // ---- Eligibility signal per row ----
-  const rowSignal = (row: LenderRow) => {
+
+
+
+  // ---- Merged solver: one optional target, per-row expand with researched rate/term ----
+  const [targetInput, setTargetInput] = useState<string>("");
+  const [expandedKey, setExpandedKey] = useState<string | null>(() => {
+    // Default-expand the row matching the Borrowing Capacity selector.
+    if (defaultFacilityKey && DEFAULT_LENDER_MATRIX.some((r) => r.key === defaultFacilityKey)) return defaultFacilityKey;
+    return null;
+  });
+  const [rowOverrides, setRowOverrides] = useState<Record<string, { rate?: string; term?: string }>>({});
+  const setRowRate = (k: string, v: string) =>
+    setRowOverrides((s) => ({ ...s, [k]: { ...(s[k] || {}), rate: v } }));
+  const setRowTerm = (k: string, v: string) =>
+    setRowOverrides((s) => ({ ...s, [k]: { ...(s[k] || {}), term: v } }));
+
+  const target = Number(targetInput) > 0 ? Number(targetInput) : 0;
+  const fmt = (n: number) => `$${Math.round(n || 0).toLocaleString("en-AU")}`;
+
+  // Present value of an annuity: PV = M * (1 - (1+r)^-n) / r
+  const pv = (monthly: number, annualRatePct: number, months: number) => {
+    const r = (annualRatePct / 100) / 12;
+    if (!monthly || !months) return 0;
+    if (r === 0) return monthly * months;
+    return monthly * (1 - Math.pow(1 + r, -months)) / r;
+  };
+
+  type RowCalc = {
+    row: LenderRow;
+    activeRate: number;
+    activeTerm: number;
+    midRate: number;
+    isResidential: boolean;
+    maxCap: number;
+    reqMonthly: number;
+    impliedDSCR: number;
+    serviceable: boolean;
+    tone: "green" | "amber" | "red" | "muted";
+    verdictLabel: string;
+    reason: string;
+  };
+
+  const computeRow = (row: LenderRow): RowCalc => {
+    const isResidential = row.key === "residential_property";
+    const override = rowOverrides[row.key] || {};
+    const midRate = (row.rateLow + row.rateHigh) / 2;
+    const activeRate = Number(override.rate) > 0 ? Number(override.rate) : midRate;
+    const activeTerm = Number(override.term) > 0 ? Number(override.term) : row.termMonths;
+    const maxCap = pv(M, activeRate, activeTerm);
+    const reqMonthly = target > 0 ? pmt(target, activeRate, activeTerm) : 0;
+    const impliedDSCR = target > 0 && (existingCommitments + reqMonthly) > 0
+      ? blendedIncome / (existingCommitments + reqMonthly)
+      : currentDSCR;
+    const serviceable = target > 0 && reqMonthly <= M && impliedDSCR >= row.dscrMin;
+
+    if (isResidential) {
+      const hasTrading = tradingYears >= row.minTradingYrs;
+      const tone: RowCalc["tone"] = "muted";
+      const verdictLabel = "Personal assessment";
+      const reason = hasTrading
+        ? "assessed on personal income — APRA +3% buffer, DTI ≤6×, HEM"
+        : `needs ${row.minTradingYrs}+ yrs trading · assessed on personal income`;
+      return { row, activeRate, activeTerm, midRate, isResidential, maxCap, reqMonthly, impliedDSCR, serviceable, tone, verdictLabel, reason };
+    }
+
     const needsSecurity = row.security !== "None";
     const hasTrading = tradingYears >= row.minTradingYrs;
     const hasSec = !needsSecurity || profile.securityAvailable;
     const dscrOk = currentDSCR >= row.dscrMin;
-    const dscrClose = currentDSCR >= row.dscrMin - 0.15;
-    let tone: "green" | "amber" | "red" = "red";
+    const dscrClose = currentDSCR >= row.dscrMin - 0.15 && !dscrOk;
+    const dscrCurrentStr = isFinite(currentDSCR) ? currentDSCR.toFixed(2) : "∞";
+
+    // Eligible
+    if (hasTrading && hasSec && dscrOk && (target === 0 || serviceable)) {
+      const parts: string[] = [];
+      if (row.minTradingYrs > 0) parts.push(`${row.minTradingYrs}+ yrs ✓`);
+      parts.push(`DSCR ${dscrCurrentStr} ≥ ${row.dscrMin.toFixed(2)} ✓`);
+      if (needsSecurity) parts.push("security ✓");
+      parts.push(target > 0 ? `req ${fmt(reqMonthly)}/mo ≤ ${fmt(M)}` : `max ~${fmt(maxCap)}`);
+      return { row, activeRate, activeTerm, midRate, isResidential, maxCap, reqMonthly, impliedDSCR, serviceable, tone: "green", verdictLabel: "Eligible", reason: parts.join(" · ") };
+    }
+
+    // Maybe — trading + DSCR pass but a soft blocker
+    const targetSoftOver = target > 0 && maxCap > 0 && target > maxCap && target <= maxCap * 1.10;
+    if (
+      hasTrading &&
+      (
+        (dscrOk && needsSecurity && !profile.securityAvailable) ||
+        (dscrClose && hasSec) ||
+        (dscrOk && hasSec && targetSoftOver)
+      )
+    ) {
+      let reason = "borderline";
+      if (dscrClose && hasSec) reason = `DSCR close — ${dscrCurrentStr} vs ${row.dscrMin.toFixed(2)}`;
+      else if (needsSecurity && !profile.securityAvailable) reason = "needs asset security confirmed";
+      else if (targetSoftOver) reason = `target ~${Math.round(((target - maxCap) / maxCap) * 100)}% over max (${fmt(maxCap)})`;
+      return { row, activeRate, activeTerm, midRate, isResidential, maxCap, reqMonthly, impliedDSCR, serviceable, tone: "amber", verdictLabel: "Maybe", reason };
+    }
+
+    // Not yet — pick the deciding factor
     let reason = "";
-    if (hasTrading && hasSec && dscrOk) {
-      tone = "green";
-      reason = `DSCR ${isFinite(currentDSCR) ? currentDSCR.toFixed(2) : "∞"} ≥ ${row.dscrMin.toFixed(2)} ✓${row.minTradingYrs > 0 ? `, ${row.minTradingYrs}+ yr ✓` : ""}`;
-    } else if (hasTrading && (dscrClose || (needsSecurity && !profile.securityAvailable && dscrOk))) {
-      tone = "amber";
-      const parts: string[] = [];
-      if (needsSecurity && !profile.securityAvailable) parts.push("needs security confirmed");
-      if (!dscrOk && dscrClose) parts.push(`DSCR ${currentDSCR.toFixed(2)} near ${row.dscrMin.toFixed(2)}`);
-      reason = parts.join(" · ") || "borderline";
-    } else {
-      const parts: string[] = [];
-      if (!hasTrading) parts.push(`needs ${row.minTradingYrs}+ yrs trading`);
-      if (needsSecurity && !profile.securityAvailable) parts.push("needs asset security");
-      if (!dscrOk && !dscrClose) parts.push(`DSCR ${isFinite(currentDSCR) ? currentDSCR.toFixed(2) : "∞"} < ${row.dscrMin.toFixed(2)}`);
-      reason = parts.join(" · ");
-    }
-    return { tone, reason };
+    if (!hasTrading) reason = `needs ${row.minTradingYrs}+ yrs trading (you: ${tradingYears.toFixed(1)})`;
+    else if (!dscrOk && !dscrClose) reason = `DSCR ${dscrCurrentStr} well below ${row.dscrMin.toFixed(2)}`;
+    else if (target > 0 && target > maxCap * 1.10) reason = `target ${fmt(target)} well beyond max (${fmt(maxCap)})`;
+    else if (needsSecurity && !profile.securityAvailable) reason = "asset security required — not confirmed";
+    else if (target > 0 && !serviceable) reason = `req ${fmt(reqMonthly)}/mo > ${fmt(M)} available`;
+    else reason = "does not meet criteria";
+    return { row, activeRate, activeTerm, midRate, isResidential, maxCap, reqMonthly, impliedDSCR, serviceable, tone: "red", verdictLabel: "Not yet", reason };
   };
 
-  // ---- Reverse solver ----
-  const mapDefaultToMatrixKey = (k: string): string => {
-    if (k === "custom") return "custom";
-    if (matrix.some((r) => r.key === k)) return k;
-    return "secured_business";
-  };
-  const [solverFacilityKey, setSolverFacilityKey] = useState<string>(mapDefaultToMatrixKey(defaultFacilityKey));
-  const [targetInput, setTargetInput] = useState<string>("");
-  const [solverRate, setSolverRate] = useState<string>("");
-  const [solverTerm, setSolverTerm] = useState<string>("");
+  const rowCalcs = matrix.map(computeRow);
+  const expandedCalc = expandedKey ? rowCalcs.find((c) => c.row.key === expandedKey) ?? null : null;
 
-  const CUSTOM_SOLVER_ROW: LenderRow = { key: "custom", facility: "Custom", tier: "—", rateLow: 7, rateHigh: 7, termMonths: 60, minTradingYrs: 0, security: "None", dscrMin: 1.25 };
-  const solverRow = solverFacilityKey === "custom" ? CUSTOM_SOLVER_ROW : (matrix.find((r) => r.key === solverFacilityKey) ?? matrix[0]);
-  const midRate = (solverRow.rateLow + solverRow.rateHigh) / 2;
-  const activeRate = Number(solverRate) > 0 ? Number(solverRate) : midRate;
-  const activeTerm = Number(solverTerm) > 0 ? Number(solverTerm) : solverRow.termMonths;
-  const target = Number(targetInput) > 0 ? Number(targetInput) : 0;
-
-  const requiredMonthly = target > 0 ? pmt(target, activeRate, activeTerm) : 0;
-  const impliedDSCR = target > 0 && (existingCommitments + requiredMonthly) > 0
-    ? blendedIncome / (existingCommitments + requiredMonthly)
-    : currentDSCR;
-  const serviceabilityGap = M - requiredMonthly;
-
-  // Levers when short
-  const levers = useMemo(() => {
-    if (target <= 0 || serviceabilityGap >= 0) return null;
-    const shortfall = requiredMonthly - M;
-    const incomeLift = shortfall / 0.80;
-    // Existing facilities sorted smallest-first whose removal would bridge shortfall
-    const sorted = [...debts]
-      .map((d) => ({ name: d.name || "facility", monthly: Number(d.monthlyRepayment) || 0 }))
-      .filter((d) => d.monthly > 0)
-      .sort((a, b) => a.monthly - b.monthly);
-    const closes: { name: string; monthly: number }[] = [];
-    let running = 0;
-    for (const f of sorted) {
-      if (running >= shortfall) break;
-      closes.push(f);
-      running += f.monthly;
-    }
-    // Longer term
-    let longerTerm: number | null = null;
-    for (const t of [72, 84, 96, 120, 180, 240]) {
-      if (t <= activeTerm) continue;
-      const req = pmt(target, activeRate, t);
-      if (req <= M) { longerTerm = t; break; }
-    }
-    return { shortfall, incomeLift, closes, longerTerm };
-  }, [target, serviceabilityGap, requiredMonthly, M, debts, activeRate, activeTerm]);
-
-  const fmt = (n: number) => `$${Math.round(n || 0).toLocaleString("en-AU")}`;
-  const dscrOkForSolver = impliedDSCR >= solverRow.dscrMin;
-  const serviceable = target > 0 && serviceabilityGap >= 0 && dscrOkForSolver;
-
-  // ---- Consultant handoff ----
+  // ---- Consultant handoff (carries expanded row context if any) ----
   const handoff = () => {
-    const summary = target > 0
-      ? `We want to borrow ${fmt(target)} as a ${solverRow.facility.toLowerCase()}. On our figures we're at implied DSCR ${impliedDSCR.toFixed(2)} with ${fmt(M)}/mo serviceability. Which current AU lenders offer this near ${activeRate.toFixed(1)}%, what would they require from us, and would we qualify?`
-      : `We're exploring a ${solverRow.facility.toLowerCase()}. Current serviceability is ${fmt(M)}/mo, blended income ${fmt(blendedIncome)}/mo, existing commitments ${fmt(existingCommitments)}/mo, DSCR ${isFinite(currentDSCR) ? currentDSCR.toFixed(2) : "n/a"}. Which current AU lenders should we look at, and what would they require?`;
+    const c = expandedCalc;
+    const dscrStr = isFinite(currentDSCR) ? currentDSCR.toFixed(2) : "n/a";
+    const summary = c
+      ? (target > 0
+          ? `We want to borrow ${fmt(target)} as a ${c.row.facility.toLowerCase()}. On our figures we're at implied DSCR ${c.impliedDSCR.toFixed(2)} with ${fmt(M)}/mo serviceability. Verdict: ${c.verdictLabel}. Which current AU lenders offer this near ${c.activeRate.toFixed(1)}% over ${c.activeTerm} mo, what would they require, and would we qualify?`
+          : `We're exploring a ${c.row.facility.toLowerCase()} at ~${c.activeRate.toFixed(1)}% over ${c.activeTerm} mo (max ~${fmt(c.maxCap)}). Verdict: ${c.verdictLabel}. Which current AU lenders should we look at, and what would they require?`)
+      : `We're exploring options against ${fmt(M)}/mo serviceability, blended income ${fmt(blendedIncome)}/mo, DSCR ${dscrStr}. Which AU lenders should we look at?`;
     const context = [
       "LENDER FIT CONTEXT (from Financial Health):",
       `• Target: ${target > 0 ? fmt(target) : "not specified"}`,
-      `• Facility: ${solverRow.facility} (tier: ${solverRow.tier})`,
-      `• Rate assumed: ${activeRate.toFixed(2)}% p.a. · Term: ${activeTerm} mo`,
+      c ? `• Facility: ${c.row.facility} (tier: ${c.row.tier})` : "• Facility: (none expanded)",
+      c ? `• Rate researched: ${c.activeRate.toFixed(2)}% p.a. · Term: ${c.activeTerm} mo` : "",
+      c ? `• Max capacity at these terms: ${fmt(c.maxCap)}` : "",
+      c && target > 0 ? `• Required monthly for target: ${fmt(c.reqMonthly)}` : "",
+      c && target > 0 ? `• Implied DSCR after new debt: ${c.impliedDSCR.toFixed(2)} (min ${c.row.dscrMin.toFixed(2)})` : "",
+      c ? `• Verdict: ${c.verdictLabel} — ${c.reason}` : "",
       `• Available for new debt (M): ${fmt(M)}/mo`,
       `• Blended income (6m): ${fmt(blendedIncome)}/mo`,
       `• Existing commitments: ${fmt(existingCommitments)}/mo`,
-      `• Current DSCR: ${isFinite(currentDSCR) ? currentDSCR.toFixed(2) : "n/a"}`,
-      `• Required monthly for target: ${fmt(requiredMonthly)}`,
-      `• Implied DSCR after new debt: ${target > 0 ? impliedDSCR.toFixed(2) : "n/a"} (min ${solverRow.dscrMin.toFixed(2)})`,
-      `• Serviceability gap: ${fmt(serviceabilityGap)}/mo`,
+      `• Current DSCR: ${dscrStr}`,
       `• Trading years: ${tradingYears.toFixed(1)} · Annual turnover: ${fmt(annualTurnover)}`,
       `• Security available: ${profile.securityAvailable ? "yes" : "no"}`,
-      levers ? `• Levers to close gap: reduce commitments by ${fmt(levers.shortfall)}/mo, or lift blended income ~${fmt(levers.incomeLift)}/mo${levers.longerTerm ? `, or extend term to ${levers.longerTerm} mo` : ""}.` : "",
       "",
       summary,
     ].filter(Boolean).join("\n");
     navigate("/consulting", { state: { prefill: context } });
   };
 
-  const toneClasses = (t: "green" | "amber" | "red") =>
+  const toneClasses = (t: "green" | "amber" | "red" | "muted") =>
     t === "green" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
     : t === "amber" ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
-    : "bg-red-500/10 text-red-400 border-red-500/30";
+    : t === "red" ? "bg-red-500/10 text-red-400 border-red-500/30"
+    : "bg-white/5 text-muted-foreground border-white/10";
 
   return (
     <div className="chart-container">
       <div className="flex items-start justify-between mb-1 gap-2">
         <div>
           <p className="text-sm font-medium text-foreground">Lender Fit & Borrowing Readiness</p>
-          <p className="text-[10px] text-muted-foreground font-mono">Indicative AU averages, June 2026 — editable</p>
+          <p className="text-[10px] text-muted-foreground font-mono">Indicative AU averages, June 2026 — click a facility to research it</p>
         </div>
         <button
           type="button"
@@ -2477,121 +2512,107 @@ const LenderFitPanel = ({
         Current DSCR (blended income ÷ existing commitments): <span className="text-foreground">{isFinite(currentDSCR) ? currentDSCR.toFixed(2) : "∞"}</span>
       </p>
 
-      {/* Matrix */}
+      {/* Target — flows into every row's verdict */}
+      <div className="mt-3 bg-white/5 rounded px-2 py-1.5 text-[10px]">
+        <p className="text-muted-foreground uppercase tracking-wider">Target borrow amount <span className="normal-case tracking-normal text-muted-foreground/70">— leave blank to see max capacity per facility</span></p>
+        <input
+          type="number" min={0} step={10000}
+          value={targetInput}
+          placeholder="e.g. 200000"
+          onChange={(e) => setTargetInput(e.target.value)}
+          className="w-full bg-transparent font-mono text-foreground text-sm outline-none"
+        />
+      </div>
+
+      {/* Matrix — expandable rows */}
       <div className="mt-3 space-y-1">
-        {matrix.map((row) => {
-          const isResidential = row.key === "residential_property";
-          const sig = isResidential
-            ? { tone: "amber" as const, reason: "assessed on personal income (APRA +3% buffer, DTI ≤6×, HEM) — separate from business DSCR" }
-            : rowSignal(row);
-          const verdictLabel = isResidential
-            ? "Personal"
-            : (sig.tone === "green" ? "Eligible" : sig.tone === "amber" ? "Marginal" : "Not yet");
+        {rowCalcs.map((c) => {
+          const isOpen = expandedKey === c.row.key;
+          const override = rowOverrides[c.row.key] || {};
           return (
-            <div key={row.key} className={`flex items-center gap-2 px-2 py-1.5 rounded border text-[10px] ${toneClasses(sig.tone)}`}>
-              <div className="flex-1 min-w-0">
-                <p className="text-foreground font-medium truncate">{row.facility}</p>
-                <p className="text-muted-foreground font-mono truncate">
-                  {row.rateLow.toFixed(1)}–{row.rateHigh.toFixed(1)}% · {Math.round(row.termMonths / 12)}yr · {isResidential ? "consumer rules" : `DSCR ≥ ${row.dscrMin.toFixed(2)}`} · {row.security}
-                </p>
-              </div>
-              <div className="text-right shrink-0 max-w-[45%]">
-                <p className="font-mono uppercase tracking-wider">{verdictLabel}</p>
-                <p className="text-muted-foreground truncate">{sig.reason}</p>
-              </div>
+            <div key={c.row.key} className={`rounded border text-[10px] ${toneClasses(c.tone)}`}>
+              <button
+                type="button"
+                onClick={() => setExpandedKey(isOpen ? null : c.row.key)}
+                className="w-full flex items-center gap-2 px-2 py-1.5 text-left"
+                aria-expanded={isOpen}
+              >
+                <ChevronDown className={`h-3 w-3 transition-transform shrink-0 ${isOpen ? "" : "-rotate-90"}`} />
+                <span className="flex-1 min-w-0 text-foreground font-medium truncate">{c.row.facility}</span>
+                <span className="font-mono uppercase tracking-wider shrink-0">{c.verdictLabel}</span>
+              </button>
+
+              {isOpen && (
+                <div className="border-t border-white/10 px-2 py-2 space-y-2 text-foreground/90">
+                  {/* Editable researched rate / term */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-white/5 rounded px-2 py-1.5">
+                      <p className="text-muted-foreground uppercase tracking-wider">Rate % p.a.</p>
+                      <input
+                        type="number" min={0} step={0.1}
+                        value={override.rate ?? ""}
+                        placeholder={c.midRate.toFixed(2)}
+                        onChange={(e) => setRowRate(c.row.key, e.target.value)}
+                        className="w-full bg-transparent font-mono text-foreground text-xs outline-none"
+                      />
+                    </div>
+                    <div className="bg-white/5 rounded px-2 py-1.5">
+                      <p className="text-muted-foreground uppercase tracking-wider">Term (mo)</p>
+                      <input
+                        type="number" min={1} step={1}
+                        value={override.term ?? ""}
+                        placeholder={String(c.row.termMonths)}
+                        onChange={(e) => setRowTerm(c.row.key, e.target.value)}
+                        className="w-full bg-transparent font-mono text-foreground text-xs outline-none"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-muted-foreground/70 font-mono">
+                    AU avg — replace with the rate/term you've researched · Security: {c.row.security}{c.isResidential ? "" : ` · DSCR ≥ ${c.row.dscrMin.toFixed(2)}`}
+                  </p>
+
+                  {/* Computed figures */}
+                  <div className="font-mono text-[11px] space-y-0.5">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Max at these terms</span>
+                      <span className="text-foreground">{fmt(c.maxCap)}</span>
+                    </div>
+                    {target > 0 && (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Required monthly for {fmt(target)}</span>
+                          <span className="text-foreground">{fmt(c.reqMonthly)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Available (M)</span>
+                          <span className="text-foreground">{fmt(M)}</span>
+                        </div>
+                        {!c.isResidential && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Implied DSCR</span>
+                            <span className={c.impliedDSCR >= c.row.dscrMin ? "text-emerald-400" : "text-red-400"}>
+                              {c.impliedDSCR.toFixed(2)} (min {c.row.dscrMin.toFixed(2)})
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Verdict reasoning */}
+                  <p className={`text-[11px] leading-snug ${
+                    c.tone === "green" ? "text-emerald-400"
+                    : c.tone === "amber" ? "text-amber-400"
+                    : c.tone === "red" ? "text-red-400"
+                    : "text-muted-foreground"
+                  }`}>
+                    <span className="font-mono uppercase tracking-wider">{c.verdictLabel}:</span> {c.reason}
+                  </p>
+                </div>
+              )}
             </div>
           );
         })}
-      </div>
-
-      {/* Reverse solver */}
-      <div className="mt-3 pt-3 border-t border-white/10">
-        <p className="text-xs font-medium text-foreground mb-2">Reverse solver — can we borrow X?</p>
-        <div className="grid grid-cols-2 gap-2 text-[10px]">
-          <div className="bg-white/5 rounded px-2 py-1.5">
-            <p className="text-muted-foreground uppercase tracking-wider">Target amount</p>
-            <input
-              type="number" min={0} step={10000}
-              value={targetInput}
-              placeholder="e.g. 200000"
-              onChange={(e) => setTargetInput(e.target.value)}
-              className="w-full bg-transparent font-mono text-foreground text-xs outline-none"
-            />
-          </div>
-          <div className="bg-white/5 rounded px-2 py-1.5">
-            <p className="text-muted-foreground uppercase tracking-wider">Facility</p>
-            <select
-              value={solverFacilityKey}
-              onChange={(e) => { setSolverFacilityKey(e.target.value); setSolverRate(""); setSolverTerm(""); }}
-              className="w-full bg-transparent font-mono text-foreground text-xs outline-none"
-            >
-              {matrix.map((r) => (
-                <option key={r.key} value={r.key} className="bg-[#1a1a2e]">{r.facility}</option>
-              ))}
-              <option value="custom" className="bg-[#1a1a2e]">Custom</option>
-            </select>
-          </div>
-          <div className="bg-white/5 rounded px-2 py-1.5">
-            <p className="text-muted-foreground uppercase tracking-wider">Rate % p.a.</p>
-            <input
-              type="number" min={0} step={0.1}
-              value={solverRate}
-              placeholder={midRate.toFixed(2)}
-              onChange={(e) => setSolverRate(e.target.value)}
-              className="w-full bg-transparent font-mono text-foreground text-xs outline-none"
-            />
-          </div>
-          <div className="bg-white/5 rounded px-2 py-1.5">
-            <p className="text-muted-foreground uppercase tracking-wider">Term (mo)</p>
-            <input
-              type="number" min={1} step={1}
-              value={solverTerm}
-              placeholder={String(solverRow.termMonths)}
-              onChange={(e) => setSolverTerm(e.target.value)}
-              className="w-full bg-transparent font-mono text-foreground text-xs outline-none"
-            />
-          </div>
-        </div>
-
-        {target > 0 ? (
-          <div className="mt-3 text-[11px] leading-relaxed">
-            <div className="flex justify-between font-mono">
-              <span className="text-muted-foreground">Required monthly</span>
-              <span className="text-foreground">{fmt(requiredMonthly)}</span>
-            </div>
-            <div className="flex justify-between font-mono">
-              <span className="text-muted-foreground">Available (M)</span>
-              <span className="text-foreground">{fmt(M)}</span>
-            </div>
-            <div className="flex justify-between font-mono">
-              <span className="text-muted-foreground">Implied DSCR</span>
-              <span className={dscrOkForSolver ? "text-emerald-400" : "text-red-400"}>
-                {impliedDSCR.toFixed(2)} (min {solverRow.dscrMin.toFixed(2)})
-              </span>
-            </div>
-            <p className={`mt-2 ${serviceable ? "text-emerald-400" : "text-red-400"}`}>
-              {serviceable
-                ? `Serviceable now — ${solverRow.facility.toLowerCase()} at ~${activeRate.toFixed(1)}% over ${(activeTerm/12).toFixed(activeTerm % 12 === 0 ? 0 : 1)} yr needs ${fmt(requiredMonthly)}/mo; you have ${fmt(M)}/mo (DSCR ${impliedDSCR.toFixed(2)}).`
-                : `To borrow ${fmt(target)} as ${solverRow.facility.toLowerCase()}: ${serviceabilityGap < 0 ? `${fmt(Math.abs(serviceabilityGap))}/mo short` : `serviceable but DSCR ${impliedDSCR.toFixed(2)} < ${solverRow.dscrMin.toFixed(2)}`}.`}
-            </p>
-            {levers && (
-              <div className="mt-1.5 text-muted-foreground">
-                <p>Levers to close gap:</p>
-                <ul className="list-disc list-inside space-y-0.5 mt-0.5">
-                  <li>Lift blended income ~{fmt(levers.incomeLift)}/mo (80% buffer).</li>
-                  {levers.closes.length > 0 && (
-                    <li>Close {levers.closes.map((c) => `${c.name} (+${fmt(c.monthly)}/mo)`).join(", ")}.</li>
-                  )}
-                  {levers.longerTerm && (
-                    <li>Extend term to {levers.longerTerm} mo → req {fmt(pmt(target, activeRate, levers.longerTerm))}/mo.</li>
-                  )}
-                </ul>
-              </div>
-            )}
-          </div>
-        ) : (
-          <p className="mt-3 text-[10px] text-muted-foreground italic">Enter a target amount to run the solver.</p>
-        )}
       </div>
     </div>
   );
