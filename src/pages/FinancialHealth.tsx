@@ -1451,6 +1451,49 @@ const ChartsSection = ({
               >{opt.label}</button>
             ))}
           </div>
+
+          {/* Editable blend factors (persisted). Also act as a conservatism buffer. */}
+          {serviceabilityView !== "actuals" && (
+            <div className="inline-flex items-center gap-3 bg-white/5 rounded-xl px-3 py-1.5 border border-white/10">
+              <span className="text-[9px] uppercase tracking-widest font-mono text-muted-foreground">Factors:</span>
+              <label className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground">
+                GRN
+                <input
+                  type="number" min={0} max={150} step={1}
+                  value={Math.round(grnFactor * 100)}
+                  onChange={(e) => {
+                    const v = Math.max(0, Math.min(150, Number(e.target.value) || 0));
+                    setSvcFactors(s => ({ ...s, grnFactor: v / 100 }));
+                  }}
+                  className="w-14 bg-black/40 border border-white/10 rounded px-1.5 py-0.5 text-foreground font-mono text-[11px] text-right focus:outline-none focus:ring-1 focus:ring-chart-green/40"
+                  title="Weighting applied to signed/won (GRN) forward revenue. 100% = full value; lower = conservatism buffer."
+                />
+                <span className="text-muted-foreground">%</span>
+              </label>
+              {serviceabilityView === "with_ylw" && (
+                <label className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground">
+                  YLW
+                  <input
+                    type="number" min={0} max={150} step={1}
+                    value={Math.round(ylwFactor * 100)}
+                    onChange={(e) => {
+                      const v = Math.max(0, Math.min(150, Number(e.target.value) || 0));
+                      setSvcFactors(s => ({ ...s, ylwFactor: v / 100 }));
+                    }}
+                    className="w-14 bg-black/40 border border-white/10 rounded px-1.5 py-0.5 text-foreground font-mono text-[11px] text-right focus:outline-none focus:ring-1 focus:ring-chart-green/40"
+                    title="Weighting applied to verbal-confirmed (YLW) pipeline. Default 90%. Dial down for a cautious/lender-facing view."
+                  />
+                  <span className="text-muted-foreground">%</span>
+                </label>
+              )}
+              <button
+                type="button"
+                onClick={() => setSvcFactors({ grnFactor: 1.0, ylwFactor: 0.9 })}
+                className="text-[9px] font-mono text-muted-foreground hover:text-foreground underline"
+                title="Reset to defaults (GRN 100%, YLW 90%)"
+              >reset</button>
+            </div>
+          )}
         </div>
 
         {/* DEBUG PANEL — remove after fixing */}
