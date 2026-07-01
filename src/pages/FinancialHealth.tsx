@@ -1921,38 +1921,18 @@ const ChartsSection = ({
 
       {/* Charts 3a + 3b */}
       <div className="flex flex-col md:flex-row gap-4">
-        {/* 3a: Donut */}
-        <div className="chart-container md:w-2/5">
-          <p className="text-sm font-medium text-foreground mb-0.5">Debt Composition</p>
-          <p className="text-xs text-muted-foreground mb-4">Balance by facility</p>
-          {compositionData.length === 0 ? (
-            <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">No debt entered</div>
-          ) : (
-            <>
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie data={compositionData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={2}>
-                    {compositionData.map((_, i) => (
-                      <Cell key={i} fill={SLICE_COLORS[i % SLICE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CompositionTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="mt-3 space-y-1">
-                {compositionData.map((d, i) => (
-                  <div key={d.name} className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: SLICE_COLORS[i % SLICE_COLORS.length] }} />
-                      <span className="text-muted-foreground">{d.name}</span>
-                    </div>
-                    <span className="font-mono text-foreground">{fmtAUD(d.value)}</span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
+        {/* 3a: Lender Fit & Borrowing Readiness */}
+        <div className="md:w-2/5">
+          <LenderFitPanel
+            blendedIncome={debtStripped.avg6Blended}
+            existingCommitments={debtStripped.existingMonthlyDebt}
+            availableForNewDebt={debtStripped.maxNewRepayment}
+            defaultFacilityKey={selectedFacilityKey}
+            debts={computedDebts}
+            monthlyIncomeSeries={io.map((r) => Number(r?.income) || 0)}
+          />
         </div>
+
 
         {/* 3b: Burden */}
         <div className="chart-container md:w-3/5">
