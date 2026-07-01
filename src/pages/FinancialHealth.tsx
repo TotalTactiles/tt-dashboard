@@ -932,6 +932,33 @@ const ChartsSection = ({
   const [serviceabilityView, setServiceabilityView] = useState<"actuals"|"with_grn"|"with_ylw">("with_grn");
   const [showSvcDebug, setShowSvcDebug] = useState(false);
 
+  // ── Serviceability blend factors (editable, persisted) ──────────────
+  // grnFactor = weighting for signed/won contracts (GRN). Default 100%.
+  // ylwFactor = weighting for verbal-confirmed pipeline (YLW). Default 90%.
+  // Both double as a lender-facing conservatism buffer when dialled down.
+  const SVC_FACTORS_KEY = "tt_serviceability_factors_v1";
+  const [svcFactors, setSvcFactors] = useState<{ grnFactor: number; ylwFactor: number }>(() => {
+    if (typeof window === "undefined") return { grnFactor: 1.0, ylwFactor: 0.9 };
+    try {
+      const raw = window.localStorage.getItem(SVC_FACTORS_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        const g = Number(p?.grnFactor); const y = Number(p?.ylwFactor);
+        return {
+          grnFactor: Number.isFinite(g) && g >= 0 && g <= 1.5 ? g : 1.0,
+          ylwFactor: Number.isFinite(y) && y >= 0 && y <= 1.5 ? y : 0.9,
+        };
+      }
+    } catch {}
+    return { grnFactor: 1.0, ylwFactor: 0.9 };
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try { window.localStorage.setItem(SVC_FACTORS_KEY, JSON.stringify(svcFactors)); } catch {}
+  }, [svcFactors]);
+  const grnFactor = svcFactors.grnFactor;
+  const ylwFactor = svcFactors.ylwFactor;
+
   // Borrowing-capacity editable inputs + Lender Calculation period toggle
   type BorrowCalcState = {
     loanAmount: string; // keep as string for input UX
