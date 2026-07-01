@@ -192,8 +192,28 @@ const DebtRegisterRow = memo(({
       </td>
       <td className="py-1.5 px-2 text-right whitespace-nowrap">
         {isEditing ? (
-          <Input type="number" value={row.balance} onChange={(e) => update("balance", Number(e.target.value))} className="h-7 text-xs text-right" />
-        ) : fmtCurrency(row.balance)}
+          <div className="flex flex-col items-end gap-0.5">
+            <span className="text-xs font-semibold" title="Computed reducing balance as of today">
+              {fmtCurrency(computedBalance)}
+              {flat ? <span className="ml-1 text-amber-400" title="Repayment does not cover interest">⚠</span> : null}
+            </span>
+            <Input
+              type="number"
+              placeholder="Balloon (opt)"
+              value={row.balloon ?? ""}
+              onChange={(e) => update("balloon", e.target.value === "" ? undefined : Number(e.target.value))}
+              className="h-6 text-[10px] text-right w-24"
+            />
+          </div>
+        ) : (
+          <div className="flex flex-col items-end leading-tight">
+            <span>
+              {fmtCurrency(computedBalance)}
+              {flat ? <span className="ml-1 text-amber-400" title="Repayment does not cover interest — balance held flat">⚠</span> : null}
+            </span>
+            <span className="text-[9px] text-muted-foreground">Repaid {fmtCurrency(computedRepaid)}{(row.balloon ?? 0) > 0 ? ` · Balloon ${fmtCurrency(row.balloon || 0)}` : ""}</span>
+          </div>
+        )}
       </td>
       <td className="py-1.5 px-2 text-right whitespace-nowrap">
         {isEditing ? (
