@@ -517,10 +517,15 @@ const FinancialHealth = () => {
                 </tr>
               </thead>
               <tbody className="font-mono">
-                {debts.map((d, index) => (
+                {debts.map((d, index) => {
+                  const c = computedDebts[index];
+                  return (
                   <DebtRegisterRow
                     key={d.id}
                     facility={d}
+                    computedBalance={c?.balance ?? 0}
+                    computedRepaid={c?.principalRepaid ?? 0}
+                    flat={!!c?._flat}
                     isDragOver={dragOverIndex === index}
                     autoEdit={autoEditId === d.id}
                     onAutoEditConsumed={() => setAutoEditId(null)}
