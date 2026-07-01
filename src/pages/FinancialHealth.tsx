@@ -343,7 +343,9 @@ const FinancialHealth = () => {
     const asOf = new Date();
     return debts.map((d) => {
       const a = computeAmortisation(d, asOf);
-      return { ...d, balance: a.balance, principalRepaid: a.principalRepaid, interestPaid: a.interestPaid, _flat: a.flat, paymentsMade: a.paymentsMade };
+      const remainingPayments = Math.max(0, a.nTotal - a.paymentsMade);
+      const repaymentsRemaining = (Number(d.monthlyRepayment) || 0) * remainingPayments;
+      return { ...d, balance: a.balance, principalRepaid: a.principalRepaid, interestPaid: a.interestPaid, _flat: a.flat, paymentsMade: a.paymentsMade, nTotal: a.nTotal, remainingPayments, repaymentsRemaining };
     });
   }, [debts]);
 
@@ -363,7 +365,8 @@ const FinancialHealth = () => {
       }
     }
     const totalInterest = computedDebts.reduce((s, d) => s + (Number((d as any).interestPaid) || 0), 0);
-    return { totalPrincipal, totalBalance, totalRepaid, totalInterest, totalMonthly, blendedRate };
+    const totalRepaymentsRemaining = computedDebts.reduce((s, d) => s + (Number((d as any).repaymentsRemaining) || 0), 0);
+    return { totalPrincipal, totalBalance, totalRepaid, totalInterest, totalMonthly, blendedRate, totalRepaymentsRemaining };
   }, [computedDebts]);
 
   // Dev reconciliation: aggregate Σ(monthly × paymentsMade) vs |row 57| + |row 58| in CASHFLOW
