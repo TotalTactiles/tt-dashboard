@@ -572,7 +572,7 @@ const FinancialHealth = () => {
                     <td className="py-2 px-2 font-semibold whitespace-nowrap w-8 shrink-0"></td>
                     <td className="py-2 px-2 font-semibold text-left whitespace-nowrap" colSpan={3}>Totals</td>
                     <td className="py-2 px-2 text-right font-semibold whitespace-nowrap">{fmtCurrency(totals.totalPrincipal)}</td>
-                    <td className="py-2 px-2 text-right font-semibold whitespace-nowrap">{fmtCurrency(totals.totalBalance)}</td>
+                    <td className="py-2 px-2 text-right font-semibold whitespace-nowrap text-rose-300/90">{fmtCurrency(totals.totalBalance)}</td>
                     <td className="py-2 px-2 text-right font-semibold whitespace-nowrap">{totals.blendedRate.toFixed(2)}%</td>
                     <td className="py-2 px-2 text-right font-semibold whitespace-nowrap">{fmtCurrency(totals.totalMonthly)}</td>
                     <td colSpan={3} className="whitespace-nowrap"></td>
