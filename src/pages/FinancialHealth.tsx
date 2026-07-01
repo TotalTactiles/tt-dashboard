@@ -1312,6 +1312,42 @@ const ChartsSection = ({
     return labels[strippedPeriod] ?? "";
   })();
 
+  // Debt position as at the end of the selected period.
+  // Balance-sheet stocks are read at the period's closing date, while P&L
+  // flows above are summed over the period. Future period-ends project
+  // forward via the amortisation schedule.
+  const MONTH_ABBR_IDX: Record<string, number> = {
+    Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11,
+  };
+  const asOfDebtDate = useMemo(() => {
+    if (strippedMonth) {
+      const [m, yy] = strippedMonth.split("-");
+      const y = 2000 + Number(yy);
+      const mi = MONTH_ABBR_IDX[m] ?? 11;
+      return new Date(y, mi + 1, 0); // last day of that month
+    }
+    if (strippedPeriod === "All") return new Date(2026, 11, 31);
+    const lastMonth = { Q1:2, Q2:5, Q3:8, Q4:11 }[strippedPeriod];
+    return new Date(2026, lastMonth + 1, 0);
+  }, [strippedMonth, strippedPeriod]);
+
+  const debtPositionAsOf = useMemo(() => {
+    let drawn = 0, outstanding = 0;
+    for (const d of debts) {
+      const start = d.startDate ? new Date(d.startDate) : null;
+      if (!start || start > asOfDebtDate) continue;
+      const a = computeAmortisation(d, asOfDebtDate);
+      drawn += Number(d.originalPrincipal) || 0;
+      outstanding += a.balance;
+    }
+    return { drawn, outstanding, repaid: drawn - outstanding };
+  }, [debts, asOfDebtDate]);
+
+  const asOfDebtLabel = useMemo(() => {
+    const m = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][asOfDebtDate.getMonth()];
+    return `${m} ${asOfDebtDate.getFullYear()}`;
+  }, [asOfDebtDate]);
+
   const [expandedPill, setExpandedPill] = useState<number | null>(null);
 
   return (
@@ -1974,24 +2010,24 @@ const ChartsSection = ({
                   : `↓ Costs exceeded revenue by ${fmtAUD(Math.abs(strippedFinancialFigures.netPosition))} this period`}
               </p>
 
-              {/* DEBT POSITION ALL TIME */}
+              {/* DEBT POSITION — AS AT selected period end */}
               <div className="flex items-center gap-2 mb-1">
                 <div className="h-px flex-1 bg-white/10" />
-                <span className="text-[9px] uppercase tracking-[0.15em] font-mono font-semibold text-muted-foreground/60">Debt Position — All Time</span>
+                <span className="text-[9px] uppercase tracking-[0.15em] font-mono font-semibold text-muted-foreground/60">Debt Position — As At {asOfDebtLabel}</span>
                 <div className="h-px flex-1 bg-white/10" />
               </div>
               <div className="flex justify-between items-center py-2 border-b border-white/5">
                 <span className="text-xs text-muted-foreground">Total Facilities Drawn</span>
-                <span className="text-sm font-mono font-semibold text-foreground">{fmtAUD(strippedFinancialFigures.totalBorrowedToDate)}</span>
+                <span className="text-sm font-mono font-semibold text-foreground">{fmtAUD(debtPositionAsOf.drawn)}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-white/5">
                 <span className="text-xs text-muted-foreground">Principal Repaid to Date</span>
-                <span className="text-sm font-mono font-semibold text-emerald-400">{fmtAUD(strippedFinancialFigures.totalRepaidToDate)}</span>
+                <span className="text-sm font-mono font-semibold text-emerald-400">{fmtAUD(debtPositionAsOf.repaid)}</span>
               </div>
               <div className="flex justify-between items-center pt-2 pb-1 mt-1"
                 style={{ borderTop: "2px solid rgba(255,255,255,0.15)", borderBottom: "3px double rgba(255,255,255,0.15)" }}>
                 <span className="text-xs font-semibold text-foreground">Still Outstanding</span>
-                <span className="text-sm font-mono font-bold text-red-400">{fmtAUD(strippedFinancialFigures.totalStillOwed)}</span>
+                <span className="text-sm font-mono font-bold text-red-400">{fmtAUD(debtPositionAsOf.outstanding)}</span>
               </div>
             </div>
           </div>
