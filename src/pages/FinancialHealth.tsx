@@ -111,6 +111,9 @@ const fmtCurrency = (n: number) => `$${(n || 0).toLocaleString("en-AU", { maximu
 // ---------- Debt Register Row (memoised to isolate keystroke re-renders) ----------
 interface DebtRegisterRowProps {
   facility: DebtFacility;
+  computedBalance: number;
+  computedRepaid: number;
+  flat: boolean;
   isDragOver: boolean;
   autoEdit: boolean;
   onSave: (updated: DebtFacility) => void;
