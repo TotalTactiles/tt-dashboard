@@ -233,6 +233,9 @@ const DebtRegisterRow = memo(({
           </div>
         )}
       </td>
+      <td className="py-1.5 px-2 text-right whitespace-nowrap text-rose-300/90" title="Interest paid to date (P&I, ex-fee)">
+        {fmtCurrency(computedInterest)}
+      </td>
       <td className="py-1.5 px-2 text-right whitespace-nowrap">
         {isEditing ? (
           <Input type="number" step="0.01" value={row.rate} onChange={(e) => update("rate", Number(e.target.value))} className="h-7 text-xs text-right" />
