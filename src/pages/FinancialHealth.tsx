@@ -1942,7 +1942,11 @@ const ChartsSection = ({
                                     <span className="text-muted-foreground">Assessable income (6m blended)</span>
                                     <span className="text-foreground">{blended > 0 ? `${_fmt(blended)}/mo` : "—"}</span>
                                   </div>
-                                  <p className="text-[9px] text-muted-foreground/70 italic pl-2">Actuals + signed contracts at 70%.</p>
+                                  <p className="text-[9px] text-muted-foreground/70 italic pl-2">
+                                    {serviceabilityView === "actuals" && "Past actuals only (100%)."}
+                                    {serviceabilityView === "with_grn" && `Actuals + signed contracts at ${Math.round(grnFactor*100)}%.`}
+                                    {serviceabilityView === "with_ylw" && `Actuals + signed at ${Math.round(grnFactor*100)}% + verbal pipeline at ${Math.round(ylwFactor*100)}%.`}
+                                  </p>
                                   <div className="flex justify-between gap-2">
                                     <span className="text-muted-foreground">× 80% serviceability buffer</span>
                                     <span className="text-foreground">{usable > 0 ? `${_fmt(usable)}/mo` : "—"}</span>
