@@ -32,16 +32,25 @@ export interface DebtFacility {
 }
 
 // ---------- Amortisation helper (computed reducing balance) ----------
+// Whole months between two dates (day-of-month adjusted). Used for facility term (nTotal).
 const _monthsBetween = (start: Date, end: Date): number => {
   let m = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
   if (end.getDate() < start.getDate()) m -= 1;
   return m;
 };
 
+// Payments made counts the start-month payment (cashflow reconciles this way).
+// paymentsMade = clamp( monthDiff + (start.day <= asOf.day ? 1 : 0), 0, nTotal )
+const _paymentsMade = (start: Date, asOf: Date, nTotal: number): number => {
+  const monthDiff = (asOf.getFullYear() - start.getFullYear()) * 12 + (asOf.getMonth() - start.getMonth());
+  const bonus = start.getDate() <= asOf.getDate() ? 1 : 0;
+  return Math.max(0, Math.min(nTotal, monthDiff + bonus));
+};
+
 export const computeAmortisation = (
   f: Pick<DebtFacility, "originalPrincipal" | "rate" | "startDate" | "maturityDate" | "balloon">,
   asOf: Date = new Date()
-): { balance: number; principalRepaid: number; flat: boolean } => {
+): { balance: number; principalRepaid: number; flat: boolean; paymentsMade: number } => {
   const P = Number(f.originalPrincipal) || 0;
   const annualRate = Number(f.rate) || 0;
   const i = annualRate / 100 / 12;
@@ -49,12 +58,12 @@ export const computeAmortisation = (
   const start = f.startDate ? new Date(f.startDate) : null;
   const maturity = f.maturityDate ? new Date(f.maturityDate) : null;
   if (!P || !start || !maturity || isNaN(start.getTime()) || isNaN(maturity.getTime())) {
-    return { balance: P, principalRepaid: 0, flat: false };
+    return { balance: P, principalRepaid: 0, flat: false, paymentsMade: 0 };
   }
   const nTotal = Math.max(1, _monthsBetween(start, maturity));
-  if (asOf < start) return { balance: P, principalRepaid: 0, flat: false };
-  if (asOf >= maturity) return { balance: balloon, principalRepaid: Math.max(0, P - balloon), flat: false };
-  const elapsed = Math.max(0, Math.min(nTotal, _monthsBetween(start, asOf)));
+  if (asOf < start) return { balance: P, principalRepaid: 0, flat: false, paymentsMade: 0 };
+  if (asOf >= maturity) return { balance: balloon, principalRepaid: Math.max(0, P - balloon), flat: false, paymentsMade: nTotal };
+  const paymentsMade = _paymentsMade(start, asOf, nTotal);
   let pi: number;
   if (i > 0) {
     pi = (P - balloon / Math.pow(1 + i, nTotal)) * i / (1 - Math.pow(1 + i, -nTotal));
@@ -67,12 +76,12 @@ export const computeAmortisation = (
   if (flat) {
     balance = P;
   } else if (i > 0) {
-    balance = P * Math.pow(1 + i, elapsed) - pi * (Math.pow(1 + i, elapsed) - 1) / i;
+    balance = P * Math.pow(1 + i, paymentsMade) - pi * (Math.pow(1 + i, paymentsMade) - 1) / i;
   } else {
-    balance = P - pi * elapsed;
+    balance = P - pi * paymentsMade;
   }
   balance = Math.max(balloon, Math.min(P, balance));
-  return { balance, principalRepaid: Math.max(0, P - balance), flat };
+  return { balance, principalRepaid: Math.max(0, P - balance), flat, paymentsMade };
 };
 
 export const DEBT_CACHE_KEY = "tt_debt_register";
