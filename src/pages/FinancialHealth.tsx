@@ -1357,7 +1357,7 @@ const ChartsSection = ({
   }, [strippedMonth, strippedPeriod]);
 
   const debtPositionAsOf = useMemo(() => {
-    let drawn = 0, outstanding = 0, interest = 0;
+    let drawn = 0, outstanding = 0, interest = 0, repaymentsRemaining = 0;
     for (const d of debts) {
       const start = d.startDate ? new Date(d.startDate) : null;
       if (!start || start > asOfDebtDate) continue;
@@ -1365,8 +1365,10 @@ const ChartsSection = ({
       drawn += Number(d.originalPrincipal) || 0;
       outstanding += a.balance;
       interest += a.interestPaid;
+      const remainingPayments = Math.max(0, a.nTotal - a.paymentsMade);
+      repaymentsRemaining += (Number(d.monthlyRepayment) || 0) * remainingPayments;
     }
-    return { drawn, outstanding, repaid: drawn - outstanding, interest };
+    return { drawn, outstanding, repaid: drawn - outstanding, interest, repaymentsRemaining };
   }, [debts, asOfDebtDate]);
 
   const asOfDebtLabel = useMemo(() => {
