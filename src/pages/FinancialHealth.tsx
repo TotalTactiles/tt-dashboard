@@ -1416,11 +1416,6 @@ const ChartsSection = ({
               >{opt.label}</button>
             ))}
           </div>
-          <span className="text-[10px] text-muted-foreground italic font-mono">
-            {serviceabilityView === "actuals" && "Conservative — past income only"}
-            {serviceabilityView === "with_grn" && "Standard — signed contracts counted at 70%"}
-            {serviceabilityView === "with_ylw" && "Optimistic — all pipeline counted at 70%"}
-          </span>
         </div>
 
         {/* DEBUG PANEL — remove after fixing */}
