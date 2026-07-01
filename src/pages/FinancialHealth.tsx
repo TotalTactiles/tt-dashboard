@@ -1181,12 +1181,20 @@ const ChartsSection = ({
     const periodRevenue = rows.reduce((s: number, d: any) => s + (d.earnedRevenue || 0), 0);
     const periodDebtRepayments = rows.reduce((s: number, d: any) => s + (d.debtDrawdown || 0), 0);
     const periodOutgoings = rows.reduce((s: number, d: any) => s + (d.operatingCosts || 0), 0);
-    const totalBorrowedToDate = debts.reduce((s, f) => s + (Number(f.originalPrincipal) || 0), 0);
-    const totalStillOwed = debts.reduce((s, f) => s + (Number(f.balance) || 0), 0);
-    const totalRepaidToDate = Math.max(0, totalBorrowedToDate - totalStillOwed);
+    const totalBorrowedToDate = computedDebts.reduce((s, f) => s + (Number(f.originalPrincipal) || 0), 0);
+    const totalStillOwed = computedDebts.reduce((s, f) => s + (Number(f.balance) || 0), 0);
+    const totalRepaidToDate = computedDebts.reduce((s, f) => s + (Number(f.principalRepaid) || 0), 0);
+    // Dev reconciliation: Drawn − Repaid should equal Outstanding.
+    if (typeof window !== "undefined" && import.meta.env?.DEV) {
+      const diff = totalBorrowedToDate - totalRepaidToDate - totalStillOwed;
+      if (Math.abs(diff) > 1) {
+        // eslint-disable-next-line no-console
+        console.warn("[DebtRegister] Drawn − Repaid ≠ Outstanding", { totalBorrowedToDate, totalRepaidToDate, totalStillOwed, diff });
+      }
+    }
     const netPosition = periodRevenue - periodOutgoings - periodDebtRepayments;
     return { periodRevenue, periodDebtRepayments, periodOutgoings, totalBorrowedToDate, totalRepaidToDate, totalStillOwed, netPosition };
-  }, [strippedMonthsFilter, earnedVsDebtData, debts]);
+  }, [strippedMonthsFilter, earnedVsDebtData, computedDebts]);
   const strippedPeriodLabel = (() => {
     if (strippedMonth) return strippedMonth;
     if (strippedPeriod === "All") return "Full Year 2026";
