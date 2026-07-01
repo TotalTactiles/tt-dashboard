@@ -941,8 +941,8 @@ const ChartsSection = ({
   type FacilityPreset = { key: FacilityKey; label: string; rate: number | null; termMonths: number | null };
   const FACILITY_PRESETS_KEY = "tt_facility_presets_v2";
   const DEFAULT_FACILITY_PRESETS: FacilityPreset[] = [
-    { key: "unsecured",            label: "Unsecured business loan", rate: 15.0,  termMonths: 36  },
-    { key: "secured_business",     label: "Secured business loan",   rate: 10.99, termMonths: 84  },
+    { key: "unsecured",            label: "Unsecured business loan", rate: 10.99, termMonths: 84  },
+    { key: "secured_business",     label: "Secured business loan",   rate: 7.5,   termMonths: 60  },
     { key: "residential_property", label: "Residential property",    rate: 6.0,   termMonths: 360 },
     { key: "commercial_property",  label: "Commercial property",     rate: 7.0,   termMonths: 180 },
     { key: "vehicle",              label: "Vehicle finance",         rate: 7.5,   termMonths: 60  },
