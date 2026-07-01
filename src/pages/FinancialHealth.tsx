@@ -805,7 +805,39 @@ const ChartsSection = ({
   const [selectedFacilityKey, setSelectedFacilityKey] = useState<FacilityKey>("equipment");
   const updateFacilityPreset = (key: FacilityKey, patch: Partial<FacilityPreset>) => {
     setFacilityPresets(prev => prev.map(p => p.key === key ? { ...p, ...patch } : p));
+
+  // ---- Lender benchmarks (AU standards, editable + persisted) ----
+  const LENDER_BENCHMARKS_KEY = "tt_lender_benchmarks_v1";
+  type LenderBenchmarks = {
+    asOf: string;
+    dscrStandard: number;      // secured/business
+    dscrUnsecured: number;     // unsecured
+    bufferPct: number;         // % of income lenders will service against (0.80 = DSCR 1.25 inverse)
+    apraBufferPct: number;     // residential assessment buffer added to rate
+    dtiCapMultiple: number;    // gross-income multiple (APRA cap trigger)
+    dtiCapShare: number;       // share of new loans allowed >= dtiCapMultiple
   };
+  const DEFAULT_LENDER_BENCHMARKS: LenderBenchmarks = {
+    asOf: "June 2026",
+    dscrStandard: 1.25,
+    dscrUnsecured: 1.5,
+    bufferPct: 0.80,
+    apraBufferPct: 3.0,
+    dtiCapMultiple: 6,
+    dtiCapShare: 0.20,
+  };
+  const [lenderBenchmarks] = useState<LenderBenchmarks>(() => {
+    if (typeof window === "undefined") return DEFAULT_LENDER_BENCHMARKS;
+    try {
+      const raw = window.localStorage.getItem(LENDER_BENCHMARKS_KEY);
+      if (raw) return { ...DEFAULT_LENDER_BENCHMARKS, ...JSON.parse(raw) };
+      window.localStorage.setItem(LENDER_BENCHMARKS_KEY, JSON.stringify(DEFAULT_LENDER_BENCHMARKS));
+    } catch {}
+    return DEFAULT_LENDER_BENCHMARKS;
+  });
+  const [lenderExpanded, setLenderExpanded] = useState(false);
+
+
 
   const debtStripped = useMemo(() => {
     const rawCashflow = liveData?.cashflow ?? [];
