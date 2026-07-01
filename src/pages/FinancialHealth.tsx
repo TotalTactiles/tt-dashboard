@@ -1202,9 +1202,27 @@ const ChartsSection = ({
         console.warn("[DebtRegister] Drawn − Repaid ≠ Outstanding", { totalBorrowedToDate, totalRepaidToDate, totalStillOwed, diff });
       }
     }
+    // Dev reconciliation: Financial Position Debt Repayments must equal
+    // the Net Free Cash chart's "Debt Repayments" (debtStripped.debtBurden)
+    // for the same selected period. Both are row 57 + row 58 from CASHFLOW.
+    if (typeof window !== "undefined" && import.meta.env?.DEV) {
+      const stripRows = !strippedMonthsFilter
+        ? debtStripped.rows
+        : debtStripped.rows.filter((d: any) => strippedMonthsFilter.includes(d.month));
+      const chartDebt = stripRows.reduce((s: number, d: any) => s + (Number(d.debtBurden) || 0), 0);
+      if (Math.abs(chartDebt - periodDebtRepayments) > 1) {
+        // eslint-disable-next-line no-console
+        console.warn("[FinancialPosition] Debt Repayments ≠ Net Free Cash chart total", {
+          financialPosition: periodDebtRepayments,
+          netFreeCashChart: chartDebt,
+          diff: periodDebtRepayments - chartDebt,
+        });
+      }
+    }
     const netPosition = periodRevenue - periodOutgoings - periodDebtRepayments;
     return { periodRevenue, periodDebtRepayments, periodOutgoings, totalBorrowedToDate, totalRepaidToDate, totalStillOwed, netPosition };
-  }, [strippedMonthsFilter, earnedVsDebtData, computedDebts]);
+  }, [strippedMonthsFilter, earnedVsDebtData, computedDebts, debtStripped]);
+
   const strippedPeriodLabel = (() => {
     if (strippedMonth) return strippedMonth;
     if (strippedPeriod === "All") return "Full Year 2026";
