@@ -1873,8 +1873,8 @@ const ChartsSection = ({
                         </div>
                         <p className="text-[9px] text-muted-foreground italic mt-0.5">
                           {serviceabilityView === "actuals" && "Based on past 6m actuals only"}
-                          {serviceabilityView === "with_grn" && "6m blended: actuals + signed contracts at 70%"}
-                          {serviceabilityView === "with_ylw" && "6m blended: actuals + all pipeline at 70%"}
+                          {serviceabilityView === "with_grn" && `6m blended: actuals + signed contracts at ${Math.round(grnFactor*100)}%`}
+                          {serviceabilityView === "with_ylw" && `6m blended: actuals + signed at ${Math.round(grnFactor*100)}% + verbal pipeline at ${Math.round(ylwFactor*100)}%`}
                         </p>
                         <div className="flex justify-between items-center py-2 border-b border-white/5">
                           <span className="text-xs text-muted-foreground">Less existing commitments</span>
