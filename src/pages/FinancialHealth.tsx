@@ -2472,6 +2472,7 @@ const LenderFitPanel = ({
               {matrix.map((r) => (
                 <option key={r.key} value={r.key} className="bg-[#1a1a2e]">{r.facility}</option>
               ))}
+              <option value="custom" className="bg-[#1a1a2e]">Custom</option>
             </select>
           </div>
           <div className="bg-white/5 rounded px-2 py-1.5">
