@@ -672,6 +672,15 @@ const ChartsSection = ({
   const io: any[] = Array.isArray(incomeOutgoingsData) ? incomeOutgoingsData : [];
   const fc: any[] = Array.isArray(forecastChartData) ? forecastChartData : [];
 
+  // Computed reducing balances (mirrors DebtRegister — as of today).
+  const computedDebts = useMemo(() => {
+    const asOf = new Date();
+    return debts.map((d) => {
+      const a = computeAmortisation(d, asOf);
+      return { ...d, balance: a.balance, principalRepaid: a.principalRepaid };
+    });
+  }, [debts]);
+
   // ---- Waterfall dataset ----
   const waterfallData = useMemo(() => {
     const fcByMonth = new Map<string, any>();
