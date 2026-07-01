@@ -879,10 +879,11 @@ const ChartsSection = ({
   }, [borrowCalc]);
 
   // ---- Facility presets (AU market averages, June 2026 — editable + persisted) ----
-  type FacilityKey = "vehicle" | "equipment" | "commercial_property" | "residential_property" | "unsecured" | "custom";
+  type FacilityKey = "business_loan" | "vehicle" | "equipment" | "commercial_property" | "residential_property" | "unsecured" | "custom";
   type FacilityPreset = { key: FacilityKey; label: string; rate: number | null; termMonths: number | null };
   const FACILITY_PRESETS_KEY = "tt_facility_presets_v1";
   const DEFAULT_FACILITY_PRESETS: FacilityPreset[] = [
+    { key: "business_loan",        label: "Business loan (secured)",         rate: 7.5,  termMonths: 60  },
     { key: "vehicle",              label: "Vehicle / car finance",          rate: 7.5,  termMonths: 60  },
     { key: "equipment",            label: "Equipment finance (chattel)",    rate: 7.5,  termMonths: 60  },
     { key: "commercial_property",  label: "Commercial property (owner-occ)",rate: 7.0,  termMonths: 180 },
@@ -908,7 +909,8 @@ const ChartsSection = ({
   useEffect(() => {
     try { window.localStorage.setItem(FACILITY_PRESETS_KEY, JSON.stringify(facilityPresets)); } catch {}
   }, [facilityPresets]);
-  const [selectedFacilityKey, setSelectedFacilityKey] = useState<FacilityKey>("equipment");
+  const [selectedFacilityKey, setSelectedFacilityKey] = useState<FacilityKey>("custom");
+
   const updateFacilityPreset = (key: FacilityKey, patch: Partial<FacilityPreset>) => {
     setFacilityPresets(prev => prev.map(p => p.key === key ? { ...p, ...patch } : p));
   };
@@ -1386,10 +1388,10 @@ const ChartsSection = ({
               </button>
             ))}
 
-            {/* EST. BORROWING CAPACITY — facility-type tile */}
+            {/* EST. BORROWING CAPACITY — fixed business-loan glance */}
             {(() => {
               const M = debtStripped.maxNewRepayment;
-              const preset = facilityPresets.find(p => p.key === selectedFacilityKey) ?? facilityPresets[1];
+              const preset = facilityPresets.find(p => p.key === "business_loan") ?? { key: "business_loan" as FacilityKey, label: "Business loan", rate: 7.5, termMonths: 60 };
               const rate = preset.rate;
               const termMonths = preset.termMonths;
               const r = rate != null ? rate / 100 / 12 : null;
@@ -1399,72 +1401,15 @@ const ChartsSection = ({
               const termYrsDisp = termMonths != null ? (termMonths % 12 === 0 ? `${termMonths / 12}` : (termMonths / 12).toFixed(1)) : "—";
               return (
                 <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 flex-1 min-w-[260px]">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-mono">Est. Borrowing Capacity</p>
-                  </div>
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-mono">Est. Borrowing Capacity</p>
                   <p className="text-lg font-mono font-bold text-chart-green">{fmtK(capacity)}</p>
                   <p className="mt-0.5 text-[10px] text-muted-foreground font-mono leading-tight">
-                    {preset.label} · {rate != null ? `${rate}% p.a.` : "—% p.a."} · {termMonths != null ? `${termYrsDisp} yr` : "— yr"} · on {fmtAUD(M)}/mo serviceability
+                    Business loan · {rate != null ? `${rate}% p.a.` : "—% p.a."} · {termMonths != null ? `${termYrsDisp} yr` : "— yr"} · on {fmtAUD(M)}/mo serviceability
                   </p>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <Select value={selectedFacilityKey} onValueChange={(v) => setSelectedFacilityKey(v as FacilityKey)}>
-                      <SelectTrigger className="h-7 text-[11px] font-mono w-[180px] bg-white/5 border-white/10">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {facilityPresets.map(p => (
-                          <SelectItem key={p.key} value={p.key} className="text-xs font-mono">{p.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <label className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono">
-                      Rate
-                      <input
-                        type="number"
-                        step="0.05"
-                        value={rate ?? ""}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          updateFacilityPreset(preset.key, { rate: v === "" ? null : parseFloat(v) });
-                        }}
-                        placeholder="—"
-                        className="w-14 h-6 px-1 rounded bg-white/5 border border-white/10 text-[11px] font-mono text-foreground"
-                      />
-                      %
-                    </label>
-                    <label className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono">
-                      Term
-                      <input
-                        type="number"
-                        step="1"
-                        value={termMonths ?? ""}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          updateFacilityPreset(preset.key, { termMonths: v === "" ? null : parseInt(v, 10) });
-                        }}
-                        placeholder="—"
-                        className="w-14 h-6 px-1 rounded bg-white/5 border border-white/10 text-[11px] font-mono text-foreground"
-                      />
-                      mo
-                    </label>
-                  </div>
-                  <div className="mt-1.5 flex items-center justify-between gap-2">
-                    <p className="text-[9px] text-muted-foreground/70 italic">Indicative AU market averages, June 2026 — editable. Confirm actual rate/term with your broker.</p>
-                    <button
-                      type="button"
-                      disabled={rate == null || termMonths == null}
-                      onClick={() => {
-                        if (rate == null || termMonths == null) return;
-                        setBorrowCalc(prev => ({ ...prev, rate: String(rate), term: String(termMonths) }));
-                      }}
-                      className="text-[10px] font-mono text-chart-green hover:underline disabled:opacity-40 disabled:no-underline whitespace-nowrap"
-                    >
-                      Use in calculator →
-                    </button>
-                  </div>
                 </div>
               );
             })()}
+
           </div>
 
           {/* MAIN ROW — left column (filter + chart + lender) | right column (Financial Position) */}
@@ -1535,7 +1480,173 @@ const ChartsSection = ({
                 <p className="text-xs font-semibold text-foreground mb-0.5">Lender Serviceability View</p>
                 <p className="text-[10px] text-muted-foreground mb-3">How a bank or broker assesses your capacity for new debt</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Lender Calculation */}
+                  {/* Borrowing Capacity — editable (LEFT) */}
+                  {(() => {
+                    const M = Number(debtStripped.maxNewRepayment) || 0;
+                    const rate = parseFloat(borrowCalc.rate);
+                    const term = parseFloat(borrowCalc.term);
+                    const loanRaw = borrowCalc.loanAmount.trim();
+                    const loan = loanRaw === "" ? null : parseFloat(loanRaw);
+                    const validBase = Number.isFinite(rate) && rate >= 0 && Number.isFinite(term) && term >= 1;
+                    const r = validBase ? rate / 100 / 12 : NaN;
+                    const n = validBase ? term : NaN;
+                    const capacity = validBase
+                      ? (r > 0 ? M * (1 - Math.pow(1 + r, -n)) / r : M * n)
+                      : NaN;
+                    const modeB = loan !== null && Number.isFinite(loan) && loan >= 0;
+                    const requiredMonthly = modeB && validBase
+                      ? (r > 0 ? (loan as number) * r / (1 - Math.pow(1 + r, -n)) : (loan as number) / n)
+                      : NaN;
+                    const headroom = modeB && Number.isFinite(requiredMonthly) ? M - requiredMonthly : NaN;
+                    const utilisation = modeB && M > 0 && Number.isFinite(requiredMonthly) ? (requiredMonthly / M) * 100 : NaN;
+                    const yrs = Number.isFinite(term) ? (term / 12).toFixed(1) : "—";
+
+                    let statusTone: "green" | "amber" | "red" = "green";
+                    let statusText = "Comfortably serviceable — within your capacity.";
+                    if (modeB && Number.isFinite(headroom)) {
+                      if (headroom < 0) {
+                        statusTone = "red";
+                        statusText = `Exceeds current serviceability by ${fmtAUD(-headroom)}/mo.`;
+                      } else if (Number.isFinite(utilisation) && utilisation > 80) {
+                        statusTone = "amber";
+                        statusText = "Serviceable but tight — uses most of your headroom.";
+                      }
+                    } else {
+                      if (M > 2000) { statusTone = "green"; statusText = "Serviceability is strong. You could likely support a new facility."; }
+                      else if (M > 500) { statusTone = "amber"; statusText = "Marginal serviceability. A lender may require additional security."; }
+                      else { statusTone = "red"; statusText = "Insufficient net free cash. Strengthen earnings before applying."; }
+                    }
+                    const toneText = statusTone === "green" ? "text-emerald-400" : statusTone === "amber" ? "text-amber-400" : "text-red-400";
+                    const toneDot = statusTone === "green" ? "bg-emerald-400" : statusTone === "amber" ? "bg-amber-400" : "bg-red-400";
+                    const inputCls = "w-24 bg-background/40 border border-white/10 rounded px-2 py-0.5 text-xs font-mono text-right text-foreground focus:outline-none focus:border-primary/60";
+
+                    const onFacilityChange = (v: string) => {
+                      const key = v as FacilityKey;
+                      setSelectedFacilityKey(key);
+                      if (key === "custom") return;
+                      const p = facilityPresets.find(x => x.key === key);
+                      if (p && p.rate != null && p.termMonths != null) {
+                        setBorrowCalc(s => ({ ...s, rate: String(p.rate), term: String(p.termMonths) }));
+                      }
+                    };
+                    const onRateChange = (v: string) => {
+                      setBorrowCalc(s => ({ ...s, rate: v }));
+                      if (selectedFacilityKey !== "custom") {
+                        const parsed = v === "" ? null : parseFloat(v);
+                        updateFacilityPreset(selectedFacilityKey, { rate: parsed });
+                      }
+                    };
+                    const onTermChange = (v: string) => {
+                      setBorrowCalc(s => ({ ...s, term: v }));
+                      if (selectedFacilityKey !== "custom") {
+                        const parsed = v === "" ? null : parseInt(v, 10);
+                        updateFacilityPreset(selectedFacilityKey, { termMonths: parsed });
+                      }
+                    };
+
+                    return (
+                      <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
+                        <p className="text-xs font-semibold text-foreground mb-2">Borrowing Capacity</p>
+
+                        {/* Facility-type dropdown */}
+                        <div className="mb-3">
+                          <Select value={selectedFacilityKey} onValueChange={onFacilityChange}>
+                            <SelectTrigger className="h-7 text-[11px] font-mono w-full bg-white/5 border-white/10">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {facilityPresets.map(p => (
+                                <SelectItem key={p.key} value={p.key} className="text-xs font-mono">{p.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-[9px] text-muted-foreground/70 italic mt-1">
+                            Indicative AU market averages, June 2026 — editable. Confirm actual rate/term with your broker.
+                          </p>
+                        </div>
+
+                        {!modeB ? (
+                          <div className="flex justify-between items-center py-2 border-b border-white/5">
+                            <span className="text-xs text-muted-foreground">Maximum borrowing capacity</span>
+                            <span className="text-sm font-mono font-bold text-emerald-400">
+                              {Number.isFinite(capacity) ? fmtAUD(capacity) : "—"}
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex justify-between items-center py-2 border-b border-white/5">
+                              <span className="text-xs text-muted-foreground">Monthly repayment</span>
+                              <span className="text-sm font-mono font-bold text-foreground">
+                                {Number.isFinite(requiredMonthly) ? fmtAUD(requiredMonthly) : "—"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center py-2 border-b border-white/5">
+                              <span className="text-xs text-muted-foreground">Uses of serviceability</span>
+                              <span className="text-xs font-mono font-semibold text-foreground">
+                                {Number.isFinite(utilisation) ? `${Math.round(utilisation)}%` : "—"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center py-2 border-b border-white/5">
+                              <span className="text-xs text-muted-foreground">Headroom</span>
+                              <span className={`text-xs font-mono font-semibold ${Number.isFinite(headroom) && headroom >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                {Number.isFinite(headroom) ? `${fmtAUD(headroom)}/mo` : "—"}
+                              </span>
+                            </div>
+                          </>
+                        )}
+
+                        <div className="flex justify-between items-center py-2 border-b border-white/5">
+                          <label className="text-xs text-muted-foreground">Loan amount ($)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            inputMode="decimal"
+                            value={borrowCalc.loanAmount}
+                            placeholder="Leave blank for max capacity"
+                            onChange={(e) => setBorrowCalc((s) => ({ ...s, loanAmount: e.target.value }))}
+                            className={`${inputCls} w-40 placeholder:text-muted-foreground/50 placeholder:text-[10px]`}
+                          />
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-white/5">
+                          <label className="text-xs text-muted-foreground">Interest rate (% p.a.)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            step={0.1}
+                            value={borrowCalc.rate}
+                            onChange={(e) => onRateChange(e.target.value)}
+                            className={inputCls}
+                          />
+                        </div>
+                        <div className="flex justify-between items-center py-2 border-b border-white/5">
+                          <label className="text-xs text-muted-foreground">
+                            Term (months) <span className="text-muted-foreground/60">· {yrs} yr</span>
+                          </label>
+                          <input
+                            type="number"
+                            min={1}
+                            step={1}
+                            value={borrowCalc.term}
+                            onChange={(e) => onTermChange(e.target.value)}
+                            className={inputCls}
+                          />
+                        </div>
+
+                        {!modeB && (
+                          <p className="text-[9px] text-muted-foreground/70 italic mt-2">
+                            Based on {fmtAUD(M)}/mo serviceability · {Number.isFinite(term) ? term : "—"} mo · {Number.isFinite(rate) ? rate : "—"}% p.a.
+                          </p>
+                        )}
+
+                        <div className="flex items-center gap-2 mt-3">
+                          <div className={`w-2 h-2 rounded-full shrink-0 ${toneDot}`} />
+                          <p className={`text-xs font-medium ${toneText}`}>{statusText}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Lender Calculation (RIGHT) */}
                   {(() => {
                     const period = borrowCalc.period;
                     const factor = period === "weekly" ? 12 / 52 : period === "yearly" ? 12 : 1;
@@ -1599,7 +1710,7 @@ const ChartsSection = ({
                           const usable = Number(debtStripped.lenderUsableIncome) || 0;
                           const commitments = Number(totalMonthlyRepayment) || 0;
                           const M = Number(debtStripped.maxNewRepayment) || 0;
-                          const preset = facilityPresets.find(p => p.key === selectedFacilityKey) ?? facilityPresets[1];
+                          const preset = facilityPresets.find(p => p.key === selectedFacilityKey) ?? (facilityPresets.find(p => p.key === "business_loan") ?? facilityPresets[0]);
                           const rate = preset.rate;
                           const termMonths = preset.termMonths;
                           const rMo = rate != null ? rate / 100 / 12 : null;
@@ -1696,132 +1807,6 @@ const ChartsSection = ({
                     );
                   })()}
 
-
-
-                  {/* Borrowing Capacity — editable */}
-                  {(() => {
-                    const M = Number(debtStripped.maxNewRepayment) || 0;
-                    const rate = parseFloat(borrowCalc.rate);
-                    const term = parseFloat(borrowCalc.term);
-                    const loanRaw = borrowCalc.loanAmount.trim();
-                    const loan = loanRaw === "" ? null : parseFloat(loanRaw);
-                    const validBase = Number.isFinite(rate) && rate >= 0 && Number.isFinite(term) && term >= 1;
-                    const r = validBase ? rate / 100 / 12 : NaN;
-                    const n = validBase ? term : NaN;
-                    const capacity = validBase
-                      ? (r > 0 ? M * (1 - Math.pow(1 + r, -n)) / r : M * n)
-                      : NaN;
-                    const modeB = loan !== null && Number.isFinite(loan) && loan >= 0;
-                    const requiredMonthly = modeB && validBase
-                      ? (r > 0 ? (loan as number) * r / (1 - Math.pow(1 + r, -n)) : (loan as number) / n)
-                      : NaN;
-                    const headroom = modeB && Number.isFinite(requiredMonthly) ? M - requiredMonthly : NaN;
-                    const utilisation = modeB && M > 0 && Number.isFinite(requiredMonthly) ? (requiredMonthly / M) * 100 : NaN;
-                    const yrs = Number.isFinite(term) ? (term / 12).toFixed(1) : "—";
-
-                    let statusTone: "green" | "amber" | "red" = "green";
-                    let statusText = "Comfortably serviceable — within your capacity.";
-                    if (modeB && Number.isFinite(headroom)) {
-                      if (headroom < 0) {
-                        statusTone = "red";
-                        statusText = `Exceeds current serviceability by ${fmtAUD(-headroom)}/mo.`;
-                      } else if (Number.isFinite(utilisation) && utilisation > 80) {
-                        statusTone = "amber";
-                        statusText = "Serviceable but tight — uses most of your headroom.";
-                      }
-                    } else {
-                      if (M > 2000) { statusTone = "green"; statusText = "Serviceability is strong. You could likely support a new facility."; }
-                      else if (M > 500) { statusTone = "amber"; statusText = "Marginal serviceability. A lender may require additional security."; }
-                      else { statusTone = "red"; statusText = "Insufficient net free cash. Strengthen earnings before applying."; }
-                    }
-                    const toneText = statusTone === "green" ? "text-emerald-400" : statusTone === "amber" ? "text-amber-400" : "text-red-400";
-                    const toneDot = statusTone === "green" ? "bg-emerald-400" : statusTone === "amber" ? "bg-amber-400" : "bg-red-400";
-                    const inputCls = "w-24 bg-background/40 border border-white/10 rounded px-2 py-0.5 text-xs font-mono text-right text-foreground focus:outline-none focus:border-primary/60";
-
-                    return (
-                      <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
-                        <p className="text-xs font-semibold text-foreground mb-3">Borrowing Capacity</p>
-
-                        {!modeB ? (
-                          <div className="flex justify-between items-center py-2 border-b border-white/5">
-                            <span className="text-xs text-muted-foreground">Maximum borrowing capacity</span>
-                            <span className="text-sm font-mono font-bold text-emerald-400">
-                              {Number.isFinite(capacity) ? fmtAUD(capacity) : "—"}
-                            </span>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="flex justify-between items-center py-2 border-b border-white/5">
-                              <span className="text-xs text-muted-foreground">Monthly repayment</span>
-                              <span className="text-sm font-mono font-bold text-foreground">
-                                {Number.isFinite(requiredMonthly) ? fmtAUD(requiredMonthly) : "—"}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center py-2 border-b border-white/5">
-                              <span className="text-xs text-muted-foreground">Uses of serviceability</span>
-                              <span className="text-xs font-mono font-semibold text-foreground">
-                                {Number.isFinite(utilisation) ? `${Math.round(utilisation)}%` : "—"}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center py-2 border-b border-white/5">
-                              <span className="text-xs text-muted-foreground">Headroom</span>
-                              <span className={`text-xs font-mono font-semibold ${Number.isFinite(headroom) && headroom >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                                {Number.isFinite(headroom) ? `${fmtAUD(headroom)}/mo` : "—"}
-                              </span>
-                            </div>
-                          </>
-                        )}
-
-                        <div className="flex justify-between items-center py-2 border-b border-white/5">
-                          <label className="text-xs text-muted-foreground">Loan amount ($)</label>
-                          <input
-                            type="number"
-                            min={0}
-                            inputMode="decimal"
-                            value={borrowCalc.loanAmount}
-                            placeholder="Leave blank for max capacity"
-                            onChange={(e) => setBorrowCalc((s) => ({ ...s, loanAmount: e.target.value }))}
-                            className={`${inputCls} w-40 placeholder:text-muted-foreground/50 placeholder:text-[10px]`}
-                          />
-                        </div>
-                        <div className="flex justify-between items-center py-2 border-b border-white/5">
-                          <label className="text-xs text-muted-foreground">Interest rate (% p.a.)</label>
-                          <input
-                            type="number"
-                            min={0}
-                            step={0.1}
-                            value={borrowCalc.rate}
-                            onChange={(e) => setBorrowCalc((s) => ({ ...s, rate: e.target.value }))}
-                            className={inputCls}
-                          />
-                        </div>
-                        <div className="flex justify-between items-center py-2 border-b border-white/5">
-                          <label className="text-xs text-muted-foreground">
-                            Term (months) <span className="text-muted-foreground/60">· {yrs} yr</span>
-                          </label>
-                          <input
-                            type="number"
-                            min={1}
-                            step={1}
-                            value={borrowCalc.term}
-                            onChange={(e) => setBorrowCalc((s) => ({ ...s, term: e.target.value }))}
-                            className={inputCls}
-                          />
-                        </div>
-
-                        {!modeB && (
-                          <p className="text-[9px] text-muted-foreground/70 italic mt-2">
-                            Based on {fmtAUD(M)}/mo serviceability · {Number.isFinite(term) ? term : "—"} mo · {Number.isFinite(rate) ? rate : "—"}% p.a.
-                          </p>
-                        )}
-
-                        <div className="flex items-center gap-2 mt-3">
-                          <div className={`w-2 h-2 rounded-full shrink-0 ${toneDot}`} />
-                          <p className={`text-xs font-medium ${toneText}`}>{statusText}</p>
-                        </div>
-                      </div>
-                    );
-                  })()}
                 </div>
               </div>
             </div>
