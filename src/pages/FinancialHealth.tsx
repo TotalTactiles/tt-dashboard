@@ -1232,8 +1232,12 @@ const ChartsSection = ({
     } else {
       const _actAvg = _p3.length ? _p3.reduce((s: number, d: any) => s + d.net, 0) / _p3.length : 0;
       const _fwdAvg = _fwd3.length ? _fwd3.reduce((s: number, d: any) => s + d.net, 0) / _fwd3.length : 0;
-      const _layer = serviceabilityView === "with_ylw" ? "contracted + probable" : "contracted";
-      avg6Eq = `3 recent actual (avg ${_f(_actAvg)}) + 3 forward ${_layer} @70% (avg ${_f(_fwdAvg)}) → blended ÷ 6 = ${_f(avg6MonthBlended)}`;
+      const _grnPct = Math.round(grnFactor * 100);
+      const _ylwPct = Math.round(ylwFactor * 100);
+      const _layer = serviceabilityView === "with_ylw"
+        ? `signed @${_grnPct}% + verbal @${_ylwPct}%`
+        : `signed @${_grnPct}%`;
+      avg6Eq = `3 recent actual (avg ${_f(_actAvg)}) + 3 forward ${_layer} (avg ${_f(_fwdAvg)}) → blended ÷ 6 = ${_f(avg6MonthBlended)}`;
     }
 
     const maxNewEq = `80% buffer × ${_f(avg6MonthBlended)} = ${_f(lenderUsableIncome)} usable − ${_f(existingMonthlyDebt)} existing repayments = ${_f(maxNewRepayment)}`;
