@@ -362,7 +362,8 @@ const FinancialHealth = () => {
         console.warn("[DebtRegister] Drawn − Repaid ≠ Outstanding", { totalPrincipal, totalRepaid, totalBalance, diff });
       }
     }
-    return { totalPrincipal, totalBalance, totalRepaid, totalMonthly, blendedRate };
+    const totalInterest = computedDebts.reduce((s, d) => s + (Number((d as any).interestPaid) || 0), 0);
+    return { totalPrincipal, totalBalance, totalRepaid, totalInterest, totalMonthly, blendedRate };
   }, [computedDebts]);
 
   // Dev reconciliation: aggregate Σ(monthly × paymentsMade) vs |row 57| + |row 58| in CASHFLOW
