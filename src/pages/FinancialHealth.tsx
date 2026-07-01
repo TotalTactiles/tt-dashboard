@@ -973,8 +973,8 @@ const ChartsSection = ({
     setFacilityPresets(prev => prev.map(p => p.key === key ? { ...p, ...patch } : p));
   };
 
-  // Seed `secured_business` preset live from the Debt Register's primary CommBank
-  // term-loan facility (Vinny #1) so it self-updates on refinance. Rate stays editable.
+  // Seed `unsecured` preset live from the Debt Register's Vinny #1 facility
+  // (the business's actual unsecured loan) so it self-updates on refinance. Rate stays editable.
   useEffect(() => {
     const vinny =
       debts.find(d => /vinny\s*#?\s*1/i.test(d.name || "")) ??
@@ -991,7 +991,7 @@ const ChartsSection = ({
       }
     }
     setFacilityPresets(prev => prev.map(p => {
-      if (p.key !== "secured_business") return p;
+      if (p.key !== "unsecured") return p;
       const nextRate = Number.isFinite(rate) && rate > 0 ? rate : p.rate;
       const nextTerm = termMonths ?? p.termMonths;
       if (p.rate === nextRate && p.termMonths === nextTerm) return p;
