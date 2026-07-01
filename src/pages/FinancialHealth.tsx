@@ -1436,9 +1436,9 @@ const ChartsSection = ({
           </span>
           <div className="inline-flex bg-white/5 rounded-xl p-1 border border-white/10">
             {[
-              { key: "actuals", label: "📊 Past Actuals Only", desc: "Verified bank-statement income" },
-              { key: "with_grn", label: "✅ With GRNs", desc: "Actuals + signed contracts/POs (70% haircut)" },
-              { key: "with_ylw", label: "🤝 With GRNs & YLWs", desc: "Actuals + all contracted + probable pipeline (70% haircut)" },
+              { key: "actuals", label: "📊 Past Actuals Only", desc: "Verified bank-statement income (100%)" },
+              { key: "with_grn", label: "✅ With GRNs", desc: `Actuals + signed contracts at ${Math.round(grnFactor*100)}%` },
+              { key: "with_ylw", label: "🤝 With GRNs & YLWs", desc: `Actuals + signed at ${Math.round(grnFactor*100)}% + verbal pipeline at ${Math.round(ylwFactor*100)}%` },
             ].map(opt => (
               <button
                 key={opt.key}
