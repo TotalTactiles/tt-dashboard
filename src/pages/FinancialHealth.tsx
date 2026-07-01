@@ -354,6 +354,47 @@ const FinancialHealth = () => {
     return { totalPrincipal, totalBalance, totalRepaid, totalMonthly, blendedRate };
   }, [computedDebts]);
 
+  // Dev reconciliation: aggregate Σ(monthly × paymentsMade) vs |row 57| + |row 58| in CASHFLOW
+  // (best-effort — tolerates facilities that start before the cashflow window and monthly fees).
+  useEffect(() => {
+    if (typeof window === "undefined" || !import.meta.env?.DEV) return;
+    try {
+      const rawCashflow: any[] = (liveData?.cashflow as any[]) ?? [];
+      if (!rawCashflow.length) return;
+      const parseNum = (v: any) => {
+        if (v === null || v === undefined || v === "") return 0;
+        return parseFloat(String(v).replace(/[$,]/g, "")) || 0;
+      };
+      const findRow = (label: string) => rawCashflow.find((r: any) => {
+        const rl = (r._label_rowLabel ?? r.col_1 ?? "").toString().toUpperCase();
+        return rl.includes(label.toUpperCase());
+      });
+      const loanRow = findRow("BUSINESS LOAN REPAYMENT");
+      const vehRow = findRow("MOTOR VEHICLE REPAYMENT");
+      const sumRow = (r: any) => {
+        if (!r) return 0;
+        return Object.entries(r).reduce((s, [k, v]) => {
+          if (k.startsWith("_") || k === "col_1") return s;
+          return s + Math.abs(parseNum(v));
+        }, 0);
+      };
+      const cashflowTotal = sumRow(loanRow) + sumRow(vehRow);
+      const registerTotal = computedDebts.reduce(
+        (s, d) => s + (Number(d.monthlyRepayment) || 0) * ((d as any).paymentsMade ?? 0),
+        0,
+      );
+      const diff = registerTotal - cashflowTotal;
+      // Allow up to ~$500/facility for monthly fees + pre-window payments.
+      const tolerance = Math.max(1000, computedDebts.length * 500);
+      if (Math.abs(diff) > tolerance) {
+        // eslint-disable-next-line no-console
+        console.warn("[DebtRegister] Σ(monthly × paymentsMade) vs cashflow rows 57+58 diverges", {
+          registerTotal, cashflowTotal, diff, tolerance,
+        });
+      }
+    } catch {}
+  }, [computedDebts, liveData]);
+
   const handleRowSave = (updated: DebtFacility) => {
     setDebts((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
   };
