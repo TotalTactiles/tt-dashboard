@@ -50,7 +50,7 @@ const _paymentsMade = (start: Date, asOf: Date, nTotal: number): number => {
 export const computeAmortisation = (
   f: Pick<DebtFacility, "originalPrincipal" | "rate" | "startDate" | "maturityDate" | "balloon">,
   asOf: Date = new Date()
-): { balance: number; principalRepaid: number; flat: boolean; paymentsMade: number } => {
+): { balance: number; principalRepaid: number; interestPaid: number; flat: boolean; paymentsMade: number } => {
   const P = Number(f.originalPrincipal) || 0;
   const annualRate = Number(f.rate) || 0;
   const i = annualRate / 100 / 12;
@@ -58,18 +58,22 @@ export const computeAmortisation = (
   const start = f.startDate ? new Date(f.startDate) : null;
   const maturity = f.maturityDate ? new Date(f.maturityDate) : null;
   if (!P || !start || !maturity || isNaN(start.getTime()) || isNaN(maturity.getTime())) {
-    return { balance: P, principalRepaid: 0, flat: false, paymentsMade: 0 };
+    return { balance: P, principalRepaid: 0, interestPaid: 0, flat: false, paymentsMade: 0 };
   }
   const nTotal = Math.max(1, _monthsBetween(start, maturity));
-  if (asOf < start) return { balance: P, principalRepaid: 0, flat: false, paymentsMade: 0 };
-  if (asOf >= maturity) return { balance: balloon, principalRepaid: Math.max(0, P - balloon), flat: false, paymentsMade: nTotal };
-  const paymentsMade = _paymentsMade(start, asOf, nTotal);
+  if (asOf < start) return { balance: P, principalRepaid: 0, interestPaid: 0, flat: false, paymentsMade: 0 };
   let pi: number;
   if (i > 0) {
     pi = (P - balloon / Math.pow(1 + i, nTotal)) * i / (1 - Math.pow(1 + i, -nTotal));
   } else {
     pi = (P - balloon) / nTotal;
   }
+  if (asOf >= maturity) {
+    const principalRepaid = Math.max(0, P - balloon);
+    const interestPaid = Math.max(0, pi * nTotal - principalRepaid);
+    return { balance: balloon, principalRepaid, interestPaid, flat: false, paymentsMade: nTotal };
+  }
+  const paymentsMade = _paymentsMade(start, asOf, nTotal);
   const firstInterest = P * i;
   const flat = i > 0 && pi <= firstInterest;
   let balance: number;
@@ -81,7 +85,10 @@ export const computeAmortisation = (
     balance = P - pi * paymentsMade;
   }
   balance = Math.max(balloon, Math.min(P, balance));
-  return { balance, principalRepaid: Math.max(0, P - balance), flat, paymentsMade };
+  const principalRepaid = Math.max(0, P - balance);
+  // Interest = total P&I paid − principal repaid. Excludes monthly fee.
+  const interestPaid = Math.max(0, pi * paymentsMade - principalRepaid);
+  return { balance, principalRepaid, interestPaid, flat, paymentsMade };
 };
 
 export const DEBT_CACHE_KEY = "tt_debt_register";
@@ -123,6 +130,7 @@ interface DebtRegisterRowProps {
   facility: DebtFacility;
   computedBalance: number;
   computedRepaid: number;
+  computedInterest: number;
   flat: boolean;
   isDragOver: boolean;
   autoEdit: boolean;
@@ -136,7 +144,7 @@ interface DebtRegisterRowProps {
 }
 
 const DebtRegisterRow = memo(({
-  facility, computedBalance, computedRepaid, flat, isDragOver, autoEdit,
+  facility, computedBalance, computedRepaid, computedInterest, flat, isDragOver, autoEdit,
   onSave, onDelete, onAutoEditConsumed,
   onDragStart, onDragOver, onDrop, onDragEnd,
 }: DebtRegisterRowProps) => {
@@ -224,6 +232,9 @@ const DebtRegisterRow = memo(({
             <span className="text-[9px] text-chart-green">Repaid {fmtCurrency(computedRepaid)}{(row.balloon ?? 0) > 0 ? ` · Balloon ${fmtCurrency(row.balloon || 0)}` : ""}</span>
           </div>
         )}
+      </td>
+      <td className="py-1.5 px-2 text-right whitespace-nowrap text-rose-300/90" title="Interest paid to date (P&I, ex-fee)">
+        {fmtCurrency(computedInterest)}
       </td>
       <td className="py-1.5 px-2 text-right whitespace-nowrap">
         {isEditing ? (
@@ -332,7 +343,7 @@ const FinancialHealth = () => {
     const asOf = new Date();
     return debts.map((d) => {
       const a = computeAmortisation(d, asOf);
-      return { ...d, balance: a.balance, principalRepaid: a.principalRepaid, _flat: a.flat, paymentsMade: a.paymentsMade };
+      return { ...d, balance: a.balance, principalRepaid: a.principalRepaid, interestPaid: a.interestPaid, _flat: a.flat, paymentsMade: a.paymentsMade };
     });
   }, [debts]);
 
@@ -351,7 +362,8 @@ const FinancialHealth = () => {
         console.warn("[DebtRegister] Drawn − Repaid ≠ Outstanding", { totalPrincipal, totalRepaid, totalBalance, diff });
       }
     }
-    return { totalPrincipal, totalBalance, totalRepaid, totalMonthly, blendedRate };
+    const totalInterest = computedDebts.reduce((s, d) => s + (Number((d as any).interestPaid) || 0), 0);
+    return { totalPrincipal, totalBalance, totalRepaid, totalInterest, totalMonthly, blendedRate };
   }, [computedDebts]);
 
   // Dev reconciliation: aggregate Σ(monthly × paymentsMade) vs |row 57| + |row 58| in CASHFLOW
@@ -559,6 +571,7 @@ const FinancialHealth = () => {
                   <th className="py-2 px-2 font-medium text-left whitespace-nowrap">Type</th>
                   <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Original</th>
                   <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Balance</th>
+                  <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Interest</th>
                   <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Rate %</th>
                   <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Monthly</th>
                   <th className="py-2 px-2 font-medium text-left whitespace-nowrap">Start</th>
@@ -576,6 +589,7 @@ const FinancialHealth = () => {
                     facility={d}
                     computedBalance={c?.balance ?? 0}
                     computedRepaid={c?.principalRepaid ?? 0}
+                    computedInterest={c?.interestPaid ?? 0}
                     flat={!!c?._flat}
                     isDragOver={dragOverIndex === index}
                     autoEdit={autoEditId === d.id}
@@ -604,7 +618,7 @@ const FinancialHealth = () => {
                 })}
 
                 {debts.length === 0 && (
-                  <tr><td colSpan={12} className="py-6 text-center text-muted-foreground whitespace-nowrap">No facilities. Click "Add Facility" to start.</td></tr>
+                  <tr><td colSpan={13} className="py-6 text-center text-muted-foreground whitespace-nowrap">No facilities. Click "Add Facility" to start.</td></tr>
                 )}
               </tbody>
               {debts.length > 0 && (
@@ -614,6 +628,7 @@ const FinancialHealth = () => {
                     <td className="py-2 px-2 font-semibold text-left whitespace-nowrap" colSpan={3}>Totals</td>
                     <td className="py-2 px-2 text-right font-semibold whitespace-nowrap">{fmtCurrency(totals.totalPrincipal)}</td>
                     <td className="py-2 px-2 text-right font-semibold whitespace-nowrap text-rose-300/90">{fmtCurrency(totals.totalBalance)}</td>
+                    <td className="py-2 px-2 text-right font-semibold whitespace-nowrap text-rose-300/90">{fmtCurrency(totals.totalInterest)}</td>
                     <td className="py-2 px-2 text-right font-semibold whitespace-nowrap">{totals.blendedRate.toFixed(2)}%</td>
                     <td className="py-2 px-2 text-right font-semibold whitespace-nowrap">{fmtCurrency(totals.totalMonthly)}</td>
                     <td colSpan={3} className="whitespace-nowrap"></td>
@@ -1332,15 +1347,16 @@ const ChartsSection = ({
   }, [strippedMonth, strippedPeriod]);
 
   const debtPositionAsOf = useMemo(() => {
-    let drawn = 0, outstanding = 0;
+    let drawn = 0, outstanding = 0, interest = 0;
     for (const d of debts) {
       const start = d.startDate ? new Date(d.startDate) : null;
       if (!start || start > asOfDebtDate) continue;
       const a = computeAmortisation(d, asOfDebtDate);
       drawn += Number(d.originalPrincipal) || 0;
       outstanding += a.balance;
+      interest += a.interestPaid;
     }
-    return { drawn, outstanding, repaid: drawn - outstanding };
+    return { drawn, outstanding, repaid: drawn - outstanding, interest };
   }, [debts, asOfDebtDate]);
 
   const asOfDebtLabel = useMemo(() => {
@@ -2023,6 +2039,13 @@ const ChartsSection = ({
               <div className="flex justify-between items-center py-2 border-b border-white/5">
                 <span className="text-xs text-muted-foreground">Principal Repaid to Date</span>
                 <span className="text-sm font-mono font-semibold text-emerald-400">{fmtAUD(debtPositionAsOf.repaid)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-white/5">
+                <div className="flex flex-col">
+                  <span className="text-xs text-muted-foreground">Interest Paid to Date</span>
+                  <span className="text-[10px] text-muted-foreground/60 italic">Principal + interest: {fmtAUD(debtPositionAsOf.repaid + debtPositionAsOf.interest)}</span>
+                </div>
+                <span className="text-sm font-mono font-semibold text-rose-300/90">{fmtAUD(debtPositionAsOf.interest)}</span>
               </div>
               <div className="flex justify-between items-center pt-2 pb-1 mt-1"
                 style={{ borderTop: "2px solid rgba(255,255,255,0.15)", borderBottom: "3px double rgba(255,255,255,0.15)" }}>
