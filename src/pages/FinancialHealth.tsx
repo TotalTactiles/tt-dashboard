@@ -630,10 +630,6 @@ const FinancialHealth = () => {
           forecastChartData={forecastChartData}
           debts={debts}
           totalMonthlyRepayment={totalMonthlyRepayment}
-          blendedIncome={debtStripped.avg6Blended}
-          existingCommitments={debtStripped.existingMonthlyDebt}
-          availableForNewDebt={debtStripped.maxNewRepayment}
-          selectedFacilityKey={selectedFacilityKey}
         />
       </div>
     </DashboardLayout>
