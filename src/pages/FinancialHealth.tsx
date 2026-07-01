@@ -50,7 +50,7 @@ const _paymentsMade = (start: Date, asOf: Date, nTotal: number): number => {
 export const computeAmortisation = (
   f: Pick<DebtFacility, "originalPrincipal" | "rate" | "startDate" | "maturityDate" | "balloon">,
   asOf: Date = new Date()
-): { balance: number; principalRepaid: number; flat: boolean; paymentsMade: number } => {
+): { balance: number; principalRepaid: number; interestPaid: number; flat: boolean; paymentsMade: number } => {
   const P = Number(f.originalPrincipal) || 0;
   const annualRate = Number(f.rate) || 0;
   const i = annualRate / 100 / 12;
@@ -58,18 +58,22 @@ export const computeAmortisation = (
   const start = f.startDate ? new Date(f.startDate) : null;
   const maturity = f.maturityDate ? new Date(f.maturityDate) : null;
   if (!P || !start || !maturity || isNaN(start.getTime()) || isNaN(maturity.getTime())) {
-    return { balance: P, principalRepaid: 0, flat: false, paymentsMade: 0 };
+    return { balance: P, principalRepaid: 0, interestPaid: 0, flat: false, paymentsMade: 0 };
   }
   const nTotal = Math.max(1, _monthsBetween(start, maturity));
-  if (asOf < start) return { balance: P, principalRepaid: 0, flat: false, paymentsMade: 0 };
-  if (asOf >= maturity) return { balance: balloon, principalRepaid: Math.max(0, P - balloon), flat: false, paymentsMade: nTotal };
-  const paymentsMade = _paymentsMade(start, asOf, nTotal);
+  if (asOf < start) return { balance: P, principalRepaid: 0, interestPaid: 0, flat: false, paymentsMade: 0 };
   let pi: number;
   if (i > 0) {
     pi = (P - balloon / Math.pow(1 + i, nTotal)) * i / (1 - Math.pow(1 + i, -nTotal));
   } else {
     pi = (P - balloon) / nTotal;
   }
+  if (asOf >= maturity) {
+    const principalRepaid = Math.max(0, P - balloon);
+    const interestPaid = Math.max(0, pi * nTotal - principalRepaid);
+    return { balance: balloon, principalRepaid, interestPaid, flat: false, paymentsMade: nTotal };
+  }
+  const paymentsMade = _paymentsMade(start, asOf, nTotal);
   const firstInterest = P * i;
   const flat = i > 0 && pi <= firstInterest;
   let balance: number;
@@ -81,7 +85,10 @@ export const computeAmortisation = (
     balance = P - pi * paymentsMade;
   }
   balance = Math.max(balloon, Math.min(P, balance));
-  return { balance, principalRepaid: Math.max(0, P - balance), flat, paymentsMade };
+  const principalRepaid = Math.max(0, P - balance);
+  // Interest = total P&I paid − principal repaid. Excludes monthly fee.
+  const interestPaid = Math.max(0, pi * paymentsMade - principalRepaid);
+  return { balance, principalRepaid, interestPaid, flat, paymentsMade };
 };
 
 export const DEBT_CACHE_KEY = "tt_debt_register";
