@@ -2306,33 +2306,8 @@ const LenderFitPanel = ({
   const annualTurnover = profile.annualTurnover ?? autoAnnualTurnover;
   const currentDSCR = existingCommitments > 0 ? blendedIncome / existingCommitments : Infinity;
 
-  // ---- Eligibility signal per row ----
-  const rowSignal = (row: LenderRow) => {
-    const needsSecurity = row.security !== "None";
-    const hasTrading = tradingYears >= row.minTradingYrs;
-    const hasSec = !needsSecurity || profile.securityAvailable;
-    const dscrOk = currentDSCR >= row.dscrMin;
-    const dscrClose = currentDSCR >= row.dscrMin - 0.15;
-    let tone: "green" | "amber" | "red" = "red";
-    let reason = "";
-    if (hasTrading && hasSec && dscrOk) {
-      tone = "green";
-      reason = `DSCR ${isFinite(currentDSCR) ? currentDSCR.toFixed(2) : "∞"} ≥ ${row.dscrMin.toFixed(2)} ✓${row.minTradingYrs > 0 ? `, ${row.minTradingYrs}+ yr ✓` : ""}`;
-    } else if (hasTrading && (dscrClose || (needsSecurity && !profile.securityAvailable && dscrOk))) {
-      tone = "amber";
-      const parts: string[] = [];
-      if (needsSecurity && !profile.securityAvailable) parts.push("needs security confirmed");
-      if (!dscrOk && dscrClose) parts.push(`DSCR ${currentDSCR.toFixed(2)} near ${row.dscrMin.toFixed(2)}`);
-      reason = parts.join(" · ") || "borderline";
-    } else {
-      const parts: string[] = [];
-      if (!hasTrading) parts.push(`needs ${row.minTradingYrs}+ yrs trading`);
-      if (needsSecurity && !profile.securityAvailable) parts.push("needs asset security");
-      if (!dscrOk && !dscrClose) parts.push(`DSCR ${isFinite(currentDSCR) ? currentDSCR.toFixed(2) : "∞"} < ${row.dscrMin.toFixed(2)}`);
-      reason = parts.join(" · ");
-    }
-    return { tone, reason };
-  };
+
+
 
   // ---- Merged solver: one optional target, per-row expand with researched rate/term ----
   const [targetInput, setTargetInput] = useState<string>("");
