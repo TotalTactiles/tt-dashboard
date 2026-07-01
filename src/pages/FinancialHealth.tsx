@@ -886,17 +886,18 @@ const ChartsSection = ({
   }, [borrowCalc]);
 
   // ---- Facility presets (AU market averages, June 2026 — editable + persisted) ----
-  type FacilityKey = "business_loan" | "vehicle" | "equipment" | "commercial_property" | "residential_property" | "unsecured" | "custom";
+  // Canonical order + labels used by every selector (matrix, reverse solver, Borrowing Capacity dropdown).
+  type FacilityKey = "unsecured" | "secured_business" | "residential_property" | "commercial_property" | "vehicle" | "equipment" | "custom";
   type FacilityPreset = { key: FacilityKey; label: string; rate: number | null; termMonths: number | null };
-  const FACILITY_PRESETS_KEY = "tt_facility_presets_v1";
+  const FACILITY_PRESETS_KEY = "tt_facility_presets_v2";
   const DEFAULT_FACILITY_PRESETS: FacilityPreset[] = [
-    { key: "business_loan",        label: "Business loan (secured)",         rate: 7.5,  termMonths: 60  },
-    { key: "vehicle",              label: "Vehicle / car finance",          rate: 7.5,  termMonths: 60  },
-    { key: "equipment",            label: "Equipment finance (chattel)",    rate: 7.5,  termMonths: 60  },
-    { key: "commercial_property",  label: "Commercial property (owner-occ)",rate: 7.0,  termMonths: 180 },
-    { key: "residential_property", label: "Residential property",           rate: 6.0,  termMonths: 360 },
-    { key: "unsecured",            label: "Unsecured business loan",        rate: 13.0, termMonths: 36  },
-    { key: "custom",               label: "Custom",                          rate: null, termMonths: null },
+    { key: "unsecured",            label: "Unsecured business loan", rate: 15.0,  termMonths: 36  },
+    { key: "secured_business",     label: "Secured business loan",   rate: 10.99, termMonths: 84  },
+    { key: "residential_property", label: "Residential property",    rate: 6.0,   termMonths: 360 },
+    { key: "commercial_property",  label: "Commercial property",     rate: 7.0,   termMonths: 180 },
+    { key: "vehicle",              label: "Vehicle finance",         rate: 7.5,   termMonths: 60  },
+    { key: "equipment",            label: "Equipment finance",       rate: 7.5,   termMonths: 60  },
+    { key: "custom",               label: "Custom",                  rate: null,  termMonths: null },
   ];
   const [facilityPresets, setFacilityPresets] = useState<FacilityPreset[]>(() => {
     if (typeof window === "undefined") return DEFAULT_FACILITY_PRESETS;
@@ -904,7 +905,7 @@ const ChartsSection = ({
       const raw = window.localStorage.getItem(FACILITY_PRESETS_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as FacilityPreset[];
-        // Merge with defaults to ensure all keys present
+        // Preserve canonical order & labels from defaults; only rate/term are user-editable.
         return DEFAULT_FACILITY_PRESETS.map(def => {
           const found = parsed.find(p => p.key === def.key);
           return found ? { ...def, rate: found.rate, termMonths: found.termMonths } : def;
@@ -921,6 +922,32 @@ const ChartsSection = ({
   const updateFacilityPreset = (key: FacilityKey, patch: Partial<FacilityPreset>) => {
     setFacilityPresets(prev => prev.map(p => p.key === key ? { ...p, ...patch } : p));
   };
+
+  // Seed `secured_business` preset live from the Debt Register's primary CommBank
+  // term-loan facility (Vinny #1) so it self-updates on refinance. Rate stays editable.
+  useEffect(() => {
+    const vinny =
+      debts.find(d => /vinny\s*#?\s*1/i.test(d.name || "")) ??
+      debts.find(d => /vinny/i.test(d.name || "") && d.type === "Term Loan") ??
+      debts.find(d => /vinny/i.test(d.name || ""));
+    if (!vinny) return;
+    const rate = Number(vinny.rate);
+    let termMonths: number | null = null;
+    if (vinny.startDate && vinny.maturityDate) {
+      const s = new Date(vinny.startDate);
+      const e = new Date(vinny.maturityDate);
+      if (!isNaN(s.getTime()) && !isNaN(e.getTime())) {
+        termMonths = Math.max(1, Math.round(_monthsBetween(s, e)));
+      }
+    }
+    setFacilityPresets(prev => prev.map(p => {
+      if (p.key !== "secured_business") return p;
+      const nextRate = Number.isFinite(rate) && rate > 0 ? rate : p.rate;
+      const nextTerm = termMonths ?? p.termMonths;
+      if (p.rate === nextRate && p.termMonths === nextTerm) return p;
+      return { ...p, rate: nextRate, termMonths: nextTerm };
+    }));
+  }, [debts]);
 
 
 
@@ -1413,10 +1440,10 @@ const ChartsSection = ({
               </button>
             ))}
 
-            {/* EST. BORROWING CAPACITY — fixed business-loan glance */}
+            {/* EST. BORROWING CAPACITY — Secured business loan glance (seeded from Vinny #1) */}
             {(() => {
               const M = debtStripped.maxNewRepayment;
-              const preset = facilityPresets.find(p => p.key === "business_loan") ?? { key: "business_loan" as FacilityKey, label: "Business loan", rate: 7.5, termMonths: 60 };
+              const preset = facilityPresets.find(p => p.key === "secured_business") ?? { key: "secured_business" as FacilityKey, label: "Secured business loan", rate: 10.99, termMonths: 84 };
               const rate = preset.rate;
               const termMonths = preset.termMonths;
               const r = rate != null ? rate / 100 / 12 : null;
@@ -1429,7 +1456,7 @@ const ChartsSection = ({
                   <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-mono">Est. Borrowing Capacity</p>
                   <p className="text-lg font-mono font-bold text-chart-green">{fmtK(capacity)}</p>
                   <p className="mt-0.5 text-[10px] text-muted-foreground font-mono leading-tight">
-                    Business loan · {rate != null ? `${rate}% p.a.` : "—% p.a."} · {termMonths != null ? `${termYrsDisp} yr` : "— yr"} · on {fmtAUD(M)}/mo serviceability
+                    Secured business loan · {rate != null ? `${rate}% p.a.` : "—% p.a."} · {termMonths != null ? `${termYrsDisp} yr` : "— yr"} · on {fmtAUD(M)}/mo serviceability
                   </p>
                 </div>
               );
@@ -1735,7 +1762,7 @@ const ChartsSection = ({
                           const usable = Number(debtStripped.lenderUsableIncome) || 0;
                           const commitments = Number(totalMonthlyRepayment) || 0;
                           const M = Number(debtStripped.maxNewRepayment) || 0;
-                          const preset = facilityPresets.find(p => p.key === selectedFacilityKey) ?? (facilityPresets.find(p => p.key === "business_loan") ?? facilityPresets[0]);
+                          const preset = facilityPresets.find(p => p.key === selectedFacilityKey) ?? (facilityPresets.find(p => p.key === "secured_business") ?? facilityPresets[0]);
                           const rate = preset.rate;
                           const termMonths = preset.termMonths;
                           const rMo = rate != null ? rate / 100 / 12 : null;
@@ -2134,15 +2161,17 @@ type LenderRow = {
   minTradingYrs: number; security: string; dscrMin: number;
 };
 
-const LENDER_MATRIX_KEY = "tt_lender_matrix_v1";
+const LENDER_MATRIX_KEY = "tt_lender_matrix_v2";
 const BORROWER_PROFILE_KEY = "tt_borrower_profile_v1";
 
+// Canonical facility order + labels — matches facilityPresets. Matrix has NO trailing "Custom".
 const DEFAULT_LENDER_MATRIX: LenderRow[] = [
-  { key: "secured_term",        facility: "Secured business term loan", tier: "Bank (Big 4)",       rateLow: 6.8, rateHigh: 8.2,  termMonths: 60,  minTradingYrs: 2,   security: "Property/asset",        dscrMin: 1.25 },
-  { key: "equipment",           facility: "Equipment / chattel mortgage", tier: "Bank / non-bank",  rateLow: 7.0, rateHigh: 10.0, termMonths: 60,  minTradingYrs: 1,   security: "The asset",             dscrMin: 1.25 },
-  { key: "vehicle",             facility: "Vehicle finance",             tier: "Bank / non-bank",   rateLow: 7.5, rateHigh: 9.0,  termMonths: 60,  minTradingYrs: 0.5, security: "The vehicle",           dscrMin: 1.25 },
-  { key: "commercial_property", facility: "Commercial property loan",    tier: "Bank / non-bank",   rateLow: 6.5, rateHigh: 10.0, termMonths: 180, minTradingYrs: 2,   security: "Property (LVR 65–70%)", dscrMin: 1.25 },
-  { key: "unsecured",           facility: "Unsecured business loan",     tier: "Fintech / non-bank",rateLow: 9.5, rateHigh: 18.0, termMonths: 36,  minTradingYrs: 0.5, security: "None",                  dscrMin: 1.50 },
+  { key: "unsecured",            facility: "Unsecured business loan", tier: "Fintech / non-bank",rateLow: 9.5, rateHigh: 18.0, termMonths: 36,  minTradingYrs: 0.5, security: "None",                  dscrMin: 1.50 },
+  { key: "secured_business",     facility: "Secured business loan",   tier: "Bank (Big 4)",       rateLow: 6.8, rateHigh: 11.5, termMonths: 84,  minTradingYrs: 2,   security: "Property/asset",        dscrMin: 1.25 },
+  { key: "residential_property", facility: "Residential property",    tier: "Bank / non-bank",   rateLow: 5.5, rateHigh: 6.5,  termMonths: 360, minTradingYrs: 0,   security: "Residential property",  dscrMin: 1.00 },
+  { key: "commercial_property",  facility: "Commercial property",     tier: "Bank / non-bank",   rateLow: 6.5, rateHigh: 10.0, termMonths: 180, minTradingYrs: 2,   security: "Property (LVR 65–70%)", dscrMin: 1.25 },
+  { key: "vehicle",              facility: "Vehicle finance",         tier: "Bank / non-bank",   rateLow: 7.5, rateHigh: 9.0,  termMonths: 60,  minTradingYrs: 0.5, security: "The vehicle",           dscrMin: 1.25 },
+  { key: "equipment",            facility: "Equipment finance",       tier: "Bank / non-bank",   rateLow: 7.0, rateHigh: 10.0, termMonths: 60,  minTradingYrs: 1,   security: "The asset",             dscrMin: 1.25 },
 ];
 
 type BorrowerProfile = {
@@ -2257,17 +2286,17 @@ const LenderFitPanel = ({
 
   // ---- Reverse solver ----
   const mapDefaultToMatrixKey = (k: string): string => {
+    if (k === "custom") return "custom";
     if (matrix.some((r) => r.key === k)) return k;
-    if (k === "residential_property") return "commercial_property";
-    if (k === "custom") return "secured_term";
-    return "secured_term";
+    return "secured_business";
   };
   const [solverFacilityKey, setSolverFacilityKey] = useState<string>(mapDefaultToMatrixKey(defaultFacilityKey));
   const [targetInput, setTargetInput] = useState<string>("");
   const [solverRate, setSolverRate] = useState<string>("");
   const [solverTerm, setSolverTerm] = useState<string>("");
 
-  const solverRow = matrix.find((r) => r.key === solverFacilityKey) ?? matrix[0];
+  const CUSTOM_SOLVER_ROW: LenderRow = { key: "custom", facility: "Custom", tier: "—", rateLow: 7, rateHigh: 7, termMonths: 60, minTradingYrs: 0, security: "None", dscrMin: 1.25 };
+  const solverRow = solverFacilityKey === "custom" ? CUSTOM_SOLVER_ROW : (matrix.find((r) => r.key === solverFacilityKey) ?? matrix[0]);
   const midRate = (solverRow.rateLow + solverRow.rateHigh) / 2;
   const activeRate = Number(solverRate) > 0 ? Number(solverRate) : midRate;
   const activeTerm = Number(solverTerm) > 0 ? Number(solverTerm) : solverRow.termMonths;
@@ -2401,17 +2430,23 @@ const LenderFitPanel = ({
       {/* Matrix */}
       <div className="mt-3 space-y-1">
         {matrix.map((row) => {
-          const sig = rowSignal(row);
+          const isResidential = row.key === "residential_property";
+          const sig = isResidential
+            ? { tone: "amber" as const, reason: "assessed on personal income (APRA +3% buffer, DTI ≤6×, HEM) — separate from business DSCR" }
+            : rowSignal(row);
+          const verdictLabel = isResidential
+            ? "Personal"
+            : (sig.tone === "green" ? "Eligible" : sig.tone === "amber" ? "Marginal" : "Not yet");
           return (
             <div key={row.key} className={`flex items-center gap-2 px-2 py-1.5 rounded border text-[10px] ${toneClasses(sig.tone)}`}>
               <div className="flex-1 min-w-0">
                 <p className="text-foreground font-medium truncate">{row.facility}</p>
                 <p className="text-muted-foreground font-mono truncate">
-                  {row.rateLow.toFixed(1)}–{row.rateHigh.toFixed(1)}% · {Math.round(row.termMonths / 12)}yr · DSCR ≥ {row.dscrMin.toFixed(2)} · {row.security}
+                  {row.rateLow.toFixed(1)}–{row.rateHigh.toFixed(1)}% · {Math.round(row.termMonths / 12)}yr · {isResidential ? "consumer rules" : `DSCR ≥ ${row.dscrMin.toFixed(2)}`} · {row.security}
                 </p>
               </div>
               <div className="text-right shrink-0 max-w-[45%]">
-                <p className="font-mono uppercase tracking-wider">{sig.tone === "green" ? "Eligible" : sig.tone === "amber" ? "Marginal" : "Not yet"}</p>
+                <p className="font-mono uppercase tracking-wider">{verdictLabel}</p>
                 <p className="text-muted-foreground truncate">{sig.reason}</p>
               </div>
             </div>
@@ -2443,6 +2478,7 @@ const LenderFitPanel = ({
               {matrix.map((r) => (
                 <option key={r.key} value={r.key} className="bg-[#1a1a2e]">{r.facility}</option>
               ))}
+              <option value="custom" className="bg-[#1a1a2e]">Custom</option>
             </select>
           </div>
           <div className="bg-white/5 rounded px-2 py-1.5">
