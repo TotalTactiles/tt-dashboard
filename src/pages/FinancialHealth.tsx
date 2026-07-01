@@ -1978,7 +1978,7 @@ const ChartsSection = ({
       {/* Chart 2: Debt Payoff Trajectory */}
       {(() => {
         const PAYOFF_COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#8b5cf6", "#ef4444"];
-        const activeFacilities = debts.filter((d) => Number(d.balance) > 0);
+        const activeFacilities = computedDebts.filter((d) => Number(d.balance) > 0);
         const totalDebtToday = activeFacilities.reduce((s, d) => s + (Number(d.balance) || 0), 0);
 
         if (activeFacilities.length === 0) {
