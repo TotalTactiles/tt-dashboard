@@ -1312,6 +1312,42 @@ const ChartsSection = ({
     return labels[strippedPeriod] ?? "";
   })();
 
+  // Debt position as at the end of the selected period.
+  // Balance-sheet stocks are read at the period's closing date, while P&L
+  // flows above are summed over the period. Future period-ends project
+  // forward via the amortisation schedule.
+  const MONTH_ABBR_IDX: Record<string, number> = {
+    Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11,
+  };
+  const asOfDebtDate = useMemo(() => {
+    if (strippedMonth) {
+      const [m, yy] = strippedMonth.split("-");
+      const y = 2000 + Number(yy);
+      const mi = MONTH_ABBR_IDX[m] ?? 11;
+      return new Date(y, mi + 1, 0); // last day of that month
+    }
+    if (strippedPeriod === "All") return new Date(2026, 11, 31);
+    const lastMonth = { Q1:2, Q2:5, Q3:8, Q4:11 }[strippedPeriod];
+    return new Date(2026, lastMonth + 1, 0);
+  }, [strippedMonth, strippedPeriod]);
+
+  const debtPositionAsOf = useMemo(() => {
+    let drawn = 0, outstanding = 0;
+    for (const d of debts) {
+      const start = d.startDate ? new Date(d.startDate) : null;
+      if (!start || start > asOfDebtDate) continue;
+      const a = computeAmortisation(d, asOfDebtDate);
+      drawn += Number(d.originalPrincipal) || 0;
+      outstanding += a.balance;
+    }
+    return { drawn, outstanding, repaid: drawn - outstanding };
+  }, [debts, asOfDebtDate]);
+
+  const asOfDebtLabel = useMemo(() => {
+    const m = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][asOfDebtDate.getMonth()];
+    return `${m} ${asOfDebtDate.getFullYear()}`;
+  }, [asOfDebtDate]);
+
   const [expandedPill, setExpandedPill] = useState<number | null>(null);
 
   return (
