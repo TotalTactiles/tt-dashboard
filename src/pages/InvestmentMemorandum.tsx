@@ -437,6 +437,16 @@ export default function ConsultingPage() {
   const { liveData, investorMetrics, hasLiveData } = useDashboardData() as any;
   const [messages, setMessages] = useState<Message[]>([welcomeFor()]);
   const [input, setInput] = useState("");
+  const location = useLocation();
+  useEffect(() => {
+    const prefill = (location.state as any)?.prefill;
+    if (typeof prefill === "string" && prefill.trim()) {
+      setInput(prefill);
+      // Clear location state so refresh doesn't re-inject
+      window.history.replaceState({}, "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [loading, setLoading] = useState(false);
   const [accountingData, setAccountingData] = useState<any>(null);
   const [accountingDataLoading, setAccountingDataLoading] = useState(false);
