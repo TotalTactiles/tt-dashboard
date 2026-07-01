@@ -886,17 +886,18 @@ const ChartsSection = ({
   }, [borrowCalc]);
 
   // ---- Facility presets (AU market averages, June 2026 — editable + persisted) ----
-  type FacilityKey = "business_loan" | "vehicle" | "equipment" | "commercial_property" | "residential_property" | "unsecured" | "custom";
+  // Canonical order + labels used by every selector (matrix, reverse solver, Borrowing Capacity dropdown).
+  type FacilityKey = "unsecured" | "secured_business" | "residential_property" | "commercial_property" | "vehicle" | "equipment" | "custom";
   type FacilityPreset = { key: FacilityKey; label: string; rate: number | null; termMonths: number | null };
-  const FACILITY_PRESETS_KEY = "tt_facility_presets_v1";
+  const FACILITY_PRESETS_KEY = "tt_facility_presets_v2";
   const DEFAULT_FACILITY_PRESETS: FacilityPreset[] = [
-    { key: "business_loan",        label: "Business loan (secured)",         rate: 7.5,  termMonths: 60  },
-    { key: "vehicle",              label: "Vehicle / car finance",          rate: 7.5,  termMonths: 60  },
-    { key: "equipment",            label: "Equipment finance (chattel)",    rate: 7.5,  termMonths: 60  },
-    { key: "commercial_property",  label: "Commercial property (owner-occ)",rate: 7.0,  termMonths: 180 },
-    { key: "residential_property", label: "Residential property",           rate: 6.0,  termMonths: 360 },
-    { key: "unsecured",            label: "Unsecured business loan",        rate: 13.0, termMonths: 36  },
-    { key: "custom",               label: "Custom",                          rate: null, termMonths: null },
+    { key: "unsecured",            label: "Unsecured business loan", rate: 15.0,  termMonths: 36  },
+    { key: "secured_business",     label: "Secured business loan",   rate: 10.99, termMonths: 84  },
+    { key: "residential_property", label: "Residential property",    rate: 6.0,   termMonths: 360 },
+    { key: "commercial_property",  label: "Commercial property",     rate: 7.0,   termMonths: 180 },
+    { key: "vehicle",              label: "Vehicle finance",         rate: 7.5,   termMonths: 60  },
+    { key: "equipment",            label: "Equipment finance",       rate: 7.5,   termMonths: 60  },
+    { key: "custom",               label: "Custom",                  rate: null,  termMonths: null },
   ];
   const [facilityPresets, setFacilityPresets] = useState<FacilityPreset[]>(() => {
     if (typeof window === "undefined") return DEFAULT_FACILITY_PRESETS;
@@ -904,7 +905,7 @@ const ChartsSection = ({
       const raw = window.localStorage.getItem(FACILITY_PRESETS_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as FacilityPreset[];
-        // Merge with defaults to ensure all keys present
+        // Preserve canonical order & labels from defaults; only rate/term are user-editable.
         return DEFAULT_FACILITY_PRESETS.map(def => {
           const found = parsed.find(p => p.key === def.key);
           return found ? { ...def, rate: found.rate, termMonths: found.termMonths } : def;
@@ -921,6 +922,32 @@ const ChartsSection = ({
   const updateFacilityPreset = (key: FacilityKey, patch: Partial<FacilityPreset>) => {
     setFacilityPresets(prev => prev.map(p => p.key === key ? { ...p, ...patch } : p));
   };
+
+  // Seed `secured_business` preset live from the Debt Register's primary CommBank
+  // term-loan facility (Vinny #1) so it self-updates on refinance. Rate stays editable.
+  useEffect(() => {
+    const vinny =
+      debts.find(d => /vinny\s*#?\s*1/i.test(d.name || "")) ??
+      debts.find(d => /vinny/i.test(d.name || "") && d.type === "Term Loan") ??
+      debts.find(d => /vinny/i.test(d.name || ""));
+    if (!vinny) return;
+    const rate = Number(vinny.rate);
+    let termMonths: number | null = null;
+    if (vinny.startDate && vinny.maturityDate) {
+      const s = new Date(vinny.startDate);
+      const e = new Date(vinny.maturityDate);
+      if (!isNaN(s.getTime()) && !isNaN(e.getTime())) {
+        termMonths = Math.max(1, Math.round(_monthsBetween(s, e)));
+      }
+    }
+    setFacilityPresets(prev => prev.map(p => {
+      if (p.key !== "secured_business") return p;
+      const nextRate = Number.isFinite(rate) && rate > 0 ? rate : p.rate;
+      const nextTerm = termMonths ?? p.termMonths;
+      if (p.rate === nextRate && p.termMonths === nextTerm) return p;
+      return { ...p, rate: nextRate, termMonths: nextTerm };
+    }));
+  }, [debts]);
 
 
 
