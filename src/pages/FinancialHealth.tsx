@@ -2295,7 +2295,8 @@ const LenderFitPanel = ({
   const [solverRate, setSolverRate] = useState<string>("");
   const [solverTerm, setSolverTerm] = useState<string>("");
 
-  const solverRow = matrix.find((r) => r.key === solverFacilityKey) ?? matrix[0];
+  const CUSTOM_SOLVER_ROW: LenderRow = { key: "custom", facility: "Custom", tier: "—", rateLow: 7, rateHigh: 7, termMonths: 60, minTradingYrs: 0, security: "None", dscrMin: 1.25 };
+  const solverRow = solverFacilityKey === "custom" ? CUSTOM_SOLVER_ROW : (matrix.find((r) => r.key === solverFacilityKey) ?? matrix[0]);
   const midRate = (solverRow.rateLow + solverRow.rateHigh) / 2;
   const activeRate = Number(solverRate) > 0 ? Number(solverRate) : midRate;
   const activeTerm = Number(solverTerm) > 0 ? Number(solverTerm) : solverRow.termMonths;
