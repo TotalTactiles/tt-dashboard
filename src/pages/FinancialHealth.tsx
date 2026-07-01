@@ -1762,7 +1762,7 @@ const ChartsSection = ({
                           const usable = Number(debtStripped.lenderUsableIncome) || 0;
                           const commitments = Number(totalMonthlyRepayment) || 0;
                           const M = Number(debtStripped.maxNewRepayment) || 0;
-                          const preset = facilityPresets.find(p => p.key === selectedFacilityKey) ?? (facilityPresets.find(p => p.key === "business_loan") ?? facilityPresets[0]);
+                          const preset = facilityPresets.find(p => p.key === selectedFacilityKey) ?? (facilityPresets.find(p => p.key === "secured_business") ?? facilityPresets[0]);
                           const rate = preset.rate;
                           const termMonths = preset.termMonths;
                           const rMo = rate != null ? rate / 100 / 12 : null;
