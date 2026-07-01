@@ -570,6 +570,7 @@ const FinancialHealth = () => {
                   <th className="py-2 px-2 font-medium text-left whitespace-nowrap">Type</th>
                   <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Original</th>
                   <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Balance</th>
+                  <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Interest</th>
                   <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Rate %</th>
                   <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Monthly</th>
                   <th className="py-2 px-2 font-medium text-left whitespace-nowrap">Start</th>
