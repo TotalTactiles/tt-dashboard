@@ -3,7 +3,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Check, X, Trash2, GripVertical } from "lucide-react";
+import { Plus, Pencil, Check, X, Trash2, GripVertical, ChevronDown } from "lucide-react";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import {
   BarChart, Bar, LineChart, Line, ComposedChart, PieChart, Pie, Cell,
@@ -807,6 +807,41 @@ const ChartsSection = ({
     setFacilityPresets(prev => prev.map(p => p.key === key ? { ...p, ...patch } : p));
   };
 
+
+
+  // ---- Lender benchmarks (AU standards, editable + persisted) ----
+  const LENDER_BENCHMARKS_KEY = "tt_lender_benchmarks_v1";
+  type LenderBenchmarks = {
+    asOf: string;
+    dscrStandard: number;      // secured/business
+    dscrUnsecured: number;     // unsecured
+    bufferPct: number;         // % of income lenders will service against (0.80 = DSCR 1.25 inverse)
+    apraBufferPct: number;     // residential assessment buffer added to rate
+    dtiCapMultiple: number;    // gross-income multiple (APRA cap trigger)
+    dtiCapShare: number;       // share of new loans allowed >= dtiCapMultiple
+  };
+  const DEFAULT_LENDER_BENCHMARKS: LenderBenchmarks = {
+    asOf: "June 2026",
+    dscrStandard: 1.25,
+    dscrUnsecured: 1.5,
+    bufferPct: 0.80,
+    apraBufferPct: 3.0,
+    dtiCapMultiple: 6,
+    dtiCapShare: 0.20,
+  };
+  const [lenderBenchmarks] = useState<LenderBenchmarks>(() => {
+    if (typeof window === "undefined") return DEFAULT_LENDER_BENCHMARKS;
+    try {
+      const raw = window.localStorage.getItem(LENDER_BENCHMARKS_KEY);
+      if (raw) return { ...DEFAULT_LENDER_BENCHMARKS, ...JSON.parse(raw) };
+      window.localStorage.setItem(LENDER_BENCHMARKS_KEY, JSON.stringify(DEFAULT_LENDER_BENCHMARKS));
+    } catch {}
+    return DEFAULT_LENDER_BENCHMARKS;
+  });
+  const [lenderExpanded, setLenderExpanded] = useState(false);
+
+
+
   const debtStripped = useMemo(() => {
     const rawCashflow = liveData?.cashflow ?? [];
     const findRow = (label: string) => {
@@ -1431,12 +1466,123 @@ const ChartsSection = ({
                             {fmtPeriod(debtStripped.maxNewRepayment)}
                           </span>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => setLenderExpanded(v => !v)}
+                          aria-expanded={lenderExpanded}
+                          aria-controls="lender-calc-breakdown"
+                          className="mt-2 flex items-center gap-1 text-[10px] font-mono text-chart-green hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-chart-green/40 rounded"
+                        >
+                          <ChevronDown className={`h-3 w-3 transition-transform ${lenderExpanded ? "rotate-180" : ""}`} />
+                          {lenderExpanded ? "Hide breakdown" : "How is this calculated?"}
+                        </button>
                         <p className="text-[9px] text-muted-foreground/70 italic mt-2">
                           Borrowing capacity is always assessed on the monthly figure.
                         </p>
+
+                        {lenderExpanded && (() => {
+                          const blended = Number(debtStripped.avg6Blended) || 0;
+                          const usable = Number(debtStripped.lenderUsableIncome) || 0;
+                          const commitments = Number(totalMonthlyRepayment) || 0;
+                          const M = Number(debtStripped.maxNewRepayment) || 0;
+                          const preset = facilityPresets.find(p => p.key === selectedFacilityKey) ?? facilityPresets[1];
+                          const rate = preset.rate;
+                          const termMonths = preset.termMonths;
+                          const rMo = rate != null ? rate / 100 / 12 : null;
+                          const capacity = (M > 0 && rMo != null && rMo > 0 && termMonths != null && termMonths > 0)
+                            ? M * ((1 - Math.pow(1 + rMo, -termMonths)) / rMo)
+                            : 0;
+                          // Implied DSCR = net operating income / total debt service (existing + new @ facility)
+                          const newDebtService = M; // per-month service the buffer supports at the selected facility
+                          const totalService = commitments + newDebtService;
+                          const impliedDSCR = totalService > 0 && blended > 0 ? blended / totalService : null;
+                          const bench = lenderBenchmarks;
+                          const isUnsecured = preset.key === "unsecured";
+                          const isResidential = preset.key === "residential_property";
+                          const dscrTarget = isUnsecured ? bench.dscrUnsecured : bench.dscrStandard;
+                          const dscrOk = impliedDSCR != null && impliedDSCR >= dscrTarget;
+                          const dscrAmber = impliedDSCR != null && impliedDSCR >= dscrTarget * 0.9 && impliedDSCR < dscrTarget;
+                          const dscrColor = impliedDSCR == null ? "text-muted-foreground" : dscrOk ? "text-emerald-400" : dscrAmber ? "text-amber-400" : "text-red-400";
+                          const dscrTxt = impliedDSCR == null ? "—" : impliedDSCR.toFixed(2);
+                          const facilityNote = isResidential
+                            ? `Residential is also assessed on personal/director income under consumer rules. APRA serviceability buffer: assess at rate + ${bench.apraBufferPct.toFixed(1)}%. APRA debt-to-income cap restricts lenders from issuing more than ${(bench.dtiCapShare * 100).toFixed(0)}% of new loans at ≥ ${bench.dtiCapMultiple}× gross income (in force from Feb 2026).`
+                            : isUnsecured
+                            ? `Unsecured facilities: lenders typically require a higher DSCR (~${bench.dscrUnsecured.toFixed(2)}) and price materially above secured lines.`
+                            : `Asset / secured facility: assessed on business cash flow with the asset as security. DSCR ≥ ${bench.dscrStandard.toFixed(2)} is the governing test.`;
+                          const _fmt = (n: number) => fmtAUD(n);
+                          const termYrs = termMonths != null ? (termMonths % 12 === 0 ? `${termMonths / 12}` : (termMonths / 12).toFixed(1)) : "—";
+                          return (
+                            <div id="lender-calc-breakdown" className="mt-3 pt-3 border-t border-white/10 space-y-4">
+                              {/* Your numbers */}
+                              <div>
+                                <p className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-2">Your numbers</p>
+                                <div className="space-y-1.5 text-[11px] font-mono">
+                                  <div className="flex justify-between gap-2">
+                                    <span className="text-muted-foreground">Assessable income (6m blended)</span>
+                                    <span className="text-foreground">{blended > 0 ? `${_fmt(blended)}/mo` : "—"}</span>
+                                  </div>
+                                  <p className="text-[9px] text-muted-foreground/70 italic pl-2">Actuals + signed contracts at 70%.</p>
+                                  <div className="flex justify-between gap-2">
+                                    <span className="text-muted-foreground">× 80% serviceability buffer</span>
+                                    <span className="text-foreground">{usable > 0 ? `${_fmt(usable)}/mo` : "—"}</span>
+                                  </div>
+                                  <div className="pt-1">
+                                    <div className="flex justify-between gap-2">
+                                      <span className="text-muted-foreground">− Existing commitments</span>
+                                      <span className="text-foreground">{_fmt(commitments)}/mo</span>
+                                    </div>
+                                    {debts.length > 0 && (
+                                      <ul className="mt-1 pl-3 space-y-0.5 text-[10px] text-muted-foreground/80">
+                                        {debts.map(d => (
+                                          <li key={d.id} className="flex justify-between gap-2">
+                                            <span className="truncate">· {d.name || "Facility"}{d.lender ? ` (${d.lender})` : ""}</span>
+                                            <span>{_fmt(Number(d.monthlyRepayment) || 0)}/mo</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                  </div>
+                                  <div className="flex justify-between gap-2 pt-1 border-t border-white/10 mt-1">
+                                    <span className="text-foreground font-semibold">= Available for new debt</span>
+                                    <span className="text-emerald-400 font-semibold">{M > 0 ? `${_fmt(M)}/mo` : "—"}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* How a lender reads it */}
+                              <div>
+                                <p className="text-[10px] uppercase tracking-widest font-mono text-muted-foreground mb-2">How an Australian lender reads it</p>
+                                <div className="space-y-2 text-[11px] leading-relaxed text-muted-foreground">
+                                  <p>
+                                    The <span className="text-foreground font-semibold">80% buffer = DSCR {bench.dscrStandard.toFixed(2)}</span>. Business lenders assess on Debt Service Coverage Ratio (DSCR = net operating income ÷ total debt service). The bank-ready benchmark is DSCR ≥ {bench.dscrStandard.toFixed(2)}, and lending to that ratio means debt service ≤ income ÷ {bench.dscrStandard.toFixed(2)} = {(bench.bufferPct * 100).toFixed(0)}% of income — i.e. the card's {(bench.bufferPct * 100).toFixed(0)}% buffer <em>is</em> the DSCR-{bench.dscrStandard.toFixed(2)} standard.
+                                  </p>
+                                  <div className="bg-white/5 border border-white/10 rounded p-2 font-mono text-[11px]">
+                                    <div className="flex justify-between gap-2">
+                                      <span>Implied DSCR (this business)</span>
+                                      <span className={`font-semibold ${dscrColor}`}>{dscrTxt} <span className="text-muted-foreground/70 font-normal">vs ≥ {dscrTarget.toFixed(2)}</span></span>
+                                    </div>
+                                    <p className="text-[9px] text-muted-foreground/70 italic mt-1">
+                                      = blended income {_fmt(blended)} ÷ (existing {_fmt(commitments)} + new {_fmt(newDebtService)}) debt service.
+                                    </p>
+                                  </div>
+                                  <p><span className="text-foreground font-semibold">{preset.label}:</span> {facilityNote}</p>
+                                  <p className={`font-mono ${dscrColor}`}>
+                                    Verdict — at {rate != null ? `${rate}%` : "—%"} over {termYrs} yr, this supports ~{_fmt(capacity)} at a DSCR of {dscrTxt}.
+                                  </p>
+                                </div>
+                              </div>
+
+                              <p className="text-[9px] text-muted-foreground/70 italic">
+                                Benchmarks are indicative AU lending standards ({bench.asOf}), editable via <code>tt_lender_benchmarks_v1</code>. Not a credit decision.
+                              </p>
+                            </div>
+                          );
+                        })()}
                       </div>
                     );
                   })()}
+
+
 
                   {/* Borrowing Capacity — editable */}
                   {(() => {
