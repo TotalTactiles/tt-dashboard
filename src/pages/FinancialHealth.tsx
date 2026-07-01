@@ -579,7 +579,7 @@ const FinancialHealth = () => {
                   <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Original</th>
                   <th className="py-2 px-2 font-medium text-right whitespace-nowrap" title="Outstanding principal — payoff today">Principal O/S</th>
                   <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Interest</th>
-                  <th className="py-2 px-2 font-medium text-right whitespace-nowrap" title="Total future cash: Monthly × payments left (P&I + fee) — matches accountant">Repayments Remaining</th>
+                  <th className="py-2 px-2 font-medium text-right whitespace-nowrap" title="Total future cash: Monthly × payments left (P&I + fee) — matches accountant">Remaining</th>
                   <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Rate %</th>
                   <th className="py-2 px-2 font-medium text-right whitespace-nowrap">Monthly</th>
                   <th className="py-2 px-2 font-medium text-left whitespace-nowrap">Start</th>
