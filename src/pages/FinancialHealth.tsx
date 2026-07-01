@@ -1490,10 +1490,10 @@ const ChartsSection = ({
               </button>
             ))}
 
-            {/* EST. BORROWING CAPACITY — Secured business loan glance (seeded from Vinny #1) */}
+            {/* EST. BORROWING CAPACITY — Unsecured business loan glance (seeded from Vinny #1) */}
             {(() => {
               const M = debtStripped.maxNewRepayment;
-              const preset = facilityPresets.find(p => p.key === "secured_business") ?? { key: "secured_business" as FacilityKey, label: "Secured business loan", rate: 10.99, termMonths: 84 };
+              const preset = facilityPresets.find(p => p.key === "unsecured") ?? { key: "unsecured" as FacilityKey, label: "Unsecured business loan", rate: 10.99, termMonths: 84 };
               const rate = preset.rate;
               const termMonths = preset.termMonths;
               const r = rate != null ? rate / 100 / 12 : null;
@@ -1506,7 +1506,7 @@ const ChartsSection = ({
                   <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-mono">Est. Borrowing Capacity</p>
                   <p className="text-lg font-mono font-bold text-chart-green">{fmtK(capacity)}</p>
                   <p className="mt-0.5 text-[10px] text-muted-foreground font-mono leading-tight">
-                    Secured business loan · {rate != null ? `${rate}% p.a.` : "—% p.a."} · {termMonths != null ? `${termYrsDisp} yr` : "— yr"} · on {fmtAUD(M)}/mo serviceability
+                    Unsecured business loan · {rate != null ? `${rate}% p.a.` : "—% p.a."} · {termMonths != null ? `${termYrsDisp} yr` : "— yr"} · on {fmtAUD(M)}/mo serviceability
                   </p>
                 </div>
               );
