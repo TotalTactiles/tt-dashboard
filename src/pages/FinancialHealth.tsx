@@ -549,7 +549,8 @@ const FinancialHealth = () => {
                     }}
                     onDragEnd={() => { setDragOverIndex(null); dragIndexRef.current = null; }}
                   />
-                ))}
+                  );
+                })}
 
                 {debts.length === 0 && (
                   <tr><td colSpan={12} className="py-6 text-center text-muted-foreground whitespace-nowrap">No facilities. Click "Add Facility" to start.</td></tr>
