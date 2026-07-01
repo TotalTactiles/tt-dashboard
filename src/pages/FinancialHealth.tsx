@@ -703,10 +703,10 @@ const ChartsSection = ({
 
   // ---- Debt composition ----
   const compositionData = useMemo(() => {
-    return debts
+    return computedDebts
       .filter((d) => Number(d.balance) > 0)
       .map((d) => ({ name: d.name || "Unnamed", value: Number(d.balance) || 0 }));
-  }, [debts]);
+  }, [computedDebts]);
   const compositionTotal = compositionData.reduce((s, d) => s + d.value, 0);
 
   // ---- Burden % of GP monthly ----
