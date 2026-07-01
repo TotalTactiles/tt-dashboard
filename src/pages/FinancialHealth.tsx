@@ -315,14 +315,34 @@ const FinancialHealth = () => {
     writeCache(DEBT_CACHE_KEY, JSON.stringify(debts));
   }, [debts]);
 
-  const totals = useMemo(() => {
-    const totalPrincipal = debts.reduce((s, d) => s + (Number(d.originalPrincipal) || 0), 0);
-    const totalBalance = debts.reduce((s, d) => s + (Number(d.balance) || 0), 0);
-    const totalMonthly = debts.reduce((s, d) => s + (Number(d.monthlyRepayment) || 0), 0);
-    const weightedSum = debts.reduce((s, d) => s + (Number(d.balance) || 0) * (Number(d.rate) || 0), 0);
-    const blendedRate = totalBalance > 0 ? weightedSum / totalBalance : 0;
-    return { totalPrincipal, totalBalance, totalMonthly, blendedRate };
+  // Computed reducing balances (as of today) for every facility.
+  // Balance/principalRepaid are derived from the amortisation schedule; the stored
+  // `balance` field on legacy caches is ignored.
+  const computedDebts = useMemo(() => {
+    const asOf = new Date();
+    return debts.map((d) => {
+      const a = computeAmortisation(d, asOf);
+      return { ...d, balance: a.balance, principalRepaid: a.principalRepaid, _flat: a.flat };
+    });
   }, [debts]);
+
+  const totals = useMemo(() => {
+    const totalPrincipal = computedDebts.reduce((s, d) => s + (Number(d.originalPrincipal) || 0), 0);
+    const totalBalance = computedDebts.reduce((s, d) => s + (Number(d.balance) || 0), 0);
+    const totalRepaid = computedDebts.reduce((s, d) => s + (Number(d.principalRepaid) || 0), 0);
+    const totalMonthly = computedDebts.reduce((s, d) => s + (Number(d.monthlyRepayment) || 0), 0);
+    const weightedSum = computedDebts.reduce((s, d) => s + (Number(d.balance) || 0) * (Number(d.rate) || 0), 0);
+    const blendedRate = totalBalance > 0 ? weightedSum / totalBalance : 0;
+    // Dev reconciliation: Drawn − Repaid should equal Outstanding.
+    if (typeof window !== "undefined" && import.meta.env?.DEV) {
+      const diff = totalPrincipal - totalRepaid - totalBalance;
+      if (Math.abs(diff) > 1) {
+        // eslint-disable-next-line no-console
+        console.warn("[DebtRegister] Drawn − Repaid ≠ Outstanding", { totalPrincipal, totalRepaid, totalBalance, diff });
+      }
+    }
+    return { totalPrincipal, totalBalance, totalRepaid, totalMonthly, blendedRate };
+  }, [computedDebts]);
 
   const handleRowSave = (updated: DebtFacility) => {
     setDebts((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
