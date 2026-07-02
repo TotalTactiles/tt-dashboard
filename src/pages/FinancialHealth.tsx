@@ -932,34 +932,8 @@ const ChartsSection = ({
   const [serviceabilityView, setServiceabilityView] = useState<"actuals"|"with_grn"|"with_ylw">("with_grn");
   const [showSvcDebug, setShowSvcDebug] = useState(false);
 
-  // ── Serviceability blend factors (editable, persisted) ──────────────
-  // grnFactor = weighting for signed/won contracts (GRN). Default 100%.
-  // ylwFactor = weighting for verbal-confirmed pipeline (YLW). Default 90%.
-  // Both double as a lender-facing conservatism buffer when dialled down.
-  const SVC_FACTORS_KEY = "tt_serviceability_factors_v1";
-  const [svcFactors, setSvcFactors] = useState<{ grnFactor: number; ylwFactor: number }>(() => {
-    if (typeof window === "undefined") return { grnFactor: 1.0, ylwFactor: 0.9 };
-    try {
-      const raw = window.localStorage.getItem(SVC_FACTORS_KEY);
-      if (raw) {
-        const p = JSON.parse(raw);
-        const g = Number(p?.grnFactor); const y = Number(p?.ylwFactor);
-        return {
-          grnFactor: Number.isFinite(g) && g >= 0 && g <= 1.5 ? g : 1.0,
-          ylwFactor: Number.isFinite(y) && y >= 0 && y <= 1.5 ? y : 0.9,
-        };
-      }
-    } catch {}
-    return { grnFactor: 1.0, ylwFactor: 0.9 };
-  });
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try { window.localStorage.setItem(SVC_FACTORS_KEY, JSON.stringify(svcFactors)); } catch {}
-  }, [svcFactors]);
-  const grnFactor = svcFactors.grnFactor;
-  const ylwFactor = svcFactors.ylwFactor;
-
   // Borrowing-capacity editable inputs + Lender Calculation period toggle
+
   type BorrowCalcState = {
     loanAmount: string; // keep as string for input UX
     rate: string;       // % p.a.
@@ -1120,7 +1094,7 @@ const ChartsSection = ({
     // "Anticipated Cash Surplus/(Deficit)" row (a running BALANCE), whose
     // month-to-month delta goes negative in drawdown months and zeroed out
     // real forward income — collapsing all three modes to actuals-only.
-    // Legacy flat haircut removed — replaced by editable grnFactor / ylwFactor.
+    // Forward months receive a flat 70% haircut (debt-stripped operating cash flow).
     // ASSUMPTION A — confirm vs the CASHFLOW model. Does a forward month's
     // Total Income already include probable (YLW) jobs? Workbook says YES.
     // If forward Total Income is contracted-only, set this to false.
@@ -1181,19 +1155,18 @@ const ChartsSection = ({
         const opCost = Math.max(0, (Number(d.outgoings) || 0) - monthlyDebtFor(month));
         const fullNet = income - opCost;
         const oldProbMargin = oldProbableMarginFor(month);
-        // Separate the two revenue layers so each gets its own factor.
-        // GRN portion = contracted forward net (strip out legacy probable margin baked into forward Total Income).
-        // YLW portion = the probable-pipeline uplift (only added in with_ylw mode).
+        // Legacy flat 70% haircut on all forward months (debt-stripped).
         const grnPortion = FORWARD_INCOME_INCLUDES_PROBABLE ? (fullNet - oldProbMargin) : fullNet;
         const ylwPortion = serviceabilityView === "with_ylw" ? ylwMonthlyUplift : 0;
         const preFactor = grnPortion + ylwPortion;
-        const net = grnPortion * grnFactor + ylwPortion * ylwFactor;
+        const net = preFactor * 0.70;
         return {
           month, net, type: serviceabilityView,
           _income: income, _opCost: opCost,
           _grnPortion: grnPortion, _ylwPortion: ylwPortion,
           _probMargin: ylwPortion, _preHaircut: preFactor,
         };
+
       });
 
     const _allMonths = [..._pastActuals, ..._forwardContracted];
@@ -1232,13 +1205,12 @@ const ChartsSection = ({
     } else {
       const _actAvg = _p3.length ? _p3.reduce((s: number, d: any) => s + d.net, 0) / _p3.length : 0;
       const _fwdAvg = _fwd3.length ? _fwd3.reduce((s: number, d: any) => s + d.net, 0) / _fwd3.length : 0;
-      const _grnPct = Math.round(grnFactor * 100);
-      const _ylwPct = Math.round(ylwFactor * 100);
       const _layer = serviceabilityView === "with_ylw"
-        ? `signed @${_grnPct}% + verbal @${_ylwPct}%`
-        : `signed @${_grnPct}%`;
-      avg6Eq = `3 recent actual (avg ${_f(_actAvg)}) + 3 forward ${_layer} (avg ${_f(_fwdAvg)}) → blended ÷ 6 = ${_f(avg6MonthBlended)}`;
+        ? "signed + verbal pipeline"
+        : "signed contracts";
+      avg6Eq = `3 recent actual (avg ${_f(_actAvg)}) + 3 forward ${_layer} @70% haircut (avg ${_f(_fwdAvg)}) → blended ÷ 6 = ${_f(avg6MonthBlended)}`;
     }
+
 
     const maxNewEq = `80% buffer × ${_f(avg6MonthBlended)} = ${_f(lenderUsableIncome)} usable − ${_f(existingMonthlyDebt)} existing repayments = ${_f(maxNewRepayment)}`;
 
@@ -1274,7 +1246,8 @@ const ChartsSection = ({
       _pastActuals,
       _forwardContracted,
     };
-  }, [io, liveData, ylwValue, forecastChartData, totalMonthlyRepayment, serviceabilityView, earnedVsDebtData, grnFactor, ylwFactor]);
+  }, [io, liveData, ylwValue, forecastChartData, totalMonthlyRepayment, serviceabilityView, earnedVsDebtData]);
+
 
 
 
@@ -1437,10 +1410,11 @@ const ChartsSection = ({
           <div className="inline-flex bg-white/5 rounded-xl p-1 border border-white/10">
             {[
               { key: "actuals", label: "📊 Past Actuals Only", desc: "Verified bank-statement income (100%)" },
-              { key: "with_grn", label: "✅ With GRNs", desc: `Actuals + signed contracts at ${Math.round(grnFactor*100)}%` },
-              { key: "with_ylw", label: "🤝 With GRNs & YLWs", desc: `Actuals + signed at ${Math.round(grnFactor*100)}% + verbal pipeline at ${Math.round(ylwFactor*100)}%` },
+              { key: "with_grn", label: "✅ With GRNs", desc: "Actuals + signed contracts at 70%" },
+              { key: "with_ylw", label: "🤝 With GRNs & YLWs", desc: "Actuals + signed + verbal pipeline at 70%" },
             ].map(opt => (
               <button
+
                 key={opt.key}
                 onClick={() => setServiceabilityView(opt.key as any)}
                 title={opt.desc}
@@ -1452,49 +1426,8 @@ const ChartsSection = ({
             ))}
           </div>
 
-          {/* Editable blend factors (persisted). Also act as a conservatism buffer. */}
-          {serviceabilityView !== "actuals" && (
-            <div className="inline-flex items-center gap-3 bg-white/5 rounded-xl px-3 py-1.5 border border-white/10">
-              <span className="text-[9px] uppercase tracking-widest font-mono text-muted-foreground">Factors:</span>
-              <label className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground">
-                GRN
-                <input
-                  type="number" min={0} max={150} step={1}
-                  value={Math.round(grnFactor * 100)}
-                  onChange={(e) => {
-                    const v = Math.max(0, Math.min(150, Number(e.target.value) || 0));
-                    setSvcFactors(s => ({ ...s, grnFactor: v / 100 }));
-                  }}
-                  className="w-14 bg-black/40 border border-white/10 rounded px-1.5 py-0.5 text-foreground font-mono text-[11px] text-right focus:outline-none focus:ring-1 focus:ring-chart-green/40"
-                  title="Weighting applied to signed/won (GRN) forward revenue. 100% = full value; lower = conservatism buffer."
-                />
-                <span className="text-muted-foreground">%</span>
-              </label>
-              {serviceabilityView === "with_ylw" && (
-                <label className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground">
-                  YLW
-                  <input
-                    type="number" min={0} max={150} step={1}
-                    value={Math.round(ylwFactor * 100)}
-                    onChange={(e) => {
-                      const v = Math.max(0, Math.min(150, Number(e.target.value) || 0));
-                      setSvcFactors(s => ({ ...s, ylwFactor: v / 100 }));
-                    }}
-                    className="w-14 bg-black/40 border border-white/10 rounded px-1.5 py-0.5 text-foreground font-mono text-[11px] text-right focus:outline-none focus:ring-1 focus:ring-chart-green/40"
-                    title="Weighting applied to verbal-confirmed (YLW) pipeline. Default 90%. Dial down for a cautious/lender-facing view."
-                  />
-                  <span className="text-muted-foreground">%</span>
-                </label>
-              )}
-              <button
-                type="button"
-                onClick={() => setSvcFactors({ grnFactor: 1.0, ylwFactor: 0.9 })}
-                className="text-[9px] font-mono text-muted-foreground hover:text-foreground underline"
-                title="Reset to defaults (GRN 100%, YLW 90%)"
-              >reset</button>
-            </div>
-          )}
         </div>
+
 
         {/* DEBUG PANEL — remove after fixing */}
         <button
@@ -1916,9 +1849,10 @@ const ChartsSection = ({
                         </div>
                         <p className="text-[9px] text-muted-foreground italic mt-0.5">
                           {serviceabilityView === "actuals" && "Based on past 6m actuals only"}
-                          {serviceabilityView === "with_grn" && `6m blended: actuals + signed contracts at ${Math.round(grnFactor*100)}%`}
-                          {serviceabilityView === "with_ylw" && `6m blended: actuals + signed at ${Math.round(grnFactor*100)}% + verbal pipeline at ${Math.round(ylwFactor*100)}%`}
+                          {serviceabilityView === "with_grn" && "6m blended: actuals + signed contracts at 70%"}
+                          {serviceabilityView === "with_ylw" && "6m blended: actuals + signed + verbal pipeline at 70%"}
                         </p>
+
                         <div className="flex justify-between items-center py-2 border-b border-white/5">
                           <span className="text-xs text-muted-foreground">Less existing commitments</span>
                           <span className="text-xs font-mono font-semibold text-foreground">{fmtPeriod(totalMonthlyRepayment)}</span>
@@ -1987,9 +1921,10 @@ const ChartsSection = ({
                                   </div>
                                   <p className="text-[9px] text-muted-foreground/70 italic pl-2">
                                     {serviceabilityView === "actuals" && "Past actuals only (100%)."}
-                                    {serviceabilityView === "with_grn" && `Actuals + signed contracts at ${Math.round(grnFactor*100)}%.`}
-                                    {serviceabilityView === "with_ylw" && `Actuals + signed at ${Math.round(grnFactor*100)}% + verbal pipeline at ${Math.round(ylwFactor*100)}%.`}
+                                    {serviceabilityView === "with_grn" && "Actuals + signed contracts at 70%."}
+                                    {serviceabilityView === "with_ylw" && "Actuals + signed + verbal pipeline at 70%."}
                                   </p>
+
                                   <div className="flex justify-between gap-2">
                                     <span className="text-muted-foreground">× 80% serviceability buffer</span>
                                     <span className="text-foreground">{usable > 0 ? `${_fmt(usable)}/mo` : "—"}</span>
