@@ -159,10 +159,13 @@ type ToggleMode = "base" | "alt" | "alt2";
 const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted, toggleLabelBase, toggleLabelAlt, momDelta, altMomDelta, momContext, altMomContext, greenAltPill, altValue2, altChange2, altPositive2, toggleLabelAlt2, emphasis, variant = "default", openValueOverride, openSubtextOverride, currentSubtextOverride }: StatCardProps) => {
   const isCentered = variant === "centered";
   const { kpiVariables, formulaCache, formulas } = useDashboardData();
-  const [mode, setMode] = useState<ToggleMode>("base");
+  const isCashflowPosition = label === "Cashflow Position" || label === "Cash Position";
+  const [mode, setMode] = useState<ToggleMode>(isCashflowPosition ? "alt" : "base");
   const [editing, setEditing] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+
 
 
   const [localActualValue, setLocalActualValue] = useState<number | null>(() => {
