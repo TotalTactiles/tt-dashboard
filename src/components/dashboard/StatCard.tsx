@@ -224,7 +224,6 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
     : "Enter amount";
   const resolvedActualDate = localActualDate ? `Actual · ${localActualDate}` : "";
 
-  const isCashflowPosition = label === "Cashflow Position" || label === "Cash Position";
   const openValue = isCashflowPosition
     ? (openValueOverride != null && openValueOverride !== 0
         ? openValueOverride
