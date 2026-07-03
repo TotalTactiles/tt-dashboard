@@ -159,10 +159,13 @@ type ToggleMode = "base" | "alt" | "alt2";
 const StatCard = ({ label, value, change, positive, index, noData, formulaDriven, altValue, altChange, altPositive, altDiff, goalAdjusted, toggleLabelBase, toggleLabelAlt, momDelta, altMomDelta, momContext, altMomContext, greenAltPill, altValue2, altChange2, altPositive2, toggleLabelAlt2, emphasis, variant = "default", openValueOverride, openSubtextOverride, currentSubtextOverride }: StatCardProps) => {
   const isCentered = variant === "centered";
   const { kpiVariables, formulaCache, formulas } = useDashboardData();
-  const [mode, setMode] = useState<ToggleMode>("base");
+  const isCashflowPosition = label === "Cashflow Position" || label === "Cash Position";
+  const [mode, setMode] = useState<ToggleMode>(isCashflowPosition ? "alt" : "base");
   const [editing, setEditing] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+
 
 
   const [localActualValue, setLocalActualValue] = useState<number | null>(() => {
@@ -221,7 +224,6 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
     : "Enter amount";
   const resolvedActualDate = localActualDate ? `Actual · ${localActualDate}` : "";
 
-  const isCashflowPosition = label === "Cashflow Position" || label === "Cash Position";
   const openValue = isCashflowPosition
     ? (openValueOverride != null && openValueOverride !== 0
         ? openValueOverride
@@ -319,36 +321,71 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
   const pillsBlock = hasToggle && !noData ? (
     <div className={`flex ${isCentered || emphasis ? "justify-center" : ""} mt-0.5 mb-0.5`}>
       <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
-        <button
-          onClick={() => setMode("base")}
-          className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
-            mode === "base" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <span className="hidden sm:inline">{toggleLabelBase ?? "Confirmed"}</span>
-          <span className="sm:hidden">✓</span>
-        </button>
-        <button
-          onClick={() => setMode("alt")}
-          className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
-            mode === "alt" ? pillActiveClass : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          {toggleLabelAlt ?? "With YLWs"}
-        </button>
-        {hasThirdToggle && (
-          <button
-            onClick={() => setMode("alt2")}
-            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
-              mode === "alt2" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {toggleLabelAlt2}
-          </button>
+        {isCashflowPosition ? (
+          <>
+            <button
+              onClick={() => setMode("alt")}
+              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+                mode === "alt" ? pillActiveClass : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {toggleLabelAlt ?? "Today"}
+            </button>
+            <button
+              onClick={() => setMode("base")}
+              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+                mode === "base" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <span className="hidden sm:inline">{toggleLabelBase ?? "Open"}</span>
+              <span className="sm:hidden">✓</span>
+            </button>
+            {hasThirdToggle && (
+              <button
+                onClick={() => setMode("alt2")}
+                className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+                  mode === "alt2" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {toggleLabelAlt2}
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => setMode("base")}
+              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+                mode === "base" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <span className="hidden sm:inline">{toggleLabelBase ?? "Confirmed"}</span>
+              <span className="sm:hidden">✓</span>
+            </button>
+            <button
+              onClick={() => setMode("alt")}
+              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+                mode === "alt" ? pillActiveClass : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {toggleLabelAlt ?? "With YLWs"}
+            </button>
+            {hasThirdToggle && (
+              <button
+                onClick={() => setMode("alt2")}
+                className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+                  mode === "alt2" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {toggleLabelAlt2}
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>
   ) : null;
+
 
   const valueBlock = (
     <div style={{ minWidth: 0 }} className={isCentered || emphasis ? "w-full break-words text-center" : "my-0.5"}>
