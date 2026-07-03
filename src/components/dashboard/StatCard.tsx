@@ -321,36 +321,71 @@ const StatCard = ({ label, value, change, positive, index, noData, formulaDriven
   const pillsBlock = hasToggle && !noData ? (
     <div className={`flex ${isCentered || emphasis ? "justify-center" : ""} mt-0.5 mb-0.5`}>
       <div className="flex rounded-full bg-secondary/80 p-0.5 leading-none" style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}>
-        <button
-          onClick={() => setMode("base")}
-          className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
-            mode === "base" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <span className="hidden sm:inline">{toggleLabelBase ?? "Confirmed"}</span>
-          <span className="sm:hidden">✓</span>
-        </button>
-        <button
-          onClick={() => setMode("alt")}
-          className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
-            mode === "alt" ? pillActiveClass : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          {toggleLabelAlt ?? "With YLWs"}
-        </button>
-        {hasThirdToggle && (
-          <button
-            onClick={() => setMode("alt2")}
-            className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
-              mode === "alt2" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {toggleLabelAlt2}
-          </button>
+        {isCashflowPosition ? (
+          <>
+            <button
+              onClick={() => setMode("alt")}
+              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+                mode === "alt" ? pillActiveClass : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {toggleLabelAlt ?? "Today"}
+            </button>
+            <button
+              onClick={() => setMode("base")}
+              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+                mode === "base" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <span className="hidden sm:inline">{toggleLabelBase ?? "Open"}</span>
+              <span className="sm:hidden">✓</span>
+            </button>
+            {hasThirdToggle && (
+              <button
+                onClick={() => setMode("alt2")}
+                className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+                  mode === "alt2" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {toggleLabelAlt2}
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => setMode("base")}
+              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+                mode === "base" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <span className="hidden sm:inline">{toggleLabelBase ?? "Confirmed"}</span>
+              <span className="sm:hidden">✓</span>
+            </button>
+            <button
+              onClick={() => setMode("alt")}
+              className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+                mode === "alt" ? pillActiveClass : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {toggleLabelAlt ?? "With YLWs"}
+            </button>
+            {hasThirdToggle && (
+              <button
+                onClick={() => setMode("alt2")}
+                className={`px-1.5 py-0.5 rounded-full transition-all duration-150 font-mono whitespace-nowrap ${
+                  mode === "alt2" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {toggleLabelAlt2}
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>
   ) : null;
+
 
   const valueBlock = (
     <div style={{ minWidth: 0 }} className={isCentered || emphasis ? "w-full break-words text-center" : "my-0.5"}>
