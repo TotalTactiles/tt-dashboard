@@ -596,6 +596,24 @@ const DealFlow = () => {
       : 0;
     const returningTotal = returningClients.length;
 
+    // New vs Returning client intelligence metrics.
+    const newClients = clients.filter(c => c.contracts.length === 1);
+    const newClientCount = newClients.length;
+    const returningClientCount = returningTotal;
+    const totalClients = clients.length;
+
+    const returningContracts = returningClients.reduce((s, c) => s + c.contracts.length, 0);
+    const returningClientValueTotal = returningClients.reduce((s, c) => s + c.totalValue, 0);
+    const newClientValueTotal = newClients.reduce((s, c) => s + c.totalValue, 0);
+    const trackedValue = clients.reduce((s, c) => s + c.totalValue, 0);
+
+    const avgContractsPerReturning = returningClientCount > 0 ? returningContracts / returningClientCount : 0;
+    const avgValuePerReturning = returningClientCount > 0 ? returningClientValueTotal / returningClientCount : 0;
+    const newPct = totalClients > 0 ? (newClientCount / totalClients) * 100 : 0;
+    const returningPct = totalClients > 0 ? (returningClientCount / totalClients) * 100 : 0;
+    const returningValueShare = trackedValue > 0 ? (returningClientValueTotal / trackedValue) * 100 : 0;
+    const newValueShare = trackedValue > 0 ? (newClientValueTotal / trackedValue) * 100 : 0;
+
     // Concentration on won+running (tracked value).
     const trackedSorted = [...clients]
       .map(c => ({ ...c, tracked: c.wonValue + c.runningValue }))
@@ -605,7 +623,12 @@ const DealFlow = () => {
     const topClientPct = grand > 0 && trackedSorted[0] ? (trackedSorted[0].tracked / grand) * 100 : 0;
     const top3Pct = grand > 0 ? (trackedSorted.slice(0, 3).reduce((s, c) => s + c.tracked, 0) / grand) * 100 : 0;
 
-    return { biggestWon, biggestRun, biggestLost, byProjects, byValue, byReturning, returningTotal, returningTiedExtra, clients, topClientPct, top3Pct };
+    return { biggestWon, biggestRun, biggestLost, byProjects, byValue, byReturning, returningTotal, returningTiedExtra, clients, topClientPct, top3Pct,
+      avgContractsPerReturning, avgValuePerReturning,
+      newClientCount, returningClientCount, totalClients,
+      returningContracts, returningClientValueTotal, newClientValueTotal,
+      trackedValue, newPct, returningPct, returningValueShare, newValueShare,
+    };
   }, [jobs, quotesRaw]);
 
   const activeClients = useMemo(() => {
@@ -891,6 +914,54 @@ const DealFlow = () => {
                 </>
               ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
             </button>
+          </div>
+
+          {/* New vs Returning intelligence cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+            <div className="text-left rounded-lg border border-border bg-card/40 p-3">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Returning Client Value</div>
+              {clientIntel.returningClientCount > 0 ? (
+                <>
+                  <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground">
+                    {clientIntel.avgContractsPerReturning.toFixed(1)} <span className="text-fluid-sm font-medium">avg contracts</span>
+                  </div>
+                  <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                    {fmtAUD(clientIntel.avgValuePerReturning)} avg contract value
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                    {clientIntel.returningClientCount} returning client{clientIntel.returningClientCount === 1 ? "" : "s"} (2+ contracts)
+                  </div>
+                </>
+              ) : (
+                <div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>
+              )}
+            </div>
+            <div className="text-left rounded-lg border border-border bg-card/40 p-3">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">New vs Returning</div>
+              {clientIntel.totalClients > 0 ? (
+                <>
+                  <div className="flex h-1.5 w-full rounded-full overflow-hidden bg-muted mt-3">
+                    <div
+                      className="h-full bg-green-500"
+                      style={{ width: `${clientIntel.returningPct}%` }}
+                    />
+                    <div
+                      className="h-full bg-muted-foreground/25"
+                      style={{ width: `${clientIntel.newPct}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between items-center text-[11px] text-muted-foreground font-mono mt-1">
+                    <span>Returning {clientIntel.returningPct.toFixed(0)}%</span>
+                    <span>New {clientIntel.newPct.toFixed(0)}%</span>
+                  </div>
+                  <div className={`text-[11px] mt-1.5 ${clientIntel.returningValueShare > 50 ? "text-green-500 font-medium" : "text-muted-foreground"}`}>
+                    Returning clients drive {clientIntel.returningValueShare.toFixed(0)}% of tracked contract value
+                  </div>
+                </>
+              ) : (
+                <div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>
+              )}
+            </div>
           </div>
 
           {/* Concentration */}
