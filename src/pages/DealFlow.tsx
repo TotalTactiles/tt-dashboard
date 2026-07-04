@@ -84,8 +84,43 @@ const DealFlow = () => {
   const quotesRaw = (liveData?.quotes as any[]) ?? [];
   const [staleSort, setStaleSort] = useState<"oldest" | "newest">("oldest");
   const [staleStatus, setStaleStatus] = useState<"all" | "pending" | "won" | "lost" | "stale">("stale");
+  const [cycleMap, setCycleMap] = useState<Record<string, CycleEntry>>({});
+  const [cycleLoaded, setCycleLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(DEAL_CYCLE_WEBHOOK);
+        const rows: Array<{ key: string; value: string }> = await res.json();
+        const row = rows.find((r) => r.key === "tt_deal_cycle");
+        if (row?.value && !cancelled) {
+          const parsed = JSON.parse(row.value);
+          if (parsed && typeof parsed === "object") setCycleMap(parsed);
+        }
+      } catch {
+        /* fail gracefully */
+      } finally {
+        if (!cancelled) setCycleLoaded(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const today = new Date();
+  const cyc = (job: any): CycleEntry | null => {
+    const id = String(job?.zohoId ?? job?.["Job/Lead ID (Zoho)"] ?? job?.["Job / Lead ID\n(Zoho)"] ?? "").trim();
+    return id && cycleMap[id] ? cycleMap[id] : null;
+  };
+  const daysSinceQuoted = (entry: CycleEntry | null): number | null => {
+    if (!entry) return null;
+    if (entry.decidedTs && typeof entry.cycleDays === "number") return entry.cycleDays;
+    if (entry.quoteSentTs) {
+      const t = Date.parse(entry.quoteSentTs);
+      if (!isNaN(t)) return Math.max(0, Math.floor((today.getTime() - t) / 86400000));
+    }
+    return null;
+  };
 
   const byStatus = useMemo(() => {
     return {
