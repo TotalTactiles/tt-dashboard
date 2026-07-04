@@ -305,7 +305,7 @@ const QuoteToCashReceivables = () => {
     );
   }
 
-  const { summary, termDays, financeRatePct } = data;
+  const { summary, termDays } = data;
   const totalAging = agingSegments.reduce((s, x) => s + x.value, 0);
 
   if (summary.sentCount === 0 && summary.openCount === 0) {
