@@ -609,6 +609,7 @@ const DealFlow = () => {
 
     const avgContractsPerReturning = returningClientCount > 0 ? returningContracts / returningClientCount : 0;
     const avgValuePerReturning = returningClientCount > 0 ? returningClientValueTotal / returningClientCount : 0;
+    const avgValuePerReturningContract = returningContracts > 0 ? returningClientValueTotal / returningContracts : 0;
     const newPct = totalClients > 0 ? (newClientCount / totalClients) * 100 : 0;
     const returningPct = totalClients > 0 ? (returningClientCount / totalClients) * 100 : 0;
     const returningValueShare = trackedValue > 0 ? (returningClientValueTotal / trackedValue) * 100 : 0;
