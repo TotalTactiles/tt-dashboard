@@ -568,7 +568,8 @@ const DealFlow = () => {
       // Canonical, tile-agnostic counts — every consumer reads these.
       const projectsWonRunning = c.contracts.filter(k => k.status === "won" || k.status === "running").length;
       const contractCountAll = c.contracts.length;
-      return { ...c, totalValue, winRate, projectsWonRunning, contractCountAll };
+      const wonContractCount = c.contracts.filter(k => k.status === "won").length;
+      return { ...c, totalValue, winRate, projectsWonRunning, contractCountAll, wonContractCount };
     });
 
     // Highest-value client (across all statuses).
@@ -586,23 +587,24 @@ const DealFlow = () => {
       .filter(c => c.activeContractCount > 0)
       .sort((a, b) => (b.activeContractCount - a.activeContractCount) || (b.activeContractValue - a.activeContractValue))[0] ?? null;
 
-    // Most-returning client — DISTINCT contracts across ALL statuses; tie-break by totalValue.
-    const returningClients = clients.filter(c => c.contracts.length >= 2);
+    // Returning client = 2+ WON contracts (true repeat customers).
+    const returningClients = clients.filter(c => c.wonContractCount >= 2);
     const byReturning = [...returningClients]
-      .sort((a, b) => (b.contracts.length - a.contracts.length) || (b.totalValue - a.totalValue))[0] ?? null;
-    const topReturningCount = byReturning?.contracts.length ?? 0;
+      .sort((a, b) => (b.wonContractCount - a.wonContractCount) || (b.totalValue - a.totalValue))[0] ?? null;
+    const topReturningCount = byReturning?.wonContractCount ?? 0;
     const returningTiedExtra = byReturning
-      ? Math.max(0, returningClients.filter(c => c.contracts.length === topReturningCount).length - 1)
+      ? Math.max(0, returningClients.filter(c => c.wonContractCount === topReturningCount).length - 1)
       : 0;
     const returningTotal = returningClients.length;
 
-    // New vs Returning client intelligence metrics.
-    const newClients = clients.filter(c => c.contracts.length === 1);
+    // New vs Returning client intelligence metrics — "new" = fewer than 2 won contracts.
+    const newClients = clients.filter(c => c.wonContractCount < 2);
     const newClientCount = newClients.length;
     const returningClientCount = returningTotal;
     const totalClients = clients.length;
 
-    const returningContracts = returningClients.reduce((s, c) => s + c.contracts.length, 0);
+    // Sum WON contracts across returning clients (basis for per-contract averages).
+    const returningContracts = returningClients.reduce((s, c) => s + c.wonContractCount, 0);
     const returningClientValueTotal = returningClients.reduce((s, c) => s + c.totalValue, 0);
     const newClientValueTotal = newClients.reduce((s, c) => s + c.totalValue, 0);
     const trackedValue = clients.reduce((s, c) => s + c.totalValue, 0);
@@ -860,11 +862,12 @@ const DealFlow = () => {
               } ${clientIntel.byProjects ? "cursor-pointer" : "cursor-default"}`}
             >
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Client — Most Projects</div>
+              <div className="text-[9px] text-muted-foreground/70 mt-0.5">won + in-running contracts</div>
               {clientIntel.byProjects ? (
                 <>
                   <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byProjects.company}>{clientIntel.byProjects.company}</div>
                   <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                    {clientIntel.byProjects.activeContractCount} projects · {fmtAUD(clientIntel.byProjects.activeContractValue)}
+                    {clientIntel.byProjects.activeContractCount} won + in-running · {fmtAUD(clientIntel.byProjects.activeContractValue)}
                   </div>
                 </>
               ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
@@ -902,15 +905,16 @@ const DealFlow = () => {
               } ${clientIntel.byReturning ? "cursor-pointer" : "cursor-default"}`}
             >
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Most Returning Client</div>
+              <div className="text-[9px] text-muted-foreground/70 mt-0.5">repeat wins (2+ won contracts)</div>
               {clientIntel.byReturning ? (
                 <>
                   <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byReturning.company}>{clientIntel.byReturning.company}</div>
                   <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                    {clientIntel.byReturning.contractCountAll} contracts with us
+                    {clientIntel.byReturning.wonContractCount} won contracts
                     {clientIntel.returningTiedExtra > 0 ? ` (+${clientIntel.returningTiedExtra} more tied)` : ""}
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-0.5">
-                    {clientIntel.returningTotal} client{clientIntel.returningTotal === 1 ? "" : "s"} returned for 2+ projects
+                    {clientIntel.returningTotal} client{clientIntel.returningTotal === 1 ? "" : "s"} with 2+ won contracts
                   </div>
                 </>
               ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
@@ -921,6 +925,7 @@ const DealFlow = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
             <div className="text-left rounded-lg border border-border bg-card/40 p-3">
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Returning Client Value</div>
+              <div className="text-[9px] text-muted-foreground/70 mt-0.5">returning = 2+ won contracts</div>
               {clientIntel.returningClientCount > 0 ? (
                 <>
                   <div className="grid grid-cols-2 gap-3 mt-2">
@@ -929,25 +934,25 @@ const DealFlow = () => {
                         {clientIntel.avgContractsPerReturning.toFixed(1)}
                       </div>
                       <div className="text-[10px] text-muted-foreground leading-tight">
-                        contracts per returning client
+                        avg won contracts per returning client
                       </div>
                     </div>
                     <div>
                       <div className="text-fluid-base font-mono font-bold text-foreground">
                         {fmtAUD(clientIntel.avgValuePerReturningContract)}
                       </div>
-                      <div className="text-[10px] text-muted-foreground leading-tight">avg value per contract</div>
+                      <div className="text-[10px] text-muted-foreground leading-tight">avg value per won contract</div>
                     </div>
                     <div className="col-span-2 pt-2 border-t border-border/40">
                       <div className="text-fluid-base font-mono font-bold text-foreground">
                         {fmtAUD(clientIntel.avgValuePerReturning)}
                       </div>
-                      <div className="text-[10px] text-muted-foreground leading-tight">avg total value per client</div>
+                      <div className="text-[10px] text-muted-foreground leading-tight">avg total value per returning client</div>
                     </div>
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-2 pt-2 border-t border-border/40">
                     {clientIntel.returningClientCount} returning client{clientIntel.returningClientCount === 1 ? "" : "s"}
-                    {" "}· {clientIntel.returningContracts} total contracts
+                    {" "}· {clientIntel.returningContracts} won contracts total
                   </div>
                 </>
               ) : (
@@ -956,6 +961,7 @@ const DealFlow = () => {
             </div>
             <div className="text-left rounded-lg border border-border bg-card/40 p-3">
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">New vs Returning</div>
+              <div className="text-[9px] text-muted-foreground/70 mt-0.5">Returning = clients with 2+ won contracts (true repeat customers)</div>
               {clientIntel.totalClients > 0 ? (
                 <>
                   <div className="grid grid-cols-2 gap-3 mt-2">
