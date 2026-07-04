@@ -693,7 +693,18 @@ const DealFlow = () => {
   const activeClients = useMemo(() => {
     const pick = (c: any) =>
       clientFilter === "won" ? c.wonValue :
-      clientFilter === "running" ? c.runningValue : c.lostValue;
+      clientFilter === "running" ? c.runningValue :
+      clientFilter === "lost" ? c.lostValue :
+      clientFilter === "lowest" ? (c.wonValue + c.runningValue) :
+      /* all */ c.totalValue;
+    const projectsFor = (c: any) =>
+      clientFilter === "all" ? c.contractCountAll :
+      clientFilter === "lowest" ? c.projectsWonRunning :
+      c.contracts.filter((contract: any) => (
+        clientFilter === "won" ? contract.wonValue :
+        clientFilter === "running" ? contract.runningValue :
+        contract.lostValue
+      ) > 0).length;
     const filtered = clientIntel.clients
       .filter((c: any) => {
         if (tileFilterClient && c.company === tileFilterClient) return true;
@@ -702,10 +713,7 @@ const DealFlow = () => {
       .map((c: any) => ({
         ...c,
         activeValue: pick(c),
-        activeProjects: c.contracts.filter((contract: any) => (
-          clientFilter === "won" ? contract.wonValue :
-          clientFilter === "running" ? contract.runningValue : contract.lostValue
-        ) > 0).length,
+        activeProjects: projectsFor(c),
       }));
 
     const { key, dir } = clientSort;
