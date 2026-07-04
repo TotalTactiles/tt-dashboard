@@ -519,11 +519,30 @@ const DealFlow = () => {
     // Highest-value client (across all statuses).
     const byValue = [...clients].filter(c => c.totalValue > 0)
       .sort((a, b) => b.totalValue - a.totalValue)[0] ?? null;
-    // Most-projects client — count leader, tie-broken by total (won + running) value.
-    const byProjects = [...clients]
-      .map(c => ({ ...c, tracked: c.totalValue }))
-      .filter(c => c.projects > 0)
-      .sort((a, b) => (b.projects - a.projects) || (b.tracked - a.tracked))[0] ?? null;
+
+    // Most-projects client — DISTINCT contract count of won + in-running only.
+    // Tie-break by total (won + running) value.
+    const withActiveCounts = clients.map(c => {
+      const activeContracts = c.contracts.filter(k => k.status === "won" || k.status === "running");
+      return {
+        ...c,
+        activeContractCount: activeContracts.length,
+        activeContractValue: c.wonValue + c.runningValue,
+      };
+    });
+    const byProjects = [...withActiveCounts]
+      .filter(c => c.activeContractCount > 0)
+      .sort((a, b) => (b.activeContractCount - a.activeContractCount) || (b.activeContractValue - a.activeContractValue))[0] ?? null;
+
+    // Most-returning client — DISTINCT contracts across ALL statuses; tie-break by totalValue.
+    const returningClients = clients.filter(c => c.contracts.length >= 2);
+    const byReturning = [...returningClients]
+      .sort((a, b) => (b.contracts.length - a.contracts.length) || (b.totalValue - a.totalValue))[0] ?? null;
+    const topReturningCount = byReturning?.contracts.length ?? 0;
+    const returningTiedExtra = byReturning
+      ? Math.max(0, returningClients.filter(c => c.contracts.length === topReturningCount).length - 1)
+      : 0;
+    const returningTotal = returningClients.length;
 
     // Concentration on won+running (tracked value).
     const trackedSorted = [...clients]
@@ -534,7 +553,7 @@ const DealFlow = () => {
     const topClientPct = grand > 0 && trackedSorted[0] ? (trackedSorted[0].tracked / grand) * 100 : 0;
     const top3Pct = grand > 0 ? (trackedSorted.slice(0, 3).reduce((s, c) => s + c.tracked, 0) / grand) * 100 : 0;
 
-    return { biggestWon, biggestRun, biggestLost, byProjects, byValue, clients, topClientPct, top3Pct };
+    return { biggestWon, biggestRun, biggestLost, byProjects, byValue, byReturning, returningTotal, returningTiedExtra, clients, topClientPct, top3Pct };
   }, [jobs, quotesRaw]);
 
   const activeClients = useMemo(() => {
