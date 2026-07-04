@@ -315,12 +315,39 @@ const DealFlow = () => {
   const [clientFilter, setClientFilter] = useState<"won" | "running" | "lost">("won");
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [showAllClients, setShowAllClients] = useState(false);
+  const [tileFilterClient, setTileFilterClient] = useState<string | null>(null);
+  const [activeTileKey, setActiveTileKey] = useState<string | null>(null);
   type ClientSortKey = "company" | "projects" | "active" | "total" | "winRate";
   const [clientSort, setClientSort] = useState<{ key: ClientSortKey; dir: "asc" | "desc" }>({ key: "total", dir: "desc" });
   const toggleClientSort = (key: ClientSortKey) => {
     setClientSort(prev => prev.key === key
       ? { key, dir: prev.dir === "asc" ? "desc" : "asc" }
       : { key, dir: key === "company" ? "asc" : "desc" });
+  };
+
+  const handleTileClick = (tileKey: string, company: string | undefined, pill?: "won" | "running" | "lost") => {
+    if (!company) return;
+    if (activeTileKey === tileKey) {
+      setActiveTileKey(null);
+      setTileFilterClient(null);
+      setExpandedClient(null);
+      return;
+    }
+    setActiveTileKey(tileKey);
+    setTileFilterClient(company);
+    setExpandedClient(company);
+    if (pill) setClientFilter(pill);
+    setShowAllClients(true);
+    if (typeof window !== "undefined") {
+      requestAnimationFrame(() => {
+        document.getElementById("top-clients-table")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  };
+  const clearTileFilter = () => {
+    setActiveTileKey(null);
+    setTileFilterClient(null);
+    setExpandedClient(null);
   };
 
   const clientIntel = useMemo(() => {
