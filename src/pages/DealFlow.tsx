@@ -1118,17 +1118,17 @@ const DealFlow = () => {
                 <div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>
               )}
             </div>
-            <div className="text-left rounded-lg border border-border bg-card/40 p-3">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">New vs Returning</div>
+            <div className="min-w-0 text-left rounded-lg border border-border bg-card/40 p-3">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground break-words whitespace-normal">New vs Returning</div>
                   <div className="text-[9px] text-muted-foreground/70 mt-0.5">
                     {returnBasis === "won"
                       ? "proven repeat (2+ won contracts)"
                       : "any repeat (2+ contracts, all statuses)"}
                   </div>
                 </div>
-                <div className="flex items-center rounded-full border border-border/60 bg-background/60 p-0.5 shrink-0">
+                <div className="flex flex-wrap items-center justify-end gap-1 rounded-full border border-border/60 bg-background/60 p-0.5">
                   <button
                     type="button"
                     onClick={() => setReturnBasis("won")}
