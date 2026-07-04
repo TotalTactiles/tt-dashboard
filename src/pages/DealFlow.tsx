@@ -657,7 +657,9 @@ const DealFlow = () => {
               {clientIntel.byProjects ? (
                 <>
                   <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byProjects.company}>{clientIntel.byProjects.company}</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">{clientIntel.byProjects.projects} projects</div>
+                  <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                    {clientIntel.byProjects.projects} projects · {fmtAUD((clientIntel.byProjects as any).tracked ?? (clientIntel.byProjects.wonValue + clientIntel.byProjects.runningValue))}
+                  </div>
                 </>
               ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
             </div>
