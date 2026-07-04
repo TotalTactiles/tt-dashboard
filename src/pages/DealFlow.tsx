@@ -729,7 +729,7 @@ const DealFlow = () => {
     const { key, dir } = clientSort;
     const sign = dir === "asc" ? 1 : -1;
     const getNum = (c: any): number | null => {
-      if (key === "projects") return c.projectsWonRunning;
+      if (key === "projects") return c.wonContractCount * 1_000_000 + c.runningContractCount * 1_000 + c.lostContractCount;
       if (key === "active") return c.activeValue;
       if (key === "total") return c.totalValue;
       if (key === "winRate") return c.winRate; // may be null
