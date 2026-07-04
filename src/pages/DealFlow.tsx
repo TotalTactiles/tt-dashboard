@@ -151,6 +151,9 @@ const DealFlow = () => {
   const completedCount = completedJobs.length;
   const completedValue = completedJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
 
+  const lostJobs = byStatus.lost;
+  const lostCount = lostJobs.length;
+
   // Win/Loss Summary — sourced from quotesSummary (canonical FY-scoped sheet summary)
   const qs = (liveData?.quotesSummary ?? {}) as any;
   const hasQs = !!qs && Object.keys(qs).length > 0;
@@ -165,6 +168,8 @@ const DealFlow = () => {
   const pipelineCR = quoted > 0 ? (won / quoted) * 100 : 0;
   const avgWon     = won  > 0 ? wonVal  / won  : 0;
   const avgLost    = lost > 0 ? lostVal / lost : 0;
+  const avgWonDeal = avgWon;
+  const avgLostDeal = avgLost;
   const totalValueWon = wonVal;
   const ytdLostValue  = lostVal;
 
