@@ -154,18 +154,17 @@ const DealFlow = () => {
   const lostJobs = byStatus.lost;
   const lostCount = lostJobs.length;
 
-  // Win/Loss Summary — sourced from quotesSummary (canonical FY-scoped sheet summary)
-  const qs = (liveData?.quotesSummary ?? {}) as any;
-  const hasQs = !!qs && Object.keys(qs).length > 0;
+  // Win/Loss Summary — same FY-scoped sources the dashboard cards use
+  const won     = Number(wrWonFY ?? 0);
+  const wonVal  = Number(wonValueFY ?? 0);
+  const lost    = Number(wrLostFY ?? 0);
+  const lostVal = Number(lostValueFY ?? 0);
+  const totalDeals = Number(totalOpps ?? 0);
 
-  const won     = Number(qs?.totalWon?.count ?? 0);
-  const wonVal  = Number(qs?.totalWon?.value ?? 0);
-  const lost    = Number(qs?.totalLost?.count ?? 0);
-  const lostVal = Number(qs?.totalLost?.value ?? 0);
-  const quoted  = Number(qs?.totalQuoted?.count ?? 0);
+  const hasWinLoss = totalDeals > 0 || won > 0 || lost > 0;
 
   const winRate    = (won + lost) > 0 ? (won / (won + lost)) * 100 : 0;
-  const pipelineCR = quoted > 0 ? (won / quoted) * 100 : 0;
+  const pipelineCR = totalDeals > 0 ? (won / totalDeals) * 100 : 0;
   const avgWon     = won  > 0 ? wonVal  / won  : 0;
   const avgLost    = lost > 0 ? lostVal / lost : 0;
   const avgWonDeal = avgWon;
