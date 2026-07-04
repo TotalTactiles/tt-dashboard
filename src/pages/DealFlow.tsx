@@ -327,7 +327,6 @@ const DealFlow = () => {
       : { key, dir: key === "company" ? "asc" : "desc" });
   };
   const defaultSortForPill = (p: ClientPill): { key: ClientSortKey; dir: "asc" | "desc" } => {
-    if (p === "lowest") return { key: "active", dir: "asc" };
     if (p === "all") return { key: "total", dir: "desc" };
     return { key: "active", dir: "desc" };
   };
