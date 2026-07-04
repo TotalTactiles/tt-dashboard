@@ -81,6 +81,13 @@ interface ReceivablesData {
     d61_90: number;
     d90plus: number;
   };
+  agingUnpaid?: {
+    notYetDue: number;
+    d1_30: number;
+    d31_60: number;
+    d61_90: number;
+    d90plus: number;
+  };
   payers: Payer[];
   openInvoices: InvoiceRow[];
   chaseList?: InvoiceRow[];
