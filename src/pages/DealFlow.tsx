@@ -79,7 +79,7 @@ const item = {
 };
 
 const DealFlow = () => {
-  const { quotedJobs, liveData } = useDashboardData();
+  const { quotedJobs, liveData, totalOpps, wrWonFY, wrLostFY, wonValueFY, lostValueFY } = useDashboardData();
   const jobs = quotedJobs ?? [];
   const quotesRaw = (liveData?.quotes as any[]) ?? [];
   const [staleSort, setStaleSort] = useState<"oldest" | "newest">("oldest");
