@@ -15,6 +15,13 @@ function parseDealDate(raw: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
+const getLostReasonRaw = (j: any) =>
+  (j.lostReason
+    ?? (j as any).reasonForLoss
+    ?? (j as any)["Lost/Dead Reason"]
+    ?? (j as any)["Lost/Dead\nReason"]
+    ?? "").toString().trim();
+
 const isWon = (s: string) => s === "won";
 const isYellow = (s: string) => s === "yellow";
 const isLost = (s: string) => s === "lost";
@@ -355,10 +362,10 @@ const DealFlow = () => {
 
           <div className="chart-container p-5">
             <h2 className="text-fluid-base font-semibold mb-4">Loss Reason Breakdown</h2>
-            {lossReasons.length === 0 ? (
+            {reasonBuckets.length === 0 ? (
               <div className="text-fluid-sm text-muted-foreground">No lost deals recorded.</div>
             ) : (
-              <LossReasonList reasons={lossReasons} />
+              <LossReasonList reasons={reasonBuckets} blankReasonCount={blankReasonCount} totalLost={lostJobs.length} />
             )}
           </div>
         </motion.section>
