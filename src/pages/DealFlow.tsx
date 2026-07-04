@@ -450,7 +450,7 @@ const DealFlow = () => {
         <motion.section variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="chart-container p-5">
             <h2 className="text-fluid-base font-semibold mb-1">Avg Days Per Stage</h2>
-            <p className="text-fluid-xs text-muted-foreground mb-4">Avg days since quoting started, by current stage</p>
+            <p className="text-fluid-xs text-muted-foreground mb-4">Avg days since quoted, by current stage</p>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={velocityData} layout="vertical" margin={{ left: 10, right: 24, top: 4, bottom: 4 }}>
                 <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={11} />
