@@ -54,6 +54,12 @@ interface MonthlyTrend {
   avgDaysToPay: number;
 }
 
+interface TopDebtor {
+  company: string;
+  outstanding: number;
+  pctOfOutstanding: number;
+}
+
 interface ReceivablesData {
   asAtDate: string;
   termDays: number;
@@ -73,6 +79,9 @@ interface ReceivablesData {
     dsoMedian: number;
     onTimePct: number;
     costOfDelayMonthly: number;
+    topDebtor: TopDebtor | null;
+    top2ConcentrationPct: number;
+    topDebtors?: TopDebtor[];
   };
   aging: {
     notYetDue: number;
@@ -389,12 +398,25 @@ const QuoteToCashReceivables = () => {
         <StatCard
           label={
             <InfoLabel
-              label="Cash you're floating"
-              info="Money you've earned but haven't received yet — cash the business is covering while these invoices sit overdue."
+              label="Biggest debtor"
+              info="The client who owes you the most right now. High concentration is a risk — if your top one or two debtors pay late, most of your receivables are stuck."
             />
           }
-          value={`${fmtMoney(unpaidOverdue)}`}
-          sub="Overdue cash you're covering until customers pay"
+          value={summary.topDebtor ? fmtMoney(summary.topDebtor.outstanding) : "—"}
+          sub={
+            summary.topDebtor ? (
+              <div className="min-w-0 overflow-hidden">
+                <div className="truncate" title={summary.topDebtor.company}>
+                  {summary.topDebtor.company}
+                </div>
+                <div className="opacity-70">
+                  {summary.topDebtor.pctOfOutstanding}% of outstanding · top 2 = {summary.top2ConcentrationPct}%
+                </div>
+              </div>
+            ) : (
+              "No outstanding invoices"
+            )
+          }
           valueClass="text-chart-orange"
         />
 
