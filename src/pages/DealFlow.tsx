@@ -625,7 +625,7 @@ const DealFlow = () => {
     const top3Pct = grand > 0 ? (trackedSorted.slice(0, 3).reduce((s, c) => s + c.tracked, 0) / grand) * 100 : 0;
 
     return { biggestWon, biggestRun, biggestLost, byProjects, byValue, byReturning, returningTotal, returningTiedExtra, clients, topClientPct, top3Pct,
-      avgContractsPerReturning, avgValuePerReturning,
+      avgContractsPerReturning, avgValuePerReturning, avgValuePerReturningContract,
       newClientCount, returningClientCount, totalClients,
       returningContracts, returningClientValueTotal, newClientValueTotal,
       trackedValue, newPct, returningPct, returningValueShare, newValueShare,
