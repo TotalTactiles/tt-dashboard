@@ -569,7 +569,9 @@ const DealFlow = () => {
       const projectsWonRunning = c.contracts.filter(k => k.status === "won" || k.status === "running").length;
       const contractCountAll = c.contracts.length;
       const wonContractCount = c.contracts.filter(k => k.status === "won").length;
-      return { ...c, totalValue, winRate, projectsWonRunning, contractCountAll, wonContractCount };
+      const runningContractCount = c.contracts.filter(k => k.status === "running").length;
+      const lostContractCount = c.contracts.filter(k => k.status === "lost").length;
+      return { ...c, totalValue, winRate, projectsWonRunning, contractCountAll, wonContractCount, runningContractCount, lostContractCount };
     });
 
     // Highest-value client (across all statuses).
