@@ -977,10 +977,11 @@ const DealFlow = () => {
                     {clientIntel.returningTiedExtra > 0 ? ` (+${clientIntel.returningTiedExtra} more tied)` : ""}
                   </div>
                   <div className="text-[10px] text-muted-foreground/80 font-mono mt-0.5">
-                    {clientIntel.byReturning.contractCountAll} total contracts (all statuses)
-                  </div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">
-                    {clientIntel.returningCount_won} client{clientIntel.returningCount_won === 1 ? "" : "s"} with 2+ won · {clientIntel.returningCount_all} with 2+ any
+                    {[
+                      clientIntel.byReturning.wonContractCount > 0 ? `${clientIntel.byReturning.wonContractCount}W` : null,
+                      clientIntel.byReturning.lostContractCount > 0 ? `${clientIntel.byReturning.lostContractCount}L` : null,
+                      clientIntel.byReturning.runningContractCount > 0 ? `${clientIntel.byReturning.runningContractCount}ItR` : null,
+                    ].filter(Boolean).join(" · ") || "—"}
                   </div>
                 </>
               ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
