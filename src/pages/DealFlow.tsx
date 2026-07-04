@@ -906,7 +906,7 @@ const DealFlow = () => {
                 <>
                   <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byReturning.company}>{clientIntel.byReturning.company}</div>
                   <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                    {clientIntel.byReturning.contracts.length} contracts with us
+                    {clientIntel.byReturning.contractCountAll} contracts with us
                     {clientIntel.returningTiedExtra > 0 ? ` (+${clientIntel.returningTiedExtra} more tied)` : ""}
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-0.5">
