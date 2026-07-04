@@ -1220,7 +1220,6 @@ const DealFlow = () => {
                     clientFilter === "won" ? "Won $" :
                     clientFilter === "running" ? "In-Running $" :
                     clientFilter === "lost" ? "Lost $" :
-                    clientFilter === "lowest" ? "Won+ItR $" :
                     "Total $";
                   return (
                     <tr className="text-left text-muted-foreground border-b border-border">
@@ -1243,7 +1242,6 @@ const DealFlow = () => {
                     clientFilter === "won" ? "text-[#22c55e]" :
                     clientFilter === "running" ? "text-[#60a5fa]" :
                     clientFilter === "lost" ? "text-[#ef4444]" :
-                    clientFilter === "lowest" ? "text-muted-foreground" :
                     "text-foreground";
                   const statusColor = (s: string) =>
                     s === "won" ? "text-[#22c55e]" :
@@ -1268,15 +1266,12 @@ const DealFlow = () => {
                           base: k.base,
                           v: clientFilter === "won" ? k.wonValue
                             : clientFilter === "running" ? k.runningValue
-                            : clientFilter === "lost" ? k.lostValue
-                            : (k.wonValue + k.runningValue), // lowest
+                            : k.lostValue,
                           status: k.status,
                         }))
                         .filter((k: any) => k.v > 0)
                         .sort((a: any, b: any) => b.v - a.v);
-                  const emptyLabel =
-                    clientFilter === "lowest" ? "No won or in-running contracts."
-                      : `No ${clientFilter} contracts.`;
+                  const emptyLabel = `No ${clientFilter} contracts.`;
                   return (
                     <>
                       <tr
