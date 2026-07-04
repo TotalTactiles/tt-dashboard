@@ -312,7 +312,8 @@ const DealFlow = () => {
   const maxStageCount = Math.max(1, ...stageStats.map(s => s.count), completedCount);
 
   // Client Intelligence
-  const [clientFilter, setClientFilter] = useState<"won" | "running" | "lost">("won");
+  type ClientPill = "won" | "running" | "lost" | "lowest" | "all";
+  const [clientFilter, setClientFilter] = useState<ClientPill>("won");
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [showAllClients, setShowAllClients] = useState(false);
   const [tileFilterClient, setTileFilterClient] = useState<string | null>(null);
@@ -324,32 +325,20 @@ const DealFlow = () => {
       ? { key, dir: prev.dir === "asc" ? "desc" : "asc" }
       : { key, dir: key === "company" ? "asc" : "desc" });
   };
-
-  const bestPillFor = (client: any, mode: "value" | "count"): "won" | "running" | "lost" => {
-    if (!client) return "won";
-    if (mode === "value") {
-      const arr: Array<["won" | "running" | "lost", number]> = [
-        ["won", client.wonValue || 0],
-        ["running", client.runningValue || 0],
-        ["lost", client.lostValue || 0],
-      ];
-      arr.sort((a, b) => b[1] - a[1]);
-      return arr[0][1] > 0 ? arr[0][0] : "won";
-    }
-    const counts: Record<"won" | "running" | "lost", number> = { won: 0, running: 0, lost: 0 };
-    for (const k of client.contracts ?? []) {
-      if (k.status === "won" || k.status === "running" || k.status === "lost") counts[k.status] += 1;
-    }
-    const order: Array<"won" | "running" | "lost"> = ["won", "running", "lost"];
-    let best: "won" | "running" | "lost" = "won";
-    let bestN = -1;
-    for (const p of order) {
-      if (counts[p] > bestN) { bestN = counts[p]; best = p; }
-    }
-    return bestN > 0 ? best : "won";
+  const defaultSortForPill = (p: ClientPill): { key: ClientSortKey; dir: "asc" | "desc" } => {
+    if (p === "lowest") return { key: "active", dir: "asc" };
+    if (p === "all") return { key: "total", dir: "desc" };
+    return { key: "active", dir: "desc" };
+  };
+  const changePill = (p: ClientPill) => {
+    setClientFilter(p);
+    setClientSort(defaultSortForPill(p));
+    setExpandedClient(null);
   };
 
-  const handleTileClick = (tileKey: string, company: string | undefined, pill?: "won" | "running" | "lost") => {
+  const bestPillFor = (_client: any, _mode: "value" | "count"): ClientPill => "all";
+
+  const handleTileClick = (tileKey: string, company: string | undefined, _pill?: ClientPill) => {
     if (!company) return;
     if (activeTileKey === tileKey) {
       setActiveTileKey(null);
@@ -360,7 +349,8 @@ const DealFlow = () => {
     setActiveTileKey(tileKey);
     setTileFilterClient(company);
     setExpandedClient(company);
-    if (pill) setClientFilter(pill);
+    setClientFilter("all");
+    setClientSort(defaultSortForPill("all"));
     setShowAllClients(true);
     if (typeof window !== "undefined") {
       requestAnimationFrame(() => {
@@ -372,6 +362,20 @@ const DealFlow = () => {
     setActiveTileKey(null);
     setTileFilterClient(null);
     setExpandedClient(null);
+  };
+  const handleRowClick = (company: string) => {
+    const isOpen = expandedClient === company;
+    if (isOpen && tileFilterClient === company) {
+      setExpandedClient(null);
+      setTileFilterClient(null);
+      setActiveTileKey(null);
+      return;
+    }
+    setTileFilterClient(company);
+    setExpandedClient(company);
+    setClientFilter("all");
+    setClientSort(defaultSortForPill("all"));
+    setShowAllClients(true);
   };
 
   const clientIntel = useMemo(() => {
@@ -689,7 +693,18 @@ const DealFlow = () => {
   const activeClients = useMemo(() => {
     const pick = (c: any) =>
       clientFilter === "won" ? c.wonValue :
-      clientFilter === "running" ? c.runningValue : c.lostValue;
+      clientFilter === "running" ? c.runningValue :
+      clientFilter === "lost" ? c.lostValue :
+      clientFilter === "lowest" ? (c.wonValue + c.runningValue) :
+      /* all */ c.totalValue;
+    const projectsFor = (c: any) =>
+      clientFilter === "all" ? c.contractCountAll :
+      clientFilter === "lowest" ? c.projectsWonRunning :
+      c.contracts.filter((contract: any) => (
+        clientFilter === "won" ? contract.wonValue :
+        clientFilter === "running" ? contract.runningValue :
+        contract.lostValue
+      ) > 0).length;
     const filtered = clientIntel.clients
       .filter((c: any) => {
         if (tileFilterClient && c.company === tileFilterClient) return true;
@@ -698,10 +713,7 @@ const DealFlow = () => {
       .map((c: any) => ({
         ...c,
         activeValue: pick(c),
-        activeProjects: c.contracts.filter((contract: any) => (
-          clientFilter === "won" ? contract.wonValue :
-          clientFilter === "running" ? contract.runningValue : contract.lostValue
-        ) > 0).length,
+        activeProjects: projectsFor(c),
       }));
 
     const { key, dir } = clientSort;
@@ -1155,24 +1167,32 @@ const DealFlow = () => {
           {/* Top Clients table */}
           <div id="top-clients-table" className="flex items-center justify-between mb-2 scroll-mt-4">
             <div className="text-fluid-xs font-semibold text-muted-foreground uppercase tracking-wide">Top Clients</div>
-            <div className="inline-flex rounded-md border border-border overflow-hidden">
+            <div className="inline-flex rounded-md border border-border overflow-hidden flex-wrap">
               {([
                 { key: "won", label: "Won" },
                 { key: "running", label: "In-Running" },
                 { key: "lost", label: "Lost" },
-              ] as const).map(p => (
-                <button
-                  key={p.key}
-                  onClick={() => { setClientFilter(p.key); setExpandedClient(null); }}
-                  className={`px-3 py-1 text-[11px] font-medium transition-colors ${
-                    clientFilter === p.key
-                      ? "bg-foreground/10 text-foreground"
-                      : "bg-transparent text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {p.label}
-                </button>
-              ))}
+                { key: "lowest", label: "Lowest Value" },
+                { key: "all", label: "All" },
+              ] as const).map(p => {
+                const isActivePill = clientFilter === p.key;
+                const muted = p.key === "lowest";
+                return (
+                  <button
+                    key={p.key}
+                    onClick={() => changePill(p.key)}
+                    className={`px-3 py-1 text-[11px] font-medium transition-colors ${
+                      isActivePill
+                        ? (muted ? "bg-muted-foreground/15 text-muted-foreground italic" : "bg-foreground/10 text-foreground")
+                        : (muted
+                            ? "bg-transparent text-muted-foreground/70 italic hover:text-muted-foreground"
+                            : "bg-transparent text-muted-foreground hover:text-foreground")
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
           {tileFilterClient && (
@@ -1197,13 +1217,19 @@ const DealFlow = () => {
                     clientSort.key === k ? (clientSort.dir === "asc" ? " ▲" : " ▼") : "";
                   const cls = (k: ClientSortKey, extra = "") =>
                     `py-2 ${extra} font-medium cursor-pointer select-none hover:text-foreground transition-colors ${clientSort.key === k ? "text-foreground" : ""}`;
+                  const activeHeader =
+                    clientFilter === "won" ? "Won $" :
+                    clientFilter === "running" ? "In-Running $" :
+                    clientFilter === "lost" ? "Lost $" :
+                    clientFilter === "lowest" ? "Won+ItR $" :
+                    "Total $";
                   return (
                     <tr className="text-left text-muted-foreground border-b border-border">
                       <th className="py-2 pr-3 font-medium w-6"></th>
                       <th className={cls("company", "pr-3")} onClick={() => toggleClientSort("company")}>Client{arrow("company")}</th>
                       <th className={cls("projects", "px-3 text-right")} onClick={() => toggleClientSort("projects")}>Projects{arrow("projects")}</th>
                       <th className={cls("active", "px-3 text-right")} onClick={() => toggleClientSort("active")}>
-                        {clientFilter === "won" ? "Won $" : clientFilter === "running" ? "In-Running $" : "Lost $"}{arrow("active")}
+                        {activeHeader}{arrow("active")}
                       </th>
                       <th className={cls("total", "px-3 text-right")} onClick={() => toggleClientSort("total")}>Total ${arrow("total")}</th>
                       <th className={cls("winRate", "pl-3 text-right")} onClick={() => toggleClientSort("winRate")}>Win Rate{arrow("winRate")}</th>
@@ -1216,26 +1242,58 @@ const DealFlow = () => {
                   const isOpen = expandedClient === c.company;
                   const valColor =
                     clientFilter === "won" ? "text-[#22c55e]" :
-                    clientFilter === "running" ? "text-[#60a5fa]" : "text-[#ef4444]";
-                  const rolled = [...c.contracts]
-                    .map((k: any) => ({
-                      base: k.base,
-                      v: clientFilter === "won" ? k.wonValue : clientFilter === "running" ? k.runningValue : k.lostValue,
-                    }))
-                    .filter((k: any) => k.v > 0)
-                    .sort((a: any, b: any) => b.v - a.v);
+                    clientFilter === "running" ? "text-[#60a5fa]" :
+                    clientFilter === "lost" ? "text-[#ef4444]" :
+                    clientFilter === "lowest" ? "text-muted-foreground" :
+                    "text-foreground";
+                  const statusColor = (s: string) =>
+                    s === "won" ? "text-[#22c55e]" :
+                    s === "running" ? "text-[#f59e0b]" :
+                    s === "lost" ? "text-[#ef4444]" : "text-muted-foreground";
+                  const statusValue = (k: any) =>
+                    k.status === "won" ? k.wonValue :
+                    k.status === "running" ? k.runningValue :
+                    k.status === "lost" ? k.lostValue :
+                    (k.wonValue + k.runningValue + k.lostValue);
+                  const scoreline = [
+                    c.wonContractCount > 0 ? `${c.wonContractCount}W` : null,
+                    c.lostContractCount > 0 ? `${c.lostContractCount}L` : null,
+                    c.runningContractCount > 0 ? `${c.runningContractCount}ItR` : null,
+                  ].filter(Boolean).join(" · ") || "—";
+                  const rolled = clientFilter === "all"
+                    ? [...c.contracts]
+                        .map((k: any) => ({ base: k.base, v: statusValue(k), status: k.status }))
+                        .sort((a: any, b: any) => b.v - a.v)
+                    : [...c.contracts]
+                        .map((k: any) => ({
+                          base: k.base,
+                          v: clientFilter === "won" ? k.wonValue
+                            : clientFilter === "running" ? k.runningValue
+                            : clientFilter === "lost" ? k.lostValue
+                            : (k.wonValue + k.runningValue), // lowest
+                          status: k.status,
+                        }))
+                        .filter((k: any) => k.v > 0)
+                        .sort((a: any, b: any) => b.v - a.v);
+                  const emptyLabel =
+                    clientFilter === "lowest" ? "No won or in-running contracts."
+                      : `No ${clientFilter} contracts.`;
                   return (
                     <>
                       <tr
                         key={c.company}
                         className="border-b border-border/50 hover:bg-white/[0.02] cursor-pointer"
-                        onClick={() => setExpandedClient(isOpen ? null : c.company)}
+                        onClick={() => handleRowClick(c.company)}
                       >
                         <td className="py-2 pr-1 text-muted-foreground">
                           <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isOpen ? "rotate-90" : ""}`} />
                         </td>
                         <td className="py-2 pr-3 truncate max-w-[240px]" title={c.company}>{c.company}</td>
-                        <td className="py-2 px-3 text-right font-mono tabular-nums">{c.projectsWonRunning}</td>
+                        <td className="py-2 px-3 text-right font-mono tabular-nums">
+                          {clientFilter === "all" ? (
+                            <span className="text-[10px] text-muted-foreground/80">{scoreline}</span>
+                          ) : c.projectsWonRunning}
+                        </td>
                         <td className={`py-2 px-3 text-right font-mono tabular-nums ${valColor}`}>{fmtAUD(c.activeValue)}</td>
                         <td className="py-2 px-3 text-right font-mono tabular-nums font-semibold">{fmtAUD(c.totalValue)}</td>
                         <td className="py-2 pl-3 text-right font-mono tabular-nums">{c.winRate === null ? "—" : `${c.winRate.toFixed(0)}%`}</td>
@@ -1246,11 +1304,18 @@ const DealFlow = () => {
                           <td colSpan={5} className="py-2 pr-3">
                             <div className="pl-2 space-y-1">
                               {rolled.length === 0 ? (
-                                <div className="text-[11px] text-muted-foreground">No {clientFilter} contracts.</div>
+                                <div className="text-[11px] text-muted-foreground">{emptyLabel}</div>
                               ) : rolled.map((k: any, i: number) => (
                                 <div key={i} className="flex items-center justify-between text-[11px]">
-                                  <div className="truncate text-muted-foreground pr-3" title={k.base}>{k.base || "—"}</div>
-                                  <div className={`font-mono tabular-nums ${valColor}`}>{fmtAUD(k.v)}</div>
+                                  <div className="truncate text-muted-foreground pr-3 flex items-center gap-2" title={k.base}>
+                                    {clientFilter === "all" && (
+                                      <span className={`text-[9px] font-mono uppercase ${statusColor(k.status)}`}>
+                                        {k.status === "won" ? "W" : k.status === "lost" ? "L" : k.status === "running" ? "ItR" : "·"}
+                                      </span>
+                                    )}
+                                    <span className="truncate">{k.base || "—"}</span>
+                                  </div>
+                                  <div className={`font-mono tabular-nums ${clientFilter === "all" ? statusColor(k.status) : valColor}`}>{fmtAUD(k.v)}</div>
                                 </div>
                               ))}
                             </div>
@@ -1263,7 +1328,7 @@ const DealFlow = () => {
                 {activeClients.length === 0 && (
                   <tr>
                     <td colSpan={6} className="py-6 text-center text-muted-foreground text-fluid-xs">
-                      No {clientFilter} contracts.
+                      {clientFilter === "lowest" ? "No won or in-running contracts." : `No ${clientFilter} contracts.`}
                     </td>
                   </tr>
                 )}
