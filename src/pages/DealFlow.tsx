@@ -588,7 +588,10 @@ const DealFlow = () => {
       clientFilter === "won" ? c.wonValue :
       clientFilter === "running" ? c.runningValue : c.lostValue;
     const filtered = clientIntel.clients
-      .filter((c: any) => pick(c) > 0)
+      .filter((c: any) => {
+        if (tileFilterClient && c.company === tileFilterClient) return true;
+        return pick(c) > 0;
+      })
       .map((c: any) => ({
         ...c,
         activeValue: pick(c),
