@@ -439,7 +439,7 @@ const DealFlow = () => {
         return {
           company,
           project,
-          base: stripStageSuffix(project),
+          base: project,
           contractKey,
           isParentRow: !!zohoId && zohoId === contractKey,
           value: Number(j.value) || 0,
