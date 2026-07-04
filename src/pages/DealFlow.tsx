@@ -978,34 +978,59 @@ const DealFlow = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
             <div className="text-left rounded-lg border border-border bg-card/40 p-3">
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Returning Client Value</div>
-              <div className="text-[9px] text-muted-foreground/70 mt-0.5">returning = 2+ won contracts</div>
-              {clientIntel.returningClientCount > 0 ? (
+              <div className="text-[9px] text-muted-foreground/70 mt-0.5">two definitions of "returning", side by side</div>
+              {clientIntel.totalClients > 0 ? (
                 <>
-                  <div className="grid grid-cols-2 gap-3 mt-2">
-                    <div>
-                      <div className="text-fluid-base font-mono font-bold text-foreground">
-                        {clientIntel.avgContractsPerReturning.toFixed(1)}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground leading-tight">
-                        avg won contracts per returning client
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                    {/* Proven repeat — 2+ WON */}
+                    <div className="rounded border border-[#22c55e]/30 bg-[#22c55e]/5 p-2">
+                      <div className="text-[10px] uppercase tracking-wide text-[#22c55e] font-medium">Proven repeat</div>
+                      <div className="text-[9px] text-muted-foreground/80 mt-0.5">basis: 2+ won contracts</div>
+                      {clientIntel.returningCount_won > 0 ? (
+                        <div className="mt-1.5 space-y-1">
+                          <div className="text-fluid-base font-mono font-bold text-foreground leading-tight">
+                            {clientIntel.returningCount_won} client{clientIntel.returningCount_won === 1 ? "" : "s"}
+                          </div>
+                          <div className="text-[10px] font-mono text-muted-foreground">
+                            avg <span className="text-foreground">{clientIntel.avgContractsPerReturning_won.toFixed(1)}</span> won contracts
+                          </div>
+                          <div className="text-[10px] font-mono text-muted-foreground">
+                            avg per client <span className="text-foreground">{fmtAUD(clientIntel.avgValuePerReturningClient_won)}</span>
+                          </div>
+                          <div className="text-[10px] font-mono text-muted-foreground">
+                            avg per contract <span className="text-foreground">{fmtAUD(clientIntel.avgValuePerReturningContract_won)}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-[11px] font-mono text-muted-foreground mt-1">— no repeat winners yet</div>
+                      )}
                     </div>
-                    <div>
-                      <div className="text-fluid-base font-mono font-bold text-foreground">
-                        {fmtAUD(clientIntel.avgValuePerReturningContract)}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground leading-tight">avg value per won contract</div>
-                    </div>
-                    <div className="col-span-2 pt-2 border-t border-border/40">
-                      <div className="text-fluid-base font-mono font-bold text-foreground">
-                        {fmtAUD(clientIntel.avgValuePerReturning)}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground leading-tight">avg total value per returning client</div>
+                    {/* Repeat engagers — 2+ ANY */}
+                    <div className="rounded border border-border bg-card/60 p-2">
+                      <div className="text-[10px] uppercase tracking-wide text-foreground/80 font-medium">Repeat engagers</div>
+                      <div className="text-[9px] text-muted-foreground/80 mt-0.5">basis: 2+ contracts (any status)</div>
+                      {clientIntel.returningCount_all > 0 ? (
+                        <div className="mt-1.5 space-y-1">
+                          <div className="text-fluid-base font-mono font-bold text-foreground leading-tight">
+                            {clientIntel.returningCount_all} client{clientIntel.returningCount_all === 1 ? "" : "s"}
+                          </div>
+                          <div className="text-[10px] font-mono text-muted-foreground">
+                            avg <span className="text-foreground">{clientIntel.avgContractsPerReturning_all.toFixed(1)}</span> contracts
+                          </div>
+                          <div className="text-[10px] font-mono text-muted-foreground">
+                            avg per client <span className="text-foreground">{fmtAUD(clientIntel.avgValuePerReturningClient_all)}</span>
+                          </div>
+                          <div className="text-[10px] font-mono text-muted-foreground">
+                            avg per contract <span className="text-foreground">{fmtAUD(clientIntel.avgValuePerReturningContract_all)}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-[11px] font-mono text-muted-foreground mt-1">— no repeat engagers yet</div>
+                      )}
                     </div>
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-2 pt-2 border-t border-border/40">
-                    {clientIntel.returningClientCount} returning client{clientIntel.returningClientCount === 1 ? "" : "s"}
-                    {" "}· {clientIntel.returningContracts} won contracts total
+                    Gap: {Math.max(0, clientIntel.returningCount_all - clientIntel.returningCount_won)} client{Math.max(0, clientIntel.returningCount_all - clientIntel.returningCount_won) === 1 ? "" : "s"} engaged 2+ times without a second win
                   </div>
                 </>
               ) : (
