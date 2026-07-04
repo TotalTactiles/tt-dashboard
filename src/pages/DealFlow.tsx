@@ -315,6 +315,13 @@ const DealFlow = () => {
   const [clientFilter, setClientFilter] = useState<"won" | "running" | "lost">("won");
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [showAllClients, setShowAllClients] = useState(false);
+  type ClientSortKey = "company" | "projects" | "active" | "total" | "winRate";
+  const [clientSort, setClientSort] = useState<{ key: ClientSortKey; dir: "asc" | "desc" }>({ key: "total", dir: "desc" });
+  const toggleClientSort = (key: ClientSortKey) => {
+    setClientSort(prev => prev.key === key
+      ? { key, dir: prev.dir === "asc" ? "desc" : "asc" }
+      : { key, dir: key === "company" ? "asc" : "desc" });
+  };
 
   const clientIntel = useMemo(() => {
     // Strip trailing stage suffix to get base contract name.
@@ -430,8 +437,11 @@ const DealFlow = () => {
     // Highest-value client (across all statuses).
     const byValue = [...clients].filter(c => c.totalValue > 0)
       .sort((a, b) => b.totalValue - a.totalValue)[0] ?? null;
-    const byProjects = [...clients].filter(c => c.projects > 0)
-      .sort((a, b) => b.projects - a.projects)[0] ?? null;
+    // Most-projects client — count leader, tie-broken by total (won + running) value.
+    const byProjects = [...clients]
+      .map(c => ({ ...c, tracked: c.wonValue + c.runningValue }))
+      .filter(c => c.projects > 0)
+      .sort((a, b) => (b.projects - a.projects) || (b.tracked - a.tracked))[0] ?? null;
 
     // Concentration on won+running (tracked value).
     const trackedSorted = [...clients]
@@ -449,11 +459,32 @@ const DealFlow = () => {
     const pick = (c: any) =>
       clientFilter === "won" ? c.wonValue :
       clientFilter === "running" ? c.runningValue : c.lostValue;
-    return clientIntel.clients
+    const filtered = clientIntel.clients
       .filter((c: any) => pick(c) > 0)
-      .map((c: any) => ({ ...c, activeValue: pick(c) }))
-      .sort((a: any, b: any) => b.activeValue - a.activeValue);
-  }, [clientIntel, clientFilter]);
+      .map((c: any) => ({ ...c, activeValue: pick(c) }));
+
+    const { key, dir } = clientSort;
+    const sign = dir === "asc" ? 1 : -1;
+    const getNum = (c: any): number | null => {
+      if (key === "projects") return c.projects;
+      if (key === "active") return c.activeValue;
+      if (key === "total") return c.totalValue;
+      if (key === "winRate") return c.winRate; // may be null
+      return null;
+    };
+    return [...filtered].sort((a: any, b: any) => {
+      if (key === "company") {
+        return sign * a.company.localeCompare(b.company);
+      }
+      const av = getNum(a);
+      const bv = getNum(b);
+      // nulls always sort to the bottom
+      if (av === null && bv === null) return 0;
+      if (av === null) return 1;
+      if (bv === null) return -1;
+      return sign * (av - bv);
+    });
+  }, [clientIntel, clientFilter, clientSort]);
 
   return (
     <DashboardLayout>
@@ -626,7 +657,9 @@ const DealFlow = () => {
               {clientIntel.byProjects ? (
                 <>
                   <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byProjects.company}>{clientIntel.byProjects.company}</div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">{clientIntel.byProjects.projects} projects</div>
+                  <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                    {clientIntel.byProjects.projects} projects · {fmtAUD((clientIntel.byProjects as any).tracked ?? (clientIntel.byProjects.wonValue + clientIntel.byProjects.runningValue))}
+                  </div>
                 </>
               ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
             </div>
@@ -681,16 +714,24 @@ const DealFlow = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-fluid-xs">
               <thead>
-                <tr className="text-left text-muted-foreground border-b border-border">
-                  <th className="py-2 pr-3 font-medium w-6"></th>
-                  <th className="py-2 pr-3 font-medium">Client</th>
-                  <th className="py-2 px-3 font-medium text-right">Projects</th>
-                  <th className="py-2 px-3 font-medium text-right">
-                    {clientFilter === "won" ? "Won $" : clientFilter === "running" ? "In-Running $" : "Lost $"}
-                  </th>
-                  <th className="py-2 px-3 font-medium text-right">Total $</th>
-                  <th className="py-2 pl-3 font-medium text-right">Win Rate</th>
-                </tr>
+                {(() => {
+                  const arrow = (k: ClientSortKey) =>
+                    clientSort.key === k ? (clientSort.dir === "asc" ? " ▲" : " ▼") : "";
+                  const cls = (k: ClientSortKey, extra = "") =>
+                    `py-2 ${extra} font-medium cursor-pointer select-none hover:text-foreground transition-colors ${clientSort.key === k ? "text-foreground" : ""}`;
+                  return (
+                    <tr className="text-left text-muted-foreground border-b border-border">
+                      <th className="py-2 pr-3 font-medium w-6"></th>
+                      <th className={cls("company", "pr-3")} onClick={() => toggleClientSort("company")}>Client{arrow("company")}</th>
+                      <th className={cls("projects", "px-3 text-right")} onClick={() => toggleClientSort("projects")}>Projects{arrow("projects")}</th>
+                      <th className={cls("active", "px-3 text-right")} onClick={() => toggleClientSort("active")}>
+                        {clientFilter === "won" ? "Won $" : clientFilter === "running" ? "In-Running $" : "Lost $"}{arrow("active")}
+                      </th>
+                      <th className={cls("total", "px-3 text-right")} onClick={() => toggleClientSort("total")}>Total ${arrow("total")}</th>
+                      <th className={cls("winRate", "pl-3 text-right")} onClick={() => toggleClientSort("winRate")}>Win Rate{arrow("winRate")}</th>
+                    </tr>
+                  );
+                })()}
               </thead>
               <tbody>
                 {(showAllClients ? activeClients : activeClients.slice(0, 8)).map((c: any) => {
