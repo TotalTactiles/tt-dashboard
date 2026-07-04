@@ -714,16 +714,24 @@ const DealFlow = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-fluid-xs">
               <thead>
-                <tr className="text-left text-muted-foreground border-b border-border">
-                  <th className="py-2 pr-3 font-medium w-6"></th>
-                  <th className="py-2 pr-3 font-medium">Client</th>
-                  <th className="py-2 px-3 font-medium text-right">Projects</th>
-                  <th className="py-2 px-3 font-medium text-right">
-                    {clientFilter === "won" ? "Won $" : clientFilter === "running" ? "In-Running $" : "Lost $"}
-                  </th>
-                  <th className="py-2 px-3 font-medium text-right">Total $</th>
-                  <th className="py-2 pl-3 font-medium text-right">Win Rate</th>
-                </tr>
+                {(() => {
+                  const arrow = (k: ClientSortKey) =>
+                    clientSort.key === k ? (clientSort.dir === "asc" ? " ▲" : " ▼") : "";
+                  const cls = (k: ClientSortKey, extra = "") =>
+                    `py-2 ${extra} font-medium cursor-pointer select-none hover:text-foreground transition-colors ${clientSort.key === k ? "text-foreground" : ""}`;
+                  return (
+                    <tr className="text-left text-muted-foreground border-b border-border">
+                      <th className="py-2 pr-3 font-medium w-6"></th>
+                      <th className={cls("company", "pr-3")} onClick={() => toggleClientSort("company")}>Client{arrow("company")}</th>
+                      <th className={cls("projects", "px-3 text-right")} onClick={() => toggleClientSort("projects")}>Projects{arrow("projects")}</th>
+                      <th className={cls("active", "px-3 text-right")} onClick={() => toggleClientSort("active")}>
+                        {clientFilter === "won" ? "Won $" : clientFilter === "running" ? "In-Running $" : "Lost $"}{arrow("active")}
+                      </th>
+                      <th className={cls("total", "px-3 text-right")} onClick={() => toggleClientSort("total")}>Total ${arrow("total")}</th>
+                      <th className={cls("winRate", "pl-3 text-right")} onClick={() => toggleClientSort("winRate")}>Win Rate{arrow("winRate")}</th>
+                    </tr>
+                  );
+                })()}
               </thead>
               <tbody>
                 {(showAllClients ? activeClients : activeClients.slice(0, 8)).map((c: any) => {
