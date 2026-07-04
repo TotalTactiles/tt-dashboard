@@ -899,7 +899,7 @@ const DealFlow = () => {
 
 
           {/* Tiles */}
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 mb-5">
             {[
               { key: "biggestWon", label: "Biggest Won", data: clientIntel.biggestWon, accent: "text-[#22c55e]", pill: "won" as const, sub: (d: any) => `${d.company} · ${d.project || "—"}` },
               { key: "biggestRun", label: "Biggest In Running", data: clientIntel.biggestRun, accent: "text-[#22c55e]", pill: "running" as const, sub: (d: any) => `${d.company} · ${d.project || "—"}` },
