@@ -118,7 +118,36 @@ const bucketColors: Record<string, string> = {
   d90plus: "hsl(var(--destructive))",
 };
 
+const InfoLabel = ({
+  label,
+  info,
+  labelClass,
+}: {
+  label: string;
+  info: string;
+  labelClass?: string;
+}) => (
+  <span className={`inline-flex items-center gap-1 ${labelClass || ""}`}>
+    {label}
+    <ShadTooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center justify-center rounded-full hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+          onClick={(e) => e.preventDefault()}
+        >
+          <Info className="w-3 h-3" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" align="start" className="max-w-[280px] leading-snug">
+        <p>{info}</p>
+      </TooltipContent>
+    </ShadTooltip>
+  </span>
+);
+
 type PayerSortKey = "avgDaysToPay" | "outstanding" | "totalPaid";
+
 
 const QuoteToCashReceivables = () => {
   const [data, setData] = useState<ReceivablesData | null>(() => {
