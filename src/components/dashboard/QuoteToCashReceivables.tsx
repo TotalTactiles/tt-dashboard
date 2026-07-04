@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import {
-  BarChart,
   Bar,
   Line,
   XAxis,
@@ -11,7 +10,7 @@ import {
   ReferenceLine,
   CartesianGrid,
 } from "recharts";
-import { AlertTriangle, ArrowUpDown } from "lucide-react";
+import { AlertTriangle, ArrowUpDown, ChevronDown, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-receivables";
@@ -19,6 +18,7 @@ const CACHE_KEY = "dashboard_receivables_data";
 const REFRESH_MS = 5 * 60 * 1000;
 
 type Grade = "green" | "amber" | "red" | "none";
+type Category = "overdue" | "current" | "retention";
 
 interface Payer {
   company: string;
@@ -30,11 +30,15 @@ interface Payer {
   grade: Grade;
 }
 
-interface OpenInvoice {
+interface InvoiceRow {
   invoiceNumber: string;
   company: string;
   reference: string;
   amountDue: number;
+  amountPaid?: number;
+  total?: number;
+  pctOutstanding?: number;
+  category?: Category;
   invoiceDate: string;
   dueByTerm: string;
   daysOverdue: number;
@@ -58,6 +62,11 @@ interface ReceivablesData {
     openCount: number;
     totalOutstanding: number;
     totalOverdue: number;
+    totalUnpaid?: number;
+    unpaidOverdue?: number;
+    unpaidCurrent?: number;
+    retentionHeld?: number;
+    retentionCount?: number;
     dso: number;
     dsoMedian: number;
     onTimePct: number;
@@ -71,7 +80,9 @@ interface ReceivablesData {
     d90plus: number;
   };
   payers: Payer[];
-  openInvoices: OpenInvoice[];
+  openInvoices: InvoiceRow[];
+  chaseList?: InvoiceRow[];
+  retentionList?: InvoiceRow[];
   monthlyTrend: MonthlyTrend[];
 }
 
@@ -120,6 +131,7 @@ const QuoteToCashReceivables = () => {
   const [error, setError] = useState<string | null>(null);
   const [payerSort, setPayerSort] = useState<PayerSortKey>("avgDaysToPay");
   const [showAllPayers, setShowAllPayers] = useState(false);
+  const [retentionOpen, setRetentionOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading((prev) => (data ? false : true));
@@ -198,7 +210,6 @@ const QuoteToCashReceivables = () => {
     }));
   }, [data]);
 
-  // ------- render helpers -------
   const renderHeader = () => (
     <div className="flex items-start justify-between gap-4 flex-wrap">
       <div className="min-w-0">
@@ -259,6 +270,14 @@ const QuoteToCashReceivables = () => {
     );
   }
 
+  const chaseList = data.chaseList ?? data.openInvoices ?? [];
+  const retentionList = data.retentionList ?? [];
+  const unpaidOverdue = summary.unpaidOverdue ?? summary.totalOverdue;
+  const unpaidCurrent = summary.unpaidCurrent ?? 0;
+  const retentionHeld = summary.retentionHeld ?? 0;
+  const retentionCount = summary.retentionCount ?? retentionList.length;
+  const totalUnpaid = summary.totalUnpaid ?? chaseList.reduce((s, r) => s + (r.amountDue || 0), 0);
+
   const SortHeader = ({ label, k }: { label: string; k: PayerSortKey }) => (
     <button
       type="button"
@@ -276,23 +295,30 @@ const QuoteToCashReceivables = () => {
       {renderHeader()}
 
       {/* 1. Summary stat row */}
-      <div className="mt-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+      <div className="mt-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-3">
         <StatCard
           label="Outstanding"
           value={fmtMoney(summary.totalOutstanding)}
           sub={`${summary.openCount} open invoices`}
         />
         <StatCard
-          label="Overdue (net-30)"
-          value={fmtMoney(summary.totalOverdue)}
-          sub={`past ${termDays}-day terms`}
+          label="Overdue"
+          value={fmtMoney(unpaidOverdue)}
+          sub="genuinely unpaid · past terms"
           valueClass="text-destructive"
         />
         <StatCard
-          label="DSO"
-          value={`${summary.dso}d`}
-          sub={`median ${summary.dsoMedian}d`}
+          label="Retention held"
+          value={fmtMoney(retentionHeld)}
+          sub={`${retentionCount} part-paid jobs · not overdue`}
+          valueClass="text-chart-blue"
         />
+        <StatCard
+          label="Awaiting (in terms)"
+          value={fmtMoney(unpaidCurrent)}
+          sub="unpaid, within 30 days"
+        />
+        <StatCard label="DSO" value={`${summary.dso}d`} sub={`median ${summary.dsoMedian}d`} />
         <StatCard
           label="On-time rate"
           value={`${summary.onTimePct}%`}
@@ -309,8 +335,8 @@ const QuoteToCashReceivables = () => {
 
       {/* 2. Aging bar */}
       <div className="mt-6">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-fluid-sm font-semibold">Outstanding by age</h3>
+        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+          <h3 className="text-fluid-sm font-semibold">All outstanding by age</h3>
           <span className="text-[11px] text-muted-foreground font-mono">Total {fmtMoney(totalAging)}</span>
         </div>
         <div className="flex w-full h-6 rounded overflow-hidden border border-border">
@@ -322,6 +348,9 @@ const QuoteToCashReceivables = () => {
             />
           ))}
         </div>
+        <p className="text-[11px] text-muted-foreground mt-2">
+          Older balances are mostly retention — see the section below.
+        </p>
         <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-[11px] font-mono">
           {agingSegments.map((s) => (
             <div key={s.key} className="flex items-center gap-2 min-w-0">
@@ -385,9 +414,14 @@ const QuoteToCashReceivables = () => {
         </div>
       </div>
 
-      {/* 4. Open invoices chase-list */}
+      {/* 4. Chase list — genuinely unpaid */}
       <div className="mt-6">
-        <h3 className="text-fluid-sm font-semibold mb-2">Open invoices — chase list</h3>
+        <div className="flex items-baseline justify-between flex-wrap gap-2 mb-2">
+          <h3 className="text-fluid-sm font-semibold">Chase list — genuinely unpaid</h3>
+          <span className="text-[11px] text-muted-foreground font-mono">
+            {chaseList.length} invoices · {fmtMoney(totalUnpaid)}
+          </span>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs font-mono">
             <thead className="text-muted-foreground border-b border-border">
@@ -399,17 +433,17 @@ const QuoteToCashReceivables = () => {
                 <th>Invoiced</th>
                 <th>Due</th>
                 <th className="text-right">Days overdue</th>
-                <th>Bucket</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              {data.openInvoices.map((inv) => {
-                const is90 = inv.bucket === "90+";
+              {chaseList.map((inv) => {
+                const isOverdue = inv.category === "overdue" || (inv.category == null && inv.daysOverdue > 0);
                 return (
                   <tr
                     key={inv.invoiceNumber}
                     className={`border-b border-border/50 [&>td]:py-2 [&>td]:px-2 ${
-                      is90 ? "border-l-2 border-l-destructive/60" : ""
+                      isOverdue ? "border-l-2 border-l-destructive/60" : ""
                     }`}
                   >
                     <td>{inv.invoiceNumber}</td>
@@ -423,14 +457,24 @@ const QuoteToCashReceivables = () => {
                     <td className={`text-right ${inv.daysOverdue > 0 ? "text-destructive" : "text-muted-foreground"}`}>
                       {inv.daysOverdue}
                     </td>
-                    <td className="text-muted-foreground">{inv.bucket}</td>
+                    <td>
+                      <span
+                        className={`inline-block text-[10px] px-2 py-0.5 rounded border ${
+                          isOverdue
+                            ? "border-destructive/40 bg-destructive/15 text-destructive"
+                            : "border-muted-foreground/30 bg-muted/40 text-muted-foreground"
+                        }`}
+                      >
+                        {isOverdue ? "overdue" : "in terms"}
+                      </span>
+                    </td>
                   </tr>
                 );
               })}
-              {data.openInvoices.length === 0 && (
+              {chaseList.length === 0 && (
                 <tr>
                   <td colSpan={8} className="py-4 text-center text-muted-foreground">
-                    No open invoices.
+                    No unpaid invoices — all clear.
                   </td>
                 </tr>
               )}
@@ -439,7 +483,69 @@ const QuoteToCashReceivables = () => {
         </div>
       </div>
 
-      {/* 5. Collection trend */}
+      {/* 5. Retention & part-paid residuals */}
+      {retentionList.length > 0 && (
+        <div className="mt-6 rounded border border-border/60">
+          <button
+            type="button"
+            onClick={() => setRetentionOpen((v) => !v)}
+            className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left hover:bg-muted/30"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              {retentionOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              <h3 className="text-fluid-sm font-semibold">Retention & part-paid residuals</h3>
+            </div>
+            <span className="text-[11px] text-muted-foreground font-mono whitespace-nowrap">
+              {retentionCount} jobs · {fmtMoney(retentionHeld)} held · not overdue
+            </span>
+          </button>
+          {retentionOpen && (
+            <div className="px-3 pb-3">
+              <p className="text-[11px] text-muted-foreground mb-3">
+                These progress claims are already ~90% paid — the balance is retention held by the builder, not a
+                missing payment.
+              </p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs font-mono">
+                  <thead className="text-muted-foreground border-b border-border">
+                    <tr className="[&>th]:py-2 [&>th]:px-2 text-left">
+                      <th>Invoice</th>
+                      <th>Company</th>
+                      <th>Reference</th>
+                      <th className="text-right">Total</th>
+                      <th className="text-right">Paid</th>
+                      <th className="text-right">Still held</th>
+                      <th className="text-right">% held</th>
+                      <th>Invoiced</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {retentionList.map((inv) => (
+                      <tr
+                        key={inv.invoiceNumber}
+                        className="border-b border-border/50 [&>td]:py-2 [&>td]:px-2 text-muted-foreground"
+                      >
+                        <td className="text-foreground/80">{inv.invoiceNumber}</td>
+                        <td className="max-w-[200px] truncate text-foreground/80" title={inv.company}>{inv.company}</td>
+                        <td className="max-w-[180px] truncate" title={inv.reference}>{inv.reference || "—"}</td>
+                        <td className="text-right text-foreground/80">{fmtMoney(inv.total)}</td>
+                        <td className="text-right text-chart-green">{fmtMoney(inv.amountPaid)}</td>
+                        <td className="text-right text-foreground/80">{fmtMoney(inv.amountDue)}</td>
+                        <td className="text-right">
+                          {inv.pctOutstanding == null ? "—" : `${Math.round(inv.pctOutstanding)}%`}
+                        </td>
+                        <td>{fmtDate(inv.invoiceDate)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 6. Collection trend */}
       {data.monthlyTrend?.length > 0 && (
         <div className="mt-6">
           <h3 className="text-fluid-sm font-semibold mb-2">Days to pay — monthly trend</h3>
