@@ -311,6 +311,56 @@ const DealFlow = () => {
 
   const maxStageCount = Math.max(1, ...stageStats.map(s => s.count), completedCount);
 
+  // Client Intelligence
+  const [showAllClients, setShowAllClients] = useState(false);
+  const clientIntel = useMemo(() => {
+    const isWonS = (s: string) => s === "won";
+    const isLostS = (s: string) => s === "lost";
+    const isRunS = (s: string) => s === "pending" || s === "yellow";
+    const rows = (jobs as any[])
+      .map(j => ({
+        company: String(j.company ?? "").trim(),
+        project: String(j.project ?? j.jobName ?? "").trim(),
+        value: Number(j.value) || 0,
+        status: String(j.status ?? ""),
+      }))
+      .filter(r => r.company);
+
+    const pickMax = (pred: (s: string) => boolean) => {
+      const arr = rows.filter(r => pred(r.status));
+      if (!arr.length) return null;
+      return arr.reduce((a, b) => (b.value > a.value ? b : a));
+    };
+    const biggestWon = pickMax(isWonS);
+    const biggestRun = pickMax(isRunS);
+    const biggestLost = pickMax(isLostS);
+
+    const map = new Map<string, { company: string; projects: number; wonValue: number; runningValue: number; lostValue: number; wonCount: number; lostCount: number }>();
+    for (const r of rows) {
+      const e = map.get(r.company) ?? { company: r.company, projects: 0, wonValue: 0, runningValue: 0, lostValue: 0, wonCount: 0, lostCount: 0 };
+      if (isWonS(r.status)) { e.wonValue += r.value; e.wonCount += 1; e.projects += 1; }
+      else if (isRunS(r.status)) { e.runningValue += r.value; e.projects += 1; }
+      else if (isLostS(r.status)) { e.lostValue += r.value; e.lostCount += 1; }
+      map.set(r.company, e);
+    }
+    const clients = Array.from(map.values()).map(c => {
+      const totalValue = c.wonValue + c.runningValue;
+      const decided = c.wonCount + c.lostCount;
+      const winRate = decided > 0 ? (c.wonCount / decided) * 100 : null;
+      return { ...c, totalValue, quoted: decided, winRate };
+    });
+
+    const byProjects = [...clients].filter(c => c.projects > 0).sort((a, b) => b.projects - a.projects)[0] ?? null;
+    const byValue = [...clients].filter(c => c.totalValue > 0).sort((a, b) => b.totalValue - a.totalValue)[0] ?? null;
+
+    const sorted = [...clients].sort((a, b) => b.totalValue - a.totalValue);
+    const grand = sorted.reduce((s, c) => s + c.totalValue, 0);
+    const topClientPct = grand > 0 && sorted[0] ? (sorted[0].totalValue / grand) * 100 : 0;
+    const top3Pct = grand > 0 ? (sorted.slice(0, 3).reduce((s, c) => s + c.totalValue, 0) / grand) * 100 : 0;
+
+    return { biggestWon, biggestRun, biggestLost, byProjects, byValue, sorted, topClientPct, top3Pct };
+  }, [jobs]);
+
   return (
     <DashboardLayout>
       <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
