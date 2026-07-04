@@ -1,10 +1,29 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useDashboardData, QuotedJob } from "@/contexts/DashboardDataContext";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { ArrowDown, AlertTriangle, CheckCircle2, ChevronRight, Info } from "lucide-react";
 import { formatMetricValue } from "@/lib/formatMetricValue";
+
+const DEAL_CYCLE_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
+
+type CycleEntry = {
+  cycleDays: number | null;
+  decidedType: "won" | "lost" | null;
+  measurable: 0 | 1;
+  isPrimary: 0 | 1;
+  quoteSentTs: string | null;
+  decidedTs: string | null;
+};
+
+const median = (arr: number[]): number => {
+  if (!arr.length) return 0;
+  const s = [...arr].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+};
+const mean = (arr: number[]): number => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
 
 function parseDealDate(raw: string): Date | null {
   if (!raw) return null;
@@ -65,8 +84,43 @@ const DealFlow = () => {
   const quotesRaw = (liveData?.quotes as any[]) ?? [];
   const [staleSort, setStaleSort] = useState<"oldest" | "newest">("oldest");
   const [staleStatus, setStaleStatus] = useState<"all" | "pending" | "won" | "lost" | "stale">("stale");
+  const [cycleMap, setCycleMap] = useState<Record<string, CycleEntry>>({});
+  const [cycleLoaded, setCycleLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(DEAL_CYCLE_WEBHOOK);
+        const rows: Array<{ key: string; value: string }> = await res.json();
+        const row = rows.find((r) => r.key === "tt_deal_cycle");
+        if (row?.value && !cancelled) {
+          const parsed = JSON.parse(row.value);
+          if (parsed && typeof parsed === "object") setCycleMap(parsed);
+        }
+      } catch {
+        /* fail gracefully */
+      } finally {
+        if (!cancelled) setCycleLoaded(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const today = new Date();
+  const cyc = (job: any): CycleEntry | null => {
+    const id = String(job?.zohoId ?? job?.["Job/Lead ID (Zoho)"] ?? job?.["Job / Lead ID\n(Zoho)"] ?? "").trim();
+    return id && cycleMap[id] ? cycleMap[id] : null;
+  };
+  const daysSinceQuoted = (entry: CycleEntry | null): number | null => {
+    if (!entry) return null;
+    if (entry.decidedTs && typeof entry.cycleDays === "number") return entry.cycleDays;
+    if (entry.quoteSentTs) {
+      const t = Date.parse(entry.quoteSentTs);
+      if (!isNaN(t)) return Math.max(0, Math.floor((today.getTime() - t) / 86400000));
+    }
+    return null;
+  };
 
   const byStatus = useMemo(() => {
     return {
@@ -173,12 +227,8 @@ const DealFlow = () => {
     if (s.includes("LOST") || s.includes("DEAD")) return "Lost/Dead";
     return "Other";
   };
-  const createdDateOf = (row: any): Date | null =>
-    parseDealDate((row["Date Created"] ?? "").toString().trim());
-  const daysSinceDate = (d: Date | null) =>
-    d ? Math.max(0, Math.floor((today.getTime() - d.getTime()) / 86400000)) : null;
 
-  // Velocity — avg days per real stage (excludes Completed & Lost/Dead)
+  // Velocity — avg days per real stage from cycle cache (excludes Completed & Lost/Dead)
   const VELOCITY_STAGES = [
     "Quote Sent",
     "Negotiation/Review",
@@ -188,7 +238,7 @@ const DealFlow = () => {
   const velocityData = VELOCITY_STAGES.map((label) => {
     const items = quotesRaw.filter((r: any) => stageOfRow(r) === label);
     const days = items
-      .map((r: any) => daysSinceDate(createdDateOf(r)))
+      .map((r: any) => daysSinceQuoted(cyc(r)))
       .filter((x: number | null): x is number => x !== null);
     const avg = days.length ? days.reduce((a, b) => a + b, 0) / days.length : 0;
     return { stage: label, avgDays: Math.round(avg), count: items.length };
@@ -197,39 +247,55 @@ const DealFlow = () => {
   const velocityColor = (d: number) =>
     d < 14 ? "hsl(var(--chart-green))" : d < 30 ? "hsl(var(--chart-orange))" : "hsl(var(--destructive))";
 
-  // Stale deals
+  // Median cycle time — primary + measurable only
+  const cycleEntries = Object.values(cycleMap).filter(
+    (e) => e && e.isPrimary === 1 && e.measurable === 1 && typeof e.cycleDays === "number",
+  ) as CycleEntry[];
+  const wonDays = cycleEntries.filter((e) => e.decidedType === "won").map((e) => e.cycleDays as number);
+  const lostDays = cycleEntries.filter((e) => e.decidedType === "lost").map((e) => e.cycleDays as number);
+  const medianWon = Math.round(median(wonDays));
+  const medianLost = Math.round(median(lostDays));
+  const meanWon = Math.round(mean(wonDays));
+  const meanLost = Math.round(mean(lostDays));
+
+  // Per-deal list (from raw quotes joined to cache)
   const staleDeals = useMemo(() => {
     return quotesRaw
       .filter((j: any) => !!(j["Current Status"]))
       .map((j: any) => {
-        const d = createdDateOf(j);
-        if (!d) return null;
-        const days = Math.floor((today.getTime() - d.getTime()) / 86400000);
-        return {
-          ...j,
-          daysOld: days,
-          projectName: j["Project Name"] ?? j._project ?? "",
-          companyName: j["Company Name"] ?? j._company ?? "",
-          status: j["Current Status"] === "PO Received (GRN)" || j["Current Status"] === "Completed" ? "won"
+        const entry = cyc(j);
+        const isMeasurable = entry ? entry.measurable === 1 : false;
+        const days = daysSinceQuoted(entry);
+        const status =
+          j["Current Status"] === "PO Received (GRN)" || j["Current Status"] === "Completed" ? "won"
             : j["Current Status"] === "Lost/Dead" ? "lost"
             : j["Current Status"] === "Verbal Confirmation (YLW)" ? "yellow"
-            : "pending",
+            : "pending";
+        return {
+          ...j,
+          daysOld: days,               // number | null
+          measurable: isMeasurable,
+          projectName: j["Project Name"] ?? j._project ?? "",
+          companyName: j["Company Name"] ?? j._company ?? "",
+          status,
         };
       })
-      .filter((j: any) => j !== null)
-      .map((j: any) => j.daysOld <= 0 ? { ...j, daysOld: 1 } : j)
-      .sort((a: any, b: any) => b.daysOld - a.daysOld);
-  }, [quotesRaw]);
+      .sort((a: any, b: any) => {
+        const av = a.daysOld ?? -1;
+        const bv = b.daysOld ?? -1;
+        return bv - av;
+      });
+  }, [quotesRaw, cycleMap]);
 
   const filteredStaleDeals = useMemo(() => {
     let list = staleDeals;
     if (staleStatus === "stale") {
-      list = list.filter((j: any) => j.status === "pending" && j.daysOld > 21);
+      list = list.filter((j: any) => j.status === "pending" && (j.daysOld ?? 0) > 21);
     } else if (staleStatus !== "all") {
       list = list.filter((j: any) => j.status === staleStatus);
     }
     if (staleSort === "newest") {
-      list = [...list].sort((a: any, b: any) => a.daysOld - b.daysOld);
+      list = [...list].sort((a: any, b: any) => (a.daysOld ?? -1) - (b.daysOld ?? -1));
     }
     return list;
   }, [staleDeals, staleSort, staleStatus]);
@@ -380,7 +446,7 @@ const DealFlow = () => {
         <motion.section variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="chart-container p-5">
             <h2 className="text-fluid-base font-semibold mb-1">Avg Days Per Stage</h2>
-            <p className="text-fluid-xs text-muted-foreground mb-4">Avg days since quoting started, by current stage</p>
+            <p className="text-fluid-xs text-muted-foreground mb-4">Avg days since quoted, by current stage</p>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={velocityData} layout="vertical" margin={{ left: 10, right: 24, top: 4, bottom: 4 }}>
                 <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={11} />
@@ -410,7 +476,34 @@ const DealFlow = () => {
 
           <div className="chart-container p-5">
             <h2 className="text-fluid-base font-semibold mb-1">Pipeline Velocity</h2>
-            <p className="text-fluid-xs text-muted-foreground mb-4">Days in pipeline since quoting started (Date Created)</p>
+            <p className="text-fluid-xs text-muted-foreground mb-4">Median quote-to-decision · primary deals, measurable only</p>
+
+            {/* Median stats */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="rounded-lg border border-border/40 bg-card/30 p-3">
+                <div className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground font-mono">
+                  Median Quote → Won
+                  <span title={`mean ${meanWon}d · ${wonDays.length} deals`}>
+                    <Info className="text-muted-foreground/70 hover:text-foreground cursor-help transition-colors inline-block ml-0.5 align-middle" size={12} />
+                  </span>
+                </div>
+                <div className="font-mono text-fluid-xl font-semibold text-chart-green mt-1">
+                  {wonDays.length ? `${medianWon}d` : "—"}
+                </div>
+              </div>
+              <div className="rounded-lg border border-border/40 bg-card/30 p-3">
+                <div className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground font-mono">
+                  Median Quote → Lost
+                  <span title={`mean ${meanLost}d · ${lostDays.length} deals`}>
+                    <Info className="text-muted-foreground/70 hover:text-foreground cursor-help transition-colors inline-block ml-0.5 align-middle" size={12} />
+                  </span>
+                </div>
+                <div className="font-mono text-fluid-xl font-semibold text-red-400 mt-1">
+                  {lostDays.length ? `${medianLost}d` : "—"}
+                </div>
+              </div>
+            </div>
+
 
             {/* Filter controls */}
             <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -467,7 +560,12 @@ const DealFlow = () => {
             ) : (
               <ul className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
                 {filteredStaleDeals.map((d: any) => {
-                  const sev = d.daysOld >= 35 ? "bg-red-500/25 text-red-400 border-red-500/40" : "bg-orange-500/20 text-orange-300 border-orange-500/40";
+                  const hasDays = typeof d.daysOld === "number" && d.measurable;
+                  const sev = !hasDays
+                    ? "bg-muted/30 text-muted-foreground border-border/40"
+                    : d.daysOld >= 35
+                      ? "bg-red-500/25 text-red-400 border-red-500/40"
+                      : "bg-orange-500/20 text-orange-300 border-orange-500/40";
                   return (
                     <li key={d.id} className="flex items-center justify-between gap-3 p-2 rounded-md border border-border/40 bg-card/30">
                       <div className="min-w-0 flex-1">
@@ -478,7 +576,7 @@ const DealFlow = () => {
                         {d.status}
                       </span>
                       <span className={`font-mono text-[10px] px-2 py-0.5 rounded border ${sev}`}>
-                        {d.daysOld}d
+                        {hasDays ? `${d.daysOld}d` : "—"}
                       </span>
                     </li>
                   );
