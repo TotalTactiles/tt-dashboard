@@ -640,9 +640,9 @@ const StatCard = ({
   sub,
   valueClass = "",
 }: {
-  label: string;
+  label: ReactNode;
   value: string;
-  sub: string;
+  sub: ReactNode;
   valueClass?: string;
 }) => (
   <div className="stat-card p-3">
@@ -651,5 +651,6 @@ const StatCard = ({
     <div className="text-[11px] text-muted-foreground font-mono mt-1">{sub}</div>
   </div>
 );
+
 
 export default QuoteToCashReceivables;
