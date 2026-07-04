@@ -565,23 +565,23 @@ const DealFlow = () => {
       const totalValue = c.wonValue + c.runningValue + c.lostValue;
       const decided = c.wonCount + c.lostCount;
       const winRate = decided > 0 ? (c.wonCount / decided) * 100 : null;
-      return { ...c, totalValue, winRate };
+      // Canonical, tile-agnostic counts — every consumer reads these.
+      const projectsWonRunning = c.contracts.filter(k => k.status === "won" || k.status === "running").length;
+      const contractCountAll = c.contracts.length;
+      return { ...c, totalValue, winRate, projectsWonRunning, contractCountAll };
     });
 
     // Highest-value client (across all statuses).
     const byValue = [...clients].filter(c => c.totalValue > 0)
       .sort((a, b) => b.totalValue - a.totalValue)[0] ?? null;
 
-    // Most-projects client — DISTINCT contract count of won + in-running only.
-    // Tie-break by total (won + running) value.
-    const withActiveCounts = clients.map(c => {
-      const activeContracts = c.contracts.filter(k => k.status === "won" || k.status === "running");
-      return {
-        ...c,
-        activeContractCount: activeContracts.length,
-        activeContractValue: c.wonValue + c.runningValue,
-      };
-    });
+    // Most-projects client — reads the canonical projectsWonRunning from clients.
+    // Tie-break by total won+running value.
+    const withActiveCounts = clients.map(c => ({
+      ...c,
+      activeContractCount: c.projectsWonRunning,
+      activeContractValue: c.wonValue + c.runningValue,
+    }));
     const byProjects = [...withActiveCounts]
       .filter(c => c.activeContractCount > 0)
       .sort((a, b) => (b.activeContractCount - a.activeContractCount) || (b.activeContractValue - a.activeContractValue))[0] ?? null;
@@ -653,7 +653,7 @@ const DealFlow = () => {
     const { key, dir } = clientSort;
     const sign = dir === "asc" ? 1 : -1;
     const getNum = (c: any): number | null => {
-      if (key === "projects") return c.activeProjects;
+      if (key === "projects") return c.projectsWonRunning;
       if (key === "active") return c.activeValue;
       if (key === "total") return c.totalValue;
       if (key === "winRate") return c.winRate; // may be null
@@ -906,7 +906,7 @@ const DealFlow = () => {
                 <>
                   <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byReturning.company}>{clientIntel.byReturning.company}</div>
                   <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                    {clientIntel.byReturning.contracts.length} contracts with us
+                    {clientIntel.byReturning.contractCountAll} contracts with us
                     {clientIntel.returningTiedExtra > 0 ? ` (+${clientIntel.returningTiedExtra} more tied)` : ""}
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-0.5">
@@ -1124,7 +1124,7 @@ const DealFlow = () => {
                           <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isOpen ? "rotate-90" : ""}`} />
                         </td>
                         <td className="py-2 pr-3 truncate max-w-[240px]" title={c.company}>{c.company}</td>
-                        <td className="py-2 px-3 text-right font-mono tabular-nums">{c.activeProjects}</td>
+                        <td className="py-2 px-3 text-right font-mono tabular-nums">{c.projectsWonRunning}</td>
                         <td className={`py-2 px-3 text-right font-mono tabular-nums ${valColor}`}>{fmtAUD(c.activeValue)}</td>
                         <td className="py-2 px-3 text-right font-mono tabular-nums font-semibold">{fmtAUD(c.totalValue)}</td>
                         <td className="py-2 pl-3 text-right font-mono tabular-nums">{c.winRate === null ? "—" : `${c.winRate.toFixed(0)}%`}</td>
