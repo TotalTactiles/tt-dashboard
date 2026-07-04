@@ -948,30 +948,59 @@ const DealFlow = () => {
                 </>
               ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
             </button>
-            <button
-              type="button"
-              disabled={!clientIntel.byValue}
-              onClick={() => handleTileClick("byValue", clientIntel.byValue?.company, bestPillFor(clientIntel.byValue, "value"))}
-              className={`text-left rounded-lg border p-3 transition-colors ${
-                activeTileKey === "byValue" ? "border-foreground/40 bg-foreground/5" : "border-border bg-card/40 hover:bg-card/60"
-              } ${clientIntel.byValue ? "cursor-pointer" : "cursor-default"}`}
-            >
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Client — Highest Value</div>
-              {clientIntel.byValue ? (
-                <>
-                  <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byValue.company}>{clientIntel.byValue.company}</div>
-                  {clientIntel.byValue.projects > 1 ? (
-                    <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                      {clientIntel.byValue.projects} projects totalling {fmtAUD(clientIntel.byValue.totalValue)}
+            {(() => {
+              const src = valueTileMode === "highest" ? clientIntel.byValueHighest : clientIntel.byValueLowest;
+              const modeLabel = valueTileMode === "highest" ? "Highest" : "Lowest";
+              const trackedProjects = src ? (src.wonContractCount + src.runningContractCount) : 0;
+              const trackedContracts = src ? src.contracts.filter((k: any) => k.status === "won" || k.status === "running") : [];
+              return (
+                <div
+                  className={`relative text-left rounded-lg border p-3 transition-colors ${
+                    activeTileKey === "byValue" ? "border-foreground/40 bg-foreground/5" : "border-border bg-card/40 hover:bg-card/60"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Client — {modeLabel} Value</div>
+                    <div className="inline-flex rounded border border-border overflow-hidden shrink-0">
+                      {(["highest", "lowest"] as const).map(m => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setValueTileMode(m); }}
+                          className={`px-1.5 py-0.5 text-[9px] font-medium uppercase transition-colors ${
+                            valueTileMode === m ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {m === "highest" ? "Hi" : "Lo"}
+                        </button>
+                      ))}
                     </div>
-                  ) : (
-                    <div className="text-[11px] text-muted-foreground font-mono mt-0.5 truncate" title={clientIntel.byValue.contracts[0]?.base}>
-                      {clientIntel.byValue.contracts[0]?.base || "—"} · {fmtAUD(clientIntel.byValue.totalValue)}
-                    </div>
-                  )}
-                </>
-              ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
-            </button>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!src}
+                    onClick={() => src && handleTileClick("byValue", src.company)}
+                    className={`w-full text-left mt-1 ${src ? "cursor-pointer" : "cursor-default"}`}
+                  >
+                    {src ? (
+                      <>
+                        <div className="text-fluid-lg font-mono font-bold text-foreground truncate" title={src.company}>{src.company}</div>
+                        {trackedProjects > 1 ? (
+                          <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                            {trackedProjects} projects totalling {fmtAUD(src.tracked)}
+                          </div>
+                        ) : (
+                          <div className="text-[11px] text-muted-foreground font-mono mt-0.5 truncate" title={trackedContracts[0]?.base}>
+                            {trackedContracts[0]?.base || "—"} · {fmtAUD(src.tracked)}
+                          </div>
+                        )}
+                        <div className="text-[9px] text-muted-foreground/70 mt-0.5">won + in-running (excl. lost)</div>
+                      </>
+                    ) : (<div className="text-fluid-lg font-mono font-bold text-muted-foreground">—</div>)}
+                  </button>
+                </div>
+              );
+            })()}
             <button
               type="button"
               disabled={!clientIntel.byReturning}
