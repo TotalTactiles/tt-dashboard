@@ -913,14 +913,14 @@ const DealFlow = () => {
                   type="button"
                   disabled={!clickable}
                   onClick={() => handleTileClick(t.key, t.data?.company, t.pill)}
-                  className={`text-left rounded-lg border p-3 transition-colors ${
+                  className={`min-w-0 text-left rounded-lg border p-3 transition-colors ${
                     isActiveTile ? "border-foreground/40 bg-foreground/5" : "border-border bg-card/40 hover:bg-card/60"
                   } ${clickable ? "cursor-pointer" : "cursor-default"}`}
                 >
-                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{t.label}</div>
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground break-words whitespace-normal">{t.label}</div>
                   {t.data ? (
                     <>
-                      <div className={`text-fluid-lg font-mono font-bold mt-1 ${t.accent}`}>{fmtAUD(t.data.value)}</div>
+                      <div className={`text-fluid-lg font-mono font-bold mt-1 tabular-nums ${t.accent}`}>{fmtAUD(t.data.value)}</div>
                       <div className="text-[11px] text-muted-foreground truncate mt-0.5" title={t.sub(t.data)}>{t.sub(t.data)}</div>
                     </>
                   ) : (
