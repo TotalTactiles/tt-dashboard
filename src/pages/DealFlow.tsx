@@ -501,7 +501,100 @@ const DealFlow = () => {
           </div>
         </motion.section>
 
+        {/* Client Intelligence */}
+        <motion.section variants={item} className="chart-container p-5">
+          <div className="mb-4">
+            <h2 className="text-fluid-base font-semibold">Client Intelligence</h2>
+            <p className="text-fluid-xs text-muted-foreground">Where the value sits — by client and by deal</p>
+          </div>
+
+          {/* Tiles */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
+            {[
+              { label: "Biggest Won", data: clientIntel.biggestWon, accent: "text-[#22c55e]", sub: (d: any) => `${d.company} · ${d.project || "—"}` },
+              { label: "Biggest In Running", data: clientIntel.biggestRun, accent: "text-[#22c55e]", sub: (d: any) => `${d.company} · ${d.project || "—"}` },
+              { label: "Biggest Lost", data: clientIntel.biggestLost, accent: "text-[#ef4444]", sub: (d: any) => `${d.company} · ${d.project || "—"}` },
+            ].map((t) => (
+              <div key={t.label} className="rounded-lg border border-border bg-card/40 p-3">
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{t.label}</div>
+                {t.data ? (
+                  <>
+                    <div className={`text-fluid-lg font-mono font-bold mt-1 ${t.accent}`}>{fmtAUD(t.data.value)}</div>
+                    <div className="text-[11px] text-muted-foreground truncate mt-0.5" title={t.sub(t.data)}>{t.sub(t.data)}</div>
+                  </>
+                ) : (
+                  <div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>
+                )}
+              </div>
+            ))}
+            <div className="rounded-lg border border-border bg-card/40 p-3">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Client — Most Projects</div>
+              {clientIntel.byProjects ? (
+                <>
+                  <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byProjects.company}>{clientIntel.byProjects.company}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">{clientIntel.byProjects.projects} projects</div>
+                </>
+              ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
+            </div>
+            <div className="rounded-lg border border-border bg-card/40 p-3">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Client — Highest Value</div>
+              {clientIntel.byValue ? (
+                <>
+                  <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byValue.company}>{clientIntel.byValue.company}</div>
+                  <div className="text-[11px] text-muted-foreground font-mono mt-0.5">{fmtAUD(clientIntel.byValue.totalValue)}</div>
+                </>
+              ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
+            </div>
+          </div>
+
+          {/* Concentration */}
+          <div className={`text-fluid-xs font-mono mb-3 ${clientIntel.top3Pct > 60 ? "text-[#f59e0b]" : "text-muted-foreground"}`}>
+            Top client = {clientIntel.topClientPct.toFixed(1)}% of tracked value · Top 3 = {clientIntel.top3Pct.toFixed(1)}%
+          </div>
+
+          {/* Top Clients table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-fluid-xs">
+              <thead>
+                <tr className="text-left text-muted-foreground border-b border-border">
+                  <th className="py-2 pr-3 font-medium">Client</th>
+                  <th className="py-2 px-3 font-medium text-right">Projects</th>
+                  <th className="py-2 px-3 font-medium text-right">Won $</th>
+                  <th className="py-2 px-3 font-medium text-right">In-Running $</th>
+                  <th className="py-2 px-3 font-medium text-right">Total $</th>
+                  <th className="py-2 pl-3 font-medium text-right">Win Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(showAllClients ? clientIntel.sorted : clientIntel.sorted.slice(0, 8)).map((c) => (
+                  <tr key={c.company} className="border-b border-border/50 hover:bg-white/[0.02]">
+                    <td className="py-2 pr-3 truncate max-w-[240px]" title={c.company}>{c.company}</td>
+                    <td className="py-2 px-3 text-right font-mono tabular-nums">{c.projects}</td>
+                    <td className="py-2 px-3 text-right font-mono tabular-nums text-[#22c55e]">{c.wonValue > 0 ? fmtAUD(c.wonValue) : "—"}</td>
+                    <td className="py-2 px-3 text-right font-mono tabular-nums text-[#60a5fa]">{c.runningValue > 0 ? fmtAUD(c.runningValue) : "—"}</td>
+                    <td className="py-2 px-3 text-right font-mono tabular-nums font-semibold">{fmtAUD(c.totalValue)}</td>
+                    <td className="py-2 pl-3 text-right font-mono tabular-nums">{c.winRate === null ? "—" : `${c.winRate.toFixed(0)}%`}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {clientIntel.sorted.length > 8 && (
+            <button
+              onClick={() => setShowAllClients(v => !v)}
+              className="mt-3 text-fluid-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {showAllClients ? "Show top 8" : `Show all (${clientIntel.sorted.length})`}
+            </button>
+          )}
+
+          <p className="text-[11px] text-muted-foreground mt-4">
+            Client totals are grouped from individual deal line items (Contract Value) and may differ slightly from the Win/Loss summary, which uses period-scoped totals.
+          </p>
+        </motion.section>
+
         {/* Section 3: Velocity */}
+
         <motion.section variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="chart-container p-5">
             <h2 className="text-fluid-base font-semibold mb-1">Avg Days Per Stage</h2>
