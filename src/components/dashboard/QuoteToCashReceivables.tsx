@@ -228,12 +228,13 @@ const QuoteToCashReceivables = () => {
     const a = data.aging;
     const total = a.notYetDue + a.d1_30 + a.d31_60 + a.d61_90 + a.d90plus;
     const segs = [
-      { key: "notYetDue", label: "Not yet due", value: a.notYetDue },
-      { key: "d1_30", label: "1–30", value: a.d1_30 },
-      { key: "d31_60", label: "31–60", value: a.d31_60 },
-      { key: "d61_90", label: "61–90", value: a.d61_90 },
-      { key: "d90plus", label: "90+", value: a.d90plus },
+      { key: "notYetDue", label: "Not yet due", note: "within 30-day terms", value: a.notYetDue },
+      { key: "d1_30", label: "1–30 days overdue", value: a.d1_30 },
+      { key: "d31_60", label: "31–60 days overdue", value: a.d31_60 },
+      { key: "d61_90", label: "61–90 days overdue", value: a.d61_90 },
+      { key: "d90plus", label: "90+ days overdue", value: a.d90plus },
     ];
+
     return segs.map((s) => ({
       ...s,
       pct: total > 0 ? (s.value / total) * 100 : 0,
