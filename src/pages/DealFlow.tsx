@@ -1057,19 +1057,19 @@ const DealFlow = () => {
 
           {/* New vs Returning intelligence cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
-            <div className="text-left rounded-lg border border-border bg-card/40 p-3">
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Returning Client Value</div>
+            <div className="min-w-0 text-left rounded-lg border border-border bg-card/40 p-3">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground break-words whitespace-normal">Returning Client Value</div>
               <div className="text-[9px] text-muted-foreground/70 mt-0.5">two definitions of "returning", side by side</div>
               {clientIntel.totalClients > 0 ? (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
                     {/* Proven repeat — 2+ WON */}
-                    <div className="rounded border border-[#22c55e]/30 bg-[#22c55e]/5 p-2">
-                      <div className="text-[10px] uppercase tracking-wide text-[#22c55e] font-medium">Proven repeat</div>
+                    <div className="min-w-0 rounded border border-[#22c55e]/30 bg-[#22c55e]/5 p-2">
+                      <div className="text-[10px] uppercase tracking-wide text-[#22c55e] font-medium break-words whitespace-normal">Proven repeat</div>
                       <div className="text-[9px] text-muted-foreground/80 mt-0.5">basis: 2+ won contracts</div>
                       {clientIntel.returningCount_won > 0 ? (
                         <div className="mt-1.5 space-y-1">
-                          <div className="text-fluid-base font-mono font-bold text-foreground leading-tight">
+                          <div className="text-fluid-base font-mono font-bold text-foreground leading-tight tabular-nums">
                             {clientIntel.returningCount_won} client{clientIntel.returningCount_won === 1 ? "" : "s"}
                           </div>
                           <div className="text-[10px] font-mono text-muted-foreground">
@@ -1087,12 +1087,12 @@ const DealFlow = () => {
                       )}
                     </div>
                     {/* Repeat engagers — 2+ ANY */}
-                    <div className="rounded border border-border bg-card/60 p-2">
-                      <div className="text-[10px] uppercase tracking-wide text-foreground/80 font-medium">Repeat engagers</div>
+                    <div className="min-w-0 rounded border border-border bg-card/60 p-2">
+                      <div className="text-[10px] uppercase tracking-wide text-foreground/80 font-medium break-words whitespace-normal">Repeat engagers</div>
                       <div className="text-[9px] text-muted-foreground/80 mt-0.5">basis: 2+ contracts (any status)</div>
                       {clientIntel.returningCount_all > 0 ? (
                         <div className="mt-1.5 space-y-1">
-                          <div className="text-fluid-base font-mono font-bold text-foreground leading-tight">
+                          <div className="text-fluid-base font-mono font-bold text-foreground leading-tight tabular-nums">
                             {clientIntel.returningCount_all} client{clientIntel.returningCount_all === 1 ? "" : "s"}
                           </div>
                           <div className="text-[10px] font-mono text-muted-foreground">
