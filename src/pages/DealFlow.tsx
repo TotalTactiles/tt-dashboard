@@ -874,7 +874,7 @@ const DealFlow = () => {
           </div>
 
           {/* Top Clients table */}
-          <div className="flex items-center justify-between mb-2">
+          <div id="top-clients-table" className="flex items-center justify-between mb-2 scroll-mt-4">
             <div className="text-fluid-xs font-semibold text-muted-foreground uppercase tracking-wide">Top Clients</div>
             <div className="inline-flex rounded-md border border-border overflow-hidden">
               {([
@@ -896,6 +896,19 @@ const DealFlow = () => {
               ))}
             </div>
           </div>
+          {tileFilterClient && (
+            <div className="mb-2">
+              <button
+                type="button"
+                onClick={clearTileFilter}
+                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full border border-foreground/30 bg-foreground/5 text-[11px] text-foreground hover:bg-foreground/10 transition-colors"
+              >
+                <span className="text-muted-foreground">Showing:</span>
+                <span className="font-medium">{tileFilterClient}</span>
+                <span aria-hidden className="text-muted-foreground hover:text-foreground">✕</span>
+              </button>
+            </div>
+          )}
 
           <div className="overflow-x-auto">
             <table className="w-full text-fluid-xs">
