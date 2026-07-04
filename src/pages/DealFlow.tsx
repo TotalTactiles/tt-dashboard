@@ -151,41 +151,27 @@ const DealFlow = () => {
   const completedCount = completedJobs.length;
   const completedValue = completedJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
 
-  // Win/Loss
-
-  const pipelineWonJobs = jobs.filter((j: any) => isPipelineWin(j));
-  const pipelineWonCount = pipelineWonJobs.length;
-  const pipelineWonValue = pipelineWonJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
-
-  const wonAndCompleted = (liveData?.quotes ?? []).filter((j: any) =>
-    j["Current Status"] === "PO Received (GRN)" ||
-    j["Current Status"] === "Completed"
-  );
-
-  const avgWonDeal = wonAndCompleted.length > 0
-    ? wonAndCompleted.reduce((s: number, j: any) =>
-        s + (parseFloat(String(j["Contract Value ($)"] ?? j._value ?? "0").replace(/[^0-9.-]/g, "")) || 0), 0
-      ) / wonAndCompleted.length
-    : 0;
-
-  const totalValueWon = wonAndCompleted.reduce((s: number, j: any) =>
-    s + (parseFloat(String(j["Contract Value ($)"] ?? j._value ?? "0").replace(/[^0-9.-]/g, "")) || 0), 0
-  );
-
-  const lostJobs = jobs.filter((j: any) => isLost(j.status));
+  const lostJobs = byStatus.lost;
   const lostCount = lostJobs.length;
-  const ytdLostValue = lostJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
 
-  const decidedCount = pipelineWonCount + lostCount;
-  const winRate = decidedCount > 0
-    ? (pipelineWonCount / decidedCount) * 100
-    : 0;
+  // Win/Loss Summary — sourced from quotesSummary (canonical FY-scoped sheet summary)
+  const qs = (liveData?.quotesSummary ?? {}) as any;
+  const hasQs = !!qs && Object.keys(qs).length > 0;
 
-  const pipelineCR = jobs.length > 0
-    ? (pipelineWonCount / jobs.length) * 100
-    : 0;
+  const won     = Number(qs?.totalWon?.count ?? 0);
+  const wonVal  = Number(qs?.totalWon?.value ?? 0);
+  const lost    = Number(qs?.totalLost?.count ?? 0);
+  const lostVal = Number(qs?.totalLost?.value ?? 0);
+  const quoted  = Number(qs?.totalQuoted?.count ?? 0);
 
-  const avgLostDeal = lostCount > 0 ? ytdLostValue / lostCount : 0;
+  const winRate    = (won + lost) > 0 ? (won / (won + lost)) * 100 : 0;
+  const pipelineCR = quoted > 0 ? (won / quoted) * 100 : 0;
+  const avgWon     = won  > 0 ? wonVal  / won  : 0;
+  const avgLost    = lost > 0 ? lostVal / lost : 0;
+  const avgWonDeal = avgWon;
+  const avgLostDeal = avgLost;
+  const totalValueWon = wonVal;
+  const ytdLostValue  = lostVal;
 
   const pendingCount = jobs.filter((j: any) => isActive(j.status)).length;
   const totalCount = jobs.length;
@@ -390,20 +376,20 @@ const DealFlow = () => {
               <div>
                 <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Win Rate</div>
                 <div className="text-[22px] font-bold text-[#22c55e]">
-                  {winRate.toFixed(1)}%
-                  <span title="Win Rate = (YLW + GRN) ÷ (YLW + GRN + Lost). Measures how often TT wins when a deal reaches a decision, excluding still-active pipeline.">
+                  {hasQs ? `${winRate.toFixed(1)}%` : "--"}
+                  <span title="Win Rate = Won ÷ decided (Won + Lost). Measures how often TT wins when a deal reaches a decision, excluding still-active pipeline.">
                     <Info
                       className="text-muted-foreground hover:text-foreground cursor-help transition-colors inline-block ml-1.5 align-middle"
                       size={14}
                     />
                   </span>
                 </div>
-                <div className="text-[11px] text-[#64748b]">YLW+GRN+decided</div>
+                <div className="text-[11px] text-[#64748b]">Won ÷ decided</div>
               </div>
               <div>
                 <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Pipeline CR</div>
                 <div className="text-[22px] font-bold text-[#38bdf8]">
-                  {pipelineCR.toFixed(1)}%
+                  {hasQs ? `${pipelineCR.toFixed(1)}%` : "--"}
                   <span title={`Pipeline CR is lower than Win Rate because ${pendingCount} deals (${pendingPct}% of all quotes) are still active in the pipeline. TT's avg quote-to-close cycle is ~${Math.round(avgDaysToClose)} days, so many quotes are still converting. As these resolve, Pipeline CR will trend toward Win Rate.`}>
                     <Info
                       className="text-muted-foreground hover:text-foreground cursor-help transition-colors inline-block ml-1.5 align-middle"
@@ -415,19 +401,19 @@ const DealFlow = () => {
               </div>
               <div>
                 <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Total Value Won</div>
-                <div className="text-[22px] font-bold text-[#22c55e]">{fmtAUD(totalValueWon)}</div>
+                <div className="text-[22px] font-bold text-[#22c55e]">{hasQs ? fmtAUD(totalValueWon) : "--"}</div>
               </div>
               <div>
                 <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Total Value Lost</div>
-                <div className="text-[22px] font-bold text-[#ef4444]">{fmt(ytdLostValue)}</div>
+                <div className="text-[22px] font-bold text-[#ef4444]">{hasQs ? fmtAUD(ytdLostValue) : "--"}</div>
               </div>
               <div>
                 <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Avg Won Deal</div>
-                <div className="text-[22px] font-bold text-white">{fmtAUD(avgWonDeal)}</div>
+                <div className="text-[22px] font-bold text-white">{hasQs ? fmtAUD(avgWonDeal) : "--"}</div>
               </div>
               <div>
                 <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Avg Lost Deal</div>
-                <div className="text-[22px] font-bold text-white">{fmt(avgLostDeal)}</div>
+                <div className="text-[22px] font-bold text-white">{hasQs ? fmtAUD(avgLostDeal) : "--"}</div>
               </div>
             </div>
           </div>
