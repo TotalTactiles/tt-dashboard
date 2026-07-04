@@ -1585,39 +1585,9 @@ const DealFlow = () => {
           </div>
         </motion.section>
 
-        {/* Section 4: Quote-to-Cash placeholder */}
-        <motion.section variants={item} className="chart-container p-5">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <h2 className="text-fluid-base font-semibold">Quote-to-Cash Timeline</h2>
-              <p className="text-fluid-xs text-muted-foreground mt-1 max-w-xl">
-                Tracks each deal from quoted → won → invoiced → paid, showing true cash conversion cycle
-              </p>
-            </div>
-            <span className="text-[11px] px-2 py-1 rounded border border-chart-orange/40 bg-chart-orange/15 text-chart-orange flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3" /> Awaiting Fiskil bank sync
-            </span>
-          </div>
-
-          <div className="mt-6 flex items-center justify-between gap-2 opacity-60">
-            {["Quoted", "Won", "Invoiced", "Paid"].map((label, i, arr) => (
-              <div key={label} className="flex items-center flex-1 last:flex-none">
-                <div className="flex flex-col items-center gap-2 flex-1">
-                  <div className="w-10 h-10 rounded-full border-2 border-dashed border-muted-foreground/50 flex items-center justify-center font-mono text-fluid-xs text-muted-foreground">
-                    {i + 1}
-                  </div>
-                  <div className="text-fluid-xs text-muted-foreground">{label}</div>
-                </div>
-                {i < arr.length - 1 && (
-                  <div className="flex-1 h-px border-t border-dashed border-muted-foreground/40 mx-1" />
-                )}
-              </div>
-            ))}
-          </div>
-
-          <p className="text-fluid-xs text-muted-foreground mt-6">
-            This section activates automatically once live bank transactions are matched to revenue jobs.
-          </p>
+        {/* Section 4: Quote-to-Cash · Receivables (Xero) */}
+        <motion.section variants={item}>
+          <QuoteToCashReceivables />
         </motion.section>
       </motion.div>
     </DashboardLayout>
