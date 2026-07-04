@@ -589,12 +589,19 @@ const DealFlow = () => {
       clientFilter === "running" ? c.runningValue : c.lostValue;
     const filtered = clientIntel.clients
       .filter((c: any) => pick(c) > 0)
-      .map((c: any) => ({ ...c, activeValue: pick(c) }));
+      .map((c: any) => ({
+        ...c,
+        activeValue: pick(c),
+        activeProjects: c.contracts.filter((contract: any) => (
+          clientFilter === "won" ? contract.wonValue :
+          clientFilter === "running" ? contract.runningValue : contract.lostValue
+        ) > 0).length,
+      }));
 
     const { key, dir } = clientSort;
     const sign = dir === "asc" ? 1 : -1;
     const getNum = (c: any): number | null => {
-      if (key === "projects") return c.projects;
+      if (key === "projects") return c.activeProjects;
       if (key === "active") return c.activeValue;
       if (key === "total") return c.totalValue;
       if (key === "winRate") return c.winRate; // may be null
@@ -885,7 +892,7 @@ const DealFlow = () => {
                           <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isOpen ? "rotate-90" : ""}`} />
                         </td>
                         <td className="py-2 pr-3 truncate max-w-[240px]" title={c.company}>{c.company}</td>
-                        <td className="py-2 px-3 text-right font-mono tabular-nums">{c.projects}</td>
+                        <td className="py-2 px-3 text-right font-mono tabular-nums">{c.activeProjects}</td>
                         <td className={`py-2 px-3 text-right font-mono tabular-nums ${valColor}`}>{fmtAUD(c.activeValue)}</td>
                         <td className="py-2 px-3 text-right font-mono tabular-nums font-semibold">{fmtAUD(c.totalValue)}</td>
                         <td className="py-2 pl-3 text-right font-mono tabular-nums">{c.winRate === null ? "—" : `${c.winRate.toFixed(0)}%`}</td>
