@@ -923,14 +923,31 @@ const DealFlow = () => {
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Returning Client Value</div>
               {clientIntel.returningClientCount > 0 ? (
                 <>
-                  <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground">
-                    {clientIntel.avgContractsPerReturning.toFixed(1)} <span className="text-fluid-sm font-medium">avg contracts</span>
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div>
+                      <div className="text-fluid-base font-mono font-bold text-foreground">
+                        {clientIntel.avgContractsPerReturning.toFixed(1)}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground leading-tight">
+                        contracts per returning client
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-fluid-base font-mono font-bold text-foreground">
+                        {fmtAUD(clientIntel.avgValuePerReturningContract)}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground leading-tight">avg value per contract</div>
+                    </div>
+                    <div className="col-span-2 pt-2 border-t border-border/40">
+                      <div className="text-fluid-base font-mono font-bold text-foreground">
+                        {fmtAUD(clientIntel.avgValuePerReturning)}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground leading-tight">avg total value per client</div>
+                    </div>
                   </div>
-                  <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                    {fmtAUD(clientIntel.avgValuePerReturning)} avg contract value
-                  </div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">
-                    {clientIntel.returningClientCount} returning client{clientIntel.returningClientCount === 1 ? "" : "s"} (2+ contracts)
+                  <div className="text-[10px] text-muted-foreground mt-2 pt-2 border-t border-border/40">
+                    {clientIntel.returningClientCount} returning client{clientIntel.returningClientCount === 1 ? "" : "s"}
+                    {" "}· {clientIntel.returningContracts} total contracts
                   </div>
                 </>
               ) : (
@@ -941,21 +958,75 @@ const DealFlow = () => {
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">New vs Returning</div>
               {clientIntel.totalClients > 0 ? (
                 <>
-                  <div className="flex h-1.5 w-full rounded-full overflow-hidden bg-muted mt-3">
-                    <div
-                      className="h-full bg-green-500"
-                      style={{ width: `${clientIntel.returningPct}%` }}
-                    />
-                    <div
-                      className="h-full bg-muted-foreground/25"
-                      style={{ width: `${clientIntel.newPct}%` }}
-                    />
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div>
+                      <div className="text-[10px] text-muted-foreground mb-1 text-center">Clients</div>
+                      <div className="h-20">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Tooltip
+                              contentStyle={{ backgroundColor: "hsl(var(--background))", borderColor: "hsl(var(--border))" }}
+                              itemStyle={{ color: "hsl(var(--foreground))", fontSize: 11 }}
+                              formatter={(value: number, name: string) => [
+                                `${value} (${((value / clientIntel.totalClients) * 100).toFixed(0)}%)`,
+                                name,
+                              ]}
+                            />
+                            <Pie
+                              data={[
+                                { name: "Returning", value: clientIntel.returningClientCount, fill: "#22c55e" },
+                                { name: "New", value: clientIntel.newClientCount, fill: "hsl(var(--muted-foreground))" },
+                              ]}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={22}
+                              outerRadius={32}
+                              paddingAngle={2}
+                              dataKey="value"
+                              stroke="none"
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="text-[10px] text-center text-muted-foreground mt-0.5">
+                        Returning {clientIntel.returningPct.toFixed(0)}% · New {clientIntel.newPct.toFixed(0)}%
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-muted-foreground mb-1 text-center">Tracked value</div>
+                      <div className="h-20">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Tooltip
+                              contentStyle={{ backgroundColor: "hsl(var(--background))", borderColor: "hsl(var(--border))" }}
+                              itemStyle={{ color: "hsl(var(--foreground))", fontSize: 11 }}
+                              formatter={(value: number, name: string) => [
+                                `${fmtAUD(value)} (${clientIntel.trackedValue > 0 ? ((value / clientIntel.trackedValue) * 100).toFixed(0) : 0}%)`,
+                                name,
+                              ]}
+                            />
+                            <Pie
+                              data={[
+                                { name: "Returning", value: clientIntel.returningClientValueTotal, fill: "#22c55e" },
+                                { name: "New", value: clientIntel.newClientValueTotal, fill: "hsl(var(--muted-foreground))" },
+                              ]}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={22}
+                              outerRadius={32}
+                              paddingAngle={2}
+                              dataKey="value"
+                              stroke="none"
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="text-[10px] text-center text-muted-foreground mt-0.5">
+                        Returning {clientIntel.returningValueShare.toFixed(0)}% · New {clientIntel.newValueShare.toFixed(0)}%
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center text-[11px] text-muted-foreground font-mono mt-1">
-                    <span>Returning {clientIntel.returningPct.toFixed(0)}%</span>
-                    <span>New {clientIntel.newPct.toFixed(0)}%</span>
-                  </div>
-                  <div className={`text-[11px] mt-1.5 ${clientIntel.returningValueShare > 50 ? "text-green-500 font-medium" : "text-muted-foreground"}`}>
+                  <div className={`text-[11px] mt-2 text-center ${clientIntel.returningValueShare > 50 ? "text-[#22c55e] font-medium" : "text-muted-foreground"}`}>
                     Returning clients drive {clientIntel.returningValueShare.toFixed(0)}% of tracked contract value
                   </div>
                 </>
