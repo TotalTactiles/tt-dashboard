@@ -90,6 +90,8 @@ interface ReceivablesData {
     topDebtor: TopDebtor | null;
     top2ConcentrationPct: number;
     topDebtors?: TopDebtor[];
+    fastestPayer: ExtremePayer | null;
+    slowestPayer: ExtremePayer | null;
   };
   aging: {
     notYetDue: number;
