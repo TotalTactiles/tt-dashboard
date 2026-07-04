@@ -561,9 +561,25 @@ const LossReasonList = ({
         </details>
       )}
       {blankReasonCount > 0 && (
-        <p className="font-mono text-fluid-xs text-muted-foreground/60 mt-3">
-          {blankReasonCount} of {totalLost} losses have no reason recorded
-        </p>
+        <div className="mt-4 pt-3 border-t border-border/40">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-fluid-xs uppercase tracking-wide text-chart-amber">
+              No Reason Recorded
+            </span>
+            <span className="font-mono text-fluid-xs text-chart-amber">
+              {blankReasonCount} · {((blankReasonCount / totalLost) * 100).toFixed(1)}%
+            </span>
+          </div>
+          <div className="mt-1.5 h-[3px] w-full bg-secondary rounded-full overflow-hidden">
+            <div
+              className="h-full bg-chart-amber rounded-full"
+              style={{ width: `${(blankReasonCount / totalLost) * 100}%` }}
+            />
+          </div>
+          <p className="font-mono text-muted-foreground/60 mt-1.5" style={{ fontSize: "10px" }}>
+            Chase these in the sheet — reason missing at last sync
+          </p>
+        </div>
       )}
     </div>
   );
