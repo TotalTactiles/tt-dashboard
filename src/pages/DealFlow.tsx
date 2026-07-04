@@ -443,8 +443,8 @@ const DealFlow = () => {
         </motion.section>
 
         {/* Section 3: Velocity */}
-        <motion.section variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-          <div className="chart-container p-5 flex flex-col h-full">
+        <motion.section variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="chart-container p-5">
             <h2 className="text-fluid-base font-semibold mb-1">Avg Days Per Stage</h2>
             <p className="text-fluid-xs text-muted-foreground mb-4">Avg days since quoted, by current stage</p>
             <ResponsiveContainer width="100%" height={220}>
@@ -499,7 +499,7 @@ const DealFlow = () => {
             </div>
           </div>
 
-          <div className="chart-container p-5 flex flex-col h-full">
+          <div className="chart-container p-5">
             <h2 className="text-fluid-base font-semibold mb-1">Pipeline Velocity</h2>
             <p className="text-fluid-xs text-muted-foreground mb-4">Days in pipeline since quoting started (Date Created)</p>
 
@@ -551,38 +551,36 @@ const DealFlow = () => {
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto pr-1">
-              {filteredStaleDeals.length === 0 ? (
-                <div className="flex items-center gap-2 text-chart-green text-fluid-sm">
-                  <CheckCircle2 className="w-4 h-4" /> No stale deals
-                </div>
-              ) : (
-                <ul className="space-y-2">
-                  {filteredStaleDeals.map((d: any) => {
-                    const hasDays = typeof d.daysOld === "number" && d.measurable;
-                    const sev = !hasDays
-                      ? "bg-muted/30 text-muted-foreground border-border/40"
-                      : d.daysOld >= 35
-                        ? "bg-red-500/25 text-red-400 border-red-500/40"
-                        : "bg-orange-500/20 text-orange-300 border-orange-500/40";
-                    return (
-                      <li key={d.id} className="flex items-center justify-between gap-3 p-2 rounded-md border border-border/40 bg-card/30">
-                        <div className="min-w-0 flex-1">
-                          <div className="text-fluid-sm font-medium truncate">{d.projectName || d.jobName || "Unnamed"}</div>
-                          <div className="text-fluid-xs text-muted-foreground truncate">{d.companyName || d.jobName || ""}</div>
-                        </div>
-                        <span className={`text-[10px] px-2 py-0.5 rounded border ${STATUS_PILL[d.status] ?? STATUS_PILL.pending}`}>
-                          {d.status}
-                        </span>
-                        <span className={`font-mono text-[10px] px-2 py-0.5 rounded border ${sev}`}>
-                          {hasDays ? `${d.daysOld}d` : "—"}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
+            {filteredStaleDeals.length === 0 ? (
+              <div className="flex items-center gap-2 text-chart-green text-fluid-sm">
+                <CheckCircle2 className="w-4 h-4" /> No stale deals
+              </div>
+            ) : (
+              <ul className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                {filteredStaleDeals.map((d: any) => {
+                  const hasDays = typeof d.daysOld === "number" && d.measurable;
+                  const sev = !hasDays
+                    ? "bg-muted/30 text-muted-foreground border-border/40"
+                    : d.daysOld >= 35
+                      ? "bg-red-500/25 text-red-400 border-red-500/40"
+                      : "bg-orange-500/20 text-orange-300 border-orange-500/40";
+                  return (
+                    <li key={d.id} className="flex items-center justify-between gap-3 p-2 rounded-md border border-border/40 bg-card/30">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-fluid-sm font-medium truncate">{d.projectName || d.jobName || "Unnamed"}</div>
+                        <div className="text-fluid-xs text-muted-foreground truncate">{d.companyName || d.jobName || ""}</div>
+                      </div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded border ${STATUS_PILL[d.status] ?? STATUS_PILL.pending}`}>
+                        {d.status}
+                      </span>
+                      <span className={`font-mono text-[10px] px-2 py-0.5 rounded border ${sev}`}>
+                        {hasDays ? `${d.daysOld}d` : "—"}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         </motion.section>
 
