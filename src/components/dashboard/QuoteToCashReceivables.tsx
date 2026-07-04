@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { AlertTriangle, ArrowUpDown, ChevronDown, ChevronRight, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip as ShadTooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 const WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-receivables";
