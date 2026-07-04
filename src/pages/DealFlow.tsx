@@ -587,35 +587,60 @@ const DealFlow = () => {
       .filter(c => c.activeContractCount > 0)
       .sort((a, b) => (b.activeContractCount - a.activeContractCount) || (b.activeContractValue - a.activeContractValue))[0] ?? null;
 
-    // Returning client = 2+ WON contracts (true repeat customers).
-    const returningClients = clients.filter(c => c.wonContractCount >= 2);
-    const byReturning = [...returningClients]
+    const totalClients = clients.length;
+    const trackedValue = clients.reduce((s, c) => s + c.totalValue, 0);
+
+    // Two returning definitions computed side-by-side.
+    // basis "won" = 2+ WON contracts (proven repeat customers).
+    // basis "all" = 2+ contracts of ANY status (repeat engagers).
+    const buildReturning = (basis: "won" | "all") => {
+      const countOf = (c: any) => basis === "won" ? c.wonContractCount : c.allContractCount;
+      const returningClients = clients.filter(c => countOf(c) >= 2);
+      const newClients = clients.filter(c => countOf(c) < 2);
+      const returningCount = returningClients.length;
+      const newCount = newClients.length;
+      const returningContractsTotal = returningClients.reduce((s, c) => s + countOf(c), 0);
+      const returningValueTotal = returningClients.reduce((s, c) => s + c.totalValue, 0);
+      const newValueTotal = newClients.reduce((s, c) => s + c.totalValue, 0);
+      const avgContractsPerReturning = returningCount > 0 ? returningContractsTotal / returningCount : 0;
+      const avgValuePerReturningClient = returningCount > 0 ? returningValueTotal / returningCount : 0;
+      const avgValuePerReturningContract = returningContractsTotal > 0 ? returningValueTotal / returningContractsTotal : 0;
+      const returningPct = totalClients > 0 ? (returningCount / totalClients) * 100 : 0;
+      const newPct = totalClients > 0 ? (newCount / totalClients) * 100 : 0;
+      const returningValueShare = trackedValue > 0 ? (returningValueTotal / trackedValue) * 100 : 0;
+      const newValueShare = trackedValue > 0 ? (newValueTotal / trackedValue) * 100 : 0;
+      return {
+        returningClients, newClients, returningCount, newCount,
+        returningContractsTotal, returningValueTotal, newValueTotal,
+        avgContractsPerReturning, avgValuePerReturningClient, avgValuePerReturningContract,
+        returningPct, newPct, returningValueShare, newValueShare,
+      };
+    };
+    const ret_won = buildReturning("won");
+    const ret_all = buildReturning("all");
+
+    // "Most Returning" tile — primary leader by WON-based repeat count.
+    const byReturning = [...ret_won.returningClients]
       .sort((a, b) => (b.wonContractCount - a.wonContractCount) || (b.totalValue - a.totalValue))[0] ?? null;
     const topReturningCount = byReturning?.wonContractCount ?? 0;
     const returningTiedExtra = byReturning
-      ? Math.max(0, returningClients.filter(c => c.wonContractCount === topReturningCount).length - 1)
+      ? Math.max(0, ret_won.returningClients.filter(c => c.wonContractCount === topReturningCount).length - 1)
       : 0;
-    const returningTotal = returningClients.length;
 
-    // New vs Returning client intelligence metrics — "new" = fewer than 2 won contracts.
-    const newClients = clients.filter(c => c.wonContractCount < 2);
-    const newClientCount = newClients.length;
-    const returningClientCount = returningTotal;
-    const totalClients = clients.length;
-
-    // Sum WON contracts across returning clients (basis for per-contract averages).
-    const returningContracts = returningClients.reduce((s, c) => s + c.wonContractCount, 0);
-    const returningClientValueTotal = returningClients.reduce((s, c) => s + c.totalValue, 0);
-    const newClientValueTotal = newClients.reduce((s, c) => s + c.totalValue, 0);
-    const trackedValue = clients.reduce((s, c) => s + c.totalValue, 0);
-
-    const avgContractsPerReturning = returningClientCount > 0 ? returningContracts / returningClientCount : 0;
-    const avgValuePerReturning = returningClientCount > 0 ? returningClientValueTotal / returningClientCount : 0;
-    const avgValuePerReturningContract = returningContracts > 0 ? returningClientValueTotal / returningContracts : 0;
-    const newPct = totalClients > 0 ? (newClientCount / totalClients) * 100 : 0;
-    const returningPct = totalClients > 0 ? (returningClientCount / totalClients) * 100 : 0;
-    const returningValueShare = trackedValue > 0 ? (returningClientValueTotal / trackedValue) * 100 : 0;
-    const newValueShare = trackedValue > 0 ? (newClientValueTotal / trackedValue) * 100 : 0;
+    // Backward-compat aliases (kept === WON basis so pills/other consumers are unchanged).
+    const returningTotal = ret_won.returningCount;
+    const newClientCount = ret_won.newCount;
+    const returningClientCount = ret_won.returningCount;
+    const returningContracts = ret_won.returningContractsTotal;
+    const returningClientValueTotal = ret_won.returningValueTotal;
+    const newClientValueTotal = ret_won.newValueTotal;
+    const avgContractsPerReturning = ret_won.avgContractsPerReturning;
+    const avgValuePerReturning = ret_won.avgValuePerReturningClient;
+    const avgValuePerReturningContract = ret_won.avgValuePerReturningContract;
+    const returningPct = ret_won.returningPct;
+    const newPct = ret_won.newPct;
+    const returningValueShare = ret_won.returningValueShare;
+    const newValueShare = ret_won.newValueShare;
 
     // Concentration on won+running (tracked value).
     const trackedSorted = [...clients]
@@ -631,6 +656,31 @@ const DealFlow = () => {
       newClientCount, returningClientCount, totalClients,
       returningContracts, returningClientValueTotal, newClientValueTotal,
       trackedValue, newPct, returningPct, returningValueShare, newValueShare,
+      // Explicit dual-basis exposure:
+      returningCount_won: ret_won.returningCount,
+      returningContractsTotal_won: ret_won.returningContractsTotal,
+      returningValueTotal_won: ret_won.returningValueTotal,
+      avgContractsPerReturning_won: ret_won.avgContractsPerReturning,
+      avgValuePerReturningClient_won: ret_won.avgValuePerReturningClient,
+      avgValuePerReturningContract_won: ret_won.avgValuePerReturningContract,
+      returningPct_won: ret_won.returningPct,
+      newPct_won: ret_won.newPct,
+      newCount_won: ret_won.newCount,
+      returningValueShare_won: ret_won.returningValueShare,
+      newValueShare_won: ret_won.newValueShare,
+      newValueTotal_won: ret_won.newValueTotal,
+      returningCount_all: ret_all.returningCount,
+      returningContractsTotal_all: ret_all.returningContractsTotal,
+      returningValueTotal_all: ret_all.returningValueTotal,
+      avgContractsPerReturning_all: ret_all.avgContractsPerReturning,
+      avgValuePerReturningClient_all: ret_all.avgValuePerReturningClient,
+      avgValuePerReturningContract_all: ret_all.avgValuePerReturningContract,
+      returningPct_all: ret_all.returningPct,
+      newPct_all: ret_all.newPct,
+      newCount_all: ret_all.newCount,
+      returningValueShare_all: ret_all.returningValueShare,
+      newValueShare_all: ret_all.newValueShare,
+      newValueTotal_all: ret_all.newValueTotal,
     };
   }, [jobs, quotesRaw]);
 
@@ -913,8 +963,11 @@ const DealFlow = () => {
                     {clientIntel.byReturning.wonContractCount} won contracts
                     {clientIntel.returningTiedExtra > 0 ? ` (+${clientIntel.returningTiedExtra} more tied)` : ""}
                   </div>
+                  <div className="text-[10px] text-muted-foreground/80 font-mono mt-0.5">
+                    {clientIntel.byReturning.contractCountAll} total contracts (all statuses)
+                  </div>
                   <div className="text-[10px] text-muted-foreground mt-0.5">
-                    {clientIntel.returningTotal} client{clientIntel.returningTotal === 1 ? "" : "s"} with 2+ won contracts
+                    {clientIntel.returningCount_won} client{clientIntel.returningCount_won === 1 ? "" : "s"} with 2+ won · {clientIntel.returningCount_all} with 2+ any
                   </div>
                 </>
               ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
@@ -925,34 +978,59 @@ const DealFlow = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
             <div className="text-left rounded-lg border border-border bg-card/40 p-3">
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Returning Client Value</div>
-              <div className="text-[9px] text-muted-foreground/70 mt-0.5">returning = 2+ won contracts</div>
-              {clientIntel.returningClientCount > 0 ? (
+              <div className="text-[9px] text-muted-foreground/70 mt-0.5">two definitions of "returning", side by side</div>
+              {clientIntel.totalClients > 0 ? (
                 <>
-                  <div className="grid grid-cols-2 gap-3 mt-2">
-                    <div>
-                      <div className="text-fluid-base font-mono font-bold text-foreground">
-                        {clientIntel.avgContractsPerReturning.toFixed(1)}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground leading-tight">
-                        avg won contracts per returning client
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                    {/* Proven repeat — 2+ WON */}
+                    <div className="rounded border border-[#22c55e]/30 bg-[#22c55e]/5 p-2">
+                      <div className="text-[10px] uppercase tracking-wide text-[#22c55e] font-medium">Proven repeat</div>
+                      <div className="text-[9px] text-muted-foreground/80 mt-0.5">basis: 2+ won contracts</div>
+                      {clientIntel.returningCount_won > 0 ? (
+                        <div className="mt-1.5 space-y-1">
+                          <div className="text-fluid-base font-mono font-bold text-foreground leading-tight">
+                            {clientIntel.returningCount_won} client{clientIntel.returningCount_won === 1 ? "" : "s"}
+                          </div>
+                          <div className="text-[10px] font-mono text-muted-foreground">
+                            avg <span className="text-foreground">{clientIntel.avgContractsPerReturning_won.toFixed(1)}</span> won contracts
+                          </div>
+                          <div className="text-[10px] font-mono text-muted-foreground">
+                            avg per client <span className="text-foreground">{fmtAUD(clientIntel.avgValuePerReturningClient_won)}</span>
+                          </div>
+                          <div className="text-[10px] font-mono text-muted-foreground">
+                            avg per contract <span className="text-foreground">{fmtAUD(clientIntel.avgValuePerReturningContract_won)}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-[11px] font-mono text-muted-foreground mt-1">— no repeat winners yet</div>
+                      )}
                     </div>
-                    <div>
-                      <div className="text-fluid-base font-mono font-bold text-foreground">
-                        {fmtAUD(clientIntel.avgValuePerReturningContract)}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground leading-tight">avg value per won contract</div>
-                    </div>
-                    <div className="col-span-2 pt-2 border-t border-border/40">
-                      <div className="text-fluid-base font-mono font-bold text-foreground">
-                        {fmtAUD(clientIntel.avgValuePerReturning)}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground leading-tight">avg total value per returning client</div>
+                    {/* Repeat engagers — 2+ ANY */}
+                    <div className="rounded border border-border bg-card/60 p-2">
+                      <div className="text-[10px] uppercase tracking-wide text-foreground/80 font-medium">Repeat engagers</div>
+                      <div className="text-[9px] text-muted-foreground/80 mt-0.5">basis: 2+ contracts (any status)</div>
+                      {clientIntel.returningCount_all > 0 ? (
+                        <div className="mt-1.5 space-y-1">
+                          <div className="text-fluid-base font-mono font-bold text-foreground leading-tight">
+                            {clientIntel.returningCount_all} client{clientIntel.returningCount_all === 1 ? "" : "s"}
+                          </div>
+                          <div className="text-[10px] font-mono text-muted-foreground">
+                            avg <span className="text-foreground">{clientIntel.avgContractsPerReturning_all.toFixed(1)}</span> contracts
+                          </div>
+                          <div className="text-[10px] font-mono text-muted-foreground">
+                            avg per client <span className="text-foreground">{fmtAUD(clientIntel.avgValuePerReturningClient_all)}</span>
+                          </div>
+                          <div className="text-[10px] font-mono text-muted-foreground">
+                            avg per contract <span className="text-foreground">{fmtAUD(clientIntel.avgValuePerReturningContract_all)}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-[11px] font-mono text-muted-foreground mt-1">— no repeat engagers yet</div>
+                      )}
                     </div>
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-2 pt-2 border-t border-border/40">
-                    {clientIntel.returningClientCount} returning client{clientIntel.returningClientCount === 1 ? "" : "s"}
-                    {" "}· {clientIntel.returningContracts} won contracts total
+                    Gap: {Math.max(0, clientIntel.returningCount_all - clientIntel.returningCount_won)} client{Math.max(0, clientIntel.returningCount_all - clientIntel.returningCount_won) === 1 ? "" : "s"} engaged 2+ times without a second win
                   </div>
                 </>
               ) : (
@@ -961,7 +1039,7 @@ const DealFlow = () => {
             </div>
             <div className="text-left rounded-lg border border-border bg-card/40 p-3">
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">New vs Returning</div>
-              <div className="text-[9px] text-muted-foreground/70 mt-0.5">Returning = clients with 2+ won contracts (true repeat customers)</div>
+              <div className="text-[9px] text-muted-foreground/70 mt-0.5">two definitions of "returning" compared side-by-side</div>
               {clientIntel.totalClients > 0 ? (
                 <>
                   <div className="grid grid-cols-2 gap-3 mt-2">
@@ -980,8 +1058,8 @@ const DealFlow = () => {
                             />
                             <Pie
                               data={[
-                                { name: "Returning", value: clientIntel.returningClientCount, fill: "#22c55e" },
-                                { name: "New", value: clientIntel.newClientCount, fill: "hsl(var(--muted-foreground))" },
+                                { name: "Returning (won)", value: clientIntel.returningCount_won, fill: "#22c55e" },
+                                { name: "New (won basis)", value: clientIntel.newCount_won, fill: "hsl(var(--muted-foreground))" },
                               ]}
                               cx="50%"
                               cy="50%"
@@ -994,8 +1072,13 @@ const DealFlow = () => {
                           </PieChart>
                         </ResponsiveContainer>
                       </div>
-                      <div className="text-[10px] text-center text-muted-foreground mt-0.5">
-                        Returning {clientIntel.returningPct.toFixed(0)}% · New {clientIntel.newPct.toFixed(0)}%
+                      <div className="text-[10px] text-center mt-0.5 space-y-0.5">
+                        <div className="text-[#22c55e]">
+                          <span className="text-muted-foreground">Won basis:</span> Ret {clientIntel.returningPct_won.toFixed(0)}% · New {clientIntel.newPct_won.toFixed(0)}%
+                        </div>
+                        <div className="text-foreground/80">
+                          <span className="text-muted-foreground">Any basis:</span> Ret {clientIntel.returningPct_all.toFixed(0)}% · New {clientIntel.newPct_all.toFixed(0)}%
+                        </div>
                       </div>
                     </div>
                     <div>
@@ -1013,8 +1096,8 @@ const DealFlow = () => {
                             />
                             <Pie
                               data={[
-                                { name: "Returning", value: clientIntel.returningClientValueTotal, fill: "#22c55e" },
-                                { name: "New", value: clientIntel.newClientValueTotal, fill: "hsl(var(--muted-foreground))" },
+                                { name: "Returning (won)", value: clientIntel.returningValueTotal_won, fill: "#22c55e" },
+                                { name: "New (won basis)", value: clientIntel.newValueTotal_won, fill: "hsl(var(--muted-foreground))" },
                               ]}
                               cx="50%"
                               cy="50%"
@@ -1027,13 +1110,23 @@ const DealFlow = () => {
                           </PieChart>
                         </ResponsiveContainer>
                       </div>
-                      <div className="text-[10px] text-center text-muted-foreground mt-0.5">
-                        Returning {clientIntel.returningValueShare.toFixed(0)}% · New {clientIntel.newValueShare.toFixed(0)}%
+                      <div className="text-[10px] text-center mt-0.5 space-y-0.5">
+                        <div className="text-[#22c55e]">
+                          <span className="text-muted-foreground">Won basis:</span> Ret {clientIntel.returningValueShare_won.toFixed(0)}% · New {clientIntel.newValueShare_won.toFixed(0)}%
+                        </div>
+                        <div className="text-foreground/80">
+                          <span className="text-muted-foreground">Any basis:</span> Ret {clientIntel.returningValueShare_all.toFixed(0)}% · New {clientIntel.newValueShare_all.toFixed(0)}%
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div className={`text-[11px] mt-2 text-center ${clientIntel.returningValueShare > 50 ? "text-[#22c55e] font-medium" : "text-muted-foreground"}`}>
-                    Returning clients drive {clientIntel.returningValueShare.toFixed(0)}% of tracked contract value
+                  <div className="mt-2 pt-2 border-t border-border/40 space-y-0.5">
+                    <div className={`text-[11px] text-center ${clientIntel.returningValueShare_won > 50 ? "text-[#22c55e] font-medium" : "text-muted-foreground"}`}>
+                      Proven repeat (2+ won) drive {clientIntel.returningValueShare_won.toFixed(0)}% of tracked value
+                    </div>
+                    <div className={`text-[11px] text-center ${clientIntel.returningValueShare_all > 50 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                      Any repeat (2+ contracts) drive {clientIntel.returningValueShare_all.toFixed(0)}% of tracked value
+                    </div>
                   </div>
                 </>
               ) : (
