@@ -325,6 +325,30 @@ const DealFlow = () => {
       : { key, dir: key === "company" ? "asc" : "desc" });
   };
 
+  const bestPillFor = (client: any, mode: "value" | "count"): "won" | "running" | "lost" => {
+    if (!client) return "won";
+    if (mode === "value") {
+      const arr: Array<["won" | "running" | "lost", number]> = [
+        ["won", client.wonValue || 0],
+        ["running", client.runningValue || 0],
+        ["lost", client.lostValue || 0],
+      ];
+      arr.sort((a, b) => b[1] - a[1]);
+      return arr[0][1] > 0 ? arr[0][0] : "won";
+    }
+    const counts: Record<"won" | "running" | "lost", number> = { won: 0, running: 0, lost: 0 };
+    for (const k of client.contracts ?? []) {
+      if (k.status === "won" || k.status === "running" || k.status === "lost") counts[k.status] += 1;
+    }
+    const order: Array<"won" | "running" | "lost"> = ["won", "running", "lost"];
+    let best: "won" | "running" | "lost" = "won";
+    let bestN = -1;
+    for (const p of order) {
+      if (counts[p] > bestN) { bestN = counts[p]; best = p; }
+    }
+    return bestN > 0 ? best : "won";
+  };
+
   const handleTileClick = (tileKey: string, company: string | undefined, pill?: "won" | "running" | "lost") => {
     if (!company) return;
     if (activeTileKey === tileKey) {
@@ -405,9 +429,10 @@ const DealFlow = () => {
       }
       return n || String(name || "").trim();
     };
+    // Pick the shortest REAL project name from the group (verbatim from the sheet — never synthesised).
     const shortestName = (names: string[]): string =>
       names
-        .map(stripStageSuffix)
+        .map(n => String(n || "").trim())
         .filter(Boolean)
         .sort((a, b) => a.length - b.length || a.localeCompare(b))[0] ?? "";
     const companyOf = (j: any): string => pickField(j, ["company", "Company Name", "Company\nName", "_company"]);
@@ -438,7 +463,7 @@ const DealFlow = () => {
         return {
           company,
           project,
-          base: stripStageSuffix(project),
+          base: project,
           contractKey,
           isParentRow: !!zohoId && zohoId === contractKey,
           value: Number(j.value) || 0,
@@ -477,7 +502,7 @@ const DealFlow = () => {
       c.totalValue += r.value;
       c.stageCount += 1;
       c.names.push(r.project || r.base);
-      if (r.isParentRow && r.base) c.parentName = r.base;
+      if (r.isParentRow && r.project) c.parentName = r.project;
       c.hasWon = c.hasWon || r.won;
       c.hasLost = c.hasLost || r.lost;
       c.hasRunning = c.hasRunning || r.running;
@@ -805,7 +830,7 @@ const DealFlow = () => {
             <button
               type="button"
               disabled={!clientIntel.byProjects}
-              onClick={() => handleTileClick("byProjects", clientIntel.byProjects?.company)}
+              onClick={() => handleTileClick("byProjects", clientIntel.byProjects?.company, bestPillFor(clientIntel.byProjects, "count"))}
               className={`text-left rounded-lg border p-3 transition-colors ${
                 activeTileKey === "byProjects" ? "border-foreground/40 bg-foreground/5" : "border-border bg-card/40 hover:bg-card/60"
               } ${clientIntel.byProjects ? "cursor-pointer" : "cursor-default"}`}
@@ -823,7 +848,7 @@ const DealFlow = () => {
             <button
               type="button"
               disabled={!clientIntel.byValue}
-              onClick={() => handleTileClick("byValue", clientIntel.byValue?.company)}
+              onClick={() => handleTileClick("byValue", clientIntel.byValue?.company, bestPillFor(clientIntel.byValue, "value"))}
               className={`text-left rounded-lg border p-3 transition-colors ${
                 activeTileKey === "byValue" ? "border-foreground/40 bg-foreground/5" : "border-border bg-card/40 hover:bg-card/60"
               } ${clientIntel.byValue ? "cursor-pointer" : "cursor-default"}`}
@@ -847,7 +872,7 @@ const DealFlow = () => {
             <button
               type="button"
               disabled={!clientIntel.byReturning}
-              onClick={() => handleTileClick("byReturning", clientIntel.byReturning?.company)}
+              onClick={() => handleTileClick("byReturning", clientIntel.byReturning?.company, bestPillFor(clientIntel.byReturning, "count"))}
               className={`text-left rounded-lg border p-3 transition-colors ${
                 activeTileKey === "byReturning" ? "border-foreground/40 bg-foreground/5" : "border-border bg-card/40 hover:bg-card/60"
               } ${clientIntel.byReturning ? "cursor-pointer" : "cursor-default"}`}
