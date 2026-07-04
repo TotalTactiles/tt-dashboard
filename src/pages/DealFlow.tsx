@@ -772,36 +772,62 @@ const DealFlow = () => {
           </div>
 
           {/* Tiles */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
+          <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-5">
             {[
-              { label: "Biggest Won", data: clientIntel.biggestWon, accent: "text-[#22c55e]", sub: (d: any) => `${d.company} · ${d.project || "—"}` },
-              { label: "Biggest In Running", data: clientIntel.biggestRun, accent: "text-[#22c55e]", sub: (d: any) => `${d.company} · ${d.project || "—"}` },
-              { label: "Biggest Lost", data: clientIntel.biggestLost, accent: "text-[#ef4444]", sub: (d: any) => `${d.company} · ${d.project || "—"}` },
-            ].map((t) => (
-              <div key={t.label} className="rounded-lg border border-border bg-card/40 p-3">
-                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{t.label}</div>
-                {t.data ? (
-                  <>
-                    <div className={`text-fluid-lg font-mono font-bold mt-1 ${t.accent}`}>{fmtAUD(t.data.value)}</div>
-                    <div className="text-[11px] text-muted-foreground truncate mt-0.5" title={t.sub(t.data)}>{t.sub(t.data)}</div>
-                  </>
-                ) : (
-                  <div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>
-                )}
-              </div>
-            ))}
-            <div className="rounded-lg border border-border bg-card/40 p-3">
+              { key: "biggestWon", label: "Biggest Won", data: clientIntel.biggestWon, accent: "text-[#22c55e]", pill: "won" as const, sub: (d: any) => `${d.company} · ${d.project || "—"}` },
+              { key: "biggestRun", label: "Biggest In Running", data: clientIntel.biggestRun, accent: "text-[#22c55e]", pill: "running" as const, sub: (d: any) => `${d.company} · ${d.project || "—"}` },
+              { key: "biggestLost", label: "Biggest Lost", data: clientIntel.biggestLost, accent: "text-[#ef4444]", pill: "lost" as const, sub: (d: any) => `${d.company} · ${d.project || "—"}` },
+            ].map((t) => {
+              const isActiveTile = activeTileKey === t.key;
+              const clickable = !!t.data;
+              return (
+                <button
+                  key={t.label}
+                  type="button"
+                  disabled={!clickable}
+                  onClick={() => handleTileClick(t.key, t.data?.company, t.pill)}
+                  className={`text-left rounded-lg border p-3 transition-colors ${
+                    isActiveTile ? "border-foreground/40 bg-foreground/5" : "border-border bg-card/40 hover:bg-card/60"
+                  } ${clickable ? "cursor-pointer" : "cursor-default"}`}
+                >
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{t.label}</div>
+                  {t.data ? (
+                    <>
+                      <div className={`text-fluid-lg font-mono font-bold mt-1 ${t.accent}`}>{fmtAUD(t.data.value)}</div>
+                      <div className="text-[11px] text-muted-foreground truncate mt-0.5" title={t.sub(t.data)}>{t.sub(t.data)}</div>
+                    </>
+                  ) : (
+                    <div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>
+                  )}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              disabled={!clientIntel.byProjects}
+              onClick={() => handleTileClick("byProjects", clientIntel.byProjects?.company)}
+              className={`text-left rounded-lg border p-3 transition-colors ${
+                activeTileKey === "byProjects" ? "border-foreground/40 bg-foreground/5" : "border-border bg-card/40 hover:bg-card/60"
+              } ${clientIntel.byProjects ? "cursor-pointer" : "cursor-default"}`}
+            >
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Client — Most Projects</div>
               {clientIntel.byProjects ? (
                 <>
                   <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byProjects.company}>{clientIntel.byProjects.company}</div>
                   <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                    {clientIntel.byProjects.projects} projects · {fmtAUD((clientIntel.byProjects as any).tracked ?? (clientIntel.byProjects.wonValue + clientIntel.byProjects.runningValue))}
+                    {clientIntel.byProjects.activeContractCount} projects · {fmtAUD(clientIntel.byProjects.activeContractValue)}
                   </div>
                 </>
               ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
-            </div>
-            <div className="rounded-lg border border-border bg-card/40 p-3">
+            </button>
+            <button
+              type="button"
+              disabled={!clientIntel.byValue}
+              onClick={() => handleTileClick("byValue", clientIntel.byValue?.company)}
+              className={`text-left rounded-lg border p-3 transition-colors ${
+                activeTileKey === "byValue" ? "border-foreground/40 bg-foreground/5" : "border-border bg-card/40 hover:bg-card/60"
+              } ${clientIntel.byValue ? "cursor-pointer" : "cursor-default"}`}
+            >
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Client — Highest Value</div>
               {clientIntel.byValue ? (
                 <>
@@ -817,7 +843,29 @@ const DealFlow = () => {
                   )}
                 </>
               ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
-            </div>
+            </button>
+            <button
+              type="button"
+              disabled={!clientIntel.byReturning}
+              onClick={() => handleTileClick("byReturning", clientIntel.byReturning?.company)}
+              className={`text-left rounded-lg border p-3 transition-colors ${
+                activeTileKey === "byReturning" ? "border-foreground/40 bg-foreground/5" : "border-border bg-card/40 hover:bg-card/60"
+              } ${clientIntel.byReturning ? "cursor-pointer" : "cursor-default"}`}
+            >
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Most Returning Client</div>
+              {clientIntel.byReturning ? (
+                <>
+                  <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byReturning.company}>{clientIntel.byReturning.company}</div>
+                  <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                    {clientIntel.byReturning.contracts.length} contracts with us
+                    {clientIntel.returningTiedExtra > 0 ? ` (+${clientIntel.returningTiedExtra} more tied)` : ""}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                    {clientIntel.returningTotal} client{clientIntel.returningTotal === 1 ? "" : "s"} returned for 2+ projects
+                  </div>
+                </>
+              ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
+            </button>
           </div>
 
           {/* Concentration */}
