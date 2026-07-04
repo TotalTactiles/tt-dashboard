@@ -233,22 +233,29 @@ const QuoteToCashReceivables = () => {
 
   const agingSegments = useMemo(() => {
     if (!data) return [];
-    const a = data.aging;
-    const total = a.notYetDue + a.d1_30 + a.d31_60 + a.d61_90 + a.d90plus;
+    const source =
+      agingMode === "unpaid" && data.agingUnpaid ? data.agingUnpaid : data.aging;
+    const denom =
+      agingMode === "unpaid"
+        ? data.summary.totalUnpaid ??
+          source.notYetDue + source.d1_30 + source.d31_60 + source.d61_90 + source.d90plus
+        : data.summary.totalOutstanding ||
+          source.notYetDue + source.d1_30 + source.d31_60 + source.d61_90 + source.d90plus;
     const segs = [
-      { key: "notYetDue", label: "Not yet due", note: "within 30-day terms", value: a.notYetDue },
-      { key: "d1_30", label: "1–30 days overdue", value: a.d1_30 },
-      { key: "d31_60", label: "31–60 days overdue", value: a.d31_60 },
-      { key: "d61_90", label: "61–90 days overdue", value: a.d61_90 },
-      { key: "d90plus", label: "90+ days overdue", value: a.d90plus },
-    ];
+      { key: "notYetDue", label: "Not yet due", note: "within 30-day terms", value: source.notYetDue },
+      { key: "d1_30", label: "1–30 days overdue", value: source.d1_30 },
+      { key: "d31_60", label: "31–60 days overdue", value: source.d31_60 },
+      { key: "d61_90", label: "61–90 days overdue", value: source.d61_90 },
+      { key: "d90plus", label: "90+ days overdue", value: source.d90plus },
+    ] as Array<{ key: string; label: string; note?: string; value: number }>;
 
     return segs.map((s) => ({
       ...s,
-      pct: total > 0 ? (s.value / total) * 100 : 0,
+      pct: denom > 0 ? (s.value / denom) * 100 : 0,
       color: bucketColors[s.key],
     }));
-  }, [data]);
+  }, [data, agingMode]);
+
 
   const renderHeader = () => (
     <div className="flex items-start justify-between gap-4 flex-wrap">
