@@ -92,14 +92,27 @@ const DealFlow = () => {
     (async () => {
       try {
         const res = await fetch(DEAL_CYCLE_WEBHOOK);
-        const rows: Array<{ key: string; value: string }> = await res.json();
-        const row = rows.find((r) => r.key === "tt_deal_cycle");
-        if (row?.value && !cancelled) {
-          const parsed = JSON.parse(row.value);
-          if (parsed && typeof parsed === "object") setCycleMap(parsed);
+        const raw = await res.json();
+        // Accept either [rows], { data: [rows] }, or a single row.
+        const rows: Array<{ key: string; value: any }> = Array.isArray(raw)
+          ? raw
+          : Array.isArray(raw?.data)
+            ? raw.data
+            : raw?.key
+              ? [raw]
+              : [];
+        const row = rows.find((r) => r?.key === "tt_deal_cycle");
+        if (row && !cancelled) {
+          const parsed = typeof row.value === "string" ? JSON.parse(row.value) : row.value;
+          if (parsed && typeof parsed === "object") {
+            setCycleMap(parsed as Record<string, CycleEntry>);
+            console.log("[DealFlow] tt_deal_cycle loaded:", Object.keys(parsed).length, "entries");
+          }
+        } else if (!cancelled) {
+          console.warn("[DealFlow] tt_deal_cycle row not found in cache webhook response");
         }
-      } catch {
-        /* fail gracefully */
+      } catch (err) {
+        console.warn("[DealFlow] tt_deal_cycle fetch failed", err);
       } finally {
         if (!cancelled) setCycleLoaded(true);
       }
@@ -200,18 +213,19 @@ const DealFlow = () => {
   }, [lostJobs]);
 
 
-  // Real stage + created-date helpers (raw sheet rows)
-  const stageOfRow = (row: any): string => {
-    const s = (row["Current Status"] ?? row["Current\nStatus"] ?? row["Stage"] ?? "")
-      .toString().toUpperCase().trim();
-    if (s.includes("QUOTE SENT")) return "Quote Sent";
-    if (s.includes("NEGOTIATION") || s.includes("REVIEW")) return "Negotiation/Review";
-    if (s.includes("VERBAL") || s.includes("YLW")) return "Verbal Confirmation (YLW)";
-    if (s.includes("PO RECEIVED") || s.includes("GRN")) return "PO Received (GRN)";
-    if (s.includes("COMPLETED")) return "Completed";
-    if (s.includes("LOST") || s.includes("DEAD")) return "Lost/Dead";
+  // Real stage from any status-ish string (rawStatus on QuotedJob, or "Current Status" on raw row)
+  const stageOfStatus = (s: string): string => {
+    const u = (s ?? "").toString().toUpperCase().trim();
+    if (u.includes("QUOTE SENT")) return "Quote Sent";
+    if (u.includes("NEGOTIATION") || u.includes("REVIEW")) return "Negotiation/Review";
+    if (u.includes("VERBAL") || u.includes("YLW")) return "Verbal Confirmation (YLW)";
+    if (u.includes("PO RECEIVED") || u.includes("GRN")) return "PO Received (GRN)";
+    if (u.includes("COMPLETED")) return "Completed";
+    if (u.includes("LOST") || u.includes("DEAD")) return "Lost/Dead";
     return "Other";
   };
+  const stageOfRow = (row: any): string =>
+    stageOfStatus(row["Current Status"] ?? row["Current\nStatus"] ?? row["Stage"] ?? "");
 
   // Velocity — avg days per real stage from cycle cache (excludes Completed & Lost/Dead)
   const VELOCITY_STAGES = [
@@ -220,8 +234,14 @@ const DealFlow = () => {
     "Verbal Confirmation (YLW)",
     "PO Received (GRN)",
   ];
+  // Source deals from mapped quotedJobs (guaranteed zohoId + rawStatus) with a
+  // graceful fallback to raw quotesRaw if for any reason quotedJobs is empty.
+  const dealsSource: any[] = jobs.length ? jobs : quotesRaw;
+  const stageOfDeal = (d: any): string =>
+    jobs.length ? stageOfStatus(d.rawStatus) : stageOfRow(d);
+
   const velocityData = VELOCITY_STAGES.map((label) => {
-    const items = quotesRaw.filter((r: any) => stageOfRow(r) === label);
+    const items = dealsSource.filter((r: any) => stageOfDeal(r) === label);
     const days = items
       .map((r: any) => daysSinceQuoted(cyc(r)))
       .filter((x: number | null): x is number => x !== null);
@@ -243,34 +263,38 @@ const DealFlow = () => {
   const meanWon = Math.round(mean(wonDays));
   const meanLost = Math.round(mean(lostDays));
 
-  // Per-deal list (from raw quotes joined to cache)
+  // Per-deal list (from mapped quotedJobs joined to cache, with raw fallback)
   const staleDeals = useMemo(() => {
-    return quotesRaw
-      .filter((j: any) => !!(j["Current Status"]))
+    const source: any[] = jobs.length ? jobs : quotesRaw;
+    return source
       .map((j: any) => {
         const entry = cyc(j);
         const isMeasurable = entry ? entry.measurable === 1 : false;
         const days = daysSinceQuoted(entry);
+        const rawS = jobs.length ? (j.rawStatus ?? "") : (j["Current Status"] ?? "");
+        const stg = stageOfStatus(rawS);
         const status =
-          j["Current Status"] === "PO Received (GRN)" || j["Current Status"] === "Completed" ? "won"
-            : j["Current Status"] === "Lost/Dead" ? "lost"
-            : j["Current Status"] === "Verbal Confirmation (YLW)" ? "yellow"
+          stg === "PO Received (GRN)" || stg === "Completed" ? "won"
+            : stg === "Lost/Dead" ? "lost"
+            : stg === "Verbal Confirmation (YLW)" ? "yellow"
             : "pending";
         return {
           ...j,
+          id: j.id ?? j.zohoId ?? `${j["Company Name"] ?? ""}-${j["Project Name"] ?? ""}`,
           daysOld: days,               // number | null
           measurable: isMeasurable,
-          projectName: j["Project Name"] ?? j._project ?? "",
-          companyName: j["Company Name"] ?? j._company ?? "",
+          projectName: j.project ?? j["Project Name"] ?? j._project ?? "",
+          companyName: j.company ?? j["Company Name"] ?? j._company ?? "",
           status,
         };
       })
+      .filter((d: any) => d.projectName || d.companyName)
       .sort((a: any, b: any) => {
         const av = a.daysOld ?? -1;
         const bv = b.daysOld ?? -1;
         return bv - av;
       });
-  }, [quotesRaw, cycleMap]);
+  }, [jobs, quotesRaw, cycleMap]);
 
   const filteredStaleDeals = useMemo(() => {
     let list = staleDeals;
