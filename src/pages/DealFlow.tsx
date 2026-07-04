@@ -587,35 +587,60 @@ const DealFlow = () => {
       .filter(c => c.activeContractCount > 0)
       .sort((a, b) => (b.activeContractCount - a.activeContractCount) || (b.activeContractValue - a.activeContractValue))[0] ?? null;
 
-    // Returning client = 2+ WON contracts (true repeat customers).
-    const returningClients = clients.filter(c => c.wonContractCount >= 2);
-    const byReturning = [...returningClients]
+    const totalClients = clients.length;
+    const trackedValue = clients.reduce((s, c) => s + c.totalValue, 0);
+
+    // Two returning definitions computed side-by-side.
+    // basis "won" = 2+ WON contracts (proven repeat customers).
+    // basis "all" = 2+ contracts of ANY status (repeat engagers).
+    const buildReturning = (basis: "won" | "all") => {
+      const countOf = (c: any) => basis === "won" ? c.wonContractCount : c.allContractCount;
+      const returningClients = clients.filter(c => countOf(c) >= 2);
+      const newClients = clients.filter(c => countOf(c) < 2);
+      const returningCount = returningClients.length;
+      const newCount = newClients.length;
+      const returningContractsTotal = returningClients.reduce((s, c) => s + countOf(c), 0);
+      const returningValueTotal = returningClients.reduce((s, c) => s + c.totalValue, 0);
+      const newValueTotal = newClients.reduce((s, c) => s + c.totalValue, 0);
+      const avgContractsPerReturning = returningCount > 0 ? returningContractsTotal / returningCount : 0;
+      const avgValuePerReturningClient = returningCount > 0 ? returningValueTotal / returningCount : 0;
+      const avgValuePerReturningContract = returningContractsTotal > 0 ? returningValueTotal / returningContractsTotal : 0;
+      const returningPct = totalClients > 0 ? (returningCount / totalClients) * 100 : 0;
+      const newPct = totalClients > 0 ? (newCount / totalClients) * 100 : 0;
+      const returningValueShare = trackedValue > 0 ? (returningValueTotal / trackedValue) * 100 : 0;
+      const newValueShare = trackedValue > 0 ? (newValueTotal / trackedValue) * 100 : 0;
+      return {
+        returningClients, newClients, returningCount, newCount,
+        returningContractsTotal, returningValueTotal, newValueTotal,
+        avgContractsPerReturning, avgValuePerReturningClient, avgValuePerReturningContract,
+        returningPct, newPct, returningValueShare, newValueShare,
+      };
+    };
+    const ret_won = buildReturning("won");
+    const ret_all = buildReturning("all");
+
+    // "Most Returning" tile — primary leader by WON-based repeat count.
+    const byReturning = [...ret_won.returningClients]
       .sort((a, b) => (b.wonContractCount - a.wonContractCount) || (b.totalValue - a.totalValue))[0] ?? null;
     const topReturningCount = byReturning?.wonContractCount ?? 0;
     const returningTiedExtra = byReturning
-      ? Math.max(0, returningClients.filter(c => c.wonContractCount === topReturningCount).length - 1)
+      ? Math.max(0, ret_won.returningClients.filter(c => c.wonContractCount === topReturningCount).length - 1)
       : 0;
-    const returningTotal = returningClients.length;
 
-    // New vs Returning client intelligence metrics — "new" = fewer than 2 won contracts.
-    const newClients = clients.filter(c => c.wonContractCount < 2);
-    const newClientCount = newClients.length;
-    const returningClientCount = returningTotal;
-    const totalClients = clients.length;
-
-    // Sum WON contracts across returning clients (basis for per-contract averages).
-    const returningContracts = returningClients.reduce((s, c) => s + c.wonContractCount, 0);
-    const returningClientValueTotal = returningClients.reduce((s, c) => s + c.totalValue, 0);
-    const newClientValueTotal = newClients.reduce((s, c) => s + c.totalValue, 0);
-    const trackedValue = clients.reduce((s, c) => s + c.totalValue, 0);
-
-    const avgContractsPerReturning = returningClientCount > 0 ? returningContracts / returningClientCount : 0;
-    const avgValuePerReturning = returningClientCount > 0 ? returningClientValueTotal / returningClientCount : 0;
-    const avgValuePerReturningContract = returningContracts > 0 ? returningClientValueTotal / returningContracts : 0;
-    const newPct = totalClients > 0 ? (newClientCount / totalClients) * 100 : 0;
-    const returningPct = totalClients > 0 ? (returningClientCount / totalClients) * 100 : 0;
-    const returningValueShare = trackedValue > 0 ? (returningClientValueTotal / trackedValue) * 100 : 0;
-    const newValueShare = trackedValue > 0 ? (newClientValueTotal / trackedValue) * 100 : 0;
+    // Backward-compat aliases (kept === WON basis so pills/other consumers are unchanged).
+    const returningTotal = ret_won.returningCount;
+    const newClientCount = ret_won.newCount;
+    const returningClientCount = ret_won.returningCount;
+    const returningContracts = ret_won.returningContractsTotal;
+    const returningClientValueTotal = ret_won.returningValueTotal;
+    const newClientValueTotal = ret_won.newValueTotal;
+    const avgContractsPerReturning = ret_won.avgContractsPerReturning;
+    const avgValuePerReturning = ret_won.avgValuePerReturningClient;
+    const avgValuePerReturningContract = ret_won.avgValuePerReturningContract;
+    const returningPct = ret_won.returningPct;
+    const newPct = ret_won.newPct;
+    const returningValueShare = ret_won.returningValueShare;
+    const newValueShare = ret_won.newValueShare;
 
     // Concentration on won+running (tracked value).
     const trackedSorted = [...clients]
@@ -631,6 +656,31 @@ const DealFlow = () => {
       newClientCount, returningClientCount, totalClients,
       returningContracts, returningClientValueTotal, newClientValueTotal,
       trackedValue, newPct, returningPct, returningValueShare, newValueShare,
+      // Explicit dual-basis exposure:
+      returningCount_won: ret_won.returningCount,
+      returningContractsTotal_won: ret_won.returningContractsTotal,
+      returningValueTotal_won: ret_won.returningValueTotal,
+      avgContractsPerReturning_won: ret_won.avgContractsPerReturning,
+      avgValuePerReturningClient_won: ret_won.avgValuePerReturningClient,
+      avgValuePerReturningContract_won: ret_won.avgValuePerReturningContract,
+      returningPct_won: ret_won.returningPct,
+      newPct_won: ret_won.newPct,
+      newCount_won: ret_won.newCount,
+      returningValueShare_won: ret_won.returningValueShare,
+      newValueShare_won: ret_won.newValueShare,
+      newValueTotal_won: ret_won.newValueTotal,
+      returningCount_all: ret_all.returningCount,
+      returningContractsTotal_all: ret_all.returningContractsTotal,
+      returningValueTotal_all: ret_all.returningValueTotal,
+      avgContractsPerReturning_all: ret_all.avgContractsPerReturning,
+      avgValuePerReturningClient_all: ret_all.avgValuePerReturningClient,
+      avgValuePerReturningContract_all: ret_all.avgValuePerReturningContract,
+      returningPct_all: ret_all.returningPct,
+      newPct_all: ret_all.newPct,
+      newCount_all: ret_all.newCount,
+      returningValueShare_all: ret_all.returningValueShare,
+      newValueShare_all: ret_all.newValueShare,
+      newValueTotal_all: ret_all.newValueTotal,
     };
   }, [jobs, quotesRaw]);
 
