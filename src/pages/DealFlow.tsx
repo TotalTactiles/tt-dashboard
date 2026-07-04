@@ -1211,9 +1211,9 @@ const DealFlow = () => {
                         </ResponsiveContainer>
                       </div>
                       <div className="text-[10px] text-center mt-0.5">
-                        <span className="text-[#22c55e]">Ret {returnBasis === "won" ? clientIntel.returningValueShare_won : clientIntel.returningValueShare_all}%</span>
+                        <span className="text-[#22c55e]">Ret {returnBasis === "won" ? clientIntel.returningValueShare_won.toFixed(0) : clientIntel.returningValueShare_all.toFixed(0)}%</span>
                         <span className="text-muted-foreground mx-1">·</span>
-                        <span className="text-muted-foreground">New {returnBasis === "won" ? clientIntel.newValueShare_won : clientIntel.newValueShare_all}%</span>
+                        <span className="text-muted-foreground">New {returnBasis === "won" ? clientIntel.newValueShare_won.toFixed(0) : clientIntel.newValueShare_all.toFixed(0)}%</span>
                       </div>
                     </div>
                   </div>
