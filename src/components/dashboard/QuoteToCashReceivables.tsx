@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
 import {
   Bar,
   Line,
@@ -10,8 +10,10 @@ import {
   ReferenceLine,
   CartesianGrid,
 } from "recharts";
-import { AlertTriangle, ArrowUpDown, ChevronDown, ChevronRight } from "lucide-react";
+import { AlertTriangle, ArrowUpDown, ChevronDown, ChevronRight, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 const WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-receivables";
 const CACHE_KEY = "dashboard_receivables_data";
