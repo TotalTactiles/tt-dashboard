@@ -933,16 +933,16 @@ const DealFlow = () => {
               type="button"
               disabled={!clientIntel.byProjects}
               onClick={() => handleTileClick("byProjects", clientIntel.byProjects?.company, bestPillFor(clientIntel.byProjects, "count"))}
-              className={`text-left rounded-lg border p-3 transition-colors ${
+              className={`min-w-0 text-left rounded-lg border p-3 transition-colors ${
                 activeTileKey === "byProjects" ? "border-foreground/40 bg-foreground/5" : "border-border bg-card/40 hover:bg-card/60"
               } ${clientIntel.byProjects ? "cursor-pointer" : "cursor-default"}`}
             >
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Client — Most Projects</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground break-words whitespace-normal">Client — Most Projects</div>
               <div className="text-[9px] text-muted-foreground/70 mt-0.5">won + in-running contracts (delivery)</div>
               {clientIntel.byProjects ? (
                 <>
-                  <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byProjects.company}>{clientIntel.byProjects.company}</div>
-                  <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                  <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate tabular-nums" title={clientIntel.byProjects.company}>{clientIntel.byProjects.company}</div>
+                  <div className="text-[11px] text-muted-foreground font-mono mt-0.5 truncate">
                     {clientIntel.byProjects.activeContractCount} delivery contract{clientIntel.byProjects.activeContractCount === 1 ? "" : "s"} · {fmtAUD(clientIntel.byProjects.activeContractValue)}
                   </div>
                   <div className="text-[10px] text-muted-foreground/80 font-mono mt-0.5">
