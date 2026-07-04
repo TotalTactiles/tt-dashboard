@@ -349,7 +349,21 @@ const QuoteToCashReceivables = () => {
           value={fmtMoney(unpaidCurrent)}
           sub="unpaid, within 30 days"
         />
-        <StatCard label="DSO" value={`${summary.dso}d`} sub={`median ${summary.dsoMedian}d`} />
+        <StatCard
+          label={
+            <InfoLabel
+              label="DSO"
+              info="Days Sales Outstanding — the average time between sending an invoice and receiving payment. Lower is better; a rising number means cash is coming in slower."
+            />
+          }
+          value={`${summary.dso}d`}
+          sub={
+            <>
+              <div>Avg days to get paid after invoicing</div>
+              <div className="opacity-70">median {summary.dsoMedian}d</div>
+            </>
+          }
+        />
         <StatCard
           label="On-time rate"
           value={`${summary.onTimePct}%`}
@@ -357,11 +371,17 @@ const QuoteToCashReceivables = () => {
           valueClass="text-chart-green"
         />
         <StatCard
-          label="Cost of delay"
+          label={
+            <InfoLabel
+              label="Cost of delay"
+              info={`Money owed to you past terms is cash you can't use to pay down debt or must borrow to cover. Valued at your ~${financeRatePct}% CommBank facility rate: ${fmtMoney(unpaidOverdue)} overdue × ${financeRatePct}% ÷ 12 ≈ ${fmtMoney(summary.costOfDelayMonthly)}/month.`}
+            />
+          }
           value={`${fmtMoney(summary.costOfDelayMonthly)}/mo`}
-          sub={`overdue financed @ ${financeRatePct}%`}
+          sub="What overdue invoices cost in loan interest"
           valueClass="text-destructive"
         />
+
       </div>
 
       {/* 2. Aging bar */}
