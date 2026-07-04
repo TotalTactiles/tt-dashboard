@@ -862,11 +862,12 @@ const DealFlow = () => {
               } ${clientIntel.byProjects ? "cursor-pointer" : "cursor-default"}`}
             >
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Client — Most Projects</div>
+              <div className="text-[9px] text-muted-foreground/70 mt-0.5">won + in-running contracts</div>
               {clientIntel.byProjects ? (
                 <>
                   <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byProjects.company}>{clientIntel.byProjects.company}</div>
                   <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                    {clientIntel.byProjects.activeContractCount} projects · {fmtAUD(clientIntel.byProjects.activeContractValue)}
+                    {clientIntel.byProjects.activeContractCount} won + in-running · {fmtAUD(clientIntel.byProjects.activeContractValue)}
                   </div>
                 </>
               ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
