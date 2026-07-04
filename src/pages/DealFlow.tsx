@@ -151,41 +151,22 @@ const DealFlow = () => {
   const completedCount = completedJobs.length;
   const completedValue = completedJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
 
-  // Win/Loss
+  // Win/Loss Summary — sourced from quotesSummary (canonical FY-scoped sheet summary)
+  const qs = (liveData?.quotesSummary ?? {}) as any;
+  const hasQs = !!qs && Object.keys(qs).length > 0;
 
-  const pipelineWonJobs = jobs.filter((j: any) => isPipelineWin(j));
-  const pipelineWonCount = pipelineWonJobs.length;
-  const pipelineWonValue = pipelineWonJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
+  const won     = Number(qs?.totalWon?.count ?? 0);
+  const wonVal  = Number(qs?.totalWon?.value ?? 0);
+  const lost    = Number(qs?.totalLost?.count ?? 0);
+  const lostVal = Number(qs?.totalLost?.value ?? 0);
+  const quoted  = Number(qs?.totalQuoted?.count ?? 0);
 
-  const wonAndCompleted = (liveData?.quotes ?? []).filter((j: any) =>
-    j["Current Status"] === "PO Received (GRN)" ||
-    j["Current Status"] === "Completed"
-  );
-
-  const avgWonDeal = wonAndCompleted.length > 0
-    ? wonAndCompleted.reduce((s: number, j: any) =>
-        s + (parseFloat(String(j["Contract Value ($)"] ?? j._value ?? "0").replace(/[^0-9.-]/g, "")) || 0), 0
-      ) / wonAndCompleted.length
-    : 0;
-
-  const totalValueWon = wonAndCompleted.reduce((s: number, j: any) =>
-    s + (parseFloat(String(j["Contract Value ($)"] ?? j._value ?? "0").replace(/[^0-9.-]/g, "")) || 0), 0
-  );
-
-  const lostJobs = jobs.filter((j: any) => isLost(j.status));
-  const lostCount = lostJobs.length;
-  const ytdLostValue = lostJobs.reduce((s: number, j: any) => s + (Number(j.value) || 0), 0);
-
-  const decidedCount = pipelineWonCount + lostCount;
-  const winRate = decidedCount > 0
-    ? (pipelineWonCount / decidedCount) * 100
-    : 0;
-
-  const pipelineCR = jobs.length > 0
-    ? (pipelineWonCount / jobs.length) * 100
-    : 0;
-
-  const avgLostDeal = lostCount > 0 ? ytdLostValue / lostCount : 0;
+  const winRate    = (won + lost) > 0 ? (won / (won + lost)) * 100 : 0;
+  const pipelineCR = quoted > 0 ? (won / quoted) * 100 : 0;
+  const avgWon     = won  > 0 ? wonVal  / won  : 0;
+  const avgLost    = lost > 0 ? lostVal / lost : 0;
+  const totalValueWon = wonVal;
+  const ytdLostValue  = lostVal;
 
   const pendingCount = jobs.filter((j: any) => isActive(j.status)).length;
   const totalCount = jobs.length;
