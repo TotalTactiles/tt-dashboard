@@ -478,7 +478,7 @@ const DealFlow = () => {
       c.totalValue += r.value;
       c.stageCount += 1;
       c.names.push(r.project || r.base);
-      if (r.isParentRow && r.base) c.parentName = r.base;
+      if (r.isParentRow && r.project) c.parentName = r.project;
       c.hasWon = c.hasWon || r.won;
       c.hasLost = c.hasLost || r.lost;
       c.hasRunning = c.hasRunning || r.running;
