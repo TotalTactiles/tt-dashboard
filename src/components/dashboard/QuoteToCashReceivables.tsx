@@ -170,6 +170,7 @@ const QuoteToCashReceivables = () => {
   const [payerSort, setPayerSort] = useState<PayerSortKey>("avgDaysToPay");
   const [showAllPayers, setShowAllPayers] = useState(false);
   const [retentionOpen, setRetentionOpen] = useState(false);
+  const [agingMode, setAgingMode] = useState<"unpaid" | "all">("unpaid");
 
   const fetchData = useCallback(async () => {
     setLoading((prev) => (data ? false : true));
