@@ -1039,7 +1039,7 @@ const DealFlow = () => {
             </div>
             <div className="text-left rounded-lg border border-border bg-card/40 p-3">
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">New vs Returning</div>
-              <div className="text-[9px] text-muted-foreground/70 mt-0.5">Returning = clients with 2+ won contracts (true repeat customers)</div>
+              <div className="text-[9px] text-muted-foreground/70 mt-0.5">two definitions of "returning" compared side-by-side</div>
               {clientIntel.totalClients > 0 ? (
                 <>
                   <div className="grid grid-cols-2 gap-3 mt-2">
@@ -1058,8 +1058,8 @@ const DealFlow = () => {
                             />
                             <Pie
                               data={[
-                                { name: "Returning", value: clientIntel.returningClientCount, fill: "#22c55e" },
-                                { name: "New", value: clientIntel.newClientCount, fill: "hsl(var(--muted-foreground))" },
+                                { name: "Returning (won)", value: clientIntel.returningCount_won, fill: "#22c55e" },
+                                { name: "New (won basis)", value: clientIntel.newCount_won, fill: "hsl(var(--muted-foreground))" },
                               ]}
                               cx="50%"
                               cy="50%"
@@ -1072,8 +1072,13 @@ const DealFlow = () => {
                           </PieChart>
                         </ResponsiveContainer>
                       </div>
-                      <div className="text-[10px] text-center text-muted-foreground mt-0.5">
-                        Returning {clientIntel.returningPct.toFixed(0)}% · New {clientIntel.newPct.toFixed(0)}%
+                      <div className="text-[10px] text-center mt-0.5 space-y-0.5">
+                        <div className="text-[#22c55e]">
+                          <span className="text-muted-foreground">Won basis:</span> Ret {clientIntel.returningPct_won.toFixed(0)}% · New {clientIntel.newPct_won.toFixed(0)}%
+                        </div>
+                        <div className="text-foreground/80">
+                          <span className="text-muted-foreground">Any basis:</span> Ret {clientIntel.returningPct_all.toFixed(0)}% · New {clientIntel.newPct_all.toFixed(0)}%
+                        </div>
                       </div>
                     </div>
                     <div>
@@ -1091,8 +1096,8 @@ const DealFlow = () => {
                             />
                             <Pie
                               data={[
-                                { name: "Returning", value: clientIntel.returningClientValueTotal, fill: "#22c55e" },
-                                { name: "New", value: clientIntel.newClientValueTotal, fill: "hsl(var(--muted-foreground))" },
+                                { name: "Returning (won)", value: clientIntel.returningValueTotal_won, fill: "#22c55e" },
+                                { name: "New (won basis)", value: clientIntel.newValueTotal_won, fill: "hsl(var(--muted-foreground))" },
                               ]}
                               cx="50%"
                               cy="50%"
@@ -1105,13 +1110,23 @@ const DealFlow = () => {
                           </PieChart>
                         </ResponsiveContainer>
                       </div>
-                      <div className="text-[10px] text-center text-muted-foreground mt-0.5">
-                        Returning {clientIntel.returningValueShare.toFixed(0)}% · New {clientIntel.newValueShare.toFixed(0)}%
+                      <div className="text-[10px] text-center mt-0.5 space-y-0.5">
+                        <div className="text-[#22c55e]">
+                          <span className="text-muted-foreground">Won basis:</span> Ret {clientIntel.returningValueShare_won.toFixed(0)}% · New {clientIntel.newValueShare_won.toFixed(0)}%
+                        </div>
+                        <div className="text-foreground/80">
+                          <span className="text-muted-foreground">Any basis:</span> Ret {clientIntel.returningValueShare_all.toFixed(0)}% · New {clientIntel.newValueShare_all.toFixed(0)}%
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div className={`text-[11px] mt-2 text-center ${clientIntel.returningValueShare > 50 ? "text-[#22c55e] font-medium" : "text-muted-foreground"}`}>
-                    Returning clients drive {clientIntel.returningValueShare.toFixed(0)}% of tracked contract value
+                  <div className="mt-2 pt-2 border-t border-border/40 space-y-0.5">
+                    <div className={`text-[11px] text-center ${clientIntel.returningValueShare_won > 50 ? "text-[#22c55e] font-medium" : "text-muted-foreground"}`}>
+                      Proven repeat (2+ won) drive {clientIntel.returningValueShare_won.toFixed(0)}% of tracked value
+                    </div>
+                    <div className={`text-[11px] text-center ${clientIntel.returningValueShare_all > 50 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                      Any repeat (2+ contracts) drive {clientIntel.returningValueShare_all.toFixed(0)}% of tracked value
+                    </div>
                   </div>
                 </>
               ) : (
