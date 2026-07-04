@@ -405,14 +405,14 @@ const QuoteToCashReceivables = () => {
           value={summary.topDebtor ? fmtMoney(summary.topDebtor.outstanding) : "—"}
           sub={
             summary.topDebtor ? (
-              <>
+              <div className="min-w-0 overflow-hidden">
                 <div className="truncate" title={summary.topDebtor.company}>
                   {summary.topDebtor.company}
                 </div>
                 <div className="opacity-70">
                   {summary.topDebtor.pctOfOutstanding}% of outstanding · top 2 = {summary.top2ConcentrationPct}%
                 </div>
-              </>
+              </div>
             ) : (
               "No outstanding invoices"
             )
