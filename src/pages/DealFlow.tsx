@@ -1322,7 +1322,7 @@ const DealFlow = () => {
                 {activeClients.length === 0 && (
                   <tr>
                     <td colSpan={6} className="py-6 text-center text-muted-foreground text-fluid-xs">
-                      {clientFilter === "lowest" ? "No won or in-running contracts." : `No ${clientFilter} contracts.`}
+                      No {clientFilter} contracts.
                     </td>
                   </tr>
                 )}
