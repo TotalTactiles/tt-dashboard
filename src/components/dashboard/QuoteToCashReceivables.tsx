@@ -54,6 +54,12 @@ interface MonthlyTrend {
   avgDaysToPay: number;
 }
 
+interface TopDebtor {
+  company: string;
+  outstanding: number;
+  pctOfOutstanding: number;
+}
+
 interface ReceivablesData {
   asAtDate: string;
   termDays: number;
@@ -73,6 +79,9 @@ interface ReceivablesData {
     dsoMedian: number;
     onTimePct: number;
     costOfDelayMonthly: number;
+    topDebtor: TopDebtor | null;
+    top2ConcentrationPct: number;
+    topDebtors?: TopDebtor[];
   };
   aging: {
     notYetDue: number;
