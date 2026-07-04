@@ -459,11 +459,32 @@ const DealFlow = () => {
     const pick = (c: any) =>
       clientFilter === "won" ? c.wonValue :
       clientFilter === "running" ? c.runningValue : c.lostValue;
-    return clientIntel.clients
+    const filtered = clientIntel.clients
       .filter((c: any) => pick(c) > 0)
-      .map((c: any) => ({ ...c, activeValue: pick(c) }))
-      .sort((a: any, b: any) => b.activeValue - a.activeValue);
-  }, [clientIntel, clientFilter]);
+      .map((c: any) => ({ ...c, activeValue: pick(c) }));
+
+    const { key, dir } = clientSort;
+    const sign = dir === "asc" ? 1 : -1;
+    const getNum = (c: any): number | null => {
+      if (key === "projects") return c.projects;
+      if (key === "active") return c.activeValue;
+      if (key === "total") return c.totalValue;
+      if (key === "winRate") return c.winRate; // may be null
+      return null;
+    };
+    return [...filtered].sort((a: any, b: any) => {
+      if (key === "company") {
+        return sign * a.company.localeCompare(b.company);
+      }
+      const av = getNum(a);
+      const bv = getNum(b);
+      // nulls always sort to the bottom
+      if (av === null && bv === null) return 0;
+      if (av === null) return 1;
+      if (bv === null) return -1;
+      return sign * (av - bv);
+    });
+  }, [clientIntel, clientFilter, clientSort]);
 
   return (
     <DashboardLayout>
