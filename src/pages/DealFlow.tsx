@@ -521,7 +521,15 @@ const DealFlow = () => {
   );
 };
 
-const LossReasonList = ({ reasons }: { reasons: { reason: string; count: number; pct: number }[] }) => {
+const LossReasonList = ({
+  reasons,
+  blankReasonCount,
+  totalLost,
+}: {
+  reasons: { reason: string; count: number; pct: number }[];
+  blankReasonCount: number;
+  totalLost: number;
+}) => {
   const top = reasons.slice(0, 6);
   const rest = reasons.slice(6);
   return (
@@ -551,6 +559,11 @@ const LossReasonList = ({ reasons }: { reasons: { reason: string; count: number;
             ))}
           </div>
         </details>
+      )}
+      {blankReasonCount > 0 && (
+        <p className="font-mono text-fluid-xs text-muted-foreground/60 mt-3">
+          {blankReasonCount} of {totalLost} losses have no reason recorded
+        </p>
       )}
     </div>
   );
