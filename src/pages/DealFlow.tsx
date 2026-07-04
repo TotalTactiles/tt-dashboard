@@ -657,7 +657,12 @@ const DealFlow = () => {
     const topClientPct = grand > 0 && trackedSorted[0] ? (trackedSorted[0].tracked / grand) * 100 : 0;
     const top3Pct = grand > 0 ? (trackedSorted.slice(0, 3).reduce((s, c) => s + c.tracked, 0) / grand) * 100 : 0;
 
-    return { biggestWon, biggestRun, biggestLost, byProjects, byValue, byReturning, returningTotal, returningTiedExtra, clients, topClientPct, top3Pct,
+    // Highest / Lowest by tracked value (won + in-running, excl. lost).
+    // Only positive-tracked clients qualify so all-lost clients don't win "lowest" at $0.
+    const byValueHighest = trackedSorted[0] ?? null;
+    const byValueLowest = trackedSorted.length > 0 ? trackedSorted[trackedSorted.length - 1] : null;
+
+    return { biggestWon, biggestRun, biggestLost, byProjects, byValue, byValueHighest, byValueLowest, byReturning, returningTotal, returningTiedExtra, clients, topClientPct, top3Pct,
       avgContractsPerReturning, avgValuePerReturning, avgValuePerReturningContract,
       newClientCount, returningClientCount, totalClients,
       returningContracts, returningClientValueTotal, newClientValueTotal,
