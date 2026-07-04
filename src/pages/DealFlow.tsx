@@ -565,7 +565,10 @@ const DealFlow = () => {
       const totalValue = c.wonValue + c.runningValue + c.lostValue;
       const decided = c.wonCount + c.lostCount;
       const winRate = decided > 0 ? (c.wonCount / decided) * 100 : null;
-      return { ...c, totalValue, winRate };
+      // Canonical, tile-agnostic counts — every consumer reads these.
+      const projectsWonRunning = c.contracts.filter(k => k.status === "won" || k.status === "running").length;
+      const contractCountAll = c.contracts.length;
+      return { ...c, totalValue, winRate, projectsWonRunning, contractCountAll };
     });
 
     // Highest-value client (across all statuses).
