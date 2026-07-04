@@ -324,14 +324,57 @@ const DealFlow = () => {
   };
 
   const clientIntel = useMemo(() => {
-    // Strip trailing stage suffix to get base contract name.
-    // Handles " - S2" / " – S3" / " VARIATION..." / " ADDITIONAL..."
+    const clean = (v: any): string => String(v ?? "").trim();
+    const pickField = (obj: any, keys: string[]): string => {
+      const sources = [obj, obj?.raw, obj?._raw, obj?.source, obj?.original].filter(Boolean);
+      for (const source of sources) {
+        for (const key of keys) {
+          const value = clean(source?.[key]);
+          if (value) return value;
+        }
+      }
+      return "";
+    };
+    const zohoIdOf = (j: any): string => pickField(j, [
+      "zohoId",
+      "jobLeadId",
+      "jobId",
+      "Job / Lead ID\n(Zoho)",
+      "Job/Lead ID (Zoho)",
+      "Job / Lead ID (Zoho)",
+      "Job Lead ID (Zoho)",
+      "Job / Lead ID",
+      "Job/Lead ID",
+      "Lead ID",
+      "id",
+    ]);
+    const parentIdOf = (j: any): string => pickField(j, [
+      "parentJobId",
+      "parent_job_id",
+      "parentId",
+      "parent_jobId",
+      "Parent Job ID",
+      "Parent\nJob ID",
+      "Parent Job Id",
+      "Parent ID",
+    ]);
+
+    const parentByZohoId = new Map<string, string>();
+    for (const row of quotesRaw as any[]) {
+      const zohoId = zohoIdOf(row);
+      const parentJobId = parentIdOf(row);
+      if (zohoId && parentJobId) parentByZohoId.set(zohoId, parentJobId);
+    }
+
+    // Display-name cleanup only. Contract grouping is by Parent Job ID / Zoho ID.
     const stripStageSuffix = (name: string): string => {
       let n = String(name || "").trim();
       // Iterate a few times in case of multiple suffixes ("Vela S2 VARIATION")
       for (let i = 0; i < 3; i++) {
         const before = n;
+        n = n.replace(/[\s]*[-–—][\s]*S1\b.*$/i, "");
         n = n.replace(/[\s]*[-–—][\s]*S[2-9]\b.*$/i, "");
+        n = n.replace(/\s+S1\b.*$/i, "");
         n = n.replace(/\s+S[2-9]\b.*$/i, "");
         n = n.replace(/\s*[-–—]?\s*(VARIATION|ADDITIONAL)\b.*$/i, "");
         n = n.trim();
@@ -339,53 +382,94 @@ const DealFlow = () => {
       }
       return n || String(name || "").trim();
     };
-    const isChildName = (name: string) =>
-      /\bS[2-9]\b/i.test(name) || /\b(VARIATION|ADDITIONAL)\b/i.test(name);
-    const hasParentId = (j: any) =>
-      !!(j?.parentJobId ?? j?.parent_job_id ?? j?.parentId ?? j?.["Parent Job ID"]);
-
-    const isWonS = (s: string) => s === "won";
-    const isLostS = (s: string) => s === "lost";
-    const isRunS = (s: string) => s === "pending" || s === "yellow";
+    const shortestName = (names: string[]): string =>
+      names
+        .map(stripStageSuffix)
+        .filter(Boolean)
+        .sort((a, b) => a.length - b.length || a.localeCompare(b))[0] ?? "";
+    const companyOf = (j: any): string => pickField(j, ["company", "Company Name", "Company\nName", "_company"]);
+    const projectOf = (j: any): string => pickField(j, ["project", "jobName", "Project Name", "Project\nName", "Job Name", "_project"]);
+    const stageFlags = (j: any) => {
+      const status = clean(j?.status).toLowerCase();
+      const raw = [
+        j?.rawStatus,
+        j?.["Current Status"],
+        j?.["Current\nStatus"],
+        j?.["Stage"],
+      ].map(clean).join(" ").toLowerCase();
+      const won = status === "won" || raw.includes("completed") || raw.includes("grn") || raw.includes("po received");
+      const lost = status === "lost" || raw.includes("lost") || raw.includes("dead");
+      const running = !won && !lost;
+      return { won, lost, running };
+    };
 
     const rows = (jobs as any[])
       .map(j => {
-        const project = String(j.project ?? j.jobName ?? "").trim();
+        const project = projectOf(j);
+        const company = companyOf(j);
+        const zohoId = zohoIdOf(j);
+        const parentJobId = parentIdOf(j) || (zohoId ? parentByZohoId.get(zohoId) ?? "" : "");
+        const contractKey = parentJobId || zohoId || `${company.toLowerCase()}::${project.toLowerCase()}`;
+        const flags = stageFlags(j);
         return {
-          company: String(j.company ?? "").trim(),
+          company,
           project,
           base: stripStageSuffix(project),
-          isChild: hasParentId(j) || isChildName(project),
+          contractKey,
+          isParentRow: !!zohoId && zohoId === contractKey,
           value: Number(j.value) || 0,
-          status: String(j.status ?? ""),
+          ...flags,
         };
       })
-      .filter(r => r.company);
+      .filter(r => r.company && r.contractKey);
 
-    // Group into rolled-up contracts keyed by company + base.
+    // Group into rolled-up contracts keyed by Parent Job ID, falling back to own Zoho ID.
     type Contract = {
       key: string;
       company: string;
       base: string;
+      totalValue: number;
       wonValue: number;
       runningValue: number;
       lostValue: number;
+      status: "won" | "running" | "lost";
       stageCount: number;
+      names: string[];
+      parentName: string;
+      hasWon: boolean;
+      hasLost: boolean;
+      hasRunning: boolean;
     };
     const cMap = new Map<string, Contract>();
     for (const r of rows) {
-      const key = `${r.company.toLowerCase()}::${r.base.toLowerCase()}`;
+      const key = r.contractKey;
       const c = cMap.get(key) ?? {
         key, company: r.company, base: r.base,
-        wonValue: 0, runningValue: 0, lostValue: 0, stageCount: 0,
+        totalValue: 0, wonValue: 0, runningValue: 0, lostValue: 0,
+        status: "running", stageCount: 0, names: [], parentName: "",
+        hasWon: false, hasLost: false, hasRunning: false,
       };
-      if (isWonS(r.status)) c.wonValue += r.value;
-      else if (isRunS(r.status)) c.runningValue += r.value;
-      else if (isLostS(r.status)) c.lostValue += r.value;
+      c.totalValue += r.value;
       c.stageCount += 1;
+      c.names.push(r.project || r.base);
+      if (r.isParentRow && r.base) c.parentName = r.base;
+      c.hasWon = c.hasWon || r.won;
+      c.hasLost = c.hasLost || r.lost;
+      c.hasRunning = c.hasRunning || r.running;
       cMap.set(key, c);
     }
-    const contracts = Array.from(cMap.values());
+    const contracts = Array.from(cMap.values()).map(c => {
+      const status: "won" | "running" | "lost" = c.hasWon ? "won" : (c.hasLost && !c.hasRunning ? "lost" : "running");
+      const base = c.parentName || shortestName(c.names) || c.base;
+      return {
+        ...c,
+        base,
+        status,
+        wonValue: status === "won" ? c.totalValue : 0,
+        runningValue: status === "running" ? c.totalValue : 0,
+        lostValue: status === "lost" ? c.totalValue : 0,
+      };
+    });
 
     const biggestOf = (pick: (c: Contract) => number) => {
       const arr = contracts.filter(c => pick(c) > 0);
@@ -423,8 +507,8 @@ const DealFlow = () => {
       e.wonValue += c.wonValue;
       e.runningValue += c.runningValue;
       e.lostValue += c.lostValue;
-      if (c.wonValue > 0) e.wonCount += 1;
-      if (c.lostValue > 0 && c.wonValue === 0 && c.runningValue === 0) e.lostCount += 1;
+      if (c.status === "won") e.wonCount += 1;
+      if (c.status === "lost") e.lostCount += 1;
       clientMap.set(key, e);
     }
     const clients = Array.from(clientMap.values()).map(c => {
@@ -439,7 +523,7 @@ const DealFlow = () => {
       .sort((a, b) => b.totalValue - a.totalValue)[0] ?? null;
     // Most-projects client — count leader, tie-broken by total (won + running) value.
     const byProjects = [...clients]
-      .map(c => ({ ...c, tracked: c.wonValue + c.runningValue }))
+      .map(c => ({ ...c, tracked: c.totalValue }))
       .filter(c => c.projects > 0)
       .sort((a, b) => (b.projects - a.projects) || (b.tracked - a.tracked))[0] ?? null;
 
@@ -453,7 +537,7 @@ const DealFlow = () => {
     const top3Pct = grand > 0 ? (trackedSorted.slice(0, 3).reduce((s, c) => s + c.tracked, 0) / grand) * 100 : 0;
 
     return { biggestWon, biggestRun, biggestLost, byProjects, byValue, clients, topClientPct, top3Pct };
-  }, [jobs]);
+  }, [jobs, quotesRaw]);
 
   const activeClients = useMemo(() => {
     const pick = (c: any) =>
