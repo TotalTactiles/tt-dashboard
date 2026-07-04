@@ -319,6 +319,7 @@ const DealFlow = () => {
   const [tileFilterClient, setTileFilterClient] = useState<string | null>(null);
   const [activeTileKey, setActiveTileKey] = useState<string | null>(null);
   const [valueTileMode, setValueTileMode] = useState<"highest" | "lowest">("highest");
+  const [returnBasis, setReturnBasis] = useState<"won" | "all">("won");
   type ClientSortKey = "company" | "projects" | "active" | "total" | "winRate";
   const [clientSort, setClientSort] = useState<{ key: ClientSortKey; dir: "asc" | "desc" }>({ key: "total", dir: "desc" });
   const toggleClientSort = (key: ClientSortKey) => {
@@ -1094,8 +1095,40 @@ const DealFlow = () => {
               )}
             </div>
             <div className="text-left rounded-lg border border-border bg-card/40 p-3">
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">New vs Returning</div>
-              <div className="text-[9px] text-muted-foreground/70 mt-0.5">two definitions of "returning" compared side-by-side</div>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">New vs Returning</div>
+                  <div className="text-[9px] text-muted-foreground/70 mt-0.5">
+                    {returnBasis === "won"
+                      ? "proven repeat (2+ won contracts)"
+                      : "any repeat (2+ contracts, all statuses)"}
+                  </div>
+                </div>
+                <div className="flex items-center rounded-full border border-border/60 bg-background/60 p-0.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setReturnBasis("won")}
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
+                      returnBasis === "won"
+                        ? "bg-[#22c55e]/20 text-[#22c55e] border border-[#22c55e]/30"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Won
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReturnBasis("all")}
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
+                      returnBasis === "all"
+                        ? "bg-foreground/10 text-foreground border border-border"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    All
+                  </button>
+                </div>
+              </div>
               {clientIntel.totalClients > 0 ? (
                 <>
                   <div className="grid grid-cols-2 gap-3 mt-2">
@@ -1113,10 +1146,17 @@ const DealFlow = () => {
                               ]}
                             />
                             <Pie
-                              data={[
-                                { name: "Returning (won)", value: clientIntel.returningCount_won, fill: "#22c55e" },
-                                { name: "New (won basis)", value: clientIntel.newCount_won, fill: "hsl(var(--muted-foreground))" },
-                              ]}
+                              data={
+                                returnBasis === "won"
+                                  ? [
+                                      { name: "Returning (won)", value: clientIntel.returningCount_won, fill: "#22c55e" },
+                                      { name: "New (won basis)", value: clientIntel.newCount_won, fill: "hsl(var(--muted-foreground))" },
+                                    ]
+                                  : [
+                                      { name: "Returning (all)", value: clientIntel.returningCount_all, fill: "#22c55e" },
+                                      { name: "New (all basis)", value: clientIntel.newCount_all, fill: "hsl(var(--muted-foreground))" },
+                                    ]
+                              }
                               cx="50%"
                               cy="50%"
                               innerRadius={22}
@@ -1128,13 +1168,10 @@ const DealFlow = () => {
                           </PieChart>
                         </ResponsiveContainer>
                       </div>
-                      <div className="text-[10px] text-center mt-0.5 space-y-0.5">
-                        <div className="text-[#22c55e]">
-                          <span className="text-muted-foreground">Won basis:</span> Ret {clientIntel.returningPct_won.toFixed(0)}% · New {clientIntel.newPct_won.toFixed(0)}%
-                        </div>
-                        <div className="text-foreground/80">
-                          <span className="text-muted-foreground">Any basis:</span> Ret {clientIntel.returningPct_all.toFixed(0)}% · New {clientIntel.newPct_all.toFixed(0)}%
-                        </div>
+                      <div className="text-[10px] text-center mt-0.5">
+                        <span className="text-[#22c55e]">Ret {returnBasis === "won" ? clientIntel.returningPct_won.toFixed(0) : clientIntel.returningPct_all.toFixed(0)}%</span>
+                        <span className="text-muted-foreground mx-1">·</span>
+                        <span className="text-muted-foreground">New {returnBasis === "won" ? clientIntel.newPct_won.toFixed(0) : clientIntel.newPct_all.toFixed(0)}%</span>
                       </div>
                     </div>
                     <div>
@@ -1151,10 +1188,17 @@ const DealFlow = () => {
                               ]}
                             />
                             <Pie
-                              data={[
-                                { name: "Returning (won)", value: clientIntel.returningValueTotal_won, fill: "#22c55e" },
-                                { name: "New (won basis)", value: clientIntel.newValueTotal_won, fill: "hsl(var(--muted-foreground))" },
-                              ]}
+                              data={
+                                returnBasis === "won"
+                                  ? [
+                                      { name: "Returning (won)", value: clientIntel.returningValueTotal_won, fill: "#22c55e" },
+                                      { name: "New (won basis)", value: clientIntel.newValueTotal_won, fill: "hsl(var(--muted-foreground))" },
+                                    ]
+                                  : [
+                                      { name: "Returning (all)", value: clientIntel.returningValueTotal_all, fill: "#22c55e" },
+                                      { name: "New (all basis)", value: clientIntel.newValueTotal_all, fill: "hsl(var(--muted-foreground))" },
+                                    ]
+                              }
                               cx="50%"
                               cy="50%"
                               innerRadius={22}
@@ -1166,23 +1210,23 @@ const DealFlow = () => {
                           </PieChart>
                         </ResponsiveContainer>
                       </div>
-                      <div className="text-[10px] text-center mt-0.5 space-y-0.5">
-                        <div className="text-[#22c55e]">
-                          <span className="text-muted-foreground">Won basis:</span> Ret {clientIntel.returningValueShare_won.toFixed(0)}% · New {clientIntel.newValueShare_won.toFixed(0)}%
-                        </div>
-                        <div className="text-foreground/80">
-                          <span className="text-muted-foreground">Any basis:</span> Ret {clientIntel.returningValueShare_all.toFixed(0)}% · New {clientIntel.newValueShare_all.toFixed(0)}%
-                        </div>
+                      <div className="text-[10px] text-center mt-0.5">
+                        <span className="text-[#22c55e]">Ret {returnBasis === "won" ? clientIntel.returningValueShare_won.toFixed(0) : clientIntel.returningValueShare_all.toFixed(0)}%</span>
+                        <span className="text-muted-foreground mx-1">·</span>
+                        <span className="text-muted-foreground">New {returnBasis === "won" ? clientIntel.newValueShare_won.toFixed(0) : clientIntel.newValueShare_all.toFixed(0)}%</span>
                       </div>
                     </div>
                   </div>
-                  <div className="mt-2 pt-2 border-t border-border/40 space-y-0.5">
-                    <div className={`text-[11px] text-center ${clientIntel.returningValueShare_won > 50 ? "text-[#22c55e] font-medium" : "text-muted-foreground"}`}>
-                      Proven repeat (2+ won) drive {clientIntel.returningValueShare_won.toFixed(0)}% of tracked value
-                    </div>
-                    <div className={`text-[11px] text-center ${clientIntel.returningValueShare_all > 50 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                      Any repeat (2+ contracts) drive {clientIntel.returningValueShare_all.toFixed(0)}% of tracked value
-                    </div>
+                  <div className="mt-2 pt-2 border-t border-border/40">
+                    {returnBasis === "won" ? (
+                      <div className={`text-[11px] text-center ${clientIntel.returningValueShare_won > 50 ? "text-[#22c55e] font-medium" : "text-muted-foreground"}`}>
+                        Proven repeat (2+ won) drive {clientIntel.returningValueShare_won.toFixed(0)}% of tracked value
+                      </div>
+                    ) : (
+                      <div className={`text-[11px] text-center ${clientIntel.returningValueShare_all > 50 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                        Any repeat (2+ contracts) drive {clientIntel.returningValueShare_all.toFixed(0)}% of tracked value
+                      </div>
+                    )}
                   </div>
                 </>
               ) : (
