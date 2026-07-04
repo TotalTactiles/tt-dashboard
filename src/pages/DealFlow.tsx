@@ -848,7 +848,7 @@ const DealFlow = () => {
             <button
               type="button"
               disabled={!clientIntel.byValue}
-              onClick={() => handleTileClick("byValue", clientIntel.byValue?.company)}
+              onClick={() => handleTileClick("byValue", clientIntel.byValue?.company, bestPillFor(clientIntel.byValue, "value"))}
               className={`text-left rounded-lg border p-3 transition-colors ${
                 activeTileKey === "byValue" ? "border-foreground/40 bg-foreground/5" : "border-border bg-card/40 hover:bg-card/60"
               } ${clientIntel.byValue ? "cursor-pointer" : "cursor-default"}`}
