@@ -961,6 +961,7 @@ const DealFlow = () => {
             </div>
             <div className="text-left rounded-lg border border-border bg-card/40 p-3">
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">New vs Returning</div>
+              <div className="text-[9px] text-muted-foreground/70 mt-0.5">Returning = clients with 2+ won contracts (true repeat customers)</div>
               {clientIntel.totalClients > 0 ? (
                 <>
                   <div className="grid grid-cols-2 gap-3 mt-2">
