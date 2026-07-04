@@ -1030,16 +1030,16 @@ const DealFlow = () => {
               type="button"
               disabled={!clientIntel.byReturning}
               onClick={() => handleTileClick("byReturning", clientIntel.byReturning?.company, bestPillFor(clientIntel.byReturning, "count"))}
-              className={`text-left rounded-lg border p-3 transition-colors ${
+              className={`min-w-0 text-left rounded-lg border p-3 transition-colors ${
                 activeTileKey === "byReturning" ? "border-foreground/40 bg-foreground/5" : "border-border bg-card/40 hover:bg-card/60"
               } ${clientIntel.byReturning ? "cursor-pointer" : "cursor-default"}`}
             >
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Most Returning Client</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground break-words whitespace-normal">Most Returning Client</div>
               <div className="text-[9px] text-muted-foreground/70 mt-0.5">repeat wins (2+ won contracts)</div>
               {clientIntel.byReturning ? (
                 <>
-                  <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byReturning.company}>{clientIntel.byReturning.company}</div>
-                  <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                  <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate tabular-nums" title={clientIntel.byReturning.company}>{clientIntel.byReturning.company}</div>
+                  <div className="text-[11px] text-muted-foreground font-mono mt-0.5 truncate">
                     {clientIntel.byReturning.wonContractCount} won contracts
                     {clientIntel.returningTiedExtra > 0 ? ` (+${clientIntel.returningTiedExtra} more tied)` : ""}
                   </div>
