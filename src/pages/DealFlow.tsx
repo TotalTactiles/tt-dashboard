@@ -916,6 +916,54 @@ const DealFlow = () => {
             </button>
           </div>
 
+          {/* New vs Returning intelligence cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+            <div className="text-left rounded-lg border border-border bg-card/40 p-3">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Returning Client Value</div>
+              {clientIntel.returningClientCount > 0 ? (
+                <>
+                  <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground">
+                    {clientIntel.avgContractsPerReturning.toFixed(1)} <span className="text-fluid-sm font-medium">avg contracts</span>
+                  </div>
+                  <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                    {fmtAUD(clientIntel.avgValuePerReturning)} avg contract value
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                    {clientIntel.returningClientCount} returning client{clientIntel.returningClientCount === 1 ? "" : "s"} (2+ contracts)
+                  </div>
+                </>
+              ) : (
+                <div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>
+              )}
+            </div>
+            <div className="text-left rounded-lg border border-border bg-card/40 p-3">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">New vs Returning</div>
+              {clientIntel.totalClients > 0 ? (
+                <>
+                  <div className="flex h-1.5 w-full rounded-full overflow-hidden bg-muted mt-3">
+                    <div
+                      className="h-full bg-green-500"
+                      style={{ width: `${clientIntel.returningPct}%` }}
+                    />
+                    <div
+                      className="h-full bg-muted-foreground/25"
+                      style={{ width: `${clientIntel.newPct}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between items-center text-[11px] text-muted-foreground font-mono mt-1">
+                    <span>Returning {clientIntel.returningPct.toFixed(0)}%</span>
+                    <span>New {clientIntel.newPct.toFixed(0)}%</span>
+                  </div>
+                  <div className={`text-[11px] mt-1.5 ${clientIntel.returningValueShare > 50 ? "text-green-500 font-medium" : "text-muted-foreground"}`}>
+                    Returning clients drive {clientIntel.returningValueShare.toFixed(0)}% of tracked contract value
+                  </div>
+                </>
+              ) : (
+                <div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>
+              )}
+            </div>
+          </div>
+
           {/* Concentration */}
           <div className={`text-fluid-xs font-mono mb-3 ${clientIntel.top3Pct > 60 ? "text-[#f59e0b]" : "text-muted-foreground"}`}>
             Top client = {clientIntel.topClientPct.toFixed(1)}% of tracked value · Top 3 = {clientIntel.top3Pct.toFixed(1)}%
