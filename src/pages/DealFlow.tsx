@@ -1,10 +1,29 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useDashboardData, QuotedJob } from "@/contexts/DashboardDataContext";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { ArrowDown, AlertTriangle, CheckCircle2, ChevronRight, Info } from "lucide-react";
 import { formatMetricValue } from "@/lib/formatMetricValue";
+
+const DEAL_CYCLE_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
+
+type CycleEntry = {
+  cycleDays: number | null;
+  decidedType: "won" | "lost" | null;
+  measurable: 0 | 1;
+  isPrimary: 0 | 1;
+  quoteSentTs: string | null;
+  decidedTs: string | null;
+};
+
+const median = (arr: number[]): number => {
+  if (!arr.length) return 0;
+  const s = [...arr].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+};
+const mean = (arr: number[]): number => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
 
 function parseDealDate(raw: string): Date | null {
   if (!raw) return null;
