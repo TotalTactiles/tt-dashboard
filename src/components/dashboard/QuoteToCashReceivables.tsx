@@ -305,7 +305,7 @@ const QuoteToCashReceivables = () => {
     );
   }
 
-  const { summary, termDays, financeRatePct } = data;
+  const { summary, termDays } = data;
   const totalAging = agingSegments.reduce((s, x) => s + x.value, 0);
 
   if (summary.sentCount === 0 && summary.openCount === 0) {
@@ -389,14 +389,15 @@ const QuoteToCashReceivables = () => {
         <StatCard
           label={
             <InfoLabel
-              label="Cost of delay"
-              info={`Money owed to you past terms is cash you can't use to pay down debt or must borrow to cover. Valued at your ~${financeRatePct}% CommBank facility rate: ${fmtMoney(unpaidOverdue)} overdue × ${financeRatePct}% ÷ 12 ≈ ${fmtMoney(summary.costOfDelayMonthly)}/month.`}
+              label="Cash you're floating"
+              info="Money you've earned but haven't received yet — cash the business is covering while these invoices sit overdue."
             />
           }
-          value={`${fmtMoney(summary.costOfDelayMonthly)}/mo`}
-          sub="What overdue invoices cost in loan interest"
-          valueClass="text-destructive"
+          value={`${fmtMoney(unpaidOverdue)}`}
+          sub="Overdue cash you're covering until customers pay"
+          valueClass="text-chart-orange"
         />
+
 
       </div>
 
