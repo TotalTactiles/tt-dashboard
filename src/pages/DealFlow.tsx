@@ -905,15 +905,16 @@ const DealFlow = () => {
               } ${clientIntel.byReturning ? "cursor-pointer" : "cursor-default"}`}
             >
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Most Returning Client</div>
+              <div className="text-[9px] text-muted-foreground/70 mt-0.5">repeat wins (2+ won contracts)</div>
               {clientIntel.byReturning ? (
                 <>
                   <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byReturning.company}>{clientIntel.byReturning.company}</div>
                   <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                    {clientIntel.byReturning.contractCountAll} contracts with us
+                    {clientIntel.byReturning.wonContractCount} won contracts
                     {clientIntel.returningTiedExtra > 0 ? ` (+${clientIntel.returningTiedExtra} more tied)` : ""}
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-0.5">
-                    {clientIntel.returningTotal} client{clientIntel.returningTotal === 1 ? "" : "s"} returned for 2+ projects
+                    {clientIntel.returningTotal} client{clientIntel.returningTotal === 1 ? "" : "s"} with 2+ won contracts
                   </div>
                 </>
               ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
