@@ -60,6 +60,14 @@ interface TopDebtor {
   pctOfOutstanding: number;
 }
 
+interface ExtremePayer {
+  company: string;
+  avgDaysToPay: number;
+  paidCount: number;
+  totalPaid: number;
+  onTimePct: number;
+}
+
 interface ReceivablesData {
   asAtDate: string;
   termDays: number;
