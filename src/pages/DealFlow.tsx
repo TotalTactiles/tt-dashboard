@@ -311,6 +311,56 @@ const DealFlow = () => {
 
   const maxStageCount = Math.max(1, ...stageStats.map(s => s.count), completedCount);
 
+  // Client Intelligence
+  const [showAllClients, setShowAllClients] = useState(false);
+  const clientIntel = useMemo(() => {
+    const isWonS = (s: string) => s === "won";
+    const isLostS = (s: string) => s === "lost";
+    const isRunS = (s: string) => s === "pending" || s === "yellow";
+    const rows = (jobs as any[])
+      .map(j => ({
+        company: String(j.company ?? "").trim(),
+        project: String(j.project ?? j.jobName ?? "").trim(),
+        value: Number(j.value) || 0,
+        status: String(j.status ?? ""),
+      }))
+      .filter(r => r.company);
+
+    const pickMax = (pred: (s: string) => boolean) => {
+      const arr = rows.filter(r => pred(r.status));
+      if (!arr.length) return null;
+      return arr.reduce((a, b) => (b.value > a.value ? b : a));
+    };
+    const biggestWon = pickMax(isWonS);
+    const biggestRun = pickMax(isRunS);
+    const biggestLost = pickMax(isLostS);
+
+    const map = new Map<string, { company: string; projects: number; wonValue: number; runningValue: number; lostValue: number; wonCount: number; lostCount: number }>();
+    for (const r of rows) {
+      const e = map.get(r.company) ?? { company: r.company, projects: 0, wonValue: 0, runningValue: 0, lostValue: 0, wonCount: 0, lostCount: 0 };
+      if (isWonS(r.status)) { e.wonValue += r.value; e.wonCount += 1; e.projects += 1; }
+      else if (isRunS(r.status)) { e.runningValue += r.value; e.projects += 1; }
+      else if (isLostS(r.status)) { e.lostValue += r.value; e.lostCount += 1; }
+      map.set(r.company, e);
+    }
+    const clients = Array.from(map.values()).map(c => {
+      const totalValue = c.wonValue + c.runningValue;
+      const decided = c.wonCount + c.lostCount;
+      const winRate = decided > 0 ? (c.wonCount / decided) * 100 : null;
+      return { ...c, totalValue, quoted: decided, winRate };
+    });
+
+    const byProjects = [...clients].filter(c => c.projects > 0).sort((a, b) => b.projects - a.projects)[0] ?? null;
+    const byValue = [...clients].filter(c => c.totalValue > 0).sort((a, b) => b.totalValue - a.totalValue)[0] ?? null;
+
+    const sorted = [...clients].sort((a, b) => b.totalValue - a.totalValue);
+    const grand = sorted.reduce((s, c) => s + c.totalValue, 0);
+    const topClientPct = grand > 0 && sorted[0] ? (sorted[0].totalValue / grand) * 100 : 0;
+    const top3Pct = grand > 0 ? (sorted.slice(0, 3).reduce((s, c) => s + c.totalValue, 0) / grand) * 100 : 0;
+
+    return { biggestWon, biggestRun, biggestLost, byProjects, byValue, sorted, topClientPct, top3Pct };
+  }, [jobs]);
+
   return (
     <DashboardLayout>
       <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
@@ -451,7 +501,100 @@ const DealFlow = () => {
           </div>
         </motion.section>
 
+        {/* Client Intelligence */}
+        <motion.section variants={item} className="chart-container p-5">
+          <div className="mb-4">
+            <h2 className="text-fluid-base font-semibold">Client Intelligence</h2>
+            <p className="text-fluid-xs text-muted-foreground">Where the value sits — by client and by deal</p>
+          </div>
+
+          {/* Tiles */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
+            {[
+              { label: "Biggest Won", data: clientIntel.biggestWon, accent: "text-[#22c55e]", sub: (d: any) => `${d.company} · ${d.project || "—"}` },
+              { label: "Biggest In Running", data: clientIntel.biggestRun, accent: "text-[#22c55e]", sub: (d: any) => `${d.company} · ${d.project || "—"}` },
+              { label: "Biggest Lost", data: clientIntel.biggestLost, accent: "text-[#ef4444]", sub: (d: any) => `${d.company} · ${d.project || "—"}` },
+            ].map((t) => (
+              <div key={t.label} className="rounded-lg border border-border bg-card/40 p-3">
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{t.label}</div>
+                {t.data ? (
+                  <>
+                    <div className={`text-fluid-lg font-mono font-bold mt-1 ${t.accent}`}>{fmtAUD(t.data.value)}</div>
+                    <div className="text-[11px] text-muted-foreground truncate mt-0.5" title={t.sub(t.data)}>{t.sub(t.data)}</div>
+                  </>
+                ) : (
+                  <div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>
+                )}
+              </div>
+            ))}
+            <div className="rounded-lg border border-border bg-card/40 p-3">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Client — Most Projects</div>
+              {clientIntel.byProjects ? (
+                <>
+                  <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byProjects.company}>{clientIntel.byProjects.company}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">{clientIntel.byProjects.projects} projects</div>
+                </>
+              ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
+            </div>
+            <div className="rounded-lg border border-border bg-card/40 p-3">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Client — Highest Value</div>
+              {clientIntel.byValue ? (
+                <>
+                  <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byValue.company}>{clientIntel.byValue.company}</div>
+                  <div className="text-[11px] text-muted-foreground font-mono mt-0.5">{fmtAUD(clientIntel.byValue.totalValue)}</div>
+                </>
+              ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
+            </div>
+          </div>
+
+          {/* Concentration */}
+          <div className={`text-fluid-xs font-mono mb-3 ${clientIntel.top3Pct > 60 ? "text-[#f59e0b]" : "text-muted-foreground"}`}>
+            Top client = {clientIntel.topClientPct.toFixed(1)}% of tracked value · Top 3 = {clientIntel.top3Pct.toFixed(1)}%
+          </div>
+
+          {/* Top Clients table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-fluid-xs">
+              <thead>
+                <tr className="text-left text-muted-foreground border-b border-border">
+                  <th className="py-2 pr-3 font-medium">Client</th>
+                  <th className="py-2 px-3 font-medium text-right">Projects</th>
+                  <th className="py-2 px-3 font-medium text-right">Won $</th>
+                  <th className="py-2 px-3 font-medium text-right">In-Running $</th>
+                  <th className="py-2 px-3 font-medium text-right">Total $</th>
+                  <th className="py-2 pl-3 font-medium text-right">Win Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(showAllClients ? clientIntel.sorted : clientIntel.sorted.slice(0, 8)).map((c) => (
+                  <tr key={c.company} className="border-b border-border/50 hover:bg-white/[0.02]">
+                    <td className="py-2 pr-3 truncate max-w-[240px]" title={c.company}>{c.company}</td>
+                    <td className="py-2 px-3 text-right font-mono tabular-nums">{c.projects}</td>
+                    <td className="py-2 px-3 text-right font-mono tabular-nums text-[#22c55e]">{c.wonValue > 0 ? fmtAUD(c.wonValue) : "—"}</td>
+                    <td className="py-2 px-3 text-right font-mono tabular-nums text-[#60a5fa]">{c.runningValue > 0 ? fmtAUD(c.runningValue) : "—"}</td>
+                    <td className="py-2 px-3 text-right font-mono tabular-nums font-semibold">{fmtAUD(c.totalValue)}</td>
+                    <td className="py-2 pl-3 text-right font-mono tabular-nums">{c.winRate === null ? "—" : `${c.winRate.toFixed(0)}%`}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {clientIntel.sorted.length > 8 && (
+            <button
+              onClick={() => setShowAllClients(v => !v)}
+              className="mt-3 text-fluid-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {showAllClients ? "Show top 8" : `Show all (${clientIntel.sorted.length})`}
+            </button>
+          )}
+
+          <p className="text-[11px] text-muted-foreground mt-4">
+            Client totals are grouped from individual deal line items (Contract Value) and may differ slightly from the Win/Loss summary, which uses period-scoped totals.
+          </p>
+        </motion.section>
+
         {/* Section 3: Velocity */}
+
         <motion.section variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="chart-container p-5">
             <h2 className="text-fluid-base font-semibold mb-1">Avg Days Per Stage</h2>
