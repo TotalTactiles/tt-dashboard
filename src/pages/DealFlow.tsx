@@ -875,8 +875,6 @@ const DealFlow = () => {
             <p className="text-[10px] text-muted-foreground/70 mt-1 font-mono">W won · L lost · ItR in the running</p>
           </div>
 
-          {/* scoreline helper: "2W · 1L · 1ItR" (zeros omitted) */}
-          {(() => null)()}
 
           {/* Tiles */}
           <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-5">
