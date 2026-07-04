@@ -1124,7 +1124,7 @@ const DealFlow = () => {
                           <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isOpen ? "rotate-90" : ""}`} />
                         </td>
                         <td className="py-2 pr-3 truncate max-w-[240px]" title={c.company}>{c.company}</td>
-                        <td className="py-2 px-3 text-right font-mono tabular-nums">{c.activeProjects}</td>
+                        <td className="py-2 px-3 text-right font-mono tabular-nums">{c.projectsWonRunning}</td>
                         <td className={`py-2 px-3 text-right font-mono tabular-nums ${valColor}`}>{fmtAUD(c.activeValue)}</td>
                         <td className="py-2 px-3 text-right font-mono tabular-nums font-semibold">{fmtAUD(c.totalValue)}</td>
                         <td className="py-2 pl-3 text-right font-mono tabular-nums">{c.winRate === null ? "—" : `${c.winRate.toFixed(0)}%`}</td>
