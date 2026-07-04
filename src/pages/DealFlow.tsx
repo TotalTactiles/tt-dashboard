@@ -232,7 +232,7 @@ const DealFlow = () => {
   const daysSinceDate = (d: Date | null) =>
     d ? Math.max(0, Math.floor((today.getTime() - d.getTime()) / 86400000)) : null;
 
-  // Velocity — avg days per real stage (excludes Completed & Lost/Dead)
+  // Velocity — avg days per real stage from cycle cache (excludes Completed & Lost/Dead)
   const VELOCITY_STAGES = [
     "Quote Sent",
     "Negotiation/Review",
@@ -242,7 +242,7 @@ const DealFlow = () => {
   const velocityData = VELOCITY_STAGES.map((label) => {
     const items = quotesRaw.filter((r: any) => stageOfRow(r) === label);
     const days = items
-      .map((r: any) => daysSinceDate(createdDateOf(r)))
+      .map((r: any) => daysSinceQuoted(cyc(r)))
       .filter((x: number | null): x is number => x !== null);
     const avg = days.length ? days.reduce((a, b) => a + b, 0) / days.length : 0;
     return { stage: label, avgDays: Math.round(avg), count: items.length };
@@ -251,39 +251,55 @@ const DealFlow = () => {
   const velocityColor = (d: number) =>
     d < 14 ? "hsl(var(--chart-green))" : d < 30 ? "hsl(var(--chart-orange))" : "hsl(var(--destructive))";
 
-  // Stale deals
+  // Median cycle time — primary + measurable only
+  const cycleEntries = Object.values(cycleMap).filter(
+    (e) => e && e.isPrimary === 1 && e.measurable === 1 && typeof e.cycleDays === "number",
+  ) as CycleEntry[];
+  const wonDays = cycleEntries.filter((e) => e.decidedType === "won").map((e) => e.cycleDays as number);
+  const lostDays = cycleEntries.filter((e) => e.decidedType === "lost").map((e) => e.cycleDays as number);
+  const medianWon = Math.round(median(wonDays));
+  const medianLost = Math.round(median(lostDays));
+  const meanWon = Math.round(mean(wonDays));
+  const meanLost = Math.round(mean(lostDays));
+
+  // Per-deal list (from raw quotes joined to cache)
   const staleDeals = useMemo(() => {
     return quotesRaw
       .filter((j: any) => !!(j["Current Status"]))
       .map((j: any) => {
-        const d = createdDateOf(j);
-        if (!d) return null;
-        const days = Math.floor((today.getTime() - d.getTime()) / 86400000);
-        return {
-          ...j,
-          daysOld: days,
-          projectName: j["Project Name"] ?? j._project ?? "",
-          companyName: j["Company Name"] ?? j._company ?? "",
-          status: j["Current Status"] === "PO Received (GRN)" || j["Current Status"] === "Completed" ? "won"
+        const entry = cyc(j);
+        const isMeasurable = entry ? entry.measurable === 1 : false;
+        const days = daysSinceQuoted(entry);
+        const status =
+          j["Current Status"] === "PO Received (GRN)" || j["Current Status"] === "Completed" ? "won"
             : j["Current Status"] === "Lost/Dead" ? "lost"
             : j["Current Status"] === "Verbal Confirmation (YLW)" ? "yellow"
-            : "pending",
+            : "pending";
+        return {
+          ...j,
+          daysOld: days,               // number | null
+          measurable: isMeasurable,
+          projectName: j["Project Name"] ?? j._project ?? "",
+          companyName: j["Company Name"] ?? j._company ?? "",
+          status,
         };
       })
-      .filter((j: any) => j !== null)
-      .map((j: any) => j.daysOld <= 0 ? { ...j, daysOld: 1 } : j)
-      .sort((a: any, b: any) => b.daysOld - a.daysOld);
-  }, [quotesRaw]);
+      .sort((a: any, b: any) => {
+        const av = a.daysOld ?? -1;
+        const bv = b.daysOld ?? -1;
+        return bv - av;
+      });
+  }, [quotesRaw, cycleMap]);
 
   const filteredStaleDeals = useMemo(() => {
     let list = staleDeals;
     if (staleStatus === "stale") {
-      list = list.filter((j: any) => j.status === "pending" && j.daysOld > 21);
+      list = list.filter((j: any) => j.status === "pending" && (j.daysOld ?? 0) > 21);
     } else if (staleStatus !== "all") {
       list = list.filter((j: any) => j.status === staleStatus);
     }
     if (staleSort === "newest") {
-      list = [...list].sort((a: any, b: any) => a.daysOld - b.daysOld);
+      list = [...list].sort((a: any, b: any) => (a.daysOld ?? -1) - (b.daysOld ?? -1));
     }
     return list;
   }, [staleDeals, staleSort, staleStatus]);
