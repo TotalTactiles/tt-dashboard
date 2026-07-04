@@ -92,14 +92,27 @@ const DealFlow = () => {
     (async () => {
       try {
         const res = await fetch(DEAL_CYCLE_WEBHOOK);
-        const rows: Array<{ key: string; value: string }> = await res.json();
-        const row = rows.find((r) => r.key === "tt_deal_cycle");
-        if (row?.value && !cancelled) {
-          const parsed = JSON.parse(row.value);
-          if (parsed && typeof parsed === "object") setCycleMap(parsed);
+        const raw = await res.json();
+        // Accept either [rows], { data: [rows] }, or a single row.
+        const rows: Array<{ key: string; value: any }> = Array.isArray(raw)
+          ? raw
+          : Array.isArray(raw?.data)
+            ? raw.data
+            : raw?.key
+              ? [raw]
+              : [];
+        const row = rows.find((r) => r?.key === "tt_deal_cycle");
+        if (row && !cancelled) {
+          const parsed = typeof row.value === "string" ? JSON.parse(row.value) : row.value;
+          if (parsed && typeof parsed === "object") {
+            setCycleMap(parsed as Record<string, CycleEntry>);
+            console.log("[DealFlow] tt_deal_cycle loaded:", Object.keys(parsed).length, "entries");
+          }
+        } else if (!cancelled) {
+          console.warn("[DealFlow] tt_deal_cycle row not found in cache webhook response");
         }
-      } catch {
-        /* fail gracefully */
+      } catch (err) {
+        console.warn("[DealFlow] tt_deal_cycle fetch failed", err);
       } finally {
         if (!cancelled) setCycleLoaded(true);
       }
