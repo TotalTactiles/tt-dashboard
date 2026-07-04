@@ -458,7 +458,7 @@ const DealFlow = () => {
         const project = projectOf(j) || projectOf(rawQuote);
         const company = companyOf(j) || companyOf(rawQuote);
         const contractGroupId = contractGroupIdOf(j) || contractGroupIdOf(rawQuote);
-        const contractKey = contractGroupId || zohoId || `${company.toLowerCase()}::${project.toLowerCase()}`;
+        const contractKey = contractGroupId || zohoId;
         const flags = stageFlags(j);
         return {
           company,
@@ -473,7 +473,7 @@ const DealFlow = () => {
       .filter(r => r.company && r.contractKey);
 
 
-    // Group into rolled-up contracts keyed by Parent Job ID, falling back to own Zoho ID.
+    // Group into rolled-up contracts strictly by Contract Group ID (fallback: own Zoho ID for standalone deals).
     type Contract = {
       key: string;
       company: string;
