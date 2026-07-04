@@ -596,6 +596,24 @@ const DealFlow = () => {
       : 0;
     const returningTotal = returningClients.length;
 
+    // New vs Returning client intelligence metrics.
+    const newClients = clients.filter(c => c.contracts.length === 1);
+    const newClientCount = newClients.length;
+    const returningClientCount = returningTotal;
+    const totalClients = clients.length;
+
+    const returningContracts = returningClients.reduce((s, c) => s + c.contracts.length, 0);
+    const returningClientValueTotal = returningClients.reduce((s, c) => s + c.totalValue, 0);
+    const newClientValueTotal = newClients.reduce((s, c) => s + c.totalValue, 0);
+    const trackedValue = clients.reduce((s, c) => s + c.totalValue, 0);
+
+    const avgContractsPerReturning = returningClientCount > 0 ? returningContracts / returningClientCount : 0;
+    const avgValuePerReturning = returningClientCount > 0 ? returningClientValueTotal / returningClientCount : 0;
+    const newPct = totalClients > 0 ? (newClientCount / totalClients) * 100 : 0;
+    const returningPct = totalClients > 0 ? (returningClientCount / totalClients) * 100 : 0;
+    const returningValueShare = trackedValue > 0 ? (returningClientValueTotal / trackedValue) * 100 : 0;
+    const newValueShare = trackedValue > 0 ? (newClientValueTotal / trackedValue) * 100 : 0;
+
     // Concentration on won+running (tracked value).
     const trackedSorted = [...clients]
       .map(c => ({ ...c, tracked: c.wonValue + c.runningValue }))
@@ -605,7 +623,12 @@ const DealFlow = () => {
     const topClientPct = grand > 0 && trackedSorted[0] ? (trackedSorted[0].tracked / grand) * 100 : 0;
     const top3Pct = grand > 0 ? (trackedSorted.slice(0, 3).reduce((s, c) => s + c.tracked, 0) / grand) * 100 : 0;
 
-    return { biggestWon, biggestRun, biggestLost, byProjects, byValue, byReturning, returningTotal, returningTiedExtra, clients, topClientPct, top3Pct };
+    return { biggestWon, biggestRun, biggestLost, byProjects, byValue, byReturning, returningTotal, returningTiedExtra, clients, topClientPct, top3Pct,
+      avgContractsPerReturning, avgValuePerReturning,
+      newClientCount, returningClientCount, totalClients,
+      returningContracts, returningClientValueTotal, newClientValueTotal,
+      trackedValue, newPct, returningPct, returningValueShare, newValueShare,
+    };
   }, [jobs, quotesRaw]);
 
   const activeClients = useMemo(() => {
