@@ -918,12 +918,19 @@ const DealFlow = () => {
               } ${clientIntel.byProjects ? "cursor-pointer" : "cursor-default"}`}
             >
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Client — Most Projects</div>
-              <div className="text-[9px] text-muted-foreground/70 mt-0.5">won + in-running contracts</div>
+              <div className="text-[9px] text-muted-foreground/70 mt-0.5">won + in-running contracts (delivery)</div>
               {clientIntel.byProjects ? (
                 <>
                   <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byProjects.company}>{clientIntel.byProjects.company}</div>
                   <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                    {clientIntel.byProjects.activeContractCount} won + in-running · {fmtAUD(clientIntel.byProjects.activeContractValue)}
+                    {clientIntel.byProjects.activeContractCount} delivery contract{clientIntel.byProjects.activeContractCount === 1 ? "" : "s"} · {fmtAUD(clientIntel.byProjects.activeContractValue)}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground/80 font-mono mt-0.5">
+                    {[
+                      clientIntel.byProjects.wonContractCount > 0 ? `${clientIntel.byProjects.wonContractCount}W` : null,
+                      clientIntel.byProjects.lostContractCount > 0 ? `${clientIntel.byProjects.lostContractCount}L` : null,
+                      clientIntel.byProjects.runningContractCount > 0 ? `${clientIntel.byProjects.runningContractCount}ItR` : null,
+                    ].filter(Boolean).join(" · ") || "—"}
                   </div>
                 </>
               ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
