@@ -312,7 +312,8 @@ const DealFlow = () => {
   const maxStageCount = Math.max(1, ...stageStats.map(s => s.count), completedCount);
 
   // Client Intelligence
-  const [clientFilter, setClientFilter] = useState<"won" | "running" | "lost">("won");
+  type ClientPill = "won" | "running" | "lost" | "lowest" | "all";
+  const [clientFilter, setClientFilter] = useState<ClientPill>("won");
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [showAllClients, setShowAllClients] = useState(false);
   const [tileFilterClient, setTileFilterClient] = useState<string | null>(null);
@@ -324,32 +325,20 @@ const DealFlow = () => {
       ? { key, dir: prev.dir === "asc" ? "desc" : "asc" }
       : { key, dir: key === "company" ? "asc" : "desc" });
   };
-
-  const bestPillFor = (client: any, mode: "value" | "count"): "won" | "running" | "lost" => {
-    if (!client) return "won";
-    if (mode === "value") {
-      const arr: Array<["won" | "running" | "lost", number]> = [
-        ["won", client.wonValue || 0],
-        ["running", client.runningValue || 0],
-        ["lost", client.lostValue || 0],
-      ];
-      arr.sort((a, b) => b[1] - a[1]);
-      return arr[0][1] > 0 ? arr[0][0] : "won";
-    }
-    const counts: Record<"won" | "running" | "lost", number> = { won: 0, running: 0, lost: 0 };
-    for (const k of client.contracts ?? []) {
-      if (k.status === "won" || k.status === "running" || k.status === "lost") counts[k.status] += 1;
-    }
-    const order: Array<"won" | "running" | "lost"> = ["won", "running", "lost"];
-    let best: "won" | "running" | "lost" = "won";
-    let bestN = -1;
-    for (const p of order) {
-      if (counts[p] > bestN) { bestN = counts[p]; best = p; }
-    }
-    return bestN > 0 ? best : "won";
+  const defaultSortForPill = (p: ClientPill): { key: ClientSortKey; dir: "asc" | "desc" } => {
+    if (p === "lowest") return { key: "active", dir: "asc" };
+    if (p === "all") return { key: "total", dir: "desc" };
+    return { key: "active", dir: "desc" };
+  };
+  const changePill = (p: ClientPill) => {
+    setClientFilter(p);
+    setClientSort(defaultSortForPill(p));
+    setExpandedClient(null);
   };
 
-  const handleTileClick = (tileKey: string, company: string | undefined, pill?: "won" | "running" | "lost") => {
+  const bestPillFor = (_client: any, _mode: "value" | "count"): ClientPill => "all";
+
+  const handleTileClick = (tileKey: string, company: string | undefined, _pill?: ClientPill) => {
     if (!company) return;
     if (activeTileKey === tileKey) {
       setActiveTileKey(null);
@@ -360,7 +349,8 @@ const DealFlow = () => {
     setActiveTileKey(tileKey);
     setTileFilterClient(company);
     setExpandedClient(company);
-    if (pill) setClientFilter(pill);
+    setClientFilter("all");
+    setClientSort(defaultSortForPill("all"));
     setShowAllClients(true);
     if (typeof window !== "undefined") {
       requestAnimationFrame(() => {
@@ -372,6 +362,20 @@ const DealFlow = () => {
     setActiveTileKey(null);
     setTileFilterClient(null);
     setExpandedClient(null);
+  };
+  const handleRowClick = (company: string) => {
+    const isOpen = expandedClient === company;
+    if (isOpen && tileFilterClient === company) {
+      setExpandedClient(null);
+      setTileFilterClient(null);
+      setActiveTileKey(null);
+      return;
+    }
+    setTileFilterClient(company);
+    setExpandedClient(company);
+    setClientFilter("all");
+    setClientSort(defaultSortForPill("all"));
+    setShowAllClients(true);
   };
 
   const clientIntel = useMemo(() => {
