@@ -161,21 +161,35 @@ const DealFlow = () => {
   }, [lostJobs]);
 
 
-  // Velocity — avg days per active stage
+  // Real stage + created-date helpers (raw sheet rows)
+  const stageOfRow = (row: any): string => {
+    const s = (row["Current Status"] ?? row["Current\nStatus"] ?? row["Stage"] ?? "")
+      .toString().toUpperCase().trim();
+    if (s.includes("QUOTE SENT")) return "Quote Sent";
+    if (s.includes("NEGOTIATION") || s.includes("REVIEW")) return "Negotiation/Review";
+    if (s.includes("VERBAL") || s.includes("YLW")) return "Verbal Confirmation (YLW)";
+    if (s.includes("PO RECEIVED") || s.includes("GRN")) return "PO Received (GRN)";
+    if (s.includes("COMPLETED")) return "Completed";
+    if (s.includes("LOST") || s.includes("DEAD")) return "Lost/Dead";
+    return "Other";
+  };
+  const createdDateOf = (row: any): Date | null =>
+    parseDealDate((row["Date Created"] ?? "").toString().trim());
+  const daysSinceDate = (d: Date | null) =>
+    d ? Math.max(0, Math.floor((today.getTime() - d.getTime()) / 86400000)) : null;
+
+  // Velocity — avg days per real stage (excludes Completed & Lost/Dead)
   const VELOCITY_STAGES = [
-    { key: "pending", label: "Pending" },
-    { key: "yellow", label: "Yellow (YLW)" },
-    { key: "won", label: "Won" },
+    "Quote Sent",
+    "Negotiation/Review",
+    "Verbal Confirmation (YLW)",
+    "PO Received (GRN)",
   ];
-  const velocityData = VELOCITY_STAGES.map(({ key, label }) => {
-    const items = byStatus[key as keyof typeof byStatus] ?? [];
+  const velocityData = VELOCITY_STAGES.map((label) => {
+    const items = quotesRaw.filter((r: any) => stageOfRow(r) === label);
     const days = items
-      .map((j: any) => {
-        const d = parseDealDate(j.dateQuoted);
-        if (!d) return null;
-        return Math.max(0, Math.floor((today.getTime() - d.getTime()) / 86400000));
-      })
-      .filter((x): x is number => x !== null);
+      .map((r: any) => daysSinceDate(createdDateOf(r)))
+      .filter((x: number | null): x is number => x !== null);
     const avg = days.length ? days.reduce((a, b) => a + b, 0) / days.length : 0;
     return { stage: label, avgDays: Math.round(avg), count: items.length };
   });
@@ -188,17 +202,9 @@ const DealFlow = () => {
     return quotesRaw
       .filter((j: any) => !!(j["Current Status"]))
       .map((j: any) => {
-        const zohoMatch = (quotedJobs ?? []).find((q: any) =>
-          q["Job/Lead ID (Zoho)"] === j["Job/Lead ID (Zoho)"] ||
-          q.zohoId === j["Job/Lead ID (Zoho)"]
-        );
-        const d = parseDealDate(zohoMatch?.dateQuoted ?? j["Date Created"] ?? j["Estimated Job Date"] ?? "");
+        const d = createdDateOf(j);
         if (!d) return null;
-        const closeDate = j["Last Updated"]
-          ? parseDealDate(j["Last Updated"])
-          : null;
-        const endDate = closeDate ?? today;
-        const days = Math.floor((endDate.getTime() - d.getTime()) / 86400000);
+        const days = Math.floor((today.getTime() - d.getTime()) / 86400000);
         return {
           ...j,
           daysOld: days,
@@ -374,7 +380,7 @@ const DealFlow = () => {
         <motion.section variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="chart-container p-5">
             <h2 className="text-fluid-base font-semibold mb-1">Avg Days Per Stage</h2>
-            <p className="text-fluid-xs text-muted-foreground mb-4">Time since quoted, for deals currently in stage</p>
+            <p className="text-fluid-xs text-muted-foreground mb-4">Avg days since quoting started, by current stage</p>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={velocityData} layout="vertical" margin={{ left: 10, right: 24, top: 4, bottom: 4 }}>
                 <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={11} />
@@ -404,7 +410,7 @@ const DealFlow = () => {
 
           <div className="chart-container p-5">
             <h2 className="text-fluid-base font-semibold mb-1">Pipeline Velocity</h2>
-            <p className="text-fluid-xs text-muted-foreground mb-4">Quote-to-close duration across all deals</p>
+            <p className="text-fluid-xs text-muted-foreground mb-4">Days in pipeline since quoting started (Date Created)</p>
 
             {/* Filter controls */}
             <div className="flex flex-wrap items-center gap-2 mb-3">
