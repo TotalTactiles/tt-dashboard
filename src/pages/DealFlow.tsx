@@ -312,54 +312,148 @@ const DealFlow = () => {
   const maxStageCount = Math.max(1, ...stageStats.map(s => s.count), completedCount);
 
   // Client Intelligence
+  const [clientFilter, setClientFilter] = useState<"won" | "running" | "lost">("won");
+  const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [showAllClients, setShowAllClients] = useState(false);
+
   const clientIntel = useMemo(() => {
+    // Strip trailing stage suffix to get base contract name.
+    // Handles " - S2" / " – S3" / " VARIATION..." / " ADDITIONAL..."
+    const stripStageSuffix = (name: string): string => {
+      let n = String(name || "").trim();
+      // Iterate a few times in case of multiple suffixes ("Vela S2 VARIATION")
+      for (let i = 0; i < 3; i++) {
+        const before = n;
+        n = n.replace(/[\s]*[-–—][\s]*S[2-9]\b.*$/i, "");
+        n = n.replace(/\s+S[2-9]\b.*$/i, "");
+        n = n.replace(/\s*[-–—]?\s*(VARIATION|ADDITIONAL)\b.*$/i, "");
+        n = n.trim();
+        if (n === before) break;
+      }
+      return n || String(name || "").trim();
+    };
+    const isChildName = (name: string) =>
+      /\bS[2-9]\b/i.test(name) || /\b(VARIATION|ADDITIONAL)\b/i.test(name);
+    const hasParentId = (j: any) =>
+      !!(j?.parentJobId ?? j?.parent_job_id ?? j?.parentId ?? j?.["Parent Job ID"]);
+
     const isWonS = (s: string) => s === "won";
     const isLostS = (s: string) => s === "lost";
     const isRunS = (s: string) => s === "pending" || s === "yellow";
+
     const rows = (jobs as any[])
-      .map(j => ({
-        company: String(j.company ?? "").trim(),
-        project: String(j.project ?? j.jobName ?? "").trim(),
-        value: Number(j.value) || 0,
-        status: String(j.status ?? ""),
-      }))
+      .map(j => {
+        const project = String(j.project ?? j.jobName ?? "").trim();
+        return {
+          company: String(j.company ?? "").trim(),
+          project,
+          base: stripStageSuffix(project),
+          isChild: hasParentId(j) || isChildName(project),
+          value: Number(j.value) || 0,
+          status: String(j.status ?? ""),
+        };
+      })
       .filter(r => r.company);
 
-    const pickMax = (pred: (s: string) => boolean) => {
-      const arr = rows.filter(r => pred(r.status));
-      if (!arr.length) return null;
-      return arr.reduce((a, b) => (b.value > a.value ? b : a));
+    // Group into rolled-up contracts keyed by company + base.
+    type Contract = {
+      key: string;
+      company: string;
+      base: string;
+      wonValue: number;
+      runningValue: number;
+      lostValue: number;
+      stageCount: number;
     };
-    const biggestWon = pickMax(isWonS);
-    const biggestRun = pickMax(isRunS);
-    const biggestLost = pickMax(isLostS);
-
-    const map = new Map<string, { company: string; projects: number; wonValue: number; runningValue: number; lostValue: number; wonCount: number; lostCount: number }>();
+    const cMap = new Map<string, Contract>();
     for (const r of rows) {
-      const e = map.get(r.company) ?? { company: r.company, projects: 0, wonValue: 0, runningValue: 0, lostValue: 0, wonCount: 0, lostCount: 0 };
-      if (isWonS(r.status)) { e.wonValue += r.value; e.wonCount += 1; e.projects += 1; }
-      else if (isRunS(r.status)) { e.runningValue += r.value; e.projects += 1; }
-      else if (isLostS(r.status)) { e.lostValue += r.value; e.lostCount += 1; }
-      map.set(r.company, e);
+      const key = `${r.company.toLowerCase()}::${r.base.toLowerCase()}`;
+      const c = cMap.get(key) ?? {
+        key, company: r.company, base: r.base,
+        wonValue: 0, runningValue: 0, lostValue: 0, stageCount: 0,
+      };
+      if (isWonS(r.status)) c.wonValue += r.value;
+      else if (isRunS(r.status)) c.runningValue += r.value;
+      else if (isLostS(r.status)) c.lostValue += r.value;
+      c.stageCount += 1;
+      cMap.set(key, c);
     }
-    const clients = Array.from(map.values()).map(c => {
-      const totalValue = c.wonValue + c.runningValue;
+    const contracts = Array.from(cMap.values());
+
+    const biggestOf = (pick: (c: Contract) => number) => {
+      const arr = contracts.filter(c => pick(c) > 0);
+      if (!arr.length) return null;
+      const c = arr.reduce((a, b) => (pick(b) > pick(a) ? b : a));
+      return { company: c.company, project: c.base, value: pick(c) };
+    };
+    const biggestWon = biggestOf(c => c.wonValue);
+    const biggestRun = biggestOf(c => c.runningValue);
+    const biggestLost = biggestOf(c => c.lostValue);
+
+    // Aggregate per client from rolled-up contracts.
+    type Client = {
+      company: string;
+      contracts: Contract[];
+      projects: number;
+      wonValue: number;
+      runningValue: number;
+      lostValue: number;
+      totalValue: number;
+      wonCount: number;
+      lostCount: number;
+      winRate: number | null;
+    };
+    const clientMap = new Map<string, Client>();
+    for (const c of contracts) {
+      const key = c.company.toLowerCase();
+      const e = clientMap.get(key) ?? {
+        company: c.company, contracts: [], projects: 0,
+        wonValue: 0, runningValue: 0, lostValue: 0, totalValue: 0,
+        wonCount: 0, lostCount: 0, winRate: null,
+      };
+      e.contracts.push(c);
+      e.projects += 1;
+      e.wonValue += c.wonValue;
+      e.runningValue += c.runningValue;
+      e.lostValue += c.lostValue;
+      if (c.wonValue > 0) e.wonCount += 1;
+      if (c.lostValue > 0 && c.wonValue === 0 && c.runningValue === 0) e.lostCount += 1;
+      clientMap.set(key, e);
+    }
+    const clients = Array.from(clientMap.values()).map(c => {
+      const totalValue = c.wonValue + c.runningValue + c.lostValue;
       const decided = c.wonCount + c.lostCount;
       const winRate = decided > 0 ? (c.wonCount / decided) * 100 : null;
-      return { ...c, totalValue, quoted: decided, winRate };
+      return { ...c, totalValue, winRate };
     });
 
-    const byProjects = [...clients].filter(c => c.projects > 0).sort((a, b) => b.projects - a.projects)[0] ?? null;
-    const byValue = [...clients].filter(c => c.totalValue > 0).sort((a, b) => b.totalValue - a.totalValue)[0] ?? null;
+    // Highest-value client (across all statuses).
+    const byValue = [...clients].filter(c => c.totalValue > 0)
+      .sort((a, b) => b.totalValue - a.totalValue)[0] ?? null;
+    const byProjects = [...clients].filter(c => c.projects > 0)
+      .sort((a, b) => b.projects - a.projects)[0] ?? null;
 
-    const sorted = [...clients].sort((a, b) => b.totalValue - a.totalValue);
-    const grand = sorted.reduce((s, c) => s + c.totalValue, 0);
-    const topClientPct = grand > 0 && sorted[0] ? (sorted[0].totalValue / grand) * 100 : 0;
-    const top3Pct = grand > 0 ? (sorted.slice(0, 3).reduce((s, c) => s + c.totalValue, 0) / grand) * 100 : 0;
+    // Concentration on won+running (tracked value).
+    const trackedSorted = [...clients]
+      .map(c => ({ ...c, tracked: c.wonValue + c.runningValue }))
+      .filter(c => c.tracked > 0)
+      .sort((a, b) => b.tracked - a.tracked);
+    const grand = trackedSorted.reduce((s, c) => s + c.tracked, 0);
+    const topClientPct = grand > 0 && trackedSorted[0] ? (trackedSorted[0].tracked / grand) * 100 : 0;
+    const top3Pct = grand > 0 ? (trackedSorted.slice(0, 3).reduce((s, c) => s + c.tracked, 0) / grand) * 100 : 0;
 
-    return { biggestWon, biggestRun, biggestLost, byProjects, byValue, sorted, topClientPct, top3Pct };
+    return { biggestWon, biggestRun, biggestLost, byProjects, byValue, clients, topClientPct, top3Pct };
   }, [jobs]);
+
+  const activeClients = useMemo(() => {
+    const pick = (c: any) =>
+      clientFilter === "won" ? c.wonValue :
+      clientFilter === "running" ? c.runningValue : c.lostValue;
+    return clientIntel.clients
+      .filter((c: any) => pick(c) > 0)
+      .map((c: any) => ({ ...c, activeValue: pick(c) }))
+      .sort((a: any, b: any) => b.activeValue - a.activeValue);
+  }, [clientIntel, clientFilter]);
 
   return (
     <DashboardLayout>
