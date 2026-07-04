@@ -622,7 +622,7 @@ const DealFlow = () => {
       if (bv === null) return -1;
       return sign * (av - bv);
     });
-  }, [clientIntel, clientFilter, clientSort]);
+  }, [clientIntel, clientFilter, clientSort, tileFilterClient]);
 
   return (
     <DashboardLayout>
