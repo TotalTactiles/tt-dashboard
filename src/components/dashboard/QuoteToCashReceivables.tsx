@@ -361,7 +361,7 @@ const QuoteToCashReceivables = () => {
       {renderHeader()}
 
       {/* 1. Summary stat row */}
-      <div className="mt-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-3">
+      <div className="mt-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-9 gap-3">
         <StatCard
           label="Outstanding"
           value={fmtMoney(summary.totalOutstanding)}
@@ -429,7 +429,54 @@ const QuoteToCashReceivables = () => {
           }
           valueClass="text-chart-orange"
         />
-
+        <StatCard
+          label={
+            <InfoLabel
+              label="Fastest payer"
+              info="The client with the shortest average time from invoice to payment. Based on their paid invoices only."
+            />
+          }
+          value={summary.fastestPayer ? `${summary.fastestPayer.avgDaysToPay} days` : "—"}
+          sub={
+            summary.fastestPayer ? (
+              <div className="min-w-0 overflow-hidden">
+                <div className="truncate" title={summary.fastestPayer.company}>
+                  {summary.fastestPayer.company}
+                </div>
+                <div className="opacity-70">
+                  {summary.fastestPayer.paidCount} {summary.fastestPayer.paidCount === 1 ? "invoice" : "invoices"}
+                </div>
+              </div>
+            ) : (
+              "No payment history yet"
+            )
+          }
+          valueClass="text-chart-green"
+        />
+        <StatCard
+          label={
+            <InfoLabel
+              label="Slowest payer"
+              info="The client with the longest average time from invoice to payment. Watch the invoice count — a single late payment can top this list."
+            />
+          }
+          value={summary.slowestPayer ? `${summary.slowestPayer.avgDaysToPay} days` : "—"}
+          sub={
+            summary.slowestPayer ? (
+              <div className="min-w-0 overflow-hidden">
+                <div className="truncate" title={summary.slowestPayer.company}>
+                  {summary.slowestPayer.company}
+                </div>
+                <div className="opacity-70">
+                  {summary.slowestPayer.paidCount} {summary.slowestPayer.paidCount === 1 ? "invoice" : "invoices"}
+                </div>
+              </div>
+            ) : (
+              "No payment history yet"
+            )
+          }
+          valueClass="text-destructive"
+        />
 
       </div>
 
