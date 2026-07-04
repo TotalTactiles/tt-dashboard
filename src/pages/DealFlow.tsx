@@ -318,7 +318,7 @@ const DealFlow = () => {
   const [showAllClients, setShowAllClients] = useState(false);
   const [tileFilterClient, setTileFilterClient] = useState<string | null>(null);
   const [activeTileKey, setActiveTileKey] = useState<string | null>(null);
-  const [valueTileMode, setValueTileMode] = useState<"highest" | "lowest">("highest");
+  const [valueTileMode, setValueTileMode] = useState<"highest" | "lowest" | "won">("highest");
   const [returnBasis, setReturnBasis] = useState<"won" | "all">("won");
   type ClientSortKey = "company" | "projects" | "active" | "total" | "winRate";
   const [clientSort, setClientSort] = useState<{ key: ClientSortKey; dir: "asc" | "desc" }>({ key: "total", dir: "desc" });
