@@ -405,9 +405,10 @@ const DealFlow = () => {
       }
       return n || String(name || "").trim();
     };
+    // Pick the shortest REAL project name from the group (verbatim from the sheet — never synthesised).
     const shortestName = (names: string[]): string =>
       names
-        .map(stripStageSuffix)
+        .map(n => String(n || "").trim())
         .filter(Boolean)
         .sort((a, b) => a.length - b.length || a.localeCompare(b))[0] ?? "";
     const companyOf = (j: any): string => pickField(j, ["company", "Company Name", "Company\nName", "_company"]);
