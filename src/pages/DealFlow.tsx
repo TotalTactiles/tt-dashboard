@@ -15,6 +15,13 @@ function parseDealDate(raw: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
+const getLostReasonRaw = (j: any) =>
+  (j.lostReason
+    ?? (j as any).reasonForLoss
+    ?? (j as any)["Lost/Dead Reason"]
+    ?? (j as any)["Lost/Dead\nReason"]
+    ?? "").toString().trim();
+
 const isWon = (s: string) => s === "won";
 const isYellow = (s: string) => s === "yellow";
 const isLost = (s: string) => s === "lost";
@@ -139,17 +146,20 @@ const DealFlow = () => {
   }, 0) / (wonJobsForAvg.length || 1);
 
   // Loss reasons
-  const lossReasons = useMemo(() => {
+  const reasonBuckets = useMemo(() => {
     const counts: Record<string, number> = {};
-    lostItems.forEach((j: any) => {
-      const r = (j.reasonForLoss && String(j.reasonForLoss).trim()) || "Unspecified";
+    lostJobs.forEach((j: any) => {
+      const r = getLostReasonRaw(j) || "Unspecified";
       counts[r] = (counts[r] || 0) + 1;
     });
-    const total = lostItems.length || 1;
+    const total = lostJobs.length || 1;
     return Object.entries(counts)
       .map(([reason, count]) => ({ reason, count, pct: (count / total) * 100 }))
       .sort((a, b) => b.count - a.count);
-  }, [lostItems]);
+  }, [lostJobs]);
+
+  const blankReasonCount = lostJobs.filter((j: any) => getLostReasonRaw(j) === "").length;
+
 
   // Velocity — avg days per active stage
   const VELOCITY_STAGES = [
@@ -352,10 +362,10 @@ const DealFlow = () => {
 
           <div className="chart-container p-5">
             <h2 className="text-fluid-base font-semibold mb-4">Loss Reason Breakdown</h2>
-            {lossReasons.length === 0 ? (
+            {reasonBuckets.length === 0 ? (
               <div className="text-fluid-sm text-muted-foreground">No lost deals recorded.</div>
             ) : (
-              <LossReasonList reasons={lossReasons} />
+              <LossReasonList reasons={reasonBuckets} blankReasonCount={blankReasonCount} totalLost={lostJobs.length} />
             )}
           </div>
         </motion.section>
@@ -511,7 +521,15 @@ const DealFlow = () => {
   );
 };
 
-const LossReasonList = ({ reasons }: { reasons: { reason: string; count: number; pct: number }[] }) => {
+const LossReasonList = ({
+  reasons,
+  blankReasonCount,
+  totalLost,
+}: {
+  reasons: { reason: string; count: number; pct: number }[];
+  blankReasonCount: number;
+  totalLost: number;
+}) => {
   const top = reasons.slice(0, 6);
   const rest = reasons.slice(6);
   return (
@@ -541,6 +559,11 @@ const LossReasonList = ({ reasons }: { reasons: { reason: string; count: number;
             ))}
           </div>
         </details>
+      )}
+      {blankReasonCount > 0 && (
+        <p className="font-mono text-fluid-xs text-muted-foreground/60 mt-3">
+          {blankReasonCount} of {totalLost} losses have no reason recorded
+        </p>
       )}
     </div>
   );
