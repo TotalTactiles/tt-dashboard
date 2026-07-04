@@ -473,7 +473,7 @@ const DealFlow = () => {
       .filter(r => r.company && r.contractKey);
 
 
-    // Group into rolled-up contracts keyed by Parent Job ID, falling back to own Zoho ID.
+    // Group into rolled-up contracts strictly by Contract Group ID (fallback: own Zoho ID for standalone deals).
     type Contract = {
       key: string;
       company: string;
