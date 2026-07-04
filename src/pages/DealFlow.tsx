@@ -315,6 +315,13 @@ const DealFlow = () => {
   const [clientFilter, setClientFilter] = useState<"won" | "running" | "lost">("won");
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [showAllClients, setShowAllClients] = useState(false);
+  type ClientSortKey = "company" | "projects" | "active" | "total" | "winRate";
+  const [clientSort, setClientSort] = useState<{ key: ClientSortKey; dir: "asc" | "desc" }>({ key: "total", dir: "desc" });
+  const toggleClientSort = (key: ClientSortKey) => {
+    setClientSort(prev => prev.key === key
+      ? { key, dir: prev.dir === "asc" ? "desc" : "asc" }
+      : { key, dir: key === "company" ? "asc" : "desc" });
+  };
 
   const clientIntel = useMemo(() => {
     // Strip trailing stage suffix to get base contract name.
