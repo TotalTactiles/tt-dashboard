@@ -925,6 +925,7 @@ const DealFlow = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
             <div className="text-left rounded-lg border border-border bg-card/40 p-3">
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Returning Client Value</div>
+              <div className="text-[9px] text-muted-foreground/70 mt-0.5">returning = 2+ won contracts</div>
               {clientIntel.returningClientCount > 0 ? (
                 <>
                   <div className="grid grid-cols-2 gap-3 mt-2">
@@ -933,25 +934,25 @@ const DealFlow = () => {
                         {clientIntel.avgContractsPerReturning.toFixed(1)}
                       </div>
                       <div className="text-[10px] text-muted-foreground leading-tight">
-                        contracts per returning client
+                        avg won contracts per returning client
                       </div>
                     </div>
                     <div>
                       <div className="text-fluid-base font-mono font-bold text-foreground">
                         {fmtAUD(clientIntel.avgValuePerReturningContract)}
                       </div>
-                      <div className="text-[10px] text-muted-foreground leading-tight">avg value per contract</div>
+                      <div className="text-[10px] text-muted-foreground leading-tight">avg value per won contract</div>
                     </div>
                     <div className="col-span-2 pt-2 border-t border-border/40">
                       <div className="text-fluid-base font-mono font-bold text-foreground">
                         {fmtAUD(clientIntel.avgValuePerReturning)}
                       </div>
-                      <div className="text-[10px] text-muted-foreground leading-tight">avg total value per client</div>
+                      <div className="text-[10px] text-muted-foreground leading-tight">avg total value per returning client</div>
                     </div>
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-2 pt-2 border-t border-border/40">
                     {clientIntel.returningClientCount} returning client{clientIntel.returningClientCount === 1 ? "" : "s"}
-                    {" "}· {clientIntel.returningContracts} total contracts
+                    {" "}· {clientIntel.returningContracts} won contracts total
                   </div>
                 </>
               ) : (
