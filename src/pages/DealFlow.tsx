@@ -312,12 +312,13 @@ const DealFlow = () => {
   const maxStageCount = Math.max(1, ...stageStats.map(s => s.count), completedCount);
 
   // Client Intelligence
-  type ClientPill = "won" | "running" | "lost" | "lowest" | "all";
+  type ClientPill = "won" | "running" | "lost" | "all";
   const [clientFilter, setClientFilter] = useState<ClientPill>("won");
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [showAllClients, setShowAllClients] = useState(false);
   const [tileFilterClient, setTileFilterClient] = useState<string | null>(null);
   const [activeTileKey, setActiveTileKey] = useState<string | null>(null);
+  const [valueTileMode, setValueTileMode] = useState<"highest" | "lowest">("highest");
   type ClientSortKey = "company" | "projects" | "active" | "total" | "winRate";
   const [clientSort, setClientSort] = useState<{ key: ClientSortKey; dir: "asc" | "desc" }>({ key: "total", dir: "desc" });
   const toggleClientSort = (key: ClientSortKey) => {
@@ -326,7 +327,6 @@ const DealFlow = () => {
       : { key, dir: key === "company" ? "asc" : "desc" });
   };
   const defaultSortForPill = (p: ClientPill): { key: ClientSortKey; dir: "asc" | "desc" } => {
-    if (p === "lowest") return { key: "active", dir: "asc" };
     if (p === "all") return { key: "total", dir: "desc" };
     return { key: "active", dir: "desc" };
   };
@@ -657,7 +657,12 @@ const DealFlow = () => {
     const topClientPct = grand > 0 && trackedSorted[0] ? (trackedSorted[0].tracked / grand) * 100 : 0;
     const top3Pct = grand > 0 ? (trackedSorted.slice(0, 3).reduce((s, c) => s + c.tracked, 0) / grand) * 100 : 0;
 
-    return { biggestWon, biggestRun, biggestLost, byProjects, byValue, byReturning, returningTotal, returningTiedExtra, clients, topClientPct, top3Pct,
+    // Highest / Lowest by tracked value (won + in-running, excl. lost).
+    // Only positive-tracked clients qualify so all-lost clients don't win "lowest" at $0.
+    const byValueHighest = trackedSorted[0] ?? null;
+    const byValueLowest = trackedSorted.length > 0 ? trackedSorted[trackedSorted.length - 1] : null;
+
+    return { biggestWon, biggestRun, biggestLost, byProjects, byValue, byValueHighest, byValueLowest, byReturning, returningTotal, returningTiedExtra, clients, topClientPct, top3Pct,
       avgContractsPerReturning, avgValuePerReturning, avgValuePerReturningContract,
       newClientCount, returningClientCount, totalClients,
       returningContracts, returningClientValueTotal, newClientValueTotal,
@@ -695,11 +700,9 @@ const DealFlow = () => {
       clientFilter === "won" ? c.wonValue :
       clientFilter === "running" ? c.runningValue :
       clientFilter === "lost" ? c.lostValue :
-      clientFilter === "lowest" ? (c.wonValue + c.runningValue) :
       /* all */ c.totalValue;
     const projectsFor = (c: any) =>
       clientFilter === "all" ? c.contractCountAll :
-      clientFilter === "lowest" ? c.projectsWonRunning :
       c.contracts.filter((contract: any) => (
         clientFilter === "won" ? contract.wonValue :
         clientFilter === "running" ? contract.runningValue :
@@ -945,30 +948,59 @@ const DealFlow = () => {
                 </>
               ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
             </button>
-            <button
-              type="button"
-              disabled={!clientIntel.byValue}
-              onClick={() => handleTileClick("byValue", clientIntel.byValue?.company, bestPillFor(clientIntel.byValue, "value"))}
-              className={`text-left rounded-lg border p-3 transition-colors ${
-                activeTileKey === "byValue" ? "border-foreground/40 bg-foreground/5" : "border-border bg-card/40 hover:bg-card/60"
-              } ${clientIntel.byValue ? "cursor-pointer" : "cursor-default"}`}
-            >
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Client — Highest Value</div>
-              {clientIntel.byValue ? (
-                <>
-                  <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byValue.company}>{clientIntel.byValue.company}</div>
-                  {clientIntel.byValue.projects > 1 ? (
-                    <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                      {clientIntel.byValue.projects} projects totalling {fmtAUD(clientIntel.byValue.totalValue)}
+            {(() => {
+              const src = valueTileMode === "highest" ? clientIntel.byValueHighest : clientIntel.byValueLowest;
+              const modeLabel = valueTileMode === "highest" ? "Highest" : "Lowest";
+              const trackedProjects = src ? (src.wonContractCount + src.runningContractCount) : 0;
+              const trackedContracts = src ? src.contracts.filter((k: any) => k.status === "won" || k.status === "running") : [];
+              return (
+                <div
+                  className={`relative text-left rounded-lg border p-3 transition-colors ${
+                    activeTileKey === "byValue" ? "border-foreground/40 bg-foreground/5" : "border-border bg-card/40 hover:bg-card/60"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Client — {modeLabel} Value</div>
+                    <div className="inline-flex rounded border border-border overflow-hidden shrink-0">
+                      {(["highest", "lowest"] as const).map(m => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setValueTileMode(m); }}
+                          className={`px-1.5 py-0.5 text-[9px] font-medium uppercase transition-colors ${
+                            valueTileMode === m ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {m === "highest" ? "Hi" : "Lo"}
+                        </button>
+                      ))}
                     </div>
-                  ) : (
-                    <div className="text-[11px] text-muted-foreground font-mono mt-0.5 truncate" title={clientIntel.byValue.contracts[0]?.base}>
-                      {clientIntel.byValue.contracts[0]?.base || "—"} · {fmtAUD(clientIntel.byValue.totalValue)}
-                    </div>
-                  )}
-                </>
-              ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
-            </button>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!src}
+                    onClick={() => src && handleTileClick("byValue", src.company)}
+                    className={`w-full text-left mt-1 ${src ? "cursor-pointer" : "cursor-default"}`}
+                  >
+                    {src ? (
+                      <>
+                        <div className="text-fluid-lg font-mono font-bold text-foreground truncate" title={src.company}>{src.company}</div>
+                        {trackedProjects > 1 ? (
+                          <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                            {trackedProjects} projects totalling {fmtAUD(src.tracked)}
+                          </div>
+                        ) : (
+                          <div className="text-[11px] text-muted-foreground font-mono mt-0.5 truncate" title={trackedContracts[0]?.base}>
+                            {trackedContracts[0]?.base || "—"} · {fmtAUD(src.tracked)}
+                          </div>
+                        )}
+                        <div className="text-[9px] text-muted-foreground/70 mt-0.5">won + in-running (excl. lost)</div>
+                      </>
+                    ) : (<div className="text-fluid-lg font-mono font-bold text-muted-foreground">—</div>)}
+                  </button>
+                </div>
+              );
+            })()}
             <button
               type="button"
               disabled={!clientIntel.byReturning}
@@ -1172,21 +1204,17 @@ const DealFlow = () => {
                 { key: "won", label: "Won" },
                 { key: "running", label: "In-Running" },
                 { key: "lost", label: "Lost" },
-                { key: "lowest", label: "Lowest Value" },
                 { key: "all", label: "All" },
               ] as const).map(p => {
                 const isActivePill = clientFilter === p.key;
-                const muted = p.key === "lowest";
                 return (
                   <button
                     key={p.key}
                     onClick={() => changePill(p.key)}
                     className={`px-3 py-1 text-[11px] font-medium transition-colors ${
                       isActivePill
-                        ? (muted ? "bg-muted-foreground/15 text-muted-foreground italic" : "bg-foreground/10 text-foreground")
-                        : (muted
-                            ? "bg-transparent text-muted-foreground/70 italic hover:text-muted-foreground"
-                            : "bg-transparent text-muted-foreground hover:text-foreground")
+                        ? "bg-foreground/10 text-foreground"
+                        : "bg-transparent text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     {p.label}
@@ -1221,7 +1249,6 @@ const DealFlow = () => {
                     clientFilter === "won" ? "Won $" :
                     clientFilter === "running" ? "In-Running $" :
                     clientFilter === "lost" ? "Lost $" :
-                    clientFilter === "lowest" ? "Won+ItR $" :
                     "Total $";
                   return (
                     <tr className="text-left text-muted-foreground border-b border-border">
@@ -1244,7 +1271,6 @@ const DealFlow = () => {
                     clientFilter === "won" ? "text-[#22c55e]" :
                     clientFilter === "running" ? "text-[#60a5fa]" :
                     clientFilter === "lost" ? "text-[#ef4444]" :
-                    clientFilter === "lowest" ? "text-muted-foreground" :
                     "text-foreground";
                   const statusColor = (s: string) =>
                     s === "won" ? "text-[#22c55e]" :
@@ -1269,15 +1295,12 @@ const DealFlow = () => {
                           base: k.base,
                           v: clientFilter === "won" ? k.wonValue
                             : clientFilter === "running" ? k.runningValue
-                            : clientFilter === "lost" ? k.lostValue
-                            : (k.wonValue + k.runningValue), // lowest
+                            : k.lostValue,
                           status: k.status,
                         }))
                         .filter((k: any) => k.v > 0)
                         .sort((a: any, b: any) => b.v - a.v);
-                  const emptyLabel =
-                    clientFilter === "lowest" ? "No won or in-running contracts."
-                      : `No ${clientFilter} contracts.`;
+                  const emptyLabel = `No ${clientFilter} contracts.`;
                   return (
                     <>
                       <tr
@@ -1328,7 +1351,7 @@ const DealFlow = () => {
                 {activeClients.length === 0 && (
                   <tr>
                     <td colSpan={6} className="py-6 text-center text-muted-foreground text-fluid-xs">
-                      {clientFilter === "lowest" ? "No won or in-running contracts." : `No ${clientFilter} contracts.`}
+                      No {clientFilter} contracts.
                     </td>
                   </tr>
                 )}
