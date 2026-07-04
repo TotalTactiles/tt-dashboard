@@ -360,9 +360,11 @@ const DealFlow = () => {
     ]);
 
     const parentByZohoId = new Map<string, string>();
+    const quoteByZohoId = new Map<string, any>();
     for (const row of quotesRaw as any[]) {
       const zohoId = zohoIdOf(row);
       const parentJobId = parentIdOf(row);
+      if (zohoId) quoteByZohoId.set(zohoId, row);
       if (zohoId && parentJobId) parentByZohoId.set(zohoId, parentJobId);
     }
 
@@ -389,6 +391,7 @@ const DealFlow = () => {
         .sort((a, b) => a.length - b.length || a.localeCompare(b))[0] ?? "";
     const companyOf = (j: any): string => pickField(j, ["company", "Company Name", "Company\nName", "_company"]);
     const projectOf = (j: any): string => pickField(j, ["project", "jobName", "Project Name", "Project\nName", "Job Name", "_project"]);
+    const stageOf = (j: any): string => pickField(j, ["Stage", "Project Stage", "Project\nStage", "stage"]);
     const stageFlags = (j: any) => {
       const status = clean(j?.status).toLowerCase();
       const raw = [
@@ -403,12 +406,53 @@ const DealFlow = () => {
       return { won, lost, running };
     };
 
+    // Older cache rows expose the Parent Job ID column but sometimes with blank
+    // values. Keep explicit Parent Job ID authoritative, then use Stage 1's
+    // Zoho ID as a compatibility parent only for staged rows with a shared base.
+    const inferredParentByZohoId = new Map<string, string>();
+    if (parentByZohoId.size === 0) {
+      type StageRow = { zohoId: string; company: string; project: string; base: string; stage: string };
+      const stagedRows: StageRow[] = (quotesRaw as any[])
+        .map((r) => {
+          const zohoId = zohoIdOf(r);
+          const company = companyOf(r);
+          const project = projectOf(r);
+          const base = stripStageSuffix(project);
+          const stage = stageOf(r);
+          return { zohoId, company, project, base, stage };
+        })
+        .filter((r) => r.zohoId && r.company && r.base && (
+          /^stage\s+\d+$/i.test(r.stage) || /(?:^|[\s-–—])S\d+\b/i.test(r.project)
+        ));
+      const stagedGroups = new Map<string, StageRow[]>();
+      for (const row of stagedRows) {
+        const key = `${row.company.toLowerCase()}::${row.base.toLowerCase()}`;
+        const group = stagedGroups.get(key) ?? [];
+        group.push(row);
+        stagedGroups.set(key, group);
+      }
+      for (const group of stagedGroups.values()) {
+        if (group.length < 2) continue;
+        const parent = [...group].sort((a, b) => {
+          const aStage1 = /^stage\s+1$/i.test(a.stage) || /(?:^|[\s-–—])S1\b/i.test(a.project);
+          const bStage1 = /^stage\s+1$/i.test(b.stage) || /(?:^|[\s-–—])S1\b/i.test(b.project);
+          if (aStage1 !== bStage1) return aStage1 ? -1 : 1;
+          return a.project.length - b.project.length || a.zohoId.localeCompare(b.zohoId);
+        })[0];
+        if (parent?.zohoId) group.forEach((row) => inferredParentByZohoId.set(row.zohoId, parent.zohoId));
+      }
+    }
+
     const rows = (jobs as any[])
       .map(j => {
-        const project = projectOf(j);
-        const company = companyOf(j);
         const zohoId = zohoIdOf(j);
-        const parentJobId = parentIdOf(j) || (zohoId ? parentByZohoId.get(zohoId) ?? "" : "");
+        const rawQuote = zohoId ? quoteByZohoId.get(zohoId) : null;
+        const project = projectOf(j) || projectOf(rawQuote);
+        const company = companyOf(j) || companyOf(rawQuote);
+        const parentJobId = parentIdOf(j)
+          || parentIdOf(rawQuote)
+          || (zohoId ? parentByZohoId.get(zohoId) ?? "" : "")
+          || (zohoId ? inferredParentByZohoId.get(zohoId) ?? "" : "");
         const contractKey = parentJobId || zohoId || `${company.toLowerCase()}::${project.toLowerCase()}`;
         const flags = stageFlags(j);
         return {
