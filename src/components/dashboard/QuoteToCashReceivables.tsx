@@ -387,10 +387,29 @@ const QuoteToCashReceivables = () => {
 
       {/* 2. Aging bar */}
       <div className="mt-6">
-        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-          <h3 className="text-fluid-sm font-semibold">All outstanding by age</h3>
+        <div className="flex items-baseline justify-between mb-2 flex-wrap gap-2">
+          <h3 className="text-fluid-sm font-semibold inline-flex items-center gap-1">
+            Outstanding by age
+            <ShadTooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center rounded-full hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={(e) => e.preventDefault()}
+                >
+                  <Info className="w-3 h-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" align="start" className="max-w-[280px] leading-snug">
+                <p>'Age' = days past the 30-day due date. Green is current (not overdue); the redder the band, the longer it's been outstanding.</p>
+              </TooltipContent>
+            </ShadTooltip>
+          </h3>
           <span className="text-[11px] text-muted-foreground font-mono">Total {fmtMoney(totalAging)}</span>
         </div>
+        <p className="text-[11px] text-muted-foreground mb-2">
+          Every dollar still owed to you, grouped by how long it's been outstanding past its 30-day due date.
+        </p>
         <div className="flex w-full h-6 rounded overflow-hidden border border-border">
           {agingSegments.map((s) => (
             <div
@@ -400,21 +419,25 @@ const QuoteToCashReceivables = () => {
             />
           ))}
         </div>
-        <p className="text-[11px] text-muted-foreground mt-2">
-          Older balances are mostly retention — see the section below.
-        </p>
-        <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-[11px] font-mono">
+        <div className="mt-3 space-y-1 text-[11px] font-mono">
           {agingSegments.map((s) => (
-            <div key={s.key} className="flex items-center gap-2 min-w-0">
+            <div key={s.key} className="flex items-center gap-3 min-w-0">
               <span className="w-2 h-2 rounded-sm flex-none" style={{ background: s.color }} />
-              <span className="text-muted-foreground truncate">{s.label}</span>
+              <span className="text-muted-foreground truncate">
+                {s.label}
+                {s.note ? <span className="opacity-70 ml-1">({s.note})</span> : null}
+              </span>
               <span className="ml-auto whitespace-nowrap">
-                {fmtMoney(s.value)} · {s.pct.toFixed(0)}%
+                {fmtMoney(s.value)} · {(s.value / Math.max(summary.totalOutstanding, 1) * 100).toFixed(0)}%
               </span>
             </div>
           ))}
         </div>
+        <p className="text-[11px] text-muted-foreground mt-3">
+          Most balances over 30 days are retention — already ~90% paid, not missing payments. See the retention section below.
+        </p>
       </div>
+
 
       {/* 3. Payer scorecard */}
       <div className="mt-6">
