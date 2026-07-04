@@ -458,7 +458,7 @@ const DealFlow = () => {
         const project = projectOf(j) || projectOf(rawQuote);
         const company = companyOf(j) || companyOf(rawQuote);
         const contractGroupId = contractGroupIdOf(j) || contractGroupIdOf(rawQuote);
-        const contractKey = contractGroupId || zohoId || `${company.toLowerCase()}::${project.toLowerCase()}`;
+        const contractKey = contractGroupId || zohoId;
         const flags = stageFlags(j);
         return {
           company,
