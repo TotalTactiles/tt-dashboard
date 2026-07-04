@@ -202,17 +202,9 @@ const DealFlow = () => {
     return quotesRaw
       .filter((j: any) => !!(j["Current Status"]))
       .map((j: any) => {
-        const zohoMatch = (quotedJobs ?? []).find((q: any) =>
-          q["Job/Lead ID (Zoho)"] === j["Job/Lead ID (Zoho)"] ||
-          q.zohoId === j["Job/Lead ID (Zoho)"]
-        );
-        const d = parseDealDate(zohoMatch?.dateQuoted ?? j["Date Created"] ?? j["Estimated Job Date"] ?? "");
+        const d = createdDateOf(j);
         if (!d) return null;
-        const closeDate = j["Last Updated"]
-          ? parseDealDate(j["Last Updated"])
-          : null;
-        const endDate = closeDate ?? today;
-        const days = Math.floor((endDate.getTime() - d.getTime()) / 86400000);
+        const days = Math.floor((today.getTime() - d.getTime()) / 86400000);
         return {
           ...j,
           daysOld: days,
