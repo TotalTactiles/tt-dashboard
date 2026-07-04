@@ -1178,21 +1178,17 @@ const DealFlow = () => {
                 { key: "won", label: "Won" },
                 { key: "running", label: "In-Running" },
                 { key: "lost", label: "Lost" },
-                { key: "lowest", label: "Lowest Value" },
                 { key: "all", label: "All" },
               ] as const).map(p => {
                 const isActivePill = clientFilter === p.key;
-                const muted = p.key === "lowest";
                 return (
                   <button
                     key={p.key}
                     onClick={() => changePill(p.key)}
                     className={`px-3 py-1 text-[11px] font-medium transition-colors ${
                       isActivePill
-                        ? (muted ? "bg-muted-foreground/15 text-muted-foreground italic" : "bg-foreground/10 text-foreground")
-                        : (muted
-                            ? "bg-transparent text-muted-foreground/70 italic hover:text-muted-foreground"
-                            : "bg-transparent text-muted-foreground hover:text-foreground")
+                        ? "bg-foreground/10 text-foreground"
+                        : "bg-transparent text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     {p.label}
