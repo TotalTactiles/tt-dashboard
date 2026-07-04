@@ -318,7 +318,7 @@ const DealFlow = () => {
   const [showAllClients, setShowAllClients] = useState(false);
   const [tileFilterClient, setTileFilterClient] = useState<string | null>(null);
   const [activeTileKey, setActiveTileKey] = useState<string | null>(null);
-  const [valueTileMode, setValueTileMode] = useState<"highest" | "lowest">("highest");
+  const [valueTileMode, setValueTileMode] = useState<"highest" | "lowest" | "won">("highest");
   const [returnBasis, setReturnBasis] = useState<"won" | "all">("won");
   type ClientSortKey = "company" | "projects" | "active" | "total" | "winRate";
   const [clientSort, setClientSort] = useState<{ key: ClientSortKey; dir: "asc" | "desc" }>({ key: "total", dir: "desc" });
@@ -663,7 +663,13 @@ const DealFlow = () => {
     const byValueHighest = trackedSorted[0] ?? null;
     const byValueLowest = trackedSorted.length > 0 ? trackedSorted[trackedSorted.length - 1] : null;
 
-    return { biggestWon, biggestRun, biggestLost, byProjects, byValue, byValueHighest, byValueLowest, byReturning, returningTotal, returningTiedExtra, clients, topClientPct, top3Pct,
+    // Won-value leader: greatest GRN + Completed value only (excl. in-running & lost).
+    const byValueWon = [...clients]
+      .filter(c => c.wonValue > 0)
+      .map(c => ({ ...c, tracked: c.wonValue }))
+      .sort((a, b) => b.wonValue - a.wonValue)[0] ?? null;
+
+    return { biggestWon, biggestRun, biggestLost, byProjects, byValue, byValueHighest, byValueLowest, byValueWon, byReturning, returningTotal, returningTiedExtra, clients, topClientPct, top3Pct,
       avgContractsPerReturning, avgValuePerReturning, avgValuePerReturningContract,
       newClientCount, returningClientCount, totalClients,
       returningContracts, returningClientValueTotal, newClientValueTotal,
@@ -950,10 +956,22 @@ const DealFlow = () => {
               ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
             </button>
             {(() => {
-              const src = valueTileMode === "highest" ? clientIntel.byValueHighest : clientIntel.byValueLowest;
-              const modeLabel = valueTileMode === "highest" ? "Highest" : "Lowest";
+              const src = valueTileMode === "highest"
+                ? clientIntel.byValueHighest
+                : valueTileMode === "lowest"
+                  ? clientIntel.byValueLowest
+                  : clientIntel.byValueWon;
+              const modeLabel = valueTileMode === "highest" ? "Highest"
+                : valueTileMode === "lowest" ? "Lowest"
+                : "Won";
+              const subLabel = valueTileMode === "won" ? "GRN + Completed (secured)" : "won + in-running (excl. lost)";
               const trackedProjects = src ? (src.wonContractCount + src.runningContractCount) : 0;
-              const trackedContracts = src ? src.contracts.filter((k: any) => k.status === "won" || k.status === "running") : [];
+              const trackedContracts = src
+                ? src.contracts.filter((k: any) => k.status === "won" || k.status === "running")
+                : [];
+              const wonOnlyCount = src ? src.wonContractCount : 0;
+              const wonOnlyValue = src ? src.wonValue : 0;
+              const wonOnlyContracts = src ? src.contracts.filter((k: any) => k.status === "won") : [];
               return (
                 <div
                   className={`relative text-left rounded-lg border p-3 transition-colors ${
@@ -963,7 +981,7 @@ const DealFlow = () => {
                   <div className="flex items-start justify-between gap-2">
                     <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Client — {modeLabel} Value</div>
                     <div className="inline-flex rounded border border-border overflow-hidden shrink-0">
-                      {(["highest", "lowest"] as const).map(m => (
+                      {(["highest", "lowest", "won"] as const).map(m => (
                         <button
                           key={m}
                           type="button"
@@ -972,7 +990,7 @@ const DealFlow = () => {
                             valueTileMode === m ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          {m === "highest" ? "Hi" : "Lo"}
+                          {m === "highest" ? "Highest" : m === "lowest" ? "Lowest" : "Won"}
                         </button>
                       ))}
                     </div>
@@ -986,7 +1004,13 @@ const DealFlow = () => {
                     {src ? (
                       <>
                         <div className="text-fluid-lg font-mono font-bold text-foreground truncate" title={src.company}>{src.company}</div>
-                        {trackedProjects > 1 ? (
+                        {valueTileMode === "won" ? (
+                          <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                            {wonOnlyCount > 1
+                              ? `${wonOnlyCount} won contracts totalling ${fmtAUD(wonOnlyValue)} (secured)`
+                              : `${wonOnlyContracts[0]?.base || "—"} · ${fmtAUD(wonOnlyValue)} (secured)`}
+                          </div>
+                        ) : trackedProjects > 1 ? (
                           <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
                             {trackedProjects} projects totalling {fmtAUD(src.tracked)}
                           </div>
@@ -995,7 +1019,7 @@ const DealFlow = () => {
                             {trackedContracts[0]?.base || "—"} · {fmtAUD(src.tracked)}
                           </div>
                         )}
-                        <div className="text-[9px] text-muted-foreground/70 mt-0.5">won + in-running (excl. lost)</div>
+                        <div className="text-[9px] text-muted-foreground/70 mt-0.5">{subLabel}</div>
                       </>
                     ) : (<div className="text-fluid-lg font-mono font-bold text-muted-foreground">—</div>)}
                   </button>
