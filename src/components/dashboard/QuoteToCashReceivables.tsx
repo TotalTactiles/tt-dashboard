@@ -301,8 +301,8 @@ const QuoteToCashReceivables = () => {
       <section className="chart-container p-5">
         {renderHeader()}
         <div className="mt-6 space-y-3 animate-pulse">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {Array.from({ length: 5 }).map((_, i) => (
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-9 gap-3">
+            {Array.from({ length: 9 }).map((_, i) => (
               <div key={i} className="h-20 bg-muted/40 rounded" />
             ))}
           </div>
