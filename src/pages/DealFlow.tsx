@@ -79,7 +79,7 @@ const item = {
 };
 
 const DealFlow = () => {
-  const { quotedJobs, liveData } = useDashboardData();
+  const { quotedJobs, liveData, totalOpps, wrWonFY, wrLostFY, wonValueFY, lostValueFY } = useDashboardData();
   const jobs = quotedJobs ?? [];
   const quotesRaw = (liveData?.quotes as any[]) ?? [];
   const [staleSort, setStaleSort] = useState<"oldest" | "newest">("oldest");
@@ -154,18 +154,17 @@ const DealFlow = () => {
   const lostJobs = byStatus.lost;
   const lostCount = lostJobs.length;
 
-  // Win/Loss Summary — sourced from quotesSummary (canonical FY-scoped sheet summary)
-  const qs = (liveData?.quotesSummary ?? {}) as any;
-  const hasQs = !!qs && Object.keys(qs).length > 0;
+  // Win/Loss Summary — same FY-scoped sources the dashboard cards use
+  const won     = Number(wrWonFY ?? 0);
+  const wonVal  = Number(wonValueFY ?? 0);
+  const lost    = Number(wrLostFY ?? 0);
+  const lostVal = Number(lostValueFY ?? 0);
+  const totalDeals = Number(totalOpps ?? 0);
 
-  const won     = Number(qs?.totalWon?.count ?? 0);
-  const wonVal  = Number(qs?.totalWon?.value ?? 0);
-  const lost    = Number(qs?.totalLost?.count ?? 0);
-  const lostVal = Number(qs?.totalLost?.value ?? 0);
-  const quoted  = Number(qs?.totalQuoted?.count ?? 0);
+  const hasWinLoss = totalDeals > 0 || won > 0 || lost > 0;
 
   const winRate    = (won + lost) > 0 ? (won / (won + lost)) * 100 : 0;
-  const pipelineCR = quoted > 0 ? (won / quoted) * 100 : 0;
+  const pipelineCR = totalDeals > 0 ? (won / totalDeals) * 100 : 0;
   const avgWon     = won  > 0 ? wonVal  / won  : 0;
   const avgLost    = lost > 0 ? lostVal / lost : 0;
   const avgWonDeal = avgWon;
@@ -376,7 +375,7 @@ const DealFlow = () => {
               <div>
                 <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Win Rate</div>
                 <div className="text-[22px] font-bold text-[#22c55e]">
-                  {hasQs ? `${winRate.toFixed(1)}%` : "--"}
+                  {hasWinLoss ? `${winRate.toFixed(1)}%` : "--"}
                   <span title="Win Rate = Won ÷ decided (Won + Lost). Measures how often TT wins when a deal reaches a decision, excluding still-active pipeline.">
                     <Info
                       className="text-muted-foreground hover:text-foreground cursor-help transition-colors inline-block ml-1.5 align-middle"
@@ -389,7 +388,7 @@ const DealFlow = () => {
               <div>
                 <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Pipeline CR</div>
                 <div className="text-[22px] font-bold text-[#38bdf8]">
-                  {hasQs ? `${pipelineCR.toFixed(1)}%` : "--"}
+                  {hasWinLoss ? `${pipelineCR.toFixed(1)}%` : "--"}
                   <span title={`Pipeline CR is lower than Win Rate because ${pendingCount} deals (${pendingPct}% of all quotes) are still active in the pipeline. TT's avg quote-to-close cycle is ~${Math.round(avgDaysToClose)} days, so many quotes are still converting. As these resolve, Pipeline CR will trend toward Win Rate.`}>
                     <Info
                       className="text-muted-foreground hover:text-foreground cursor-help transition-colors inline-block ml-1.5 align-middle"
@@ -401,19 +400,19 @@ const DealFlow = () => {
               </div>
               <div>
                 <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Total Value Won</div>
-                <div className="text-[22px] font-bold text-[#22c55e]">{hasQs ? fmtAUD(totalValueWon) : "--"}</div>
+                <div className="text-[22px] font-bold text-[#22c55e]">{hasWinLoss ? fmtAUD(totalValueWon) : "--"}</div>
               </div>
               <div>
                 <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Total Value Lost</div>
-                <div className="text-[22px] font-bold text-[#ef4444]">{hasQs ? fmtAUD(ytdLostValue) : "--"}</div>
+                <div className="text-[22px] font-bold text-[#ef4444]">{hasWinLoss ? fmtAUD(ytdLostValue) : "--"}</div>
               </div>
               <div>
                 <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Avg Won Deal</div>
-                <div className="text-[22px] font-bold text-white">{hasQs ? fmtAUD(avgWonDeal) : "--"}</div>
+                <div className="text-[22px] font-bold text-white">{hasWinLoss ? fmtAUD(avgWonDeal) : "--"}</div>
               </div>
               <div>
                 <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Avg Lost Deal</div>
-                <div className="text-[22px] font-bold text-white">{hasQs ? fmtAUD(avgLostDeal) : "--"}</div>
+                <div className="text-[22px] font-bold text-white">{hasWinLoss ? fmtAUD(avgLostDeal) : "--"}</div>
               </div>
             </div>
           </div>
