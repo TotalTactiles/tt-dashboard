@@ -420,11 +420,32 @@ const QuoteToCashReceivables = () => {
               </TooltipContent>
             </ShadTooltip>
           </h3>
-          <span className="text-[11px] text-muted-foreground font-mono">Total {fmtMoney(totalAging)}</span>
+          <span className="text-[11px] text-muted-foreground font-mono">
+            Total {fmtMoney(agingMode === "unpaid" ? (summary.totalUnpaid ?? totalAging) : summary.totalOutstanding)}
+          </span>
         </div>
         <p className="text-[11px] text-muted-foreground mb-2">
           Every dollar still owed to you, grouped by how long it's been outstanding past its 30-day due date.
         </p>
+        <div className="inline-flex items-center rounded border border-border bg-muted/30 p-0.5 mb-3">
+          {([
+            { k: "unpaid", label: "Genuinely unpaid" },
+            { k: "all", label: "Include retention" },
+          ] as const).map((opt) => (
+            <button
+              key={opt.k}
+              type="button"
+              onClick={() => setAgingMode(opt.k)}
+              className={`text-[11px] px-2.5 py-1 rounded font-mono transition-colors ${
+                agingMode === opt.k
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
         <div className="flex w-full h-6 rounded overflow-hidden border border-border">
           {agingSegments.map((s) => (
             <div
@@ -435,7 +456,7 @@ const QuoteToCashReceivables = () => {
           ))}
         </div>
         <div className="mt-3 space-y-1 text-[11px] font-mono">
-          {agingSegments.map((s) => (
+          {agingSegments.filter((s) => s.value > 0).map((s) => (
             <div key={s.key} className="flex items-center gap-3 min-w-0">
               <span className="w-2 h-2 rounded-sm flex-none" style={{ background: s.color }} />
               <span className="text-muted-foreground truncate">
@@ -443,15 +464,18 @@ const QuoteToCashReceivables = () => {
                 {s.note ? <span className="opacity-70 ml-1">({s.note})</span> : null}
               </span>
               <span className="ml-auto whitespace-nowrap">
-                {fmtMoney(s.value)} · {(s.value / Math.max(summary.totalOutstanding, 1) * 100).toFixed(0)}%
+                {fmtMoney(s.value)} · {s.pct.toFixed(0)}%
               </span>
             </div>
           ))}
         </div>
         <p className="text-[11px] text-muted-foreground mt-3">
-          Most balances over 30 days are retention — already ~90% paid, not missing payments. See the retention section below.
+          {agingMode === "unpaid"
+            ? "Invoices with no payment received yet. Retention (already ~90% paid) is excluded — see the retention section below."
+            : "Now includes retention balances. The older bands are mostly retention — already ~90% paid, not missing payments."}
         </p>
       </div>
+
 
 
       {/* 3. Payer scorecard */}
