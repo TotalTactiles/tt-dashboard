@@ -227,10 +227,6 @@ const DealFlow = () => {
     if (s.includes("LOST") || s.includes("DEAD")) return "Lost/Dead";
     return "Other";
   };
-  const createdDateOf = (row: any): Date | null =>
-    parseDealDate((row["Date Created"] ?? "").toString().trim());
-  const daysSinceDate = (d: Date | null) =>
-    d ? Math.max(0, Math.floor((today.getTime() - d.getTime()) / 86400000)) : null;
 
   // Velocity — avg days per real stage from cycle cache (excludes Completed & Lost/Dead)
   const VELOCITY_STAGES = [
