@@ -410,7 +410,7 @@ const DealFlow = () => {
     // values. Keep explicit Parent Job ID authoritative, then use Stage 1's
     // Zoho ID as a compatibility parent only for staged rows with a shared base.
     const inferredParentByZohoId = new Map<string, string>();
-    if (parentByZohoId.size === 0) {
+    {
       type StageRow = { zohoId: string; company: string; project: string; base: string; stage: string };
       const stagedRows: StageRow[] = (quotesRaw as any[])
         .map((r) => {
