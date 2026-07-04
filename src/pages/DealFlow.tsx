@@ -564,7 +564,12 @@ const DealFlow = () => {
             ) : (
               <ul className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
                 {filteredStaleDeals.map((d: any) => {
-                  const sev = d.daysOld >= 35 ? "bg-red-500/25 text-red-400 border-red-500/40" : "bg-orange-500/20 text-orange-300 border-orange-500/40";
+                  const hasDays = typeof d.daysOld === "number" && d.measurable;
+                  const sev = !hasDays
+                    ? "bg-muted/30 text-muted-foreground border-border/40"
+                    : d.daysOld >= 35
+                      ? "bg-red-500/25 text-red-400 border-red-500/40"
+                      : "bg-orange-500/20 text-orange-300 border-orange-500/40";
                   return (
                     <li key={d.id} className="flex items-center justify-between gap-3 p-2 rounded-md border border-border/40 bg-card/30">
                       <div className="min-w-0 flex-1">
@@ -575,7 +580,7 @@ const DealFlow = () => {
                         {d.status}
                       </span>
                       <span className={`font-mono text-[10px] px-2 py-0.5 rounded border ${sev}`}>
-                        {d.daysOld}d
+                        {hasDays ? `${d.daysOld}d` : "—"}
                       </span>
                     </li>
                   );
