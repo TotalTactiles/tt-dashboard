@@ -663,7 +663,11 @@ const DealFlow = () => {
     const byValueHighest = trackedSorted[0] ?? null;
     const byValueLowest = trackedSorted.length > 0 ? trackedSorted[trackedSorted.length - 1] : null;
 
-    return { biggestWon, biggestRun, biggestLost, byProjects, byValue, byValueHighest, byValueLowest, byReturning, returningTotal, returningTiedExtra, clients, topClientPct, top3Pct,
+    // Won-value leader: greatest GRN + Completed value only (excl. in-running & lost).
+    const byValueWon = [...clients].filter(c => c.wonValue > 0)
+      .sort((a, b) => b.wonValue - a.wonValue)[0] ?? null;
+
+    return { biggestWon, biggestRun, biggestLost, byProjects, byValue, byValueHighest, byValueLowest, byValueWon, byReturning, returningTotal, returningTiedExtra, clients, topClientPct, top3Pct,
       avgContractsPerReturning, avgValuePerReturning, avgValuePerReturningContract,
       newClientCount, returningClientCount, totalClients,
       returningContracts, returningClientValueTotal, newClientValueTotal,
