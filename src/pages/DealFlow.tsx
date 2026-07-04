@@ -899,7 +899,7 @@ const DealFlow = () => {
 
 
           {/* Tiles */}
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 mb-5">
             {[
               { key: "biggestWon", label: "Biggest Won", data: clientIntel.biggestWon, accent: "text-[#22c55e]", pill: "won" as const, sub: (d: any) => `${d.company} · ${d.project || "—"}` },
               { key: "biggestRun", label: "Biggest In Running", data: clientIntel.biggestRun, accent: "text-[#22c55e]", pill: "running" as const, sub: (d: any) => `${d.company} · ${d.project || "—"}` },
@@ -913,14 +913,14 @@ const DealFlow = () => {
                   type="button"
                   disabled={!clickable}
                   onClick={() => handleTileClick(t.key, t.data?.company, t.pill)}
-                  className={`text-left rounded-lg border p-3 transition-colors ${
+                  className={`min-w-0 text-left rounded-lg border p-3 transition-colors ${
                     isActiveTile ? "border-foreground/40 bg-foreground/5" : "border-border bg-card/40 hover:bg-card/60"
                   } ${clickable ? "cursor-pointer" : "cursor-default"}`}
                 >
-                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{t.label}</div>
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground break-words whitespace-normal">{t.label}</div>
                   {t.data ? (
                     <>
-                      <div className={`text-fluid-lg font-mono font-bold mt-1 ${t.accent}`}>{fmtAUD(t.data.value)}</div>
+                      <div className={`text-fluid-lg font-mono font-bold mt-1 tabular-nums ${t.accent}`}>{fmtAUD(t.data.value)}</div>
                       <div className="text-[11px] text-muted-foreground truncate mt-0.5" title={t.sub(t.data)}>{t.sub(t.data)}</div>
                     </>
                   ) : (
@@ -933,16 +933,16 @@ const DealFlow = () => {
               type="button"
               disabled={!clientIntel.byProjects}
               onClick={() => handleTileClick("byProjects", clientIntel.byProjects?.company, bestPillFor(clientIntel.byProjects, "count"))}
-              className={`text-left rounded-lg border p-3 transition-colors ${
+              className={`min-w-0 text-left rounded-lg border p-3 transition-colors ${
                 activeTileKey === "byProjects" ? "border-foreground/40 bg-foreground/5" : "border-border bg-card/40 hover:bg-card/60"
               } ${clientIntel.byProjects ? "cursor-pointer" : "cursor-default"}`}
             >
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Client — Most Projects</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground break-words whitespace-normal">Client — Most Projects</div>
               <div className="text-[9px] text-muted-foreground/70 mt-0.5">won + in-running contracts (delivery)</div>
               {clientIntel.byProjects ? (
                 <>
-                  <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byProjects.company}>{clientIntel.byProjects.company}</div>
-                  <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                  <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate tabular-nums" title={clientIntel.byProjects.company}>{clientIntel.byProjects.company}</div>
+                  <div className="text-[11px] text-muted-foreground font-mono mt-0.5 truncate">
                     {clientIntel.byProjects.activeContractCount} delivery contract{clientIntel.byProjects.activeContractCount === 1 ? "" : "s"} · {fmtAUD(clientIntel.byProjects.activeContractValue)}
                   </div>
                   <div className="text-[10px] text-muted-foreground/80 font-mono mt-0.5">
@@ -974,20 +974,20 @@ const DealFlow = () => {
               const wonOnlyContracts = src ? src.contracts.filter((k: any) => k.status === "won") : [];
               return (
                 <div
-                  className={`relative text-left rounded-lg border p-3 transition-colors ${
+                  className={`min-w-0 text-left rounded-lg border p-3 transition-colors ${
                     activeTileKey === "byValue" ? "border-foreground/40 bg-foreground/5" : "border-border bg-card/40 hover:bg-card/60"
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Client — {modeLabel} Value</div>
-                    <div className="inline-flex rounded border border-border overflow-hidden shrink-0">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground break-words whitespace-normal">Client — {modeLabel} Value</div>
+                    <div className="flex flex-wrap gap-1 shrink-0">
                       {(["highest", "lowest", "won"] as const).map(m => (
                         <button
                           key={m}
                           type="button"
                           onClick={(e) => { e.stopPropagation(); setValueTileMode(m); }}
-                          className={`px-1.5 py-0.5 text-[9px] font-medium uppercase transition-colors ${
-                            valueTileMode === m ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground"
+                          className={`px-1.5 py-0.5 rounded border text-[10px] sm:text-[11px] font-medium uppercase transition-colors ${
+                            valueTileMode === m ? "bg-foreground/10 text-foreground border-foreground/20" : "text-muted-foreground hover:text-foreground border-border"
                           }`}
                         >
                           {m === "highest" ? "Highest" : m === "lowest" ? "Lowest" : "Won"}
@@ -999,19 +999,19 @@ const DealFlow = () => {
                     type="button"
                     disabled={!src}
                     onClick={() => src && handleTileClick("byValue", src.company)}
-                    className={`w-full text-left mt-1 ${src ? "cursor-pointer" : "cursor-default"}`}
+                    className={`min-w-0 w-full text-left mt-1 ${src ? "cursor-pointer" : "cursor-default"}`}
                   >
                     {src ? (
                       <>
-                        <div className="text-fluid-lg font-mono font-bold text-foreground truncate" title={src.company}>{src.company}</div>
+                        <div className="text-fluid-lg font-mono font-bold text-foreground truncate tabular-nums" title={src.company}>{src.company}</div>
                         {valueTileMode === "won" ? (
-                          <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                          <div className="text-[11px] text-muted-foreground font-mono mt-0.5 truncate">
                             {wonOnlyCount > 1
                               ? `${wonOnlyCount} won contracts totalling ${fmtAUD(wonOnlyValue)} (secured)`
                               : `${wonOnlyContracts[0]?.base || "—"} · ${fmtAUD(wonOnlyValue)} (secured)`}
                           </div>
                         ) : trackedProjects > 1 ? (
-                          <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                          <div className="text-[11px] text-muted-foreground font-mono mt-0.5 truncate">
                             {trackedProjects} projects totalling {fmtAUD(src.tracked)}
                           </div>
                         ) : (
@@ -1030,16 +1030,16 @@ const DealFlow = () => {
               type="button"
               disabled={!clientIntel.byReturning}
               onClick={() => handleTileClick("byReturning", clientIntel.byReturning?.company, bestPillFor(clientIntel.byReturning, "count"))}
-              className={`text-left rounded-lg border p-3 transition-colors ${
+              className={`min-w-0 text-left rounded-lg border p-3 transition-colors ${
                 activeTileKey === "byReturning" ? "border-foreground/40 bg-foreground/5" : "border-border bg-card/40 hover:bg-card/60"
               } ${clientIntel.byReturning ? "cursor-pointer" : "cursor-default"}`}
             >
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Most Returning Client</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground break-words whitespace-normal">Most Returning Client</div>
               <div className="text-[9px] text-muted-foreground/70 mt-0.5">repeat wins (2+ won contracts)</div>
               {clientIntel.byReturning ? (
                 <>
-                  <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byReturning.company}>{clientIntel.byReturning.company}</div>
-                  <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                  <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate tabular-nums" title={clientIntel.byReturning.company}>{clientIntel.byReturning.company}</div>
+                  <div className="text-[11px] text-muted-foreground font-mono mt-0.5 truncate">
                     {clientIntel.byReturning.wonContractCount} won contracts
                     {clientIntel.returningTiedExtra > 0 ? ` (+${clientIntel.returningTiedExtra} more tied)` : ""}
                   </div>
@@ -1057,19 +1057,19 @@ const DealFlow = () => {
 
           {/* New vs Returning intelligence cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
-            <div className="text-left rounded-lg border border-border bg-card/40 p-3">
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Returning Client Value</div>
+            <div className="min-w-0 text-left rounded-lg border border-border bg-card/40 p-3">
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground break-words whitespace-normal">Returning Client Value</div>
               <div className="text-[9px] text-muted-foreground/70 mt-0.5">two definitions of "returning", side by side</div>
               {clientIntel.totalClients > 0 ? (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
                     {/* Proven repeat — 2+ WON */}
-                    <div className="rounded border border-[#22c55e]/30 bg-[#22c55e]/5 p-2">
-                      <div className="text-[10px] uppercase tracking-wide text-[#22c55e] font-medium">Proven repeat</div>
+                    <div className="min-w-0 rounded border border-[#22c55e]/30 bg-[#22c55e]/5 p-2">
+                      <div className="text-[10px] uppercase tracking-wide text-[#22c55e] font-medium break-words whitespace-normal">Proven repeat</div>
                       <div className="text-[9px] text-muted-foreground/80 mt-0.5">basis: 2+ won contracts</div>
                       {clientIntel.returningCount_won > 0 ? (
                         <div className="mt-1.5 space-y-1">
-                          <div className="text-fluid-base font-mono font-bold text-foreground leading-tight">
+                          <div className="text-fluid-base font-mono font-bold text-foreground leading-tight tabular-nums">
                             {clientIntel.returningCount_won} client{clientIntel.returningCount_won === 1 ? "" : "s"}
                           </div>
                           <div className="text-[10px] font-mono text-muted-foreground">
@@ -1087,12 +1087,12 @@ const DealFlow = () => {
                       )}
                     </div>
                     {/* Repeat engagers — 2+ ANY */}
-                    <div className="rounded border border-border bg-card/60 p-2">
-                      <div className="text-[10px] uppercase tracking-wide text-foreground/80 font-medium">Repeat engagers</div>
+                    <div className="min-w-0 rounded border border-border bg-card/60 p-2">
+                      <div className="text-[10px] uppercase tracking-wide text-foreground/80 font-medium break-words whitespace-normal">Repeat engagers</div>
                       <div className="text-[9px] text-muted-foreground/80 mt-0.5">basis: 2+ contracts (any status)</div>
                       {clientIntel.returningCount_all > 0 ? (
                         <div className="mt-1.5 space-y-1">
-                          <div className="text-fluid-base font-mono font-bold text-foreground leading-tight">
+                          <div className="text-fluid-base font-mono font-bold text-foreground leading-tight tabular-nums">
                             {clientIntel.returningCount_all} client{clientIntel.returningCount_all === 1 ? "" : "s"}
                           </div>
                           <div className="text-[10px] font-mono text-muted-foreground">
@@ -1118,17 +1118,17 @@ const DealFlow = () => {
                 <div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>
               )}
             </div>
-            <div className="text-left rounded-lg border border-border bg-card/40 p-3">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground">New vs Returning</div>
+            <div className="min-w-0 text-left rounded-lg border border-border bg-card/40 p-3">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground break-words whitespace-normal">New vs Returning</div>
                   <div className="text-[9px] text-muted-foreground/70 mt-0.5">
                     {returnBasis === "won"
                       ? "proven repeat (2+ won contracts)"
                       : "any repeat (2+ contracts, all statuses)"}
                   </div>
                 </div>
-                <div className="flex items-center rounded-full border border-border/60 bg-background/60 p-0.5 shrink-0">
+                <div className="flex flex-wrap items-center justify-end gap-1 rounded-full border border-border/60 bg-background/60 p-0.5">
                   <button
                     type="button"
                     onClick={() => setReturnBasis("won")}
