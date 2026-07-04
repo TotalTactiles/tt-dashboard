@@ -568,7 +568,8 @@ const DealFlow = () => {
       // Canonical, tile-agnostic counts — every consumer reads these.
       const projectsWonRunning = c.contracts.filter(k => k.status === "won" || k.status === "running").length;
       const contractCountAll = c.contracts.length;
-      return { ...c, totalValue, winRate, projectsWonRunning, contractCountAll };
+      const wonContractCount = c.contracts.filter(k => k.status === "won").length;
+      return { ...c, totalValue, winRate, projectsWonRunning, contractCountAll, wonContractCount };
     });
 
     // Highest-value client (across all statuses).
@@ -586,23 +587,24 @@ const DealFlow = () => {
       .filter(c => c.activeContractCount > 0)
       .sort((a, b) => (b.activeContractCount - a.activeContractCount) || (b.activeContractValue - a.activeContractValue))[0] ?? null;
 
-    // Most-returning client — DISTINCT contracts across ALL statuses; tie-break by totalValue.
-    const returningClients = clients.filter(c => c.contracts.length >= 2);
+    // Returning client = 2+ WON contracts (true repeat customers).
+    const returningClients = clients.filter(c => c.wonContractCount >= 2);
     const byReturning = [...returningClients]
-      .sort((a, b) => (b.contracts.length - a.contracts.length) || (b.totalValue - a.totalValue))[0] ?? null;
-    const topReturningCount = byReturning?.contracts.length ?? 0;
+      .sort((a, b) => (b.wonContractCount - a.wonContractCount) || (b.totalValue - a.totalValue))[0] ?? null;
+    const topReturningCount = byReturning?.wonContractCount ?? 0;
     const returningTiedExtra = byReturning
-      ? Math.max(0, returningClients.filter(c => c.contracts.length === topReturningCount).length - 1)
+      ? Math.max(0, returningClients.filter(c => c.wonContractCount === topReturningCount).length - 1)
       : 0;
     const returningTotal = returningClients.length;
 
-    // New vs Returning client intelligence metrics.
-    const newClients = clients.filter(c => c.contracts.length === 1);
+    // New vs Returning client intelligence metrics — "new" = fewer than 2 won contracts.
+    const newClients = clients.filter(c => c.wonContractCount < 2);
     const newClientCount = newClients.length;
     const returningClientCount = returningTotal;
     const totalClients = clients.length;
 
-    const returningContracts = returningClients.reduce((s, c) => s + c.contracts.length, 0);
+    // Sum WON contracts across returning clients (basis for per-contract averages).
+    const returningContracts = returningClients.reduce((s, c) => s + c.wonContractCount, 0);
     const returningClientValueTotal = returningClients.reduce((s, c) => s + c.totalValue, 0);
     const newClientValueTotal = newClients.reduce((s, c) => s + c.totalValue, 0);
     const trackedValue = clients.reduce((s, c) => s + c.totalValue, 0);
