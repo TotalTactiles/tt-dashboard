@@ -5,6 +5,7 @@ import { useDashboardData, QuotedJob } from "@/contexts/DashboardDataContext";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from "recharts";
 import { ArrowDown, AlertTriangle, CheckCircle2, ChevronRight, Info } from "lucide-react";
 import { formatMetricValue } from "@/lib/formatMetricValue";
+import QuoteToCashReceivables from "@/components/dashboard/QuoteToCashReceivables";
 
 const DEAL_CYCLE_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
 
