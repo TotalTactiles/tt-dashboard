@@ -430,8 +430,11 @@ const DealFlow = () => {
     // Highest-value client (across all statuses).
     const byValue = [...clients].filter(c => c.totalValue > 0)
       .sort((a, b) => b.totalValue - a.totalValue)[0] ?? null;
-    const byProjects = [...clients].filter(c => c.projects > 0)
-      .sort((a, b) => b.projects - a.projects)[0] ?? null;
+    // Most-projects client — count leader, tie-broken by total (won + running) value.
+    const byProjects = [...clients]
+      .map(c => ({ ...c, tracked: c.wonValue + c.runningValue }))
+      .filter(c => c.projects > 0)
+      .sort((a, b) => (b.projects - a.projects) || (b.tracked - a.tracked))[0] ?? null;
 
     // Concentration on won+running (tracked value).
     const trackedSorted = [...clients]
