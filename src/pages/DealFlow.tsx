@@ -575,16 +575,13 @@ const DealFlow = () => {
     const byValue = [...clients].filter(c => c.totalValue > 0)
       .sort((a, b) => b.totalValue - a.totalValue)[0] ?? null;
 
-    // Most-projects client — DISTINCT contract count of won + in-running only.
-    // Tie-break by total (won + running) value.
-    const withActiveCounts = clients.map(c => {
-      const activeContracts = c.contracts.filter(k => k.status === "won" || k.status === "running");
-      return {
-        ...c,
-        activeContractCount: activeContracts.length,
-        activeContractValue: c.wonValue + c.runningValue,
-      };
-    });
+    // Most-projects client — reads the canonical projectsWonRunning from clients.
+    // Tie-break by total won+running value.
+    const withActiveCounts = clients.map(c => ({
+      ...c,
+      activeContractCount: c.projectsWonRunning,
+      activeContractValue: c.wonValue + c.runningValue,
+    }));
     const byProjects = [...withActiveCounts]
       .filter(c => c.activeContractCount > 0)
       .sort((a, b) => (b.activeContractCount - a.activeContractCount) || (b.activeContractValue - a.activeContractValue))[0] ?? null;
