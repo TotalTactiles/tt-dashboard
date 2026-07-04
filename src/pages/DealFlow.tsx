@@ -145,11 +145,13 @@ const DealFlow = () => {
     return sum + Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));
   }, 0) / (wonJobsForAvg.length || 1);
 
-  // Loss reasons
+  // Loss reasons (genuine reasons only; blank reasons shown separately)
+  const blankReasonCount = lostJobs.filter((j: any) => getLostReasonRaw(j) === "").length;
   const reasonBuckets = useMemo(() => {
     const counts: Record<string, number> = {};
     lostJobs.forEach((j: any) => {
-      const r = getLostReasonRaw(j) || "Unspecified";
+      const r = getLostReasonRaw(j);
+      if (!r) return;
       counts[r] = (counts[r] || 0) + 1;
     });
     const total = lostJobs.length || 1;
@@ -157,8 +159,6 @@ const DealFlow = () => {
       .map(([reason, count]) => ({ reason, count, pct: (count / total) * 100 }))
       .sort((a, b) => b.count - a.count);
   }, [lostJobs]);
-
-  const blankReasonCount = lostJobs.filter((j: any) => getLostReasonRaw(j) === "").length;
 
 
   // Velocity — avg days per active stage
