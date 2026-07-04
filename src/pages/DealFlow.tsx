@@ -974,20 +974,20 @@ const DealFlow = () => {
               const wonOnlyContracts = src ? src.contracts.filter((k: any) => k.status === "won") : [];
               return (
                 <div
-                  className={`relative text-left rounded-lg border p-3 transition-colors ${
+                  className={`min-w-0 text-left rounded-lg border p-3 transition-colors ${
                     activeTileKey === "byValue" ? "border-foreground/40 bg-foreground/5" : "border-border bg-card/40 hover:bg-card/60"
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Client — {modeLabel} Value</div>
-                    <div className="inline-flex rounded border border-border overflow-hidden shrink-0">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground break-words whitespace-normal">Client — {modeLabel} Value</div>
+                    <div className="flex flex-wrap gap-1 shrink-0">
                       {(["highest", "lowest", "won"] as const).map(m => (
                         <button
                           key={m}
                           type="button"
                           onClick={(e) => { e.stopPropagation(); setValueTileMode(m); }}
-                          className={`px-1.5 py-0.5 text-[9px] font-medium uppercase transition-colors ${
-                            valueTileMode === m ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground"
+                          className={`px-1.5 py-0.5 rounded border text-[10px] sm:text-[11px] font-medium uppercase transition-colors ${
+                            valueTileMode === m ? "bg-foreground/10 text-foreground border-foreground/20" : "text-muted-foreground hover:text-foreground border-border"
                           }`}
                         >
                           {m === "highest" ? "Highest" : m === "lowest" ? "Lowest" : "Won"}
@@ -999,19 +999,19 @@ const DealFlow = () => {
                     type="button"
                     disabled={!src}
                     onClick={() => src && handleTileClick("byValue", src.company)}
-                    className={`w-full text-left mt-1 ${src ? "cursor-pointer" : "cursor-default"}`}
+                    className={`min-w-0 w-full text-left mt-1 ${src ? "cursor-pointer" : "cursor-default"}`}
                   >
                     {src ? (
                       <>
-                        <div className="text-fluid-lg font-mono font-bold text-foreground truncate" title={src.company}>{src.company}</div>
+                        <div className="text-fluid-lg font-mono font-bold text-foreground truncate tabular-nums" title={src.company}>{src.company}</div>
                         {valueTileMode === "won" ? (
-                          <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                          <div className="text-[11px] text-muted-foreground font-mono mt-0.5 truncate">
                             {wonOnlyCount > 1
                               ? `${wonOnlyCount} won contracts totalling ${fmtAUD(wonOnlyValue)} (secured)`
                               : `${wonOnlyContracts[0]?.base || "—"} · ${fmtAUD(wonOnlyValue)} (secured)`}
                           </div>
                         ) : trackedProjects > 1 ? (
-                          <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                          <div className="text-[11px] text-muted-foreground font-mono mt-0.5 truncate">
                             {trackedProjects} projects totalling {fmtAUD(src.tracked)}
                           </div>
                         ) : (
