@@ -480,7 +480,34 @@ const DealFlow = () => {
 
           <div className="chart-container p-5">
             <h2 className="text-fluid-base font-semibold mb-1">Pipeline Velocity</h2>
-            <p className="text-fluid-xs text-muted-foreground mb-4">Days in pipeline since quoting started (Date Created)</p>
+            <p className="text-fluid-xs text-muted-foreground mb-4">Median quote-to-decision · primary deals, measurable only</p>
+
+            {/* Median stats */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="rounded-lg border border-border/40 bg-card/30 p-3">
+                <div className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground font-mono">
+                  Median Quote → Won
+                  <span title={`mean ${meanWon}d · ${wonDays.length} deals`}>
+                    <Info className="text-muted-foreground/70 hover:text-foreground cursor-help transition-colors inline-block ml-0.5 align-middle" size={12} />
+                  </span>
+                </div>
+                <div className="font-mono text-fluid-xl font-semibold text-chart-green mt-1">
+                  {wonDays.length ? `${medianWon}d` : "—"}
+                </div>
+              </div>
+              <div className="rounded-lg border border-border/40 bg-card/30 p-3">
+                <div className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground font-mono">
+                  Median Quote → Lost
+                  <span title={`mean ${meanLost}d · ${lostDays.length} deals`}>
+                    <Info className="text-muted-foreground/70 hover:text-foreground cursor-help transition-colors inline-block ml-0.5 align-middle" size={12} />
+                  </span>
+                </div>
+                <div className="font-mono text-fluid-xl font-semibold text-red-400 mt-1">
+                  {lostDays.length ? `${medianLost}d` : "—"}
+                </div>
+              </div>
+            </div>
+
 
             {/* Filter controls */}
             <div className="flex flex-wrap items-center gap-2 mb-3">
