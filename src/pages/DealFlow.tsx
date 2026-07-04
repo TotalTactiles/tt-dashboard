@@ -376,20 +376,20 @@ const DealFlow = () => {
               <div>
                 <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Win Rate</div>
                 <div className="text-[22px] font-bold text-[#22c55e]">
-                  {winRate.toFixed(1)}%
-                  <span title="Win Rate = (YLW + GRN) ÷ (YLW + GRN + Lost). Measures how often TT wins when a deal reaches a decision, excluding still-active pipeline.">
+                  {hasQs ? `${winRate.toFixed(1)}%` : "--"}
+                  <span title="Win Rate = Won ÷ decided (Won + Lost). Measures how often TT wins when a deal reaches a decision, excluding still-active pipeline.">
                     <Info
                       className="text-muted-foreground hover:text-foreground cursor-help transition-colors inline-block ml-1.5 align-middle"
                       size={14}
                     />
                   </span>
                 </div>
-                <div className="text-[11px] text-[#64748b]">YLW+GRN+decided</div>
+                <div className="text-[11px] text-[#64748b]">Won ÷ decided</div>
               </div>
               <div>
                 <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Pipeline CR</div>
                 <div className="text-[22px] font-bold text-[#38bdf8]">
-                  {pipelineCR.toFixed(1)}%
+                  {hasQs ? `${pipelineCR.toFixed(1)}%` : "--"}
                   <span title={`Pipeline CR is lower than Win Rate because ${pendingCount} deals (${pendingPct}% of all quotes) are still active in the pipeline. TT's avg quote-to-close cycle is ~${Math.round(avgDaysToClose)} days, so many quotes are still converting. As these resolve, Pipeline CR will trend toward Win Rate.`}>
                     <Info
                       className="text-muted-foreground hover:text-foreground cursor-help transition-colors inline-block ml-1.5 align-middle"
@@ -401,19 +401,19 @@ const DealFlow = () => {
               </div>
               <div>
                 <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Total Value Won</div>
-                <div className="text-[22px] font-bold text-[#22c55e]">{fmtAUD(totalValueWon)}</div>
+                <div className="text-[22px] font-bold text-[#22c55e]">{hasQs ? fmtAUD(totalValueWon) : "--"}</div>
               </div>
               <div>
                 <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Total Value Lost</div>
-                <div className="text-[22px] font-bold text-[#ef4444]">{fmt(ytdLostValue)}</div>
+                <div className="text-[22px] font-bold text-[#ef4444]">{hasQs ? fmtAUD(ytdLostValue) : "--"}</div>
               </div>
               <div>
                 <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Avg Won Deal</div>
-                <div className="text-[22px] font-bold text-white">{fmtAUD(avgWonDeal)}</div>
+                <div className="text-[22px] font-bold text-white">{hasQs ? fmtAUD(avgWonDeal) : "--"}</div>
               </div>
               <div>
                 <div className="text-[11px] uppercase text-[#64748b] tracking-[0.06em]">Avg Lost Deal</div>
-                <div className="text-[22px] font-bold text-white">{fmt(avgLostDeal)}</div>
+                <div className="text-[22px] font-bold text-white">{hasQs ? fmtAUD(avgLostDeal) : "--"}</div>
               </div>
             </div>
           </div>
