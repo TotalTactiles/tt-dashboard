@@ -325,6 +325,30 @@ const DealFlow = () => {
       : { key, dir: key === "company" ? "asc" : "desc" });
   };
 
+  const bestPillFor = (client: any, mode: "value" | "count"): "won" | "running" | "lost" => {
+    if (!client) return "won";
+    if (mode === "value") {
+      const arr: Array<["won" | "running" | "lost", number]> = [
+        ["won", client.wonValue || 0],
+        ["running", client.runningValue || 0],
+        ["lost", client.lostValue || 0],
+      ];
+      arr.sort((a, b) => b[1] - a[1]);
+      return arr[0][1] > 0 ? arr[0][0] : "won";
+    }
+    const counts: Record<"won" | "running" | "lost", number> = { won: 0, running: 0, lost: 0 };
+    for (const k of client.contracts ?? []) {
+      if (k.status === "won" || k.status === "running" || k.status === "lost") counts[k.status] += 1;
+    }
+    const order: Array<"won" | "running" | "lost"> = ["won", "running", "lost"];
+    let best: "won" | "running" | "lost" = "won";
+    let bestN = -1;
+    for (const p of order) {
+      if (counts[p] > bestN) { bestN = counts[p]; best = p; }
+    }
+    return bestN > 0 ? best : "won";
+  };
+
   const handleTileClick = (tileKey: string, company: string | undefined, pill?: "won" | "running" | "lost") => {
     if (!company) return;
     if (activeTileKey === tileKey) {
