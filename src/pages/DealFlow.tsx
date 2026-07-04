@@ -569,7 +569,9 @@ const DealFlow = () => {
       const projectsWonRunning = c.contracts.filter(k => k.status === "won" || k.status === "running").length;
       const contractCountAll = c.contracts.length;
       const wonContractCount = c.contracts.filter(k => k.status === "won").length;
-      return { ...c, totalValue, winRate, projectsWonRunning, contractCountAll, wonContractCount };
+      const runningContractCount = c.contracts.filter(k => k.status === "running").length;
+      const lostContractCount = c.contracts.filter(k => k.status === "lost").length;
+      return { ...c, totalValue, winRate, projectsWonRunning, contractCountAll, wonContractCount, runningContractCount, lostContractCount };
     });
 
     // Highest-value client (across all statuses).
@@ -870,7 +872,9 @@ const DealFlow = () => {
           <div className="mb-4">
             <h2 className="text-fluid-base font-semibold">Client Intelligence</h2>
             <p className="text-fluid-xs text-muted-foreground">Where the value sits — by client and by deal</p>
+            <p className="text-[10px] text-muted-foreground/70 mt-1 font-mono">W won · L lost · ItR in the running</p>
           </div>
+
 
           {/* Tiles */}
           <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-5">
@@ -912,12 +916,19 @@ const DealFlow = () => {
               } ${clientIntel.byProjects ? "cursor-pointer" : "cursor-default"}`}
             >
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Client — Most Projects</div>
-              <div className="text-[9px] text-muted-foreground/70 mt-0.5">won + in-running contracts</div>
+              <div className="text-[9px] text-muted-foreground/70 mt-0.5">won + in-running contracts (delivery)</div>
               {clientIntel.byProjects ? (
                 <>
                   <div className="text-fluid-lg font-mono font-bold mt-1 text-foreground truncate" title={clientIntel.byProjects.company}>{clientIntel.byProjects.company}</div>
                   <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                    {clientIntel.byProjects.activeContractCount} won + in-running · {fmtAUD(clientIntel.byProjects.activeContractValue)}
+                    {clientIntel.byProjects.activeContractCount} delivery contract{clientIntel.byProjects.activeContractCount === 1 ? "" : "s"} · {fmtAUD(clientIntel.byProjects.activeContractValue)}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground/80 font-mono mt-0.5">
+                    {[
+                      clientIntel.byProjects.wonContractCount > 0 ? `${clientIntel.byProjects.wonContractCount}W` : null,
+                      clientIntel.byProjects.lostContractCount > 0 ? `${clientIntel.byProjects.lostContractCount}L` : null,
+                      clientIntel.byProjects.runningContractCount > 0 ? `${clientIntel.byProjects.runningContractCount}ItR` : null,
+                    ].filter(Boolean).join(" · ") || "—"}
                   </div>
                 </>
               ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
@@ -964,10 +975,11 @@ const DealFlow = () => {
                     {clientIntel.returningTiedExtra > 0 ? ` (+${clientIntel.returningTiedExtra} more tied)` : ""}
                   </div>
                   <div className="text-[10px] text-muted-foreground/80 font-mono mt-0.5">
-                    {clientIntel.byReturning.contractCountAll} total contracts (all statuses)
-                  </div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">
-                    {clientIntel.returningCount_won} client{clientIntel.returningCount_won === 1 ? "" : "s"} with 2+ won · {clientIntel.returningCount_all} with 2+ any
+                    {[
+                      clientIntel.byReturning.wonContractCount > 0 ? `${clientIntel.byReturning.wonContractCount}W` : null,
+                      clientIntel.byReturning.lostContractCount > 0 ? `${clientIntel.byReturning.lostContractCount}L` : null,
+                      clientIntel.byReturning.runningContractCount > 0 ? `${clientIntel.byReturning.runningContractCount}ItR` : null,
+                    ].filter(Boolean).join(" · ") || "—"}
                   </div>
                 </>
               ) : (<div className="text-fluid-lg font-mono font-bold mt-1 text-muted-foreground">—</div>)}
