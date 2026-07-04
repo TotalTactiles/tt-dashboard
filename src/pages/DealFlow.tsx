@@ -594,7 +594,7 @@ const DealFlow = () => {
     // basis "won" = 2+ WON contracts (proven repeat customers).
     // basis "all" = 2+ contracts of ANY status (repeat engagers).
     const buildReturning = (basis: "won" | "all") => {
-      const countOf = (c: any) => basis === "won" ? c.wonContractCount : c.allContractCount;
+      const countOf = (c: any) => basis === "won" ? c.wonContractCount : c.contractCountAll;
       const returningClients = clients.filter(c => countOf(c) >= 2);
       const newClients = clients.filter(c => countOf(c) < 2);
       const returningCount = returningClients.length;
