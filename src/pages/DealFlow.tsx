@@ -410,7 +410,7 @@ const DealFlow = () => {
 
           <div className="chart-container p-5">
             <h2 className="text-fluid-base font-semibold mb-1">Pipeline Velocity</h2>
-            <p className="text-fluid-xs text-muted-foreground mb-4">Quote-to-close duration across all deals</p>
+            <p className="text-fluid-xs text-muted-foreground mb-4">Days in pipeline since quoting started (Date Created)</p>
 
             {/* Filter controls */}
             <div className="flex flex-wrap items-center gap-2 mb-3">
