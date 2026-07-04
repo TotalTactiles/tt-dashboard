@@ -312,7 +312,7 @@ const DealFlow = () => {
   const maxStageCount = Math.max(1, ...stageStats.map(s => s.count), completedCount);
 
   // Client Intelligence
-  type ClientPill = "won" | "running" | "lost" | "lowest" | "all";
+  type ClientPill = "won" | "running" | "lost" | "all";
   const [clientFilter, setClientFilter] = useState<ClientPill>("won");
   const [expandedClient, setExpandedClient] = useState<string | null>(null);
   const [showAllClients, setShowAllClients] = useState(false);
