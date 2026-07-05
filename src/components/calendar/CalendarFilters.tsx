@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { SOURCE_THEME } from "./eventColors";
 
 export interface CustomFilter {
   id: string;
@@ -24,9 +25,9 @@ const PRESET_COLORS = [
 ];
 
 const SOURCE_CONFIG = [
-  { key: "Google Calendar", color: "#378ADD" },
-  { key: "Zoho Projects",   color: "#7F77DD" },
-  { key: "Strategic Board", color: "#BA7517" },
+  { key: "Google Calendar", color: SOURCE_THEME.google.accent },
+  { key: "Zoho Projects",   color: SOURCE_THEME.zohoParent.accent },
+  { key: "Strategic Board", color: SOURCE_THEME.strategic.accent },
 ];
 
 const CalendarFilters = ({

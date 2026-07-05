@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { CalendarDays, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import { type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
+import { getEventTheme } from "./eventColors";
 
 interface DaySchedulePanelProps {
   events: LiveCalendarEvent[];
@@ -10,17 +11,6 @@ interface DaySchedulePanelProps {
   onNextDay: () => void;
   onEventClick: (event: LiveCalendarEvent) => void;
 }
-
-const TYPE_COLORS: Record<string, string> = {
-  Meeting: "#378ADD",
-  Deadline: "#E24B4A",
-  Milestone: "#7F77DD",
-  Care: "#639922",
-  Valuation: "#BA7517",
-  Distribution: "#1D9E75",
-};
-
-const getTypeColor = (type: string) => TYPE_COLORS[type] || "#378ADD";
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 08:00–20:00
 
@@ -119,13 +109,14 @@ const DaySchedulePanel = ({ events, selectedDate, onPrevDay, onNextDay, onEventC
                 <div className={`flex-1 pt-1 pb-2 ${hourEvents.length === 0 ? "border-t border-dashed border-border/20" : "border-t border-border/30"}`}>
                   {hourEvents.map((ev) => {
                     const isPending = !!ev._pending;
+                    const theme = getEventTheme(ev);
                     return (
                     <div
                       key={ev.id}
                       className="rounded-xl p-3 mb-1.5 transition-all duration-300 hover:scale-[1.01] cursor-pointer"
                       style={{
-                        background: "hsl(var(--secondary))",
-                        borderLeft: `3px solid ${getTypeColor(ev.type)}`,
+                        background: theme.bg,
+                        borderLeft: `3px solid ${theme.border}`,
                         opacity: isPending ? 0.6 : 1,
                       }}
                       onClick={() => onEventClick(ev)}
