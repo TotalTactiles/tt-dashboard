@@ -613,3 +613,14 @@
 
 /* Prevent full-white burn-in blocks */
 .tv-mode .bg-white { background-color: hsl(var(--card)) !important; }
+/* Hide standard dashboard chrome inside TV mode — TvLayout provides its own */
+.tv-mode [data-sidebar="sidebar"],
+.tv-mode [data-sidebar="rail"],
+.tv-mode [data-sidebar="trigger"],
+.tv-mode header,
+.tv-mode nav.md\:hidden {
+  display: none !important;
+}
+.tv-mode .landscape-main-offset { padding-left: 0 !important; }
+.tv-mode .dashboard-main-padding { padding: 0 !important; }
+.tv-mode .pb-20 { padding-bottom: 0 !important; }
