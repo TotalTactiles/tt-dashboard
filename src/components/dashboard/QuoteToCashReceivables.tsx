@@ -816,5 +816,100 @@ const StatCard = ({
   </div>
 );
 
+const renderTrendChart = (monthlyTrend: MonthlyTrend[], termDays: number) => (
+  <ResponsiveContainer width="100%" height="100%">
+    <ComposedChart data={monthlyTrend} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+      <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
+      <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+      <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+      <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+      <Tooltip
+        contentStyle={{
+          background: "hsl(var(--card))",
+          border: "1px solid hsl(var(--border))",
+          fontSize: 12,
+        }}
+      />
+      <ReferenceLine yAxisId="right" y={termDays} stroke="hsl(var(--chart-orange))" strokeDasharray="3 3" />
+      <Bar yAxisId="left" dataKey="invoicesPaid" fill="hsl(var(--chart-blue))" name="Invoices paid" />
+      <Line
+        yAxisId="right"
+        type="monotone"
+        dataKey="avgDaysToPay"
+        stroke="hsl(var(--chart-green))"
+        strokeWidth={2}
+        name="Avg days to pay"
+        dot={{ r: 3 }}
+      />
+    </ComposedChart>
+  </ResponsiveContainer>
+);
+
+const InvoicingRow = ({
+  label,
+  value,
+  valueClass = "",
+  sub,
+}: {
+  label: ReactNode;
+  value: string;
+  valueClass?: string;
+  sub?: ReactNode;
+}) => (
+  <div className="flex items-start justify-between gap-3 py-1.5 border-b border-border/40 last:border-0">
+    <div className="text-[11px] text-muted-foreground min-w-0">{label}</div>
+    <div className="text-right min-w-0">
+      <div className={`text-xs font-mono ${valueClass}`}>{value}</div>
+      {sub && <div className="text-[10px] text-muted-foreground font-mono truncate max-w-[180px]">{sub}</div>}
+    </div>
+  </div>
+);
+
+const InvoicingProfileCard = ({ invoicing }: { invoicing: InvoicingProfile }) => {
+  const collectionGood = invoicing.collectionRatePct >= 70;
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
+        <h3 className="text-fluid-sm font-semibold">Invoicing profile</h3>
+        <span className="text-[11px] text-muted-foreground font-mono">
+          {invoicing.invoiceCount} invoices · {invoicing.monthsSpan} months
+        </span>
+      </div>
+      <div className="rounded bg-muted/20 px-2 py-2 mb-2 flex items-baseline justify-between">
+        <span className="text-[11px] text-muted-foreground">Total invoiced</span>
+        <span className="text-fluid-base font-mono font-semibold">{fmtMoney(invoicing.totalInvoiced)}</span>
+      </div>
+      <div>
+        <InvoicingRow label="Avg invoices / month" value={invoicing.avgInvoicesPerMonth.toFixed(1)} />
+        <InvoicingRow label="Avg invoiced / month" value={fmtMoney(invoicing.avgInvoicedPerMonth)} />
+        <InvoicingRow label="Avg invoice value" value={fmtMoney(invoicing.avgInvoiceValue)} />
+        <InvoicingRow
+          label={
+            <InfoLabel
+              label="Median invoice value"
+              info="The typical invoice — half are above, half below. Less skewed by large one-off jobs than the average."
+            />
+          }
+          value={fmtMoney(invoicing.medianInvoiceValue)}
+        />
+        <InvoicingRow
+          label="Largest invoice"
+          value={fmtMoney(invoicing.largestInvoice?.amount ?? 0)}
+          sub={invoicing.largestInvoice?.company}
+        />
+        <InvoicingRow
+          label={
+            <InfoLabel
+              label="Collection rate"
+              info="Share of everything you've invoiced that has actually been paid."
+            />
+          }
+          value={`${invoicing.collectionRatePct}%`}
+          valueClass={collectionGood ? "text-chart-green" : ""}
+        />
+      </div>
+    </div>
+  );
+};
 
 export default QuoteToCashReceivables;
