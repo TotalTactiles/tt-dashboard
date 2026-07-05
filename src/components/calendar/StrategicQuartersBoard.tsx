@@ -2,13 +2,15 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check,
-  Trash2,
-  GripVertical,
   ChevronDown,
   ChevronRight,
-  CalendarDays,
+  GripVertical,
   Plus,
+  Trash2,
+  X,
+  CalendarDays,
 } from "lucide-react";
+
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
 
