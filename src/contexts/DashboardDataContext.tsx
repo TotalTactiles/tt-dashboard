@@ -320,6 +320,7 @@ export interface DashboardData {
   syncProjectKPIs: () => Promise<{ success: boolean; data?: ProjectKPIData; error?: string }>;
   syncCalendar: () => Promise<number>;
   refetchCalendar: () => Promise<number>;
+  evictCalendarIds: (ids: string[]) => Promise<number>;
   calendarEvents: LiveCalendarEvent[];
   upcomingEvents: LiveCalendarEvent[];
   calendarSummary: CalendarSummary | null;
