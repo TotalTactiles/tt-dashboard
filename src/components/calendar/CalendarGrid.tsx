@@ -21,6 +21,10 @@ const useTvMode = () => {
   return tv;
 };
 
+const pad2 = (n: number) => n.toString().padStart(2, "0");
+const dateKey = (year: number, month: number, day: number) => `${year}-${pad2(month + 1)}-${pad2(day)}`;
+
+
 interface CalendarGridProps {
   events: LiveCalendarEvent[];
   selectedDate: Date;
