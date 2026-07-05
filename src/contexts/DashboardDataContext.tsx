@@ -320,6 +320,7 @@ export interface DashboardData {
   upcomingEvents: LiveCalendarEvent[];
   calendarSummary: CalendarSummary | null;
   setCalendarEvents: React.Dispatch<React.SetStateAction<LiveCalendarEvent[]>>;
+  zohoProjects: Array<{ id: string; name: string; tasks: Array<{ id: string; name: string; hasSubtasks?: boolean }> }>;
   projectKPIData: ProjectKPIData | null;
   liveData: import("@/hooks/useDataSources").LiveData;
   isOffline: boolean;
