@@ -394,7 +394,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                   </div>
                   {!collapsedPast && (
                     <div
-                      className={`flex flex-col ${tvMode ? "gap-1.5" : "gap-1"} flex-1 min-h-0 w-full ${isExpanded ? "overflow-y-auto max-h-[60vh]" : "overflow-hidden"}`}
+                      className={`flex flex-col ${tvMode ? "gap-1.5" : "gap-1"} flex-1 min-h-0 w-full overflow-y-auto ${isExpanded ? "max-h-[60vh]" : ""}`}
                     >
                       {visibleEvents.map((ev) => {
                         const theme = getEventTheme(ev);
