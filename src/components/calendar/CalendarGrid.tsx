@@ -404,10 +404,10 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                   }}
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
-                  className={`relative rounded-lg transition-all duration-150 overflow-hidden
+                  className={`relative rounded-lg sm:rounded-xl transition-all duration-150 overflow-hidden
                     ${collapsedPast
-                      ? `self-start flex items-center justify-between ${tvMode ? "h-10 px-2 py-1" : "min-h-[22px] h-[22px] px-2 py-1"} cursor-pointer`
-                      : `flex flex-col items-start h-full ${tvMode ? "p-2" : "p-1.5 min-h-[64px]"}`}
+                      ? `self-start flex items-center justify-between ${tvMode ? "h-10 px-2 py-1" : "min-h-[22px] h-[22px] px-1.5 sm:px-2 py-1"} cursor-pointer`
+                      : `flex flex-col items-start h-full ${tvMode ? "p-2" : "p-1 sm:p-1.5 min-h-[56px] sm:min-h-[64px]"}`}
                     ${!cell.inMonth ? "opacity-30 pointer-events-none" : "cursor-pointer"}
                     ${cell.inMonth && isToday(cell.day) ? "bg-primary/15 ring-1 ring-primary/40" : ""}
                     ${cell.inMonth && isSelected(cell.day) && !isToday(cell.day) ? "bg-secondary ring-1 ring-primary/30" : ""}
