@@ -315,8 +315,8 @@ export interface DashboardData {
   saveAndTest: ReturnType<typeof useDataSources>["saveAndTest"];
   syncNow: ReturnType<typeof useDataSources>["syncNow"];
   syncProjectKPIs: () => Promise<{ success: boolean; data?: ProjectKPIData; error?: string }>;
-  syncCalendar: () => Promise<void>;
-  refetchCalendar: () => Promise<void>;
+  syncCalendar: () => Promise<number>;
+  refetchCalendar: () => Promise<number>;
   calendarEvents: LiveCalendarEvent[];
   upcomingEvents: LiveCalendarEvent[];
   calendarSummary: CalendarSummary | null;
@@ -1804,7 +1804,7 @@ export function useDashboardData(): DashboardData {
       },
       isLoading: false, isRefreshing: false, hasLiveData: false, connectedCount: 0, lastUpdated: null,
       sources: [], toggleConnection: () => {}, updateWebhookUrl: () => {},
-      saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {}, syncProjectKPIs: async () => ({ success: false, error: "Not initialized" }), syncCalendar: async () => {}, refetchCalendar: async () => {},
+      saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {}, syncProjectKPIs: async () => ({ success: false, error: "Not initialized" }), syncCalendar: async () => 0, refetchCalendar: async () => 0,
       calendarEvents: [], upcomingEvents: [], calendarSummary: null, setCalendarEvents: () => {}, zohoProjects: [],
       projectKPIData: null,
       liveData: {},

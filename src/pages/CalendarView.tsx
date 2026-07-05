@@ -225,17 +225,17 @@ const CalendarView = () => {
                 e.source === targetSource
             );
 
-          await delay(2000);
-          console.log("[refetch] attempt 1");
-          await refetchCalendar();
+          await delay(2500);
+          const count1 = await refetchCalendar();
+          console.log(`[refetch] attempt 1, events=${count1}`);
 
           if (action === "create" && targetTitle && targetDate) {
             const eventsAfterFirst = getCachedEvents();
             if (isCreatedEventPresent(eventsAfterFirst)) return;
 
-            await delay(2500);
-            console.log("[refetch] attempt 2");
-            await refetchCalendar();
+            await delay(3000);
+            const count2 = await refetchCalendar();
+            console.log(`[refetch] attempt 2, events=${count2}`);
           }
         })();
 
