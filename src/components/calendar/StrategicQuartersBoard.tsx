@@ -766,7 +766,7 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
-      className="stat-card"
+      className="mt-8 pt-6 border-t border-white/15"
     >
       {/* Header */}
       <div className="flex items-end justify-between gap-3 flex-wrap mb-4">
