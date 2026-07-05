@@ -367,15 +367,15 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                   onClick={() => cell.inMonth && handleMonthDayClick(cell.day)}
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
-                  className={`relative rounded-lg transition-all duration-150
+                  className={`relative rounded-lg transition-all duration-150 overflow-hidden
                     ${collapsedPast
-                      ? `flex items-center justify-between ${tvMode ? "h-10 px-2 py-1" : "min-h-[22px] h-[22px] px-2 py-1"} cursor-pointer`
-                      : `flex flex-col items-start ${tvMode ? "p-2" : "p-1.5 min-h-[64px]"}`}
+                      ? `self-start flex items-center justify-between ${tvMode ? "h-10 px-2 py-1" : "min-h-[22px] h-[22px] px-2 py-1"} cursor-pointer`
+                      : `flex flex-col items-start h-full ${tvMode ? "p-2" : "p-1.5 min-h-[64px]"}`}
                     ${!cell.inMonth ? "opacity-30 pointer-events-none" : "cursor-pointer"}
                     ${cell.inMonth && isToday(cell.day) ? "bg-primary/15 ring-1 ring-primary/40" : ""}
                     ${cell.inMonth && isSelected(cell.day) && !isToday(cell.day) ? "bg-secondary ring-1 ring-primary/30" : ""}
                     ${cell.inMonth && !isToday(cell.day) && !isSelected(cell.day) ? "bg-muted/50 hover:bg-secondary/70" : ""}
-                    ${isExpanded ? "z-20 shadow-lg ring-1 ring-primary/40 bg-card" : "overflow-hidden"}
+                    ${isExpanded ? "z-20 shadow-lg ring-1 ring-primary/40 bg-card" : ""}
                   `}
                 >
                   <div className={`flex items-center ${collapsedPast ? "justify-between w-full" : "mb-1"}`}>
