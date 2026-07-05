@@ -887,7 +887,7 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
           return (
             <div
               key={section.id}
-              className={`relative rounded-2xl border overflow-hidden flex flex-col min-h-[210px] transition-all ${
+              className={`relative rounded-2xl border overflow-hidden flex flex-col min-h-[210px] transition-all group ${
                 dragIndex === idx ? "opacity-40" : ""
               } ${dropIndex === idx ? "ring-2" : "border-border"}`}
               style={{
