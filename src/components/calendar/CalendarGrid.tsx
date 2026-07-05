@@ -34,6 +34,7 @@ interface CalendarGridProps {
   onEventClick: (event: LiveCalendarEvent) => void;
   onAddEvent: () => void;
   onDayClick?: (dateISO: string) => void;
+  onViewMonthChange?: (viewMonth: Date) => void;
 }
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -75,9 +76,13 @@ const eventOccupiesDay = (e: LiveCalendarEvent, target: Date): boolean => {
   return t >= startLocal.getTime() && t <= endLocal.getTime();
 };
 
-const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayClick }: CalendarGridProps) => {
+const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayClick, onViewMonthChange }: CalendarGridProps) => {
   const [view, setView] = useState<CalendarView>("month");
   const [currentDate, setCurrentDate] = useState(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
+
+  useEffect(() => {
+    onViewMonthChange?.(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1));
+  }, [currentDate, onViewMonthChange]);
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
   const [expandedPastDays, setExpandedPastDays] = useState<Set<string>>(new Set());
 

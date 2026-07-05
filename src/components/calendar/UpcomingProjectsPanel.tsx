@@ -5,6 +5,7 @@ import { SOURCE_THEME } from "./eventColors";
 
 interface UpcomingProjectsPanelProps {
   projects: ZohoProject[];
+  emptyMessage?: string;
 }
 
 function parseDate(raw: unknown): Date | null {
@@ -19,7 +20,7 @@ function fmtDate(d: Date): string {
   return d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
 }
 
-export default function UpcomingProjectsPanel({ projects }: UpcomingProjectsPanelProps) {
+export default function UpcomingProjectsPanel({ projects, emptyMessage = "No upcoming projects" }: UpcomingProjectsPanelProps) {
   const sorted = useMemo(() => {
     return [...projects]
       .map((p) => {
@@ -51,7 +52,7 @@ export default function UpcomingProjectsPanel({ projects }: UpcomingProjectsPane
       {sorted.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-6 text-center">
           <FolderKanban className="w-5 h-5 text-muted-foreground/50 mb-2" />
-          <p className="text-xs text-muted-foreground">No upcoming projects</p>
+          <p className="text-xs text-muted-foreground">{emptyMessage}</p>
         </div>
       ) : (
         sorted.map((p) => {
