@@ -94,6 +94,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
   // Clear transient day-selection highlight when clicking anywhere that is not a day tile.
   useEffect(() => {
     const onDown = (e: PointerEvent) => {
+      const target = e.target;
       if (target instanceof Element) {
         if (target.closest('[role="dialog"], [data-radix-popper-content-wrapper]')) return;
         if (target.closest('[data-day-tile="true"]')) return;
@@ -232,7 +233,6 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
     }
     onSelectDate(new Date(year, month, day));
     if (onDayClick && !wasSelected) {
-      setSelectedDay(null);
       onDayClick(`${year}-${pad2(month + 1)}-${pad2(day)}`);
     }
   };
@@ -529,7 +529,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
           <div className="grid grid-cols-7 gap-1 mb-1 shrink-0">
             {weekDays.map((d) => {
               const today = sameDay(d, todayDate);
-              const selected = sameDay(d, selectedDate);
+              const selected = selectedDay === iso;
               return (
                 <div
                   key={d.toISOString()}
