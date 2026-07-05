@@ -268,6 +268,14 @@ const CalendarView = () => {
           pinCalendarEdit(editingEvent.id, patch);
         } else if (action === "delete" && editingEvent) {
           pinCalendarDelete(editingEvent.id);
+          // Backend evict — tells the read cache to permanently drop this event
+          // so it does NOT reappear after a page reload once the optimistic
+          // overlay is wiped. Send every id shape the backend might match.
+          const rawId = editingEvent.id;
+          const zohoId = editingEvent.zohoId || "";
+          const stripped = rawId.replace(/^zoho-(subtask|task)-/, "");
+          const evictIds = Array.from(new Set([rawId, stripped, zohoId].filter(Boolean))) as string[];
+          evictCalendarIds(evictIds).catch((e) => console.warn("[Calendar Evict] failed:", e?.message));
         }
 
         setCalendarDebug({
