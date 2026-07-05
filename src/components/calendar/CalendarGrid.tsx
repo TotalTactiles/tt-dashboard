@@ -184,11 +184,16 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
 
       {/* Grid */}
       <div
-        className="grid grid-cols-7 gap-1 flex-1 min-h-0"
-        style={{ gridTemplateRows: `repeat(${rowCount}, minmax(0, 1fr))` }}
+        className="grid grid-cols-7 gap-1 flex-1 min-h-0 items-start"
+        style={{ gridTemplateRows: `repeat(${rowCount}, minmax(0, auto))` }}
       >
         {cells.map((cell, i) => {
           const dayEvents = cell.inMonth ? eventsByDay[cell.day] || [] : [];
+          const key = cell.inMonth ? dateKey(year, month, cell.day) : "";
+          const past = cell.inMonth && isPast(cell.day);
+          const expandedPast = past && expandedPastDays.has(key);
+          const collapsedPast = past && !expandedPast;
+
           // In TV mode, never expand interactively — just show up to collapsedLimit and a static "+X" if any remain.
           const isExpanded = !tvMode && cell.inMonth && expandedDay === cell.day && dayEvents.length > collapsedLimit;
           const visibleEvents = isExpanded ? dayEvents : dayEvents.slice(0, collapsedLimit);
@@ -214,7 +219,8 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
               onClick={() => cell.inMonth && handleDayClick(cell.day)}
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
-              className={`relative flex flex-col ${tvMode ? "p-2" : "p-1.5"} rounded-lg transition-all duration-150
+              className={`relative flex items-start rounded-lg transition-all duration-150
+                ${collapsedPast ? (tvMode ? "h-12 px-2 py-1 justify-between" : "h-8 px-1.5 py-0.5 justify-between") : `flex-col ${tvMode ? "p-2" : "p-1.5"}`}
                 ${!cell.inMonth ? "opacity-30 pointer-events-none" : "cursor-pointer"}
                 ${cell.inMonth && isToday(cell.day) ? "bg-primary/15 ring-1 ring-primary/40" : ""}
                 ${cell.inMonth && isSelected(cell.day) && !isToday(cell.day) ? "bg-secondary ring-1 ring-primary/30" : ""}
@@ -223,80 +229,91 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
               `}
               style={{ minHeight: 0 }}
             >
-              <span
-                className={`font-bold leading-none mb-1 ${cell.inMonth && isToday(cell.day) ? "text-primary" : "text-foreground/80"}`}
-                style={{ fontSize: tvMode ? "clamp(16px, 1.1vw, 22px)" : "clamp(10px, 1vw, 12px)" }}
-              >
-                {cell.day}
-              </span>
-              <div
-                className={`flex flex-col ${tvMode ? "gap-1.5" : "gap-1"} flex-1 min-h-0 ${isExpanded ? "overflow-y-auto max-h-[60vh]" : "overflow-hidden"}`}
-              >
-                {visibleEvents.map((ev) => {
-                  const theme = getEventTheme(ev);
-                  const isPending = !!ev._pending;
-                  return (
-                    <button
-                      key={ev.id}
-                      type="button"
-                      title={isPending ? `${ev.title} (syncing…)` : ev.title}
-                      onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
-                      className={`group flex items-center min-w-0 w-full rounded-md cursor-pointer text-left transition-all duration-300 border-l-[3px] ${
-                        tvMode
-                          ? "gap-2 px-2 py-1.5 border-y border-r border-border/40"
-                          : `gap-1 px-1 border-y border-r border-transparent ${hoverCapable ? "py-0.5" : "py-1.5 min-h-[36px]"}`
-                      }`}
-                      style={{
-                        opacity: isPending ? (tvMode ? 0.6 : 0.5) : 1,
-                        background: theme.bg,
-                        borderLeftColor: theme.border,
-                      }}
-                    >
-                      <span
-                        className={`rounded-full shrink-0 ${tvMode ? "w-2.5 h-2.5" : "w-1.5 h-1.5"} ${isPending ? "animate-pulse" : ""}`}
-                        style={{ backgroundColor: theme.accent }}
-                      />
-                      <span
-                        className={`truncate leading-tight ${tvMode ? "text-foreground font-medium" : "text-foreground/90 group-hover:text-foreground"}`}
-                        style={{ fontSize: tvMode ? "clamp(13px, 0.9vw, 17px)" : "clamp(9px, 0.9vw, 11px)" }}
-                      >
-                        {ev.title}
-                      </span>
-                      {isPending && (
-                        <span
-                          className="ml-auto shrink-0 italic text-muted-foreground"
-                          style={{ fontSize: tvMode ? "11px" : "9px" }}
-                        >
-                          syncing…
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-                {overflow > 0 && (
-                  tvMode ? (
-                    <span
-                      className="text-muted-foreground font-medium px-2 pt-0.5"
-                      style={{ fontSize: "clamp(12px, 0.85vw, 15px)" }}
-                    >
-                      +{overflow} more
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleChipClick}
-                      className={`text-primary hover:text-primary/80 font-medium truncate text-left cursor-pointer rounded-md px-1 hover:bg-primary/10 ${hoverCapable ? "" : "min-h-[40px] py-1.5 bg-primary/5"}`}
-                      style={{ fontSize: "clamp(9px, 0.9vw, 11px)" }}
-                    >
-                      {isExpanded ? "Show less" : `+${overflow} more`}
-                    </button>
-                  )
+              <div className={`flex items-center ${collapsedPast ? "justify-between w-full" : "mb-1"}`}>
+                <span
+                  className={`font-bold leading-none ${cell.inMonth && isToday(cell.day) ? "text-primary" : "text-foreground/80"}`}
+                  style={{ fontSize: tvMode ? "clamp(16px, 1.1vw, 22px)" : "clamp(10px, 1vw, 12px)" }}
+                >
+                  {cell.day}
+                </span>
+                {collapsedPast && dayEvents.length > 0 && (
+                  <span
+                    className="rounded-full bg-primary/70 shrink-0"
+                    style={{ width: tvMode ? 8 : 5, height: tvMode ? 8 : 5 }}
+                  />
                 )}
               </div>
+              {!collapsedPast && (
+                <div
+                  className={`flex flex-col ${tvMode ? "gap-1.5" : "gap-1"} flex-1 min-h-0 w-full ${isExpanded ? "overflow-y-auto max-h-[60vh]" : "overflow-hidden"}`}
+                >
+                  {visibleEvents.map((ev) => {
+                    const theme = getEventTheme(ev);
+                    const isPending = !!ev._pending;
+                    return (
+                      <button
+                        key={ev.id}
+                        type="button"
+                        title={isPending ? `${ev.title} (syncing…)` : ev.title}
+                        onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
+                        className={`group flex items-center min-w-0 w-full rounded-md cursor-pointer text-left transition-all duration-300 border-l-[3px] ${
+                          tvMode
+                            ? "gap-2 px-2 py-1.5 border-y border-r border-border/40"
+                            : `gap-1 px-1 border-y border-r border-transparent ${hoverCapable ? "py-0.5" : "py-1.5 min-h-[36px]"}`
+                        }`}
+                        style={{
+                          opacity: isPending ? (tvMode ? 0.6 : 0.5) : 1,
+                          background: theme.bg,
+                          borderLeftColor: theme.border,
+                        }}
+                      >
+                        <span
+                          className={`rounded-full shrink-0 ${tvMode ? "w-2.5 h-2.5" : "w-1.5 h-1.5"} ${isPending ? "animate-pulse" : ""}`}
+                          style={{ backgroundColor: theme.accent }}
+                        />
+                        <span
+                          className={`truncate leading-tight ${tvMode ? "text-foreground font-medium" : "text-foreground/90 group-hover:text-foreground"}`}
+                          style={{ fontSize: tvMode ? "clamp(13px, 0.9vw, 17px)" : "clamp(9px, 0.9vw, 11px)" }}
+                        >
+                          {ev.title}
+                        </span>
+                        {isPending && (
+                          <span
+                            className="ml-auto shrink-0 italic text-muted-foreground"
+                            style={{ fontSize: tvMode ? "11px" : "9px" }}
+                          >
+                            syncing…
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                  {overflow > 0 && (
+                    tvMode ? (
+                      <span
+                        className="text-muted-foreground font-medium px-2 pt-0.5"
+                        style={{ fontSize: "clamp(12px, 0.85vw, 15px)" }}
+                      >
+                        +{overflow} more
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleChipClick}
+                        className={`text-primary hover:text-primary/80 font-medium truncate text-left cursor-pointer rounded-md px-1 hover:bg-primary/10 ${hoverCapable ? "" : "min-h-[40px] py-1.5 bg-primary/5"}`}
+                        style={{ fontSize: "clamp(9px, 0.9vw, 11px)" }}
+                      >
+                        {isExpanded ? "Show less" : `+${overflow} more`}
+                      </button>
+                    )
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
       </div>
+
     </motion.div>
   );
 };
