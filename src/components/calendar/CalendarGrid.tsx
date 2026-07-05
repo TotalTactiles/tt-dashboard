@@ -691,6 +691,25 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
           })()}
         </div>
       )}
+
+      <DayEventsModal
+        open={!!viewAllDay}
+        onClose={() => setViewAllDay(null)}
+        date={viewAllDay}
+        events={viewAllDay ? events.filter((e) => eventOccupiesDay(e, viewAllDay)) : []}
+        onEventClick={(ev) => {
+          setViewAllDay(null);
+          onEventClick(ev);
+        }}
+        onAddEvent={() => {
+          if (!viewAllDay) return;
+          const iso = dateISO(viewAllDay);
+          const d = viewAllDay;
+          setViewAllDay(null);
+          onSelectDate(d);
+          if (onDayClick) onDayClick(iso);
+        }}
+      />
     </motion.div>
   );
 };
