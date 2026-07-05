@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { getEventTheme } from "./eventColors";
 
 const useTvMode = () => {
   const [tv, setTv] = useState<boolean>(() =>
