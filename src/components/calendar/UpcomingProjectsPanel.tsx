@@ -5,6 +5,7 @@ import { SOURCE_THEME } from "./eventColors";
 
 interface UpcomingProjectsPanelProps {
   projects: ZohoProject[];
+  emptyMessage?: string;
 }
 
 function parseDate(raw: unknown): Date | null {
