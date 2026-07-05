@@ -1,8 +1,24 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+
+const useTvMode = () => {
+  const [tv, setTv] = useState<boolean>(() =>
+    typeof document !== "undefined" && document.body.classList.contains("tv-mode")
+  );
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const check = () => setTv(document.body.classList.contains("tv-mode"));
+    check();
+    const obs = new MutationObserver(check);
+    obs.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
+  return tv;
+};
 
 interface CalendarGridProps {
   events: LiveCalendarEvent[];
