@@ -24,7 +24,42 @@ function fmtDate(d: Date): string {
   return d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
 }
 
-export default function UpcomingProjectsPanel({ projects, emptyMessage = "No upcoming projects" }: UpcomingProjectsPanelProps) {
+export default function UpcomingProjectsPanel({
+  projects,
+  emptyMessage = "No upcoming projects",
+  mode,
+  onModeChange,
+}: UpcomingProjectsPanelProps) {
+  const showPills = !!mode && !!onModeChange;
+  const pill = (m: ProjectsFilterMode, label: string) => {
+    const active = mode === m;
+    return (
+      <button
+        key={m}
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onModeChange?.(m);
+        }}
+        className={
+          "px-2.5 py-1 rounded-full text-[10px] font-mono font-medium transition-colors " +
+          (active
+            ? "text-white"
+            : "bg-muted/60 text-muted-foreground hover:bg-muted")
+        }
+        style={
+          active
+            ? {
+                background: SOURCE_THEME.zohoParent.accent,
+                color: SOURCE_THEME.zohoParent.accent ? "#fff" : undefined,
+              }
+            : undefined
+        }
+      >
+        {label}
+      </button>
+    );
+  };
   const sorted = useMemo(() => {
     return [...projects]
       .map((p) => {
