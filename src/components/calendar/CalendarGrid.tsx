@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
@@ -88,21 +88,14 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
   const [expandedPastDays, setExpandedPastDays] = useState<Set<string>>(new Set());
   const [viewAllDay, setViewAllDay] = useState<Date | null>(null);
-  const [userSelectedKey, setUserSelectedKey] = useState<string | null>(null);
-  const rootRef = useRef<HTMLDivElement | null>(null);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
-  // Clear transient day-selection highlight when clicking outside the calendar grid.
+  // Clear transient day-selection highlight when clicking anywhere that is not a day tile.
   useEffect(() => {
     const onDown = (e: PointerEvent) => {
-      const el = rootRef.current;
-      if (!el) return;
-      const target = e.target as Node | null;
-      if (target && el.contains(target)) return;
-      // Ignore clicks inside dialogs/popovers (portals live outside root)
-      if (target instanceof Element) {
-        if (target.closest('[role="dialog"], [data-radix-popper-content-wrapper]')) return;
-      }
-      setUserSelectedKey(null);
+      const target = e.target;
+      if (target instanceof Element && target.closest('[data-day-tile="true"]')) return;
+      setSelectedDay(null);
     };
     document.addEventListener("pointerdown", onDown);
     return () => document.removeEventListener("pointerdown", onDown);
@@ -217,11 +210,12 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
   };
   const isDatePast = (d: Date) => dateKeyNum(d) < todayKey;
 
-  const isSelected = (d: number) => userSelectedKey === dateKey(year, month, d);
+  const isSelected = (d: number) => selectedDay === dateKey(year, month, d);
 
   const handleMonthDayClick = (day: number) => {
     const key = dateKey(year, month, day);
-    setUserSelectedKey(key);
+    const wasSelected = selectedDay === key;
+    setSelectedDay(wasSelected ? null : key);
     const past = isPast(day);
     if (past) {
       setExpandedPastDays((prev) => {
@@ -234,7 +228,9 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
       return;
     }
     onSelectDate(new Date(year, month, day));
-    if (onDayClick) onDayClick(`${year}-${pad2(month + 1)}-${pad2(day)}`);
+    if (onDayClick && !wasSelected) {
+      onDayClick(`${year}-${pad2(month + 1)}-${pad2(day)}`);
+    }
   };
 
   // ---- Week view data ----
@@ -303,7 +299,6 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
 
   return (
     <motion.div
-      ref={rootRef}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       className="stat-card flex-1 min-w-0 flex flex-col overflow-hidden"
@@ -402,7 +397,12 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
               return (
                 <div
                   key={i}
-                  onClick={() => cell.inMonth && handleMonthDayClick(cell.day)}
+                  data-day-tile={cell.inMonth ? "true" : undefined}
+                  onPointerDown={(e) => cell.inMonth && e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    cell.inMonth && handleMonthDayClick(cell.day);
+                  }}
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
                   className={`relative rounded-lg transition-all duration-150 overflow-hidden
@@ -442,7 +442,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                             key={ev.id}
                             type="button"
                             title={isPending ? `${ev.title} (syncing…)` : ev.title}
-                            onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
+                            onClick={(e) => { e.stopPropagation(); setSelectedDay(null); onEventClick(ev); }}
                             className={`group flex items-center min-w-0 w-full rounded-md cursor-pointer text-left transition-all duration-300 border-l-[3px] ${
                               tvMode
                                 ? "gap-2 px-2 py-1.5 border-y border-r border-border/40"
@@ -501,6 +501,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
+                        setSelectedDay(null);
                         setViewAllDay(new Date(year, month, cell.day));
                       }}
                       className={`mt-1 inline-flex items-center gap-1 self-stretch justify-center rounded-md bg-primary/10 hover:bg-primary/20 text-primary font-medium transition-colors shrink-0 ${tvMode ? "px-2 py-1 text-[12px]" : "px-1.5 py-0.5 text-[10px]"}`}
@@ -523,7 +524,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
           <div className="grid grid-cols-7 gap-1 mb-1 shrink-0">
             {weekDays.map((d) => {
               const today = sameDay(d, todayDate);
-              const selected = sameDay(d, selectedDate);
+              const selected = selectedDay === dateISO(d);
               return (
                 <div
                   key={d.toISOString()}
@@ -545,15 +546,19 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
               const iso = dateISO(d);
               const list = weekEventsByDate[iso] || [];
               const today = sameDay(d, todayDate);
-              const selected = sameDay(d, selectedDate);
+              const selected = selectedDay === iso;
               const past = isDatePast(d);
               return (
                 <div
                   key={iso}
-                  onClick={() => {
+                  data-day-tile="true"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedDay((prev) => (prev === iso ? null : iso));
                     onSelectDate(d);
                     if (past) return;
-                    if (onDayClick) onDayClick(iso);
+                    if (onDayClick && selectedDay !== iso) onDayClick(iso);
                   }}
                   className={`relative flex flex-col rounded-lg cursor-pointer transition-colors duration-150 p-1.5 gap-1 overflow-y-auto
                     ${today ? "bg-primary/15 ring-1 ring-primary/40" : selected ? "bg-secondary ring-1 ring-primary/30" : "bg-muted/50 hover:bg-secondary/70"}
@@ -576,7 +581,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                         key={ev.id}
                         type="button"
                         title={isPending ? `${ev.title} (syncing…)` : ev.title}
-                        onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
+                        onClick={(e) => { e.stopPropagation(); setSelectedDay(null); onEventClick(ev); }}
                         className="group flex flex-col min-w-0 w-full rounded-md cursor-pointer text-left border-l-[3px] border-y border-r border-border/40 px-2 py-1.5 gap-0.5"
                         style={{
                           opacity: isPending ? 0.5 : 1,
@@ -644,7 +649,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                 <button
                   key={ev.id}
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
+                  onClick={(e) => { e.stopPropagation(); setSelectedDay(null); onEventClick(ev); }}
                   className="group flex items-center min-w-0 w-full rounded-md cursor-pointer text-left border-l-[3px] border-y border-r border-border/40 px-3 py-2 gap-3"
                   style={{
                     opacity: isPending ? 0.5 : 1,
@@ -692,6 +697,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                       onClick={() => {
                         if (past) return;
                         if (list.length === 0 && onDayClick) {
+                          setSelectedDay(null);
                           onDayClick(dateISO(selectedDate));
                         }
                       }}
@@ -729,11 +735,15 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
 
       <DayEventsModal
         open={!!viewAllDay}
-        onClose={() => setViewAllDay(null)}
+        onClose={() => {
+          setViewAllDay(null);
+          setSelectedDay(null);
+        }}
         date={viewAllDay}
         events={viewAllDay ? events.filter((e) => eventOccupiesDay(e, viewAllDay)) : []}
         onEventClick={(ev) => {
           setViewAllDay(null);
+          setSelectedDay(null);
           onEventClick(ev);
         }}
         onAddEvent={() => {
@@ -741,6 +751,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
           const iso = dateISO(viewAllDay);
           const d = viewAllDay;
           setViewAllDay(null);
+          setSelectedDay(null);
           onSelectDate(d);
           if (onDayClick) onDayClick(iso);
         }}
