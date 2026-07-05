@@ -4,6 +4,7 @@ import { resolveKpiVariables, createFormulaCache, DataStore, type EvaluationCach
 import { useFormulas } from "@/hooks/useFormulas";
 import { useCrmStages, type QuotingOpp } from "@/hooks/useCrmStages";
 import { formatMetricValue } from "@/lib/formatMetricValue";
+import { useCalendarOverlay } from "@/hooks/useCalendarOverlay";
 
 // Module-level formula cache singleton — survives re-renders
 const formulaCacheInstance = createFormulaCache();
