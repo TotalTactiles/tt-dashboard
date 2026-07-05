@@ -34,6 +34,7 @@ interface CalendarGridProps {
   onEventClick: (event: LiveCalendarEvent) => void;
   onAddEvent: () => void;
   onDayClick?: (dateISO: string) => void;
+  onViewMonthChange?: (viewMonth: Date) => void;
 }
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
