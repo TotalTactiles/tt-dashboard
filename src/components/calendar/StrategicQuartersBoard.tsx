@@ -890,13 +890,22 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
           return (
             <div
               key={section.id}
-              className={`relative rounded-2xl border overflow-hidden flex flex-col min-h-[210px] transition-all group ${
-                dragIndex === idx ? "opacity-40" : ""
-              } ${dropIndex === idx ? "ring-2" : "border-border"}`}
-              style={{
-                background: "linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0.008))",
-                ...(dropIndex === idx ? { boxShadow: `0 0 0 2px ${accent}` } : {}),
-              }}
+              className={`relative rounded-2xl border overflow-hidden flex flex-col transition-all group ${
+                isSealed ? "" : "min-h-[210px]"
+              } ${dragIndex === idx ? "opacity-40" : ""} ${
+                dropIndex === idx ? "ring-2" : "border-border"
+              }`}
+              style={
+                isSealed
+                  ? {
+                      borderColor: "rgba(31,179,126,0.30)",
+                      background: "linear-gradient(180deg, rgba(31,179,126,0.09), rgba(31,179,126,0.02))",
+                    }
+                  : {
+                      background: "linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0.008))",
+                      ...(dropIndex === idx ? { boxShadow: `0 0 0 2px ${accent}` } : {}),
+                    }
+              }
               onDragOver={(e) => { e.preventDefault(); setDropIndex(idx); }}
               onDragLeave={() => setDropIndex((c) => (c === idx ? null : c))}
               onDrop={(e) => {
