@@ -187,7 +187,9 @@ const CalendarView = () => {
         const actionLabel = action === "create" ? "Event created" : action === "update" ? "Event updated" : "Event deleted";
         toast({ title: actionLabel, className: action === "delete" ? "" : "border-green-500/30" });
 
-        setTimeout(() => syncCalendar(), 5000);
+        // Force-refresh calendar so the change appears immediately
+        refetchCalendar();
+        setTimeout(() => refetchCalendar(), 2500);
       } catch (err: any) {
         const errMsg = err?.message || "Unknown error";
         setCalendarDebug({
