@@ -31,40 +31,47 @@ const EventTimeline = ({ events, onEventClick }: EventTimelineProps) => {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.15 }}
-      className="stat-card"
+      className="flex-1 min-h-0 min-w-0 space-y-2 overflow-y-auto pr-1"
+      style={{ maxHeight: 320, scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
     >
-      
-      <div className="space-y-1.5 max-h-[320px] overflow-y-auto pr-1">
-        {events.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-6 text-center">No upcoming events</p>
-        ) : (
-          events.slice(0, 20).map((ev) => (
+      {events.length === 0 ? (
+        <p className="text-xs text-muted-foreground py-6 text-center">No upcoming events</p>
+      ) : (
+        events.slice(0, 20).map((ev) => {
+          const isGoogle = ev.source.includes("Google");
+          return (
             <div
               key={ev.id}
               onClick={() => onEventClick(ev)}
-              className="flex items-start gap-3 p-2.5 rounded-[10px] hover:bg-secondary/40 transition-all duration-150 hover:shadow-md cursor-pointer"
+              className="flex items-center gap-3 p-2.5 rounded-[10px] bg-muted/40 hover:bg-secondary/60 transition-all duration-150 cursor-pointer min-w-0"
               style={{ borderLeft: `3px solid ${getTypeColor(ev.type)}` }}
             >
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-foreground truncate">{ev.title}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[10px] font-mono text-muted-foreground">{formatDateTime(ev.start)}</span>
-                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 rounded-full">{ev.type}</Badge>
+                <p className="text-sm font-medium text-foreground truncate" title={ev.title}>
+                  {ev.title}
+                </p>
+                <div className="flex items-center gap-2 mt-1 min-w-0">
+                  <span className="text-[11px] font-mono text-muted-foreground truncate">
+                    {formatDateTime(ev.start)}
+                  </span>
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 rounded-full shrink-0">
+                    {ev.type}
+                  </Badge>
                 </div>
               </div>
               <span
-                className="text-[9px] font-mono px-2 py-0.5 rounded-full shrink-0 mt-0.5"
+                className="text-[10px] font-mono px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap"
                 style={{
-                  background: ev.source.includes("Google") ? "hsl(200, 80%, 50% / 0.15)" : "hsl(270, 60%, 55% / 0.15)",
-                  color: ev.source.includes("Google") ? "hsl(200, 80%, 50%)" : "hsl(270, 60%, 55%)",
+                  background: isGoogle ? "hsl(4, 74%, 52% / 0.15)" : "hsl(217, 79%, 48% / 0.15)",
+                  color: isGoogle ? "hsl(4, 74%, 52%)" : "hsl(217, 79%, 55%)",
                 }}
               >
-                {ev.source.includes("Google") ? "Google" : "Zoho"}
+                {isGoogle ? "Google" : "Zoho"}
               </span>
             </div>
-          ))
-        )}
-      </div>
+          );
+        })
+      )}
     </motion.div>
   );
 };

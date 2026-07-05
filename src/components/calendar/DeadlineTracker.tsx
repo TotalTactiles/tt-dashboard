@@ -43,67 +43,68 @@ const DeadlineTracker = ({ events }: DeadlineTrackerProps) => {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
-      className="stat-card"
+      className="flex-1 min-h-0 min-w-0 space-y-2 overflow-y-auto pr-1"
+      style={{ maxHeight: 320, scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
     >
-      
-      <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
-        {deadlines.length === 0 ? (
-          <p className="text-xs text-muted-foreground py-6 text-center">No upcoming deadlines — set due dates on tasks in the Strategic Quarters board below</p>
-        ) : (
-          deadlines.map((d) => {
-            const cfg = statusConfig[d.deadlineStatus];
-            const Icon = cfg.icon;
-            const isOverdue = d.deadlineStatus === "overdue";
-            return (
-              <div
-                key={d.id}
-                className="flex items-center gap-3 p-3 rounded-[10px] bg-muted/50 hover:bg-secondary/60 transition-all duration-150"
-                style={isOverdue ? { borderLeft: "3px solid hsl(var(--destructive))" } : {}}
-              >
-                <Icon className={`h-4 w-4 shrink-0 ${cfg.class}`} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-foreground truncate">
-                    {d.title.replace(/^\[[^\]]+\]\s*/, '')}
-                  </p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {(() => {
-                      const phaseMatch = d.title.match(/^\[([^\]]+)\]/);
-                      const phase = phaseMatch?.[1] ?? "Strategic";
-                      const PHASE_COLORS: Record<string, string> = {
-                        "Pre Seal": "#378ADD",
-                        "Close the Seal": "#1D9E75",
-                        "Post Seal": "#E24B4A",
-                        "Legacy": "#BA7517",
-                      };
-                      const color = PHASE_COLORS[phase] ?? "#888780";
-                      return (
-                        <span
-                          className="text-[9px] font-mono px-2 py-0.5 rounded-full shrink-0"
-                          style={{ background: color + "22", color }}
-                        >
-                          {phase}
-                        </span>
-                      );
-                    })()}
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-[10px] font-mono text-muted-foreground">
+      {deadlines.length === 0 ? (
+        <div className="flex items-center justify-center h-full min-h-[120px] px-4">
+          <p className="text-xs text-muted-foreground text-center leading-relaxed">
+            No upcoming deadlines — set due dates on tasks in the Strategic Quarters board below
+          </p>
+        </div>
+      ) : (
+        deadlines.map((d) => {
+          const cfg = statusConfig[d.deadlineStatus];
+          const Icon = cfg.icon;
+          const isOverdue = d.deadlineStatus === "overdue";
+          const phaseMatch = d.title.match(/^\[([^\]]+)\]/);
+          const phase = phaseMatch?.[1] ?? "Strategic";
+          const PHASE_COLORS: Record<string, string> = {
+            "Pre Seal": "#378ADD",
+            "Close the Seal": "#1D9E75",
+            "Post Seal": "#E24B4A",
+            "Legacy": "#BA7517",
+          };
+          const color = PHASE_COLORS[phase] ?? "#888780";
+          return (
+            <div
+              key={d.id}
+              className="flex items-center gap-3 p-2.5 rounded-[10px] bg-muted/40 hover:bg-secondary/60 transition-all duration-150 min-w-0"
+              style={isOverdue ? { borderLeft: "3px solid hsl(var(--destructive))" } : {}}
+            >
+              <Icon className={`h-4 w-4 shrink-0 ${cfg.class}`} />
+              <div className="flex-1 min-w-0">
+                <p
+                  className="text-sm font-medium text-foreground truncate"
+                  title={d.title.replace(/^\[[^\]]+\]\s*/, '')}
+                >
+                  {d.title.replace(/^\[[^\]]+\]\s*/, '')}
+                </p>
+                <div className="flex items-center gap-2 mt-1 min-w-0">
+                  <span className="text-[11px] font-mono text-muted-foreground truncate">
                     {d.eventDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                  </p>
-                  <p className={`text-[10px] font-mono ${d.daysRemaining < 0 ? "text-destructive" : d.daysRemaining <= 7 ? "text-chart-amber" : "text-muted-foreground"}`}>
+                  </span>
+                  <span
+                    className={`text-[11px] font-mono truncate ${d.daysRemaining < 0 ? "text-destructive" : d.daysRemaining <= 7 ? "text-chart-amber" : "text-muted-foreground"}`}
+                  >
                     {d.daysRemaining < 0
                       ? `${Math.abs(d.daysRemaining)}d overdue`
                       : d.daysRemaining === 0
                       ? "Today"
                       : `${d.daysRemaining}d left`}
-                  </p>
+                  </span>
                 </div>
               </div>
-            );
-          })
-        )}
-      </div>
+              <span
+                className="text-[10px] font-mono px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap"
+                style={{ background: color + "22", color }}
+              >
+                {phase}
+              </span>
+            </div>
+          );
+        })
+      )}
     </motion.div>
   );
 };

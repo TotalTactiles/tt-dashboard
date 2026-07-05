@@ -418,48 +418,33 @@ const CalendarView = () => {
           </div>
         </div>
 
-        {/* Bottom row: 3 tidy cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-          <div className="min-w-0 h-full flex flex-col">
+        {/* Bottom row: 3 tidy cards — stack on smaller screens so each has enough width */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4 items-stretch">
+          <div className="min-w-0 flex flex-col">
             <CollapsibleCardWrapper
               title="Fund Deadlines & Obligations"
               defaultOpen={true}
               badge={filtered.filter(e => e.type === "Deadline" || e.type === "Milestone" || e.type === "Distribution" || e.type === "Valuation").length}
             >
-              <div
-                className="flex-1 min-h-0 overflow-y-auto"
-                style={{ maxHeight: "180px", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
-              >
-                <DeadlineTracker events={filtered} />
-              </div>
+              <DeadlineTracker events={filtered} />
             </CollapsibleCardWrapper>
           </div>
-          <div className="min-w-0 h-full flex flex-col">
+          <div className="min-w-0 flex flex-col">
             <CollapsibleCardWrapper
               title="Upcoming Projects"
               defaultOpen={true}
               badge={zohoProjects.length}
             >
-              <div
-                className="flex-1 min-h-0 overflow-y-auto"
-                style={{ maxHeight: "180px", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
-              >
-                <UpcomingProjectsPanel projects={zohoProjects} />
-              </div>
+              <UpcomingProjectsPanel projects={zohoProjects} />
             </CollapsibleCardWrapper>
           </div>
-          <div className="min-w-0 h-full flex flex-col">
+          <div className="min-w-0 flex flex-col">
             <CollapsibleCardWrapper
               title="Upcoming Events"
               defaultOpen={true}
               badge={filteredUpcoming.length}
             >
-              <div
-                className="flex-1 min-h-0 overflow-y-auto"
-                style={{ maxHeight: "180px", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
-              >
-                <EventTimeline events={filteredUpcoming} onEventClick={handleOpenEdit} />
-              </div>
+              <EventTimeline events={filteredUpcoming} onEventClick={handleOpenEdit} />
             </CollapsibleCardWrapper>
           </div>
         </div>

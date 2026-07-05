@@ -44,7 +44,10 @@ export default function UpcomingProjectsPanel({ projects }: UpcomingProjectsPane
   };
 
   return (
-    <div className="space-y-2 overflow-y-auto pr-1" style={{ maxHeight: "180px" }}>
+    <div
+      className="flex-1 min-h-0 min-w-0 space-y-2 overflow-y-auto pr-1"
+      style={{ maxHeight: 320, scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
+    >
       {sorted.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-6 text-center">
           <FolderKanban className="w-5 h-5 text-muted-foreground/50 mb-2" />
@@ -64,7 +67,7 @@ export default function UpcomingProjectsPanel({ projects }: UpcomingProjectsPane
               onClick={(e) => {
                 if (!hasLink) e.preventDefault();
               }}
-              className="group flex items-center gap-3 p-2.5 rounded-[10px] bg-muted/50 hover:bg-secondary/60 transition-all cursor-pointer aria-disabled:cursor-default aria-disabled:hover:bg-muted/50"
+              className="group flex items-center gap-3 p-2.5 rounded-[10px] bg-muted/40 hover:bg-secondary/60 transition-all cursor-pointer aria-disabled:cursor-default aria-disabled:hover:bg-muted/40 min-w-0"
               style={{ borderLeft: `3px solid ${SOURCE_THEME.zohoParent.accent}` }}
             >
               <div className="flex-1 min-w-0">
@@ -74,9 +77,15 @@ export default function UpcomingProjectsPanel({ projects }: UpcomingProjectsPane
                 >
                   {p.name}
                 </p>
-                <p className="text-[11px] font-mono text-muted-foreground mt-0.5">{label}</p>
+                <p className="text-[11px] font-mono text-muted-foreground mt-1 truncate">{label}</p>
               </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">
+              <span
+                className="text-[10px] font-mono px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap"
+                style={{
+                  background: SOURCE_THEME.zohoParent.accent + "22",
+                  color: SOURCE_THEME.zohoParent.accent,
+                }}
+              >
                 Zoho
               </span>
             </a>
