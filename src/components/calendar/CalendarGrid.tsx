@@ -519,7 +519,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                         setSelectedDay(null);
                         setViewAllDay(new Date(year, month, cell.day));
                       }}
-                      className={`mt-1 inline-flex items-center gap-1 self-stretch justify-center rounded-md bg-primary/10 hover:bg-primary/20 text-primary font-medium transition-colors shrink-0 ${tvMode ? "px-2 py-1 text-[12px]" : "px-1.5 py-0.5 text-[10px]"}`}
+                      className={`mt-1 hidden sm:inline-flex items-center gap-1 self-stretch justify-center rounded-md bg-primary/10 hover:bg-primary/20 text-primary font-medium transition-colors shrink-0 ${tvMode ? "px-2 py-1 text-[12px]" : "px-1.5 py-0.5 text-[10px]"}`}
                       title={`View all ${dayEvts.length} events`}
                     >
                       <List className={tvMode ? "h-3.5 w-3.5" : "h-3 w-3"} />
