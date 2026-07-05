@@ -1767,7 +1767,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       xeroPnl,
       xeroMonthlyCashflow,
     };
-  }, [liveData, hasLiveData, connectedCount, isLoading, isRefreshing, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride, calendarData, projectKPIData, quotingOpp, totalLeads]);
+  }, [liveData, hasLiveData, connectedCount, isLoading, isRefreshing, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride, calendarData, projectKPIData, quotingOpp, totalLeads, applyOverlay, pinCalendarCreate, pinCalendarDelete, pinCalendarEdit]);
 
   return <DashboardDataContext.Provider value={data}>{children}</DashboardDataContext.Provider>;
 }
