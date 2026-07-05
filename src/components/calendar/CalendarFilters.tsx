@@ -110,7 +110,7 @@ const CalendarFilters = ({
 
       <Popover open={addOpen} onOpenChange={setAddOpen}>
         <PopoverTrigger asChild>
-          <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-foreground/30 transition-colors">
+          <button className="flex items-center gap-1 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-full text-[10.5px] sm:text-[11px] text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-foreground/30 transition-colors">
             <Plus className="w-3 h-3" />
             Add filter
           </button>
