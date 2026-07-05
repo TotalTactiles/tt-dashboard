@@ -529,7 +529,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
           <div className="grid grid-cols-7 gap-1 mb-1 shrink-0">
             {weekDays.map((d) => {
               const today = sameDay(d, todayDate);
-              const selected = selectedDay === iso;
+              const selected = selectedDay === dateISO(d);
               return (
                 <div
                   key={d.toISOString()}
@@ -551,7 +551,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
               const iso = dateISO(d);
               const list = weekEventsByDate[iso] || [];
               const today = sameDay(d, todayDate);
-              const selected = sameDay(d, selectedDate);
+              const selected = selectedDay === iso;
               const past = isDatePast(d);
               return (
                 <div
@@ -563,10 +563,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                     setSelectedDay((prev) => (prev === iso ? null : iso));
                     onSelectDate(d);
                     if (past) return;
-                    if (onDayClick && selectedDay !== iso) {
-                      setSelectedDay(null);
-                      onDayClick(iso);
-                    }
+                    if (onDayClick && selectedDay !== iso) onDayClick(iso);
                   }}
                   className={`relative flex flex-col rounded-lg cursor-pointer transition-colors duration-150 p-1.5 gap-1 overflow-y-auto
                     ${today ? "bg-primary/15 ring-1 ring-primary/40" : selected ? "bg-secondary ring-1 ring-primary/30" : "bg-muted/50 hover:bg-secondary/70"}
