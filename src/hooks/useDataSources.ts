@@ -701,18 +701,26 @@ export function useDataSources() {
   const isLoading = isInitialLoad && !hasLiveData;
 
   // ===== Calendar-specific polling (3 min) =====
-  const fetchCalendar = useCallback(async (opts?: { refresh?: boolean }) => {
+  const fetchCalendar = useCallback(async (opts?: { refresh?: boolean; evictIds?: string[] }) => {
     try {
       // Abort previous calendar request
       if (calendarAbortRef.current) calendarAbortRef.current.abort();
       calendarAbortRef.current = new AbortController();
 
-      const invokeBody = opts?.refresh
+      const hasEvict = Array.isArray(opts?.evictIds) && opts!.evictIds!.length > 0;
+      const invokeBody = (opts?.refresh || hasEvict)
         ? {
             webhookUrl: CALENDAR_READ_WEBHOOK,
-            payload: { source: "calendar", refresh: true, timestamp: new Date().toISOString() },
+            payload: {
+              source: "calendar",
+              ...(opts?.refresh ? { refresh: true } : {}),
+              ...(hasEvict ? { evictIds: opts!.evictIds } : {}),
+              timestamp: new Date().toISOString(),
+            },
           }
         : { webhookUrl: CALENDAR_READ_WEBHOOK, source: "calendar" };
+
+      if (hasEvict) console.log('[Calendar Evict] sending evictIds:', opts!.evictIds);
 
       const { data: responseData, error } = await supabase.functions.invoke("n8n-proxy", {
         body: invokeBody,
