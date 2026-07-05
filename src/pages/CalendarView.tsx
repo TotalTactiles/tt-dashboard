@@ -116,6 +116,7 @@ const CalendarView = () => {
       .sort((a, b) => a.start.localeCompare(b.start));
   }, [allCalendarEvents, activeTypes, activeSources, customFilters]);
 
+  const handleOpenCreate = () => {
     setEditingEvent(null);
     setCreateInitialDate(null);
     setModalOpen(true);
