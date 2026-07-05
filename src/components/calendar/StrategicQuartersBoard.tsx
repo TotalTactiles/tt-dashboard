@@ -883,6 +883,9 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
             : "On Pace";
           const statusColor = STATUS_COLORS[statusLabel];
           const r = 18, circ = 2 * Math.PI * r, off = circ * (1 - pct / 100);
+          const isComplete = listTotal > 0 && pct === 100;
+          const isSealed = isComplete && !openSealedIds.has(section.id);
+          const isExpanded = isComplete && openSealedIds.has(section.id);
 
           return (
             <div
