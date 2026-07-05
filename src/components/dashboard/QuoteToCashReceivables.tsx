@@ -753,37 +753,44 @@ const QuoteToCashReceivables = () => {
         </div>
       )}
 
-      {/* 6. Collection trend */}
+      {/* 6. Collection trend + Invoicing profile */}
       {data.monthlyTrend?.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-fluid-sm font-semibold mb-2">Days to pay — monthly trend</h3>
-          <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={data.monthlyTrend} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
-                <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis yAxisId="left" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                <Tooltip
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    fontSize: 12,
-                  }}
-                />
-                <ReferenceLine yAxisId="right" y={termDays} stroke="hsl(var(--chart-orange))" strokeDasharray="3 3" />
-                <Bar yAxisId="left" dataKey="invoicesPaid" fill="hsl(var(--chart-blue))" name="Invoices paid" />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="avgDaysToPay"
-                  stroke="hsl(var(--chart-green))"
-                  strokeWidth={2}
-                  name="Avg days to pay"
-                  dot={{ r: 3 }}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
+        <div className="mt-6 grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <div className="lg:col-span-3 rounded border border-border/60 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-fluid-sm font-semibold">Days to pay — monthly trend</h3>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Expand chart"
+                    className="inline-flex items-center justify-center rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+                  >
+                    <Maximize2 className="w-4 h-4" />
+                  </button>
+                </DialogTrigger>
+                <DialogContent className="max-w-5xl">
+                  <DialogHeader>
+                    <DialogTitle>Days to pay — monthly trend</DialogTitle>
+                  </DialogHeader>
+                  <div className="h-[500px] w-full">
+                    {renderTrendChart(data.monthlyTrend, termDays)}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+            <div className="h-56">{renderTrendChart(data.monthlyTrend, termDays)}</div>
+          </div>
+
+          <div className="lg:col-span-2 rounded border border-border/60 p-3">
+            {data.invoicing ? (
+              <InvoicingProfileCard invoicing={data.invoicing} />
+            ) : (
+              <div>
+                <h3 className="text-fluid-sm font-semibold">Invoicing profile</h3>
+                <p className="text-[11px] text-muted-foreground mt-2">No invoicing summary available.</p>
+              </div>
+            )}
           </div>
         </div>
       )}
