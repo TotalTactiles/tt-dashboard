@@ -4,6 +4,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { getEventTheme } from "./eventColors";
+import DayEventsModal from "./DayEventsModal";
+import { List } from "lucide-react";
 
 const useTvMode = () => {
   const [tv, setTv] = useState<boolean>(() =>
@@ -85,6 +87,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
   }, [currentDate, onViewMonthChange]);
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
   const [expandedPastDays, setExpandedPastDays] = useState<Set<string>>(new Set());
+  const [viewAllDay, setViewAllDay] = useState<Date | null>(null);
 
   const hoverCapable = useMediaQuery("(hover: hover) and (pointer: fine)", false);
   const isNarrow = useMediaQuery("(max-width: 639px)", false);
@@ -458,6 +461,20 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                       )}
                     </div>
                   )}
+                  {!collapsedPast && dayEvts.length >= 2 && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setViewAllDay(new Date(year, month, cell.day));
+                      }}
+                      className={`mt-1 inline-flex items-center gap-1 self-stretch justify-center rounded-md bg-primary/10 hover:bg-primary/20 text-primary font-medium transition-colors shrink-0 ${tvMode ? "px-2 py-1 text-[12px]" : "px-1.5 py-0.5 text-[10px]"}`}
+                      title={`View all ${dayEvts.length} events`}
+                    >
+                      <List className={tvMode ? "h-3.5 w-3.5" : "h-3 w-3"} />
+                      View all ({dayEvts.length})
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -674,6 +691,25 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
           })()}
         </div>
       )}
+
+      <DayEventsModal
+        open={!!viewAllDay}
+        onClose={() => setViewAllDay(null)}
+        date={viewAllDay}
+        events={viewAllDay ? events.filter((e) => eventOccupiesDay(e, viewAllDay)) : []}
+        onEventClick={(ev) => {
+          setViewAllDay(null);
+          onEventClick(ev);
+        }}
+        onAddEvent={() => {
+          if (!viewAllDay) return;
+          const iso = dateISO(viewAllDay);
+          const d = viewAllDay;
+          setViewAllDay(null);
+          onSelectDate(d);
+          if (onDayClick) onDayClick(iso);
+        }}
+      />
     </motion.div>
   );
 };
