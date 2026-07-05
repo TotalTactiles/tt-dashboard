@@ -187,9 +187,58 @@ const CalendarView = () => {
         const actionLabel = action === "create" ? "Event created" : action === "update" ? "Event updated" : "Event deleted";
         toast({ title: actionLabel, className: action === "delete" ? "" : "border-green-500/30" });
 
-        // Force-refresh calendar so the change appears immediately
-        refetchCalendar();
-        setTimeout(() => refetchCalendar(), 2500);
+        const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+        (async () => {
+          const getCachedEvents = (): LiveCalendarEvent[] => {
+            try {
+              const raw = localStorage.getItem("dashboard_calendar_data");
+              const parsed = raw ? JSON.parse(raw) : {};
+              return Array.isArray(parsed.calendarEvents) ? parsed.calendarEvents : [];
+            } catch {
+              return [];
+            }
+          };
+
+          const toDateKey = (iso?: string) => {
+            if (!iso) return "";
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return "";
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, "0");
+            const day = String(d.getDate()).padStart(2, "0");
+            return `${y}-${m}-${day}`;
+          };
+
+          const targetTitle = eventData.title ?? "";
+          const targetDate = toDateKey(
+            (eventData as any).startDate ?? eventData.start
+          );
+          const targetSource =
+            (eventData as any).source ?? editingEvent?.source ?? "Google Calendar";
+
+          const isCreatedEventPresent = (events: LiveCalendarEvent[]) =>
+            events.some(
+              (e) =>
+                e.title === targetTitle &&
+                toDateKey(e.start) === targetDate &&
+                e.source === targetSource
+            );
+
+          await delay(2000);
+          console.log("[refetch] attempt 1");
+          await refetchCalendar();
+
+          if (action === "create" && targetTitle && targetDate) {
+            const eventsAfterFirst = getCachedEvents();
+            if (isCreatedEventPresent(eventsAfterFirst)) return;
+
+            await delay(2500);
+            console.log("[refetch] attempt 2");
+            await refetchCalendar();
+          }
+        })();
+
       } catch (err: any) {
         const errMsg = err?.message || "Unknown error";
         setCalendarDebug({
