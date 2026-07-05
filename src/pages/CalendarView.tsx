@@ -98,11 +98,22 @@ const CalendarView = () => {
 
   const handleOpenCreate = () => {
     setEditingEvent(null);
+    setCreateInitialDate(null);
+    setModalOpen(true);
+  };
+
+  const handleDayClick = (dateISO: string) => {
+    const [y, m, d] = dateISO.split("-").map(Number);
+    const clicked = new Date(y, m - 1, d);
+    setSelectedDate(clicked);
+    setEditingEvent(null);
+    setCreateInitialDate(clicked);
     setModalOpen(true);
   };
 
   const handleOpenEdit = (event: LiveCalendarEvent) => {
     setEditingEvent(event);
+    setCreateInitialDate(null);
     setModalOpen(true);
   };
 
