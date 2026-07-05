@@ -42,6 +42,7 @@ const CalendarView = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<LiveCalendarEvent | null>(null);
+  const [createInitialDate, setCreateInitialDate] = useState<Date | null>(null);
   const [calendarDebug, setCalendarDebug] = useState<WriteDebug>({
     lastAction: null, lastError: null, lastSuccess: null, timestamp: null,
   });
