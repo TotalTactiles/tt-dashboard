@@ -494,6 +494,15 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const [editingDeadlineId, setEditingDeadlineId] = useState<string | null>(null);
+  const [openSealedIds, setOpenSealedIds] = useState<Set<string>>(new Set());
+  const toggleSealed = (id: string) =>
+    setOpenSealedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
 
   const reorderSections = (from: number, to: number) => {
     if (from === to) return;
