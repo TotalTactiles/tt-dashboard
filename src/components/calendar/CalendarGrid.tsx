@@ -160,7 +160,11 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
               </span>
               <div className="flex flex-col gap-0.5 flex-1 min-h-0 overflow-hidden">
                 {dayEvents.slice(0, 2).map((ev) => (
-                  <div key={ev.id} className="flex items-center gap-1 min-w-0">
+                  <div
+                    key={ev.id}
+                    className="flex items-center gap-1 min-w-0 cursor-pointer hover:bg-secondary/70 rounded px-0.5"
+                    onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
+                  >
                     <span
                       className="w-1.5 h-1.5 rounded-full shrink-0"
                       style={{ backgroundColor: getTypeColor(ev.type) }}
