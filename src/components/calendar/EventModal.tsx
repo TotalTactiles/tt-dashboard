@@ -391,20 +391,21 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate, zohoProjects =
 
           {/* Actions */}
           <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
-            <div className="min-w-0">
-              {isEditing && event?.source === "Zoho Projects" ? (
-                <span className="text-[11px] text-muted-foreground">
-                  Managed in Zoho Projects — edits sync back.
-                </span>
-              ) : isEditing ? (
+            <div className="min-w-0 flex flex-col gap-1">
+              {isEditing && (
                 <button
                   onClick={handleDelete}
                   disabled={loading}
-                  className="text-sm text-destructive hover:text-destructive/80 font-medium transition-colors disabled:opacity-50"
+                  className="text-sm text-destructive hover:text-destructive/80 font-medium transition-colors disabled:opacity-50 text-left"
                 >
                   {confirmDelete ? "Confirm Delete" : "Delete"}
                 </button>
-              ) : null}
+              )}
+              {isEditing && event?.source === "Zoho Projects" && (
+                <span className="text-[11px] text-muted-foreground">
+                  Managed in Zoho Projects — edits sync back.
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <button
@@ -426,7 +427,9 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate, zohoProjects =
           </div>
           {confirmDelete && (
             <p className="text-[11px] text-destructive text-center -mt-2">
-              Delete this event from Google Calendar? Click again to confirm.
+              {event?.source === "Zoho Projects"
+                ? "Delete this task from Zoho Projects? Click again to confirm."
+                : "Delete this event from Google Calendar? Click again to confirm."}
             </p>
           )}
         </div>
