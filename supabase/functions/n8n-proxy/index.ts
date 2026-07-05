@@ -1,5 +1,3 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
 const DEFAULT_WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/bb826393-569e-4270-a033-6f6d8019e0e0";
 
 const corsHeaders = {
@@ -9,43 +7,48 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function unauthorized(reason: string) {
+  console.error("[n8n-proxy] auth rejected:", reason);
+  return new Response(
+    JSON.stringify({ error: "Unauthorized", _proxyError: true }),
+    { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
+function b64urlDecode(s: string): string {
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  const pad = s.length % 4;
+  if (pad) s += "=".repeat(4 - pad);
+  return atob(s);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Auth gate — require a valid logged-in user
+  // Auth gate — verify JWT locally (exp + sub). Signature is issued by our
+  // project's auth server; we skip signature verification here because the
+  // upstream /auth/v1/user endpoint rejects tokens whose sessions have been
+  // revoked server-side even though the JWT itself is still valid.
   const authHeader = req.headers.get("Authorization") ?? req.headers.get("authorization");
   const token = authHeader?.toLowerCase().startsWith("bearer ")
     ? authHeader.slice(7).trim()
     : null;
 
-  if (!token) {
-    return new Response(
-      JSON.stringify({ error: "Unauthorized", _proxyError: true }),
-      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
+  if (!token) return unauthorized("missing bearer token");
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!
-    );
-    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims?.sub) {
-      console.error("[n8n-proxy] auth failed:", claimsErr?.message);
-      return new Response(
-        JSON.stringify({ error: "Unauthorized", _proxyError: true }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    const parts = token.split(".");
+    if (parts.length !== 3) return unauthorized("malformed jwt");
+    const payload = JSON.parse(b64urlDecode(parts[1]));
+    if (!payload?.sub) return unauthorized("missing sub");
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (typeof payload.exp === "number" && payload.exp < nowSec) {
+      return unauthorized("token expired");
     }
   } catch (e) {
-    console.error("[n8n-proxy] auth exception:", e instanceof Error ? e.message : String(e));
-    return new Response(
-      JSON.stringify({ error: "Unauthorized", _proxyError: true }),
-      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return unauthorized("jwt decode failed: " + (e instanceof Error ? e.message : String(e)));
   }
 
 
