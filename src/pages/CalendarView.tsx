@@ -237,11 +237,8 @@ const CalendarView = () => {
 
   return (
     <DashboardLayout>
-      {/* Calendar zone — fits within viewport */}
-      <div
-        className="flex flex-col gap-2 overflow-hidden overflow-x-hidden"
-        style={{ height: "calc(100vh - 4rem)" }}
-      >
+      {/* Calendar zone — clean, symmetrical responsive layout */}
+      <div className="flex flex-col gap-4 w-full max-w-[1600px] mx-auto px-2 sm:px-4">
         {/* Header row */}
         <div className="flex flex-wrap items-center justify-between gap-2 shrink-0">
           <div className="min-w-0">
