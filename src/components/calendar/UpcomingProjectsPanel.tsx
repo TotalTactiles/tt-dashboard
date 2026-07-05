@@ -86,9 +86,8 @@ export default function UpcomingProjectsPanel({
         </div>
       )}
       <div
-        className="flex-1 min-h-0 space-y-1 overflow-y-auto pr-1"
+        className="flex-1 min-h-0 space-y-1 max-h-[320px] overflow-y-auto pr-1"
         style={{
-          maxHeight: 320,
           scrollbarWidth: "thin",
           scrollbarColor: "rgba(255,255,255,0.15) transparent",
         }}

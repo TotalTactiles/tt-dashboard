@@ -44,7 +44,7 @@ export default function CollapsibleCardWrapper({
   }
 
   return (
-    <div className="stat-card flex-1 min-w-0 flex flex-col overflow-hidden">
+    <div className="stat-card flex-1 min-w-0 flex flex-col">
       <button
         onClick={() => setOpen(false)}
         className="flex items-center gap-2 w-full shrink-0 border-b border-border pb-2.5 mb-2.5"
