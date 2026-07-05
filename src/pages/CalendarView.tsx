@@ -279,8 +279,8 @@ const CalendarView = () => {
         </div>
 
         {/* Top row: Calendar grid + Scheduled panel */}
-        <div className="flex flex-col lg:flex-row flex-1 min-h-0 min-w-0 gap-2 overflow-y-auto lg:overflow-hidden">
-          <div className="flex-1 min-w-0 min-h-0 lg:overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-4 items-stretch min-h-0">
+          <div className="min-w-0 h-full">
             <CalendarGrid
               events={filtered}
               selectedDate={selectedDate}
@@ -290,7 +290,7 @@ const CalendarView = () => {
               onDayClick={handleDayClick}
             />
           </div>
-          <div className="w-full lg:w-[360px] shrink-0 min-w-0 min-h-0 max-h-[60vh] lg:max-h-none overflow-y-auto">
+          <div className="min-w-0 h-full flex flex-col">
             <DaySchedulePanel
               events={filtered}
               selectedDate={selectedDate}
