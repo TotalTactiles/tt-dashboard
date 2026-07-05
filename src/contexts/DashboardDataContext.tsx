@@ -383,6 +383,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
   const { quotingOpp, totalLeads } = useCrmStages();
   const [calendarEventsOverride, setCalendarEventsState] = useState<LiveCalendarEvent[] | null>(null);
 
+  const rawCalendarEventsForOverlay = useMemo<LiveCalendarEvent[]>(
+    () => (Array.isArray(calendarData?.calendarEvents) ? calendarData.calendarEvents : []),
+    [calendarData?.calendarEvents]
+  );
+  const { apply: applyOverlay, pinCreate: pinCalendarCreate, pinDelete: pinCalendarDelete, pinEdit: pinCalendarEdit } =
+    useCalendarOverlay(rawCalendarEventsForOverlay);
+
   const data = useMemo<DashboardData>(() => {
     const webhookResponse: any = liveData;
 
