@@ -489,6 +489,26 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
     });
   }, []);
 
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
+  const [editingDeadlineId, setEditingDeadlineId] = useState<string | null>(null);
+
+  const reorderSections = (from: number, to: number) => {
+    if (from === to) return;
+    update((d) => {
+      const sections = [...d.sections];
+      const [moved] = sections.splice(from, 1);
+      sections.splice(to, 0, moved);
+      return { ...d, sections };
+    });
+  };
+
+  const setSectionDeadline = (sectionId: string, deadline: string | null) =>
+    update((d) => ({
+      ...d,
+      sections: d.sections.map((s) => (s.id === sectionId ? { ...s, deadline } : s)),
+    }));
+
   // Calendar event derivation
   useEffect(() => {
     const events: LiveCalendarEvent[] = [];
