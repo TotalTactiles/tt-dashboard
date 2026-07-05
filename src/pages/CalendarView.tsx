@@ -436,20 +436,15 @@ const CalendarView = () => {
           </div>
           <div className="min-w-0 h-full flex flex-col">
             <CollapsibleCardWrapper
-              title="Zoho Project Milestones"
+              title="Upcoming Projects"
               defaultOpen={true}
-              badge={allCalendarEvents.filter(e =>
-                e.source === "Zoho Projects" ||
-                e.source?.toLowerCase().includes("zoho") ||
-                e.type === "Milestone" ||
-                e.type === "Task"
-              ).length}
+              badge={zohoProjects.length}
             >
               <div
                 className="flex-1 min-h-0 overflow-y-auto"
                 style={{ maxHeight: "180px", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
               >
-                <ZohoMilestonesPanel events={allCalendarEvents} onEventClick={handleOpenEdit} />
+                <UpcomingProjectsPanel projects={zohoProjects} />
               </div>
             </CollapsibleCardWrapper>
           </div>

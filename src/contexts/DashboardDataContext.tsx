@@ -337,7 +337,7 @@ export interface DashboardData {
   pinCalendarCreate: (event: LiveCalendarEvent) => void;
   pinCalendarDelete: (id: string) => void;
   pinCalendarEdit: (id: string, patch: Partial<LiveCalendarEvent>) => void;
-  zohoProjects: Array<{ id: string; name: string; tasks: Array<{ id: string; name: string; hasSubtasks?: boolean }> }>;
+  zohoProjects: ZohoProject[];
   projectKPIData: ProjectKPIData | null;
   liveData: import("@/hooks/useDataSources").LiveData;
   isOffline: boolean;
