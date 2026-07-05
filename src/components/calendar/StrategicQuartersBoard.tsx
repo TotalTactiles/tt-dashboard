@@ -52,10 +52,16 @@ interface StrategicQuartersBoardProps {
 // ---- Constants ----
 
 const PHASE_COLORS: Record<Phase, string> = {
-  "Pre Seal": "#378ADD",
-  "Close the Seal": "#1D9E75",
-  "Post Seal": "#E24B4A",
+  "Pre Seal": "#E24B4A",
+  "Close the Seal": "#378ADD",
+  "Post Seal": "#378ADD",
   Legacy: "#BA7517",
+};
+
+const STATUS_COLORS: Record<"On Pace" | "At Risk" | "Complete", string> = {
+  "On Pace": "#1FB37E",
+  "At Risk": "#E0A13C",
+  Complete: "#2FD39C",
 };
 
 const STORAGE_KEY = "tt_strategic_quarters";
@@ -788,11 +794,12 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
           const pct = zoneProgress(sections);
           const { complete: listComplete, total: listTotal } = zoneListStats(sections);
           const allDone = listTotal > 0 && listComplete === listTotal;
-          const status = allDone
-            ? { cls: "bg-[rgba(29,158,117,0.16)] text-[#38c99b]", label: "Complete" }
+          const statusLabel: "On Pace" | "At Risk" | "Complete" = allDone
+            ? "Complete"
             : pct < 34
-            ? { cls: "bg-[rgba(186,117,23,0.18)] text-[#e0a13c]", label: "At Risk" }
-            : { cls: "bg-[rgba(29,158,117,0.14)] text-[#38c99b]", label: "On Pace" };
+            ? "At Risk"
+            : "On Pace";
+          const statusColor = STATUS_COLORS[statusLabel];
 
           const r = 18, circ = 2 * Math.PI * r, off = circ * (1 - pct / 100);
 
@@ -816,18 +823,41 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
                   >
                     {phase}
                   </span>
-                  <div className="text-[13px] font-semibold text-foreground truncate">
-                    {sections.length === 1
-                      ? sections[0].title
-                      : sections.length > 1
-                      ? `${phase} — ${sections.length} sections`
-                      : `${phase}`}
-                  </div>
-                  <div className="text-[10.5px] text-muted-foreground font-mono mt-0.5">
-                    {sections.length
-                      ? `${sections.map((s) => s.quarter).join(" · ")} · ${listComplete}/${listTotal} lists complete`
-                      : "No sections yet"}
-                  </div>
+                  {sections.length === 1 ? (
+                    <>
+                      <div className="text-[13px] font-semibold text-foreground truncate">
+                        <InlineEdit
+                          value={sections[0].title}
+                          onSave={(v) => updateSectionTitle(sections[0].id, v)}
+                          className="text-[13px] font-semibold text-foreground block w-full truncate"
+                          placeholder="Section title…"
+                        />
+                      </div>
+                      <div className="text-[10.5px] text-muted-foreground font-mono mt-0.5 flex items-center gap-1">
+                        <InlineEdit
+                          value={sections[0].quarter}
+                          onSave={(v) => updateSectionQuarter(sections[0].id, v)}
+                          className="text-muted-foreground"
+                          placeholder="Quarter…"
+                        />
+                        <span>· {listComplete}/{listTotal} lists complete</span>
+                      </div>
+                    </>
+                  ) : sections.length > 1 ? (
+                    <>
+                      <div className="text-[13px] font-semibold text-foreground truncate">
+                        {`${phase} — ${sections.length} sections`}
+                      </div>
+                      <div className="text-[10.5px] text-muted-foreground font-mono mt-0.5">
+                        {`${sections.map((s) => s.quarter).join(" · ")} · ${listComplete}/${listTotal} lists complete`}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-[13px] font-semibold text-foreground truncate">{phase}</div>
+                      <div className="text-[10.5px] text-muted-foreground font-mono mt-0.5">No sections yet</div>
+                    </>
+                  )}
                 </div>
 
                 <div className="flex flex-col items-center gap-1 shrink-0">
@@ -835,7 +865,7 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
                     <svg width="46" height="46" viewBox="0 0 46 46" style={{ transform: "rotate(-90deg)" }}>
                       <circle cx="23" cy="23" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4" />
                       <circle
-                        cx="23" cy="23" r={r} fill="none" stroke={accent} strokeWidth="4" strokeLinecap="round"
+                        cx="23" cy="23" r={r} fill="none" stroke={statusColor} strokeWidth="4" strokeLinecap="round"
                         strokeDasharray={circ} strokeDashoffset={off}
                         style={{ transition: "stroke-dashoffset .4s ease" }}
                       />
@@ -844,11 +874,15 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
                       {pct}%
                     </div>
                   </div>
-                  <span className={`text-[9.5px] font-mono font-semibold px-2 py-0.5 rounded-full ${status.cls}`}>
-                    {status.label}
+                  <span
+                    className="text-[9.5px] font-mono font-semibold px-2 py-0.5 rounded-full"
+                    style={{ background: hexA(statusColor, 0.16), color: statusColor }}
+                  >
+                    {statusLabel}
                   </span>
                 </div>
               </div>
+
 
               {/* Zone body */}
               <div className="px-2.5 pt-2 pb-3 overflow-y-auto flex-1 max-h-[360px]">
