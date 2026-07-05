@@ -2,13 +2,15 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check,
-  Trash2,
-  GripVertical,
   ChevronDown,
   ChevronRight,
-  CalendarDays,
+  GripVertical,
   Plus,
+  Trash2,
+  X,
+  CalendarDays,
 } from "lucide-react";
+
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
 
@@ -492,6 +494,15 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const [editingDeadlineId, setEditingDeadlineId] = useState<string | null>(null);
+  const [openSealedIds, setOpenSealedIds] = useState<Set<string>>(new Set());
+  const toggleSealed = (id: string) =>
+    setOpenSealedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
 
   const reorderSections = (from: number, to: number) => {
     if (from === to) return;
@@ -872,17 +883,29 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
             : "On Pace";
           const statusColor = STATUS_COLORS[statusLabel];
           const r = 18, circ = 2 * Math.PI * r, off = circ * (1 - pct / 100);
+          const isComplete = listTotal > 0 && pct === 100;
+          const isSealed = isComplete && !openSealedIds.has(section.id);
+          const isExpanded = isComplete && openSealedIds.has(section.id);
 
           return (
             <div
               key={section.id}
-              className={`relative rounded-2xl border overflow-hidden flex flex-col min-h-[210px] transition-all ${
-                dragIndex === idx ? "opacity-40" : ""
-              } ${dropIndex === idx ? "ring-2" : "border-border"}`}
-              style={{
-                background: "linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0.008))",
-                ...(dropIndex === idx ? { boxShadow: `0 0 0 2px ${accent}` } : {}),
-              }}
+              className={`relative rounded-2xl border overflow-hidden flex flex-col transition-all group ${
+                isSealed ? "" : "min-h-[210px]"
+              } ${dragIndex === idx ? "opacity-40" : ""} ${
+                dropIndex === idx ? "ring-2" : "border-border"
+              }`}
+              style={
+                isSealed
+                  ? {
+                      borderColor: "rgba(31,179,126,0.30)",
+                      background: "linear-gradient(180deg, rgba(31,179,126,0.09), rgba(31,179,126,0.02))",
+                    }
+                  : {
+                      background: "linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0.008))",
+                      ...(dropIndex === idx ? { boxShadow: `0 0 0 2px ${accent}` } : {}),
+                    }
+              }
               onDragOver={(e) => { e.preventDefault(); setDropIndex(idx); }}
               onDragLeave={() => setDropIndex((c) => (c === idx ? null : c))}
               onDrop={(e) => {
