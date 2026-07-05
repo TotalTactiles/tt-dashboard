@@ -4,6 +4,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { getEventTheme } from "./eventColors";
+import DayEventsModal from "./DayEventsModal";
+import { List } from "lucide-react";
 
 const useTvMode = () => {
   const [tv, setTv] = useState<boolean>(() =>
@@ -85,6 +87,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
   }, [currentDate, onViewMonthChange]);
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
   const [expandedPastDays, setExpandedPastDays] = useState<Set<string>>(new Set());
+  const [viewAllDay, setViewAllDay] = useState<Date | null>(null);
 
   const hoverCapable = useMediaQuery("(hover: hover) and (pointer: fine)", false);
   const isNarrow = useMediaQuery("(max-width: 639px)", false);
