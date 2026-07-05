@@ -352,12 +352,11 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
       {view === "month" && (
         <>
           {/* Day headers */}
-          <div className="grid grid-cols-7 gap-1 mb-1 shrink-0">
+          <div className="grid grid-cols-7 gap-[3px] sm:gap-1 mb-1 shrink-0">
             {DAYS.map((d) => (
               <div
                 key={d}
-                className="text-center font-mono text-muted-foreground py-1 font-medium"
-                style={{ fontSize: "clamp(9px, 1vw, 11px)" }}
+                className="text-center font-mono text-muted-foreground py-1 font-medium text-[9.5px] sm:text-[11px]"
               >
                 {d}
               </div>
@@ -366,7 +365,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
 
           {/* Grid */}
           <div
-            className="grid grid-cols-7 gap-1 flex-1 min-h-0 items-stretch"
+            className="grid grid-cols-7 gap-[3px] sm:gap-1 flex-1 min-h-0 items-stretch"
             style={{ gridTemplateRows: `repeat(${rowCount}, minmax(0, auto))` }}
           >
             {cells.map((cell, i) => {
@@ -405,10 +404,10 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                   }}
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
-                  className={`relative rounded-lg transition-all duration-150 overflow-hidden
+                  className={`relative rounded-lg sm:rounded-xl transition-all duration-150 overflow-hidden
                     ${collapsedPast
-                      ? `self-start flex items-center justify-between ${tvMode ? "h-10 px-2 py-1" : "min-h-[22px] h-[22px] px-2 py-1"} cursor-pointer`
-                      : `flex flex-col items-start h-full ${tvMode ? "p-2" : "p-1.5 min-h-[64px]"}`}
+                      ? `self-start flex items-center justify-between ${tvMode ? "h-10 px-2 py-1" : "min-h-[22px] h-[22px] px-1.5 sm:px-2 py-1"} cursor-pointer`
+                      : `flex flex-col items-start h-full ${tvMode ? "p-2" : "p-1 sm:p-1.5 min-h-[56px] sm:min-h-[64px]"}`}
                     ${!cell.inMonth ? "opacity-30 pointer-events-none" : "cursor-pointer"}
                     ${cell.inMonth && isToday(cell.day) ? "bg-primary/15 ring-1 ring-primary/40" : ""}
                     ${cell.inMonth && isSelected(cell.day) && !isToday(cell.day) ? "bg-secondary ring-1 ring-primary/30" : ""}
@@ -430,9 +429,25 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                       />
                     )}
                   </div>
+                  {!collapsedPast && !tvMode && dayEvts.length > 0 && (
+                    <div className="flex sm:hidden flex-wrap items-center gap-[3px] w-full mt-0.5">
+                      {dayEvts.slice(0, 3).map((ev) => (
+                        <span
+                          key={ev.id}
+                          className="w-[7px] h-[7px] rounded-full"
+                          style={{ background: getEventTheme(ev).accent }}
+                        />
+                      ))}
+                      {dayEvts.length > 3 && (
+                        <span className="text-[8.5px] font-mono text-muted-foreground leading-none">
+                          +{dayEvts.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {!collapsedPast && (
                     <div
-                      className={`flex flex-col ${tvMode ? "gap-1.5" : "gap-1"} flex-1 min-h-0 w-full overflow-y-auto ${isExpanded ? "max-h-[60vh]" : ""}`}
+                      className={`${tvMode ? "flex" : "hidden sm:flex"} flex-col ${tvMode ? "gap-1.5" : "gap-1"} flex-1 min-h-0 w-full overflow-y-auto ${isExpanded ? "max-h-[60vh]" : ""}`}
                     >
                       {visibleEvents.map((ev) => {
                         const theme = getEventTheme(ev);
@@ -504,7 +519,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                         setSelectedDay(null);
                         setViewAllDay(new Date(year, month, cell.day));
                       }}
-                      className={`mt-1 inline-flex items-center gap-1 self-stretch justify-center rounded-md bg-primary/10 hover:bg-primary/20 text-primary font-medium transition-colors shrink-0 ${tvMode ? "px-2 py-1 text-[12px]" : "px-1.5 py-0.5 text-[10px]"}`}
+                      className={`mt-1 hidden sm:inline-flex items-center gap-1 self-stretch justify-center rounded-md bg-primary/10 hover:bg-primary/20 text-primary font-medium transition-colors shrink-0 ${tvMode ? "px-2 py-1 text-[12px]" : "px-1.5 py-0.5 text-[10px]"}`}
                       title={`View all ${dayEvts.length} events`}
                     >
                       <List className={tvMode ? "h-3.5 w-3.5" : "h-3 w-3"} />
