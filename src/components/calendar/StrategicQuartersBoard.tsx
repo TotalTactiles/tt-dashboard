@@ -524,6 +524,21 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
         });
       });
     });
+    data.sections.forEach((section) => {
+      if (section.deadline) {
+        events.push({
+          id: `sqb-deadline-${section.id}`,
+          title: `[${section.phase}] ${section.title} — deadline`,
+          description: `Strategic quarter deadline (${section.quarter})`,
+          start: new Date(section.deadline).toISOString(),
+          end: new Date(section.deadline).toISOString(),
+          allDay: true,
+          source: "Strategic Board",
+          type: "Deadline",
+          attendees: [],
+        });
+      }
+    });
     onInjectEvents(events);
   }, [data, onInjectEvents]);
 
