@@ -47,6 +47,47 @@ const CalendarView = () => {
   });
   const [sqbEvents, setSqbEvents] = useState<LiveCalendarEvent[]>([]);
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "success" | "error">("idle");
+  const [viewedMonth, setViewedMonth] = useState<Date>(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+
+  const handleViewMonthChange = useCallback((d: Date) => {
+    setViewedMonth((prev) =>
+      prev.getFullYear() === d.getFullYear() && prev.getMonth() === d.getMonth() ? prev : d
+    );
+  }, []);
+
+  const projectsInViewedMonth = useMemo(() => {
+    const vy = viewedMonth.getFullYear();
+    const vm = viewedMonth.getMonth();
+    const parse = (raw: unknown): Date | null => {
+      if (!raw || typeof raw !== "string") return null;
+      const s = raw.trim();
+      if (!s) return null;
+      const d = s.includes("T") ? new Date(s) : new Date(`${s}T00:00:00`);
+      return isNaN(d.getTime()) ? null : d;
+    };
+    const monthIndex = (d: Date) => d.getFullYear() * 12 + d.getMonth();
+    const viewedIdx = vy * 12 + vm;
+    return (zohoProjects ?? [])
+      .map((p) => ({ p, start: parse(p.startDate), end: parse(p.endDate) }))
+      .filter(({ start, end }) => {
+        if (!start && !end) return false;
+        const startIdx = start ? monthIndex(start) : null;
+        const endIdx = end ? monthIndex(end) : null;
+        if (startIdx === viewedIdx || endIdx === viewedIdx) return true;
+        // spans across viewed month
+        if (startIdx !== null && endIdx !== null && startIdx < viewedIdx && endIdx > viewedIdx) return true;
+        return false;
+      })
+      .sort((a, b) => {
+        const ad = (a.start ?? a.end)!.getTime();
+        const bd = (b.start ?? b.end)!.getTime();
+        return ad - bd;
+      })
+      .map(({ p }) => p);
+  }, [zohoProjects, viewedMonth]);
 
   const handleSyncClick = useCallback(async () => {
     if (syncStatus === "syncing") return;
