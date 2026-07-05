@@ -160,8 +160,9 @@ const CalendarView = () => {
             attendees: eventData.attendees || [],
             googleId: editingEvent?.googleId || null,
             zohoId: eventData.zohoId ?? editingEvent?.zohoId ?? null,
-            source: (eventData as any).source ?? editingEvent?.source,
+            source: (eventData as any).source ?? editingEvent?.source ?? "Google Calendar",
             projectId: (eventData as any).projectId ?? (editingEvent as any)?.projectId,
+            parentTaskId: (eventData as any).parentTaskId ?? "",
           },
         };
 
