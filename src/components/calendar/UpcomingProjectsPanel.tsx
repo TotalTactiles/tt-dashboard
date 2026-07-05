@@ -87,8 +87,8 @@ export default function UpcomingProjectsPanel({
     <div className="flex-1 min-h-0 min-w-0 flex flex-col">
       {showPills && (
         <div className="flex items-center gap-1.5 mb-2 shrink-0">
-          {pill("this-month", "This month")}
           {pill("active-during", "Currently Active")}
+          {pill("this-month", "This month")}
         </div>
       )}
       <div
