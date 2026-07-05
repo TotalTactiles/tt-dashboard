@@ -44,6 +44,7 @@ const Formulas = lazyWithReload(() => import("./pages/Formulas"));
 const EmployeeTracking = lazyWithReload(() => import("./pages/EmployeeTracking"));
 const DealFlow = lazyWithReload(() => import("./pages/DealFlow"));
 const FinancialHealth = lazyWithReload(() => import("./pages/FinancialHealth"));
+const TvLayout = lazyWithReload(() => import("./components/tv/TvLayout"));
 
 const queryClient = new QueryClient();
 
