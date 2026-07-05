@@ -335,7 +335,7 @@ const CalendarView = () => {
               disabled={syncStatus === "syncing"}
               aria-busy={syncStatus === "syncing"}
               className={
-                "px-3 py-1.5 tv-mode:px-5 tv-mode:py-3 tv-mode:text-base rounded-xl border text-xs font-medium transition-colors duration-150 inline-flex items-center gap-2 disabled:cursor-wait " +
+                "px-3 py-1.5 rounded-xl border text-xs font-medium transition-colors duration-150 inline-flex items-center gap-2 disabled:cursor-wait sync-btn " +
                 (syncStatus === "syncing"
                   ? "border-primary/50 text-primary bg-primary/10"
                   : syncStatus === "success"
