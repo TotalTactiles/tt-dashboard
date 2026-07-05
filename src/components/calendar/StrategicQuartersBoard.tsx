@@ -39,6 +39,7 @@ interface BoardSection {
   quarter: string;
   collapsed: boolean;
   tasks: TaskItem[];
+  deadline?: string | null;
 }
 
 interface BoardData {
