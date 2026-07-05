@@ -7,12 +7,19 @@ import { Label } from "@/components/ui/label";
 import { type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
 import { Loader2, AlignLeft, MapPin, Users } from "lucide-react";
 
+interface ZohoProjectOption {
+  id: string;
+  name: string;
+  tasks: Array<{ id: string; name: string; hasSubtasks?: boolean }>;
+}
+
 interface EventModalProps {
   open: boolean;
   onClose: () => void;
   event: LiveCalendarEvent | null;
   onSave: (action: "create" | "update" | "delete", data: Partial<LiveCalendarEvent>) => Promise<void>;
   selectedDate: Date;
+  zohoProjects?: ZohoProjectOption[];
 }
 
 const EVENT_TYPES = ["Meeting", "Deadline", "Milestone", "Care", "Valuation", "Distribution"];
