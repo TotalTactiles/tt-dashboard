@@ -169,6 +169,9 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate, zohoProjects =
     setLoading(false);
   };
 
+  const isZohoCreate = !isEditing && createSource === "Zoho Projects";
+  const selectedProject = zohoProjects.find((p) => p.id === zohoProjectId);
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-[460px] max-h-[85vh] overflow-y-auto p-5">
@@ -177,6 +180,83 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate, zohoProjects =
         </DialogHeader>
 
         <div className="flex flex-col gap-4 mt-1 min-w-0">
+          {/* Calendar source selector (create mode only) */}
+          {!isEditing && (
+            <div className="flex items-center gap-1 p-1 bg-secondary/50 rounded-lg">
+              {(["Google Calendar", "Zoho Projects"] as const).map((src) => (
+                <button
+                  key={src}
+                  onClick={() => setCreateSource(src)}
+                  className={[
+                    "flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
+                    createSource === src
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  ].join(" ")}
+                >
+                  {src}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Zoho project + task/subtask selectors */}
+          {isZohoCreate && (
+            <div className="flex flex-col gap-2 min-w-0">
+              <div>
+                <Label className="text-[11px] font-normal text-muted-foreground mb-1 block">Project</Label>
+                <select
+                  value={zohoProjectId}
+                  onChange={(e) => { setZohoProjectId(e.target.value); setZohoParentTaskId(""); setErrors((p) => ({ ...p, project: false })); }}
+                  className={[
+                    "w-full h-9 text-sm rounded-lg bg-secondary/50 border-0 px-2.5",
+                    errors.project ? "ring-1 ring-destructive" : "",
+                  ].join(" ")}
+                >
+                  <option value="">Select project…</option>
+                  {zohoProjects.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+                {errors.project && <p className="text-[11px] text-destructive mt-1">Project is required</p>}
+                {zohoProjects.length === 0 && (
+                  <p className="text-[11px] text-muted-foreground mt-1">No Zoho projects loaded yet — try syncing.</p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1 p-1 bg-secondary/50 rounded-lg">
+                {(["task", "subtask"] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setZohoMode(m)}
+                    className={[
+                      "flex-1 px-3 py-1 rounded-md text-[11px] font-medium transition-colors",
+                      zohoMode === m
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    ].join(" ")}
+                  >
+                    {m === "task" ? "New task" : "Subtask of…"}
+                  </button>
+                ))}
+              </div>
+
+              {zohoMode === "subtask" && (
+                <select
+                  value={zohoParentTaskId}
+                  onChange={(e) => setZohoParentTaskId(e.target.value)}
+                  disabled={!selectedProject}
+                  className="w-full h-9 text-sm rounded-lg bg-secondary/50 border-0 px-2.5 disabled:opacity-50"
+                >
+                  <option value="">Select parent task…</option>
+                  {selectedProject?.tasks.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
+
           {/* Title */}
           <Input
             value={title}
