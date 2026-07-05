@@ -79,6 +79,14 @@ const App = () => (
                   <Route path="/settings" element={<Protected><Settings /></Protected>} />
                   <Route path="/deals" element={<Protected><DealFlow /></Protected>} />
                   <Route path="/financial-health" element={<Protected><FinancialHealth /></Protected>} />
+                  {/* ── TV / Wallboard mode ── */}
+                  <Route path="/tv" element={<Protected><TvLayout><Index /></TvLayout></Protected>} />
+                  <Route path="/tv/deals" element={<Protected><TvLayout><DealFlow /></TvLayout></Protected>} />
+                  <Route path="/tv/financial-health" element={<Protected><TvLayout><FinancialHealth /></TvLayout></Protected>} />
+                  <Route path="/tv/calendar" element={<Protected><TvLayout><CalendarView /></TvLayout></Protected>} />
+                  <Route path="/tv/employees" element={<Protected><TvLayout><EmployeeTracking /></TvLayout></Protected>} />
+                  <Route path="/tv/goals" element={<Protected><TvLayout><GoalsTargets /></TvLayout></Protected>} />
+                  <Route path="/tv/consulting" element={<Protected><TvLayout><InvestmentMemorandum /></TvLayout></Protected>} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
