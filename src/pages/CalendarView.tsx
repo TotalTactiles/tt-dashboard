@@ -347,7 +347,7 @@ const CalendarView = () => {
             >
               {syncStatus === "syncing" ? (
                 <>
-                  <span className="inline-block w-3 h-3 tv-mode:w-4 tv-mode:h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  <span className="inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   Syncing…
                 </>
               ) : syncStatus === "success" ? (
