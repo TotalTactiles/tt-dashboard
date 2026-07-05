@@ -794,7 +794,7 @@ export function useDataSources() {
           : prevEvents.filter((e: any) => e.source === 'Zoho Projects');
 
         const mergedEvents = [...nonZohoFresh, ...zohoToUse];
-        const newData = { calendarEvents: mergedEvents, upcomingEvents: upEvents, calendarSummary: calSummary };
+        const newData = { calendarEvents: mergedEvents, upcomingEvents: upEvents, calendarSummary: calSummary, zohoProjects: zohoProjectsList.length > 0 ? zohoProjectsList : (Array.isArray(prev?.zohoProjects) ? prev.zohoProjects : []) };
         localStorage.setItem(CALENDAR_CACHE_KEY, JSON.stringify(newData));
 
         // Persist Zoho events separately as a longer-lived backup
