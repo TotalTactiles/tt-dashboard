@@ -52,10 +52,16 @@ interface StrategicQuartersBoardProps {
 // ---- Constants ----
 
 const PHASE_COLORS: Record<Phase, string> = {
-  "Pre Seal": "#378ADD",
-  "Close the Seal": "#1D9E75",
-  "Post Seal": "#E24B4A",
+  "Pre Seal": "#E24B4A",
+  "Close the Seal": "#378ADD",
+  "Post Seal": "#378ADD",
   Legacy: "#BA7517",
+};
+
+const STATUS_COLORS: Record<"On Pace" | "At Risk" | "Complete", string> = {
+  "On Pace": "#1FB37E",
+  "At Risk": "#E0A13C",
+  Complete: "#2FD39C",
 };
 
 const STORAGE_KEY = "tt_strategic_quarters";
