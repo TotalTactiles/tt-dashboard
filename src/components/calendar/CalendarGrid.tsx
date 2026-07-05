@@ -23,7 +23,9 @@ const useTvMode = () => {
 
 const pad2 = (n: number) => n.toString().padStart(2, "0");
 const dateKey = (year: number, month: number, day: number) => `${year}-${pad2(month + 1)}-${pad2(day)}`;
+const dateISO = (d: Date) => dateKey(d.getFullYear(), d.getMonth(), d.getDate());
 
+type CalendarView = "day" | "week" | "month";
 
 interface CalendarGridProps {
   events: LiveCalendarEvent[];
@@ -40,20 +42,41 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-const TYPE_COLORS: Record<string, string> = {
-  Meeting: "#378ADD",
-  Deadline: "#E24B4A",
-  Milestone: "#7F77DD",
-  Care: "#639922",
-  Valuation: "#BA7517",
-  Distribution: "#1D9E75",
-  Task: "#5DCAA5",
-  Event: "#D4537E",
+const parseLocal = (raw: string) =>
+  raw.includes("T") ? new Date(raw) : new Date(raw + "T00:00:00");
+
+/** Return the Date at Sunday 00:00 of the week containing `d`. */
+const startOfWeek = (d: Date) => {
+  const out = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  out.setDate(out.getDate() - out.getDay());
+  return out;
 };
 
-const getTypeColor = (type: string) => TYPE_COLORS[type] || "#378ADD";
+const sameDay = (a: Date, b: Date) =>
+  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+/** Expand an event into the set of local days it occupies. */
+const eventOccupiesDay = (e: LiveCalendarEvent, target: Date): boolean => {
+  const startD = parseLocal(e.start);
+  const startLocal = new Date(startD.getFullYear(), startD.getMonth(), startD.getDate());
+  let endLocal = startLocal;
+  const endRaw = (e as any).end as string | undefined;
+  if (e.allDay && endRaw && endRaw !== e.start) {
+    const endD = parseLocal(endRaw);
+    endLocal = new Date(endD.getFullYear(), endD.getMonth(), endD.getDate());
+    const isDateOnlyEnd = !endRaw.includes("T");
+    if (isDateOnlyEnd && endLocal.getTime() > startLocal.getTime()) {
+      const prev = new Date(endLocal);
+      prev.setDate(prev.getDate() - 1);
+      if (prev.getTime() >= startLocal.getTime()) endLocal = prev;
+    }
+  }
+  const t = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
+  return t >= startLocal.getTime() && t <= endLocal.getTime();
+};
 
 const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayClick }: CalendarGridProps) => {
+  const [view, setView] = useState<CalendarView>("month");
   const [currentDate, setCurrentDate] = useState(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
   const [expandedPastDays, setExpandedPastDays] = useState<Set<string>>(new Set());
@@ -61,29 +84,60 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
   const hoverCapable = useMediaQuery("(hover: hover) and (pointer: fine)", false);
   const isNarrow = useMediaQuery("(max-width: 639px)", false);
   const tvMode = useTvMode();
-  // TV wallboards get more room per cell → show more pills, no interactive expand.
   const collapsedLimit = tvMode ? 6 : isNarrow ? 2 : 4;
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const prevMonthDays = new Date(year, month, 0).getDate();
-
-  const prevMonth = () => { setExpandedDay(null); setExpandedPastDays(new Set()); setCurrentDate(new Date(year, month - 1, 1)); };
-  const nextMonth = () => { setExpandedDay(null); setExpandedPastDays(new Set()); setCurrentDate(new Date(year, month + 1, 1)); };
 
   const todayStart = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     return d;
-  }, [month, year]);
+  }, []);
+
+  // ---- Navigation dispatched by active view ----
+  const goPrev = () => {
+    setExpandedDay(null);
+    setExpandedPastDays(new Set());
+    if (view === "month") {
+      setCurrentDate(new Date(year, month - 1, 1));
+    } else if (view === "week") {
+      const d = new Date(selectedDate);
+      d.setDate(d.getDate() - 7);
+      onSelectDate(d);
+      setCurrentDate(new Date(d.getFullYear(), d.getMonth(), 1));
+    } else {
+      const d = new Date(selectedDate);
+      d.setDate(d.getDate() - 1);
+      onSelectDate(d);
+      setCurrentDate(new Date(d.getFullYear(), d.getMonth(), 1));
+    }
+  };
+  const goNext = () => {
+    setExpandedDay(null);
+    setExpandedPastDays(new Set());
+    if (view === "month") {
+      setCurrentDate(new Date(year, month + 1, 1));
+    } else if (view === "week") {
+      const d = new Date(selectedDate);
+      d.setDate(d.getDate() + 7);
+      onSelectDate(d);
+      setCurrentDate(new Date(d.getFullYear(), d.getMonth(), 1));
+    } else {
+      const d = new Date(selectedDate);
+      d.setDate(d.getDate() + 1);
+      onSelectDate(d);
+      setCurrentDate(new Date(d.getFullYear(), d.getMonth(), 1));
+    }
+  };
+
+  // ---- Month view data ----
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const prevMonthDays = new Date(year, month, 0).getDate();
 
   const eventsByDay = useMemo(() => {
     const map: Record<number, LiveCalendarEvent[]> = {};
-    const parseLocal = (raw: string) =>
-      raw.includes("T") ? new Date(raw) : new Date(raw + "T00:00:00");
-
     events.forEach((e) => {
       const startD = parseLocal(e.start);
       const startLocal = new Date(startD.getFullYear(), startD.getMonth(), startD.getDate());
@@ -130,29 +184,76 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
   const isSelected = (d: number) =>
     d === selectedDate.getDate() && month === selectedDate.getMonth() && year === selectedDate.getFullYear();
 
-  const handleDayClick = (day: number) => {
+  const handleMonthDayClick = (day: number) => {
     const key = dateKey(year, month, day);
     const past = isPast(day);
     if (past) {
-      // Past days toggle expand/collapse in-place instead of opening the create modal.
       setExpandedPastDays((prev) => {
         const next = new Set(prev);
         if (next.has(key)) next.delete(key);
         else next.add(key);
         return next;
       });
-      // Still update the selected day so the side panels reflect the chosen date,
-      // but do not trigger the day-click → create-event modal.
       onSelectDate(new Date(year, month, day));
       return;
     }
     onSelectDate(new Date(year, month, day));
-    if (onDayClick) {
-      const iso = `${year}-${pad2(month + 1)}-${pad2(day)}`;
-      onDayClick(iso);
-    }
+    if (onDayClick) onDayClick(`${year}-${pad2(month + 1)}-${pad2(day)}`);
   };
 
+  // ---- Week view data ----
+  const weekStart = useMemo(() => startOfWeek(selectedDate), [selectedDate]);
+  const weekDays = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(weekStart);
+      d.setDate(d.getDate() + i);
+      return d;
+    }),
+    [weekStart]
+  );
+
+  const weekEventsByDate = useMemo(() => {
+    const map: Record<string, LiveCalendarEvent[]> = {};
+    weekDays.forEach((d) => (map[dateISO(d)] = []));
+    events.forEach((e) => {
+      weekDays.forEach((d) => {
+        if (eventOccupiesDay(e, d)) map[dateISO(d)].push(e);
+      });
+    });
+    // sort each day by start time
+    Object.values(map).forEach((list) =>
+      list.sort((a, b) => a.start.localeCompare(b.start))
+    );
+    return map;
+  }, [events, weekDays]);
+
+  // ---- Day view data ----
+  const dayEvents = useMemo(() => {
+    return events
+      .filter((e) => eventOccupiesDay(e, selectedDate))
+      .sort((a, b) => a.start.localeCompare(b.start));
+  }, [events, selectedDate]);
+
+  // Header title reflects the active unit
+  const headerTitle = (() => {
+    if (view === "month") return `${MONTHS[month]} ${year}`;
+    if (view === "week") {
+      const end = new Date(weekStart);
+      end.setDate(end.getDate() + 6);
+      const sameMonth = end.getMonth() === weekStart.getMonth();
+      const startLabel = `${MONTHS[weekStart.getMonth()].slice(0, 3)} ${weekStart.getDate()}`;
+      const endLabel = sameMonth
+        ? `${end.getDate()}`
+        : `${MONTHS[end.getMonth()].slice(0, 3)} ${end.getDate()}`;
+      return `${startLabel} – ${endLabel}, ${end.getFullYear()}`;
+    }
+    return selectedDate.toLocaleDateString(undefined, {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+  })();
 
   return (
     <motion.div
@@ -161,165 +262,403 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
       className="stat-card flex-1 min-w-0 flex flex-col overflow-hidden"
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-3 shrink-0">
-        <h3 className="text-sm font-semibold text-foreground">
-          {MONTHS[month]} {year}
-        </h3>
-        <div className="flex items-center gap-1">
-          <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-secondary transition-colors duration-150">
-            <ChevronLeft className="h-4 w-4 text-muted-foreground" />
-          </button>
-          <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-secondary transition-colors duration-150">
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </button>
+      <div className="flex items-center justify-between mb-3 shrink-0 gap-2 flex-wrap">
+        <h3 className="text-sm font-semibold text-foreground truncate">{headerTitle}</h3>
+        <div className="flex items-center gap-2">
+          {/* Segmented view switcher */}
+          <div
+            role="tablist"
+            aria-label="Calendar view"
+            className="inline-flex items-center rounded-lg border border-border bg-muted/40 p-0.5"
+          >
+            {(["day", "week", "month"] as CalendarView[]).map((v) => {
+              const active = view === v;
+              return (
+                <button
+                  key={v}
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setView(v)}
+                  className={
+                    "px-2.5 py-1 rounded-md text-[11px] font-medium capitalize transition-colors duration-150 " +
+                    (active
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground")
+                  }
+                >
+                  {v}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-1">
+            <button onClick={goPrev} className="p-1.5 rounded-lg hover:bg-secondary transition-colors duration-150">
+              <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+            </button>
+            <button onClick={goNext} className="p-1.5 rounded-lg hover:bg-secondary transition-colors duration-150">
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Day headers */}
-      <div className="grid grid-cols-7 gap-1 mb-1 shrink-0">
-        {DAYS.map((d) => (
-          <div
-            key={d}
-            className="text-center font-mono text-muted-foreground py-1 font-medium"
-            style={{ fontSize: "clamp(9px, 1vw, 11px)" }}
-          >
-            {d}
-          </div>
-        ))}
-      </div>
-
-      {/* Grid */}
-      <div
-        className="grid grid-cols-7 gap-1 flex-1 min-h-0 items-start"
-        style={{ gridTemplateRows: `repeat(${rowCount}, minmax(0, auto))` }}
-      >
-        {cells.map((cell, i) => {
-          const dayEvents = cell.inMonth ? eventsByDay[cell.day] || [] : [];
-          const key = cell.inMonth ? dateKey(year, month, cell.day) : "";
-          const past = cell.inMonth && isPast(cell.day);
-          const expandedPast = past && expandedPastDays.has(key);
-          const collapsedPast = past && !expandedPast;
-
-          // In TV mode, never expand interactively — just show up to collapsedLimit and a static "+X" if any remain.
-          const isExpanded = !tvMode && cell.inMonth && expandedDay === cell.day && dayEvents.length > collapsedLimit;
-          const visibleEvents = isExpanded ? dayEvents : dayEvents.slice(0, collapsedLimit);
-          const overflow = dayEvents.length - collapsedLimit;
-
-          const handleMouseEnter = () => {
-            if (!tvMode && hoverCapable && cell.inMonth && dayEvents.length > collapsedLimit) {
-              setExpandedDay(cell.day);
-            }
-          };
-          const handleMouseLeave = () => {
-            if (!tvMode && hoverCapable && expandedDay === cell.day) setExpandedDay(null);
-          };
-          const handleChipClick = (e: React.MouseEvent) => {
-            e.stopPropagation();
-            if (tvMode) return;
-            setExpandedDay(isExpanded ? null : cell.day);
-          };
-
-          return (
-            <div
-              key={i}
-              onClick={() => cell.inMonth && handleDayClick(cell.day)}
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-              className={`relative flex items-start rounded-lg transition-all duration-150
-                ${collapsedPast ? (tvMode ? "h-10 px-2 py-1 justify-between" : "h-6 px-1.5 py-0.5 justify-between") : `flex-col ${tvMode ? "p-2" : "p-1.5"}`}
-                ${!cell.inMonth ? "opacity-30 pointer-events-none" : "cursor-pointer"}
-                ${cell.inMonth && isToday(cell.day) ? "bg-primary/15 ring-1 ring-primary/40" : ""}
-                ${cell.inMonth && isSelected(cell.day) && !isToday(cell.day) ? "bg-secondary ring-1 ring-primary/30" : ""}
-                ${cell.inMonth && !isToday(cell.day) && !isSelected(cell.day) ? "bg-muted/50 hover:bg-secondary/70" : ""}
-                ${isExpanded ? "z-20 shadow-lg ring-1 ring-primary/40 bg-card" : "overflow-hidden"}
-              `}
-              style={{ minHeight: 0 }}
-            >
-              <div className={`flex items-center ${collapsedPast ? "justify-between w-full" : "mb-1"}`}>
-                <span
-                  className={`font-bold leading-none ${cell.inMonth && isToday(cell.day) ? "text-primary" : "text-foreground/80"}`}
-                  style={{ fontSize: tvMode ? "clamp(16px, 1.1vw, 22px)" : "clamp(10px, 1vw, 12px)" }}
-                >
-                  {cell.day}
-                </span>
-                {collapsedPast && dayEvents.length > 0 && (
-                  <span
-                    className="rounded-full bg-primary/70 shrink-0"
-                    style={{ width: tvMode ? 8 : 5, height: tvMode ? 8 : 5 }}
-                  />
-                )}
+      {view === "month" && (
+        <>
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-1 shrink-0">
+            {DAYS.map((d) => (
+              <div
+                key={d}
+                className="text-center font-mono text-muted-foreground py-1 font-medium"
+                style={{ fontSize: "clamp(9px, 1vw, 11px)" }}
+              >
+                {d}
               </div>
-              {!collapsedPast && (
+            ))}
+          </div>
+
+          {/* Grid */}
+          <div
+            className="grid grid-cols-7 gap-1 flex-1 min-h-0 items-start"
+            style={{ gridTemplateRows: `repeat(${rowCount}, minmax(0, auto))` }}
+          >
+            {cells.map((cell, i) => {
+              const dayEvts = cell.inMonth ? eventsByDay[cell.day] || [] : [];
+              const key = cell.inMonth ? dateKey(year, month, cell.day) : "";
+              const past = cell.inMonth && isPast(cell.day);
+              const expandedPast = past && expandedPastDays.has(key);
+              const collapsedPast = past && !expandedPast;
+
+              const isExpanded = !tvMode && cell.inMonth && expandedDay === cell.day && dayEvts.length > collapsedLimit;
+              const visibleEvents = isExpanded ? dayEvts : dayEvts.slice(0, collapsedLimit);
+              const overflow = dayEvts.length - collapsedLimit;
+
+              const handleMouseEnter = () => {
+                if (!tvMode && hoverCapable && cell.inMonth && dayEvts.length > collapsedLimit) {
+                  setExpandedDay(cell.day);
+                }
+              };
+              const handleMouseLeave = () => {
+                if (!tvMode && hoverCapable && expandedDay === cell.day) setExpandedDay(null);
+              };
+              const handleChipClick = (e: React.MouseEvent) => {
+                e.stopPropagation();
+                if (tvMode) return;
+                setExpandedDay(isExpanded ? null : cell.day);
+              };
+
+              return (
                 <div
-                  className={`flex flex-col ${tvMode ? "gap-1.5" : "gap-1"} flex-1 min-h-0 w-full ${isExpanded ? "overflow-y-auto max-h-[60vh]" : "overflow-hidden"}`}
+                  key={i}
+                  onClick={() => cell.inMonth && handleMonthDayClick(cell.day)}
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
+                  className={`relative flex items-start rounded-lg transition-all duration-150
+                    ${collapsedPast ? (tvMode ? "h-10 px-2 py-1 justify-between" : "h-6 px-1.5 py-0.5 justify-between") : `flex-col ${tvMode ? "p-2" : "p-1.5"}`}
+                    ${!cell.inMonth ? "opacity-30 pointer-events-none" : "cursor-pointer"}
+                    ${cell.inMonth && isToday(cell.day) ? "bg-primary/15 ring-1 ring-primary/40" : ""}
+                    ${cell.inMonth && isSelected(cell.day) && !isToday(cell.day) ? "bg-secondary ring-1 ring-primary/30" : ""}
+                    ${cell.inMonth && !isToday(cell.day) && !isSelected(cell.day) ? "bg-muted/50 hover:bg-secondary/70" : ""}
+                    ${isExpanded ? "z-20 shadow-lg ring-1 ring-primary/40 bg-card" : "overflow-hidden"}
+                  `}
+                  style={{ minHeight: 0 }}
                 >
-                  {visibleEvents.map((ev) => {
+                  <div className={`flex items-center ${collapsedPast ? "justify-between w-full" : "mb-1"}`}>
+                    <span
+                      className={`font-bold leading-none ${cell.inMonth && isToday(cell.day) ? "text-primary" : "text-foreground/80"}`}
+                      style={{ fontSize: tvMode ? "clamp(16px, 1.1vw, 22px)" : "clamp(10px, 1vw, 12px)" }}
+                    >
+                      {cell.day}
+                    </span>
+                    {collapsedPast && dayEvts.length > 0 && (
+                      <span
+                        className="rounded-full bg-primary/70 shrink-0"
+                        style={{ width: tvMode ? 8 : 5, height: tvMode ? 8 : 5 }}
+                      />
+                    )}
+                  </div>
+                  {!collapsedPast && (
+                    <div
+                      className={`flex flex-col ${tvMode ? "gap-1.5" : "gap-1"} flex-1 min-h-0 w-full ${isExpanded ? "overflow-y-auto max-h-[60vh]" : "overflow-hidden"}`}
+                    >
+                      {visibleEvents.map((ev) => {
+                        const theme = getEventTheme(ev);
+                        const isPending = !!ev._pending;
+                        return (
+                          <button
+                            key={ev.id}
+                            type="button"
+                            title={isPending ? `${ev.title} (syncing…)` : ev.title}
+                            onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
+                            className={`group flex items-center min-w-0 w-full rounded-md cursor-pointer text-left transition-all duration-300 border-l-[3px] ${
+                              tvMode
+                                ? "gap-2 px-2 py-1.5 border-y border-r border-border/40"
+                                : `gap-1 px-1 border-y border-r border-transparent ${hoverCapable ? "py-0.5" : "py-1.5 min-h-[36px]"}`
+                            }`}
+                            style={{
+                              opacity: isPending ? (tvMode ? 0.6 : 0.5) : 1,
+                              background: theme.bg,
+                              borderLeftColor: theme.border,
+                            }}
+                          >
+                            <span
+                              className={`rounded-full shrink-0 ${tvMode ? "w-2.5 h-2.5" : "w-1.5 h-1.5"} ${isPending ? "animate-pulse" : ""}`}
+                              style={{ backgroundColor: theme.accent }}
+                            />
+                            <span
+                              className={`truncate leading-tight ${tvMode ? "text-foreground font-medium" : "text-foreground/90 group-hover:text-foreground"}`}
+                              style={{ fontSize: tvMode ? "clamp(13px, 0.9vw, 17px)" : "clamp(9px, 0.9vw, 11px)" }}
+                            >
+                              {ev.title}
+                            </span>
+                            {isPending && (
+                              <span
+                                className="ml-auto shrink-0 italic text-muted-foreground"
+                                style={{ fontSize: tvMode ? "11px" : "9px" }}
+                              >
+                                syncing…
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                      {overflow > 0 && (
+                        tvMode ? (
+                          <span
+                            className="text-muted-foreground font-medium px-2 pt-0.5"
+                            style={{ fontSize: "clamp(12px, 0.85vw, 15px)" }}
+                          >
+                            +{overflow} more
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleChipClick}
+                            className={`text-primary hover:text-primary/80 font-medium truncate text-left cursor-pointer rounded-md px-1 hover:bg-primary/10 ${hoverCapable ? "" : "min-h-[40px] py-1.5 bg-primary/5"}`}
+                            style={{ fontSize: "clamp(9px, 0.9vw, 11px)" }}
+                          >
+                            {isExpanded ? "Show less" : `+${overflow} more`}
+                          </button>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {view === "week" && (
+        <>
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1 mb-1 shrink-0">
+            {weekDays.map((d) => {
+              const today = sameDay(d, todayStart);
+              const selected = sameDay(d, selectedDate);
+              return (
+                <div
+                  key={d.toISOString()}
+                  className={`text-center py-1 font-medium rounded-md ${today ? "text-primary" : selected ? "text-foreground" : "text-muted-foreground"}`}
+                  style={{ fontSize: tvMode ? "clamp(12px, 0.9vw, 15px)" : "clamp(10px, 0.9vw, 12px)" }}
+                >
+                  <div className="font-mono uppercase">{DAYS[d.getDay()]}</div>
+                  <div className="font-bold" style={{ fontSize: tvMode ? "clamp(18px, 1.4vw, 26px)" : "clamp(13px, 1.1vw, 16px)" }}>
+                    {d.getDate()}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Week columns */}
+          <div className="grid grid-cols-7 gap-1 flex-1 min-h-0">
+            {weekDays.map((d) => {
+              const iso = dateISO(d);
+              const list = weekEventsByDate[iso] || [];
+              const today = sameDay(d, todayStart);
+              const selected = sameDay(d, selectedDate);
+              const past = d.getTime() < todayStart.getTime();
+              return (
+                <div
+                  key={iso}
+                  onClick={() => {
+                    onSelectDate(d);
+                    if (past) return;
+                    if (onDayClick) onDayClick(iso);
+                  }}
+                  className={`relative flex flex-col rounded-lg cursor-pointer transition-colors duration-150 p-1.5 gap-1 overflow-y-auto
+                    ${today ? "bg-primary/15 ring-1 ring-primary/40" : selected ? "bg-secondary ring-1 ring-primary/30" : "bg-muted/50 hover:bg-secondary/70"}
+                  `}
+                >
+                  {list.length === 0 && (
+                    <span className="text-muted-foreground/60 italic text-[10px] px-1 py-2">
+                      {past ? "—" : "+ add"}
+                    </span>
+                  )}
+                  {list.map((ev) => {
                     const theme = getEventTheme(ev);
                     const isPending = !!ev._pending;
+                    const startD = parseLocal(ev.start);
+                    const timeLabel = ev.allDay
+                      ? "All day"
+                      : `${pad2(startD.getHours())}:${pad2(startD.getMinutes())}`;
                     return (
                       <button
                         key={ev.id}
                         type="button"
                         title={isPending ? `${ev.title} (syncing…)` : ev.title}
                         onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
-                        className={`group flex items-center min-w-0 w-full rounded-md cursor-pointer text-left transition-all duration-300 border-l-[3px] ${
-                          tvMode
-                            ? "gap-2 px-2 py-1.5 border-y border-r border-border/40"
-                            : `gap-1 px-1 border-y border-r border-transparent ${hoverCapable ? "py-0.5" : "py-1.5 min-h-[36px]"}`
-                        }`}
+                        className="group flex flex-col min-w-0 w-full rounded-md cursor-pointer text-left border-l-[3px] border-y border-r border-border/40 px-2 py-1.5 gap-0.5"
                         style={{
-                          opacity: isPending ? (tvMode ? 0.6 : 0.5) : 1,
+                          opacity: isPending ? 0.5 : 1,
                           background: theme.bg,
                           borderLeftColor: theme.border,
                         }}
                       >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span
+                            className={`rounded-full shrink-0 w-1.5 h-1.5 ${isPending ? "animate-pulse" : ""}`}
+                            style={{ backgroundColor: theme.accent }}
+                          />
+                          <span
+                            className="font-mono text-muted-foreground shrink-0"
+                            style={{ fontSize: tvMode ? "clamp(10px, 0.75vw, 13px)" : "10px" }}
+                          >
+                            {timeLabel}
+                          </span>
+                          {isPending && (
+                            <span className="ml-auto italic text-muted-foreground text-[9px]">syncing…</span>
+                          )}
+                        </div>
                         <span
-                          className={`rounded-full shrink-0 ${tvMode ? "w-2.5 h-2.5" : "w-1.5 h-1.5"} ${isPending ? "animate-pulse" : ""}`}
-                          style={{ backgroundColor: theme.accent }}
-                        />
-                        <span
-                          className={`truncate leading-tight ${tvMode ? "text-foreground font-medium" : "text-foreground/90 group-hover:text-foreground"}`}
-                          style={{ fontSize: tvMode ? "clamp(13px, 0.9vw, 17px)" : "clamp(9px, 0.9vw, 11px)" }}
+                          className="truncate text-foreground/90 font-medium leading-tight"
+                          style={{ fontSize: tvMode ? "clamp(12px, 0.9vw, 15px)" : "clamp(10px, 0.85vw, 12px)" }}
                         >
                           {ev.title}
                         </span>
-                        {isPending && (
-                          <span
-                            className="ml-auto shrink-0 italic text-muted-foreground"
-                            style={{ fontSize: tvMode ? "11px" : "9px" }}
-                          >
-                            syncing…
-                          </span>
-                        )}
                       </button>
                     );
                   })}
-                  {overflow > 0 && (
-                    tvMode ? (
-                      <span
-                        className="text-muted-foreground font-medium px-2 pt-0.5"
-                        style={{ fontSize: "clamp(12px, 0.85vw, 15px)" }}
-                      >
-                        +{overflow} more
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleChipClick}
-                        className={`text-primary hover:text-primary/80 font-medium truncate text-left cursor-pointer rounded-md px-1 hover:bg-primary/10 ${hoverCapable ? "" : "min-h-[40px] py-1.5 bg-primary/5"}`}
-                        style={{ fontSize: "clamp(9px, 0.9vw, 11px)" }}
-                      >
-                        {isExpanded ? "Show less" : `+${overflow} more`}
-                      </button>
-                    )
-                  )}
                 </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
+        </>
+      )}
 
+      {view === "day" && (
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {(() => {
+            const HOURS = Array.from({ length: 17 }, (_, i) => i + 6); // 06:00 – 22:00
+            const past = selectedDate.getTime() < todayStart.getTime() && !sameDay(selectedDate, todayStart);
+            // Bucket timed events by hour; keep all-day separately.
+            const allDay: LiveCalendarEvent[] = [];
+            const byHour: Record<number, LiveCalendarEvent[]> = {};
+            HOURS.forEach((h) => (byHour[h] = []));
+            const outOfRange: LiveCalendarEvent[] = [];
+            dayEvents.forEach((ev) => {
+              if (ev.allDay) { allDay.push(ev); return; }
+              const startD = parseLocal(ev.start);
+              const h = startD.getHours();
+              if (h >= HOURS[0] && h <= HOURS[HOURS.length - 1]) byHour[h].push(ev);
+              else outOfRange.push(ev);
+            });
+
+            const renderEvent = (ev: LiveCalendarEvent) => {
+              const theme = getEventTheme(ev);
+              const isPending = !!ev._pending;
+              const startD = parseLocal(ev.start);
+              const timeLabel = ev.allDay
+                ? "All day"
+                : `${pad2(startD.getHours())}:${pad2(startD.getMinutes())}`;
+              return (
+                <button
+                  key={ev.id}
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
+                  className="group flex items-center min-w-0 w-full rounded-md cursor-pointer text-left border-l-[3px] border-y border-r border-border/40 px-3 py-2 gap-3"
+                  style={{
+                    opacity: isPending ? 0.5 : 1,
+                    background: theme.bg,
+                    borderLeftColor: theme.border,
+                  }}
+                >
+                  <span
+                    className={`rounded-full shrink-0 w-2 h-2 ${isPending ? "animate-pulse" : ""}`}
+                    style={{ backgroundColor: theme.accent }}
+                  />
+                  <span
+                    className="font-mono text-muted-foreground shrink-0"
+                    style={{ fontSize: tvMode ? "clamp(11px, 0.85vw, 14px)" : "11px" }}
+                  >
+                    {timeLabel}
+                  </span>
+                  <span
+                    className="truncate text-foreground/90 font-medium"
+                    style={{ fontSize: tvMode ? "clamp(13px, 1vw, 17px)" : "clamp(11px, 0.9vw, 13px)" }}
+                  >
+                    {ev.title}
+                  </span>
+                  {isPending && (
+                    <span className="ml-auto italic text-muted-foreground text-[10px]">syncing…</span>
+                  )}
+                </button>
+              );
+            };
+
+            return (
+              <div className="flex flex-col gap-2">
+                {allDay.length > 0 && (
+                  <div className="border-b border-border pb-2 mb-1">
+                    <div className="text-[10px] font-mono uppercase text-muted-foreground mb-1 px-1">All day</div>
+                    <div className="flex flex-col gap-1">{allDay.map(renderEvent)}</div>
+                  </div>
+                )}
+                {HOURS.map((h) => {
+                  const list = byHour[h];
+                  const label = `${pad2(h)}:00`;
+                  return (
+                    <div
+                      key={h}
+                      onClick={() => {
+                        if (past) return;
+                        if (list.length === 0 && onDayClick) {
+                          onDayClick(dateISO(selectedDate));
+                        }
+                      }}
+                      className={`grid grid-cols-[60px_1fr] gap-2 min-h-[44px] py-1 border-t border-border/40 ${list.length === 0 && !past ? "cursor-pointer hover:bg-muted/30" : ""}`}
+                    >
+                      <div
+                        className="text-right pr-1 pt-1 font-mono text-muted-foreground"
+                        style={{ fontSize: tvMode ? "clamp(11px, 0.8vw, 14px)" : "11px" }}
+                      >
+                        {label}
+                      </div>
+                      <div className="flex flex-col gap-1 min-w-0">
+                        {list.length === 0 ? (
+                          <span className="text-muted-foreground/40 text-[10px] italic pt-1">
+                            {past ? "" : "+ add"}
+                          </span>
+                        ) : (
+                          list.map(renderEvent)
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+                {outOfRange.length > 0 && (
+                  <div className="border-t border-border pt-2 mt-1">
+                    <div className="text-[10px] font-mono uppercase text-muted-foreground mb-1 px-1">Outside 06–22</div>
+                    <div className="flex flex-col gap-1">{outOfRange.map(renderEvent)}</div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+      )}
     </motion.div>
   );
 };
