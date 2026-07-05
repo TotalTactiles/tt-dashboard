@@ -70,7 +70,7 @@ function fmtDate(iso: string): string {
 
 // ---- Quadrant helpers ----
 
-const PHASE_ORDER: Phase[] = ["Post Seal", "Pre Seal", "Close the Seal", "Legacy"];
+const PHASE_ORDER: Phase[] = ["Pre Seal", "Post Seal", "Close the Seal", "Legacy"];
 
 function taskProgress(task: TaskItem): number {
   if (!task.subtasks || task.subtasks.length === 0) {
