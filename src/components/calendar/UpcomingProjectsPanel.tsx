@@ -3,9 +3,13 @@ import { FolderKanban } from "lucide-react";
 import { type ZohoProject } from "@/contexts/DashboardDataContext";
 import { SOURCE_THEME } from "./eventColors";
 
+export type ProjectsFilterMode = "this-month" | "active-during";
+
 interface UpcomingProjectsPanelProps {
   projects: ZohoProject[];
   emptyMessage?: string;
+  mode?: ProjectsFilterMode;
+  onModeChange?: (mode: ProjectsFilterMode) => void;
 }
 
 function parseDate(raw: unknown): Date | null {
