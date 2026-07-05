@@ -230,7 +230,8 @@ export interface LiveCalendarEvent {
   type: string;
   attendees: string[];
   googleId?: string;
-  zohoId?: string;
+  zohoId?: string | null;
+  projectId?: string;
   status?: string;
   organizer?: string;
   htmlLink?: string;

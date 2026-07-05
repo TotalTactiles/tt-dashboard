@@ -107,12 +107,16 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
       location: location.trim() || "",
       start: startISO,
       end: endISO,
+      startDate: date,
+      endDate: date,
       allDay,
       type,
       attendees,
       googleId: event?.googleId,
       zohoId: event?.zohoId,
-    });
+      source: event?.source,
+      projectId: (event as any)?.projectId,
+    } as any);
     setLoading(false);
   };
 
@@ -257,7 +261,11 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
           {/* Actions */}
           <div className="flex items-center justify-between pt-2">
             <div>
-              {isEditing && (
+              {isEditing && event?.source === "Zoho Projects" ? (
+                <span className="text-[11px] text-muted-foreground">
+                  Managed in Zoho Projects — edits sync back.
+                </span>
+              ) : isEditing ? (
                 <button
                   onClick={handleDelete}
                   disabled={loading}
@@ -265,7 +273,7 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
                 >
                   {confirmDelete ? "Confirm Delete" : "Delete"}
                 </button>
-              )}
+              ) : null}
             </div>
             <div className="flex items-center gap-2">
               <button

@@ -141,11 +141,15 @@ const CalendarView = () => {
             location: eventData.location || "",
             start: eventData.start,
             end: eventData.end,
+            startDate: (eventData as any).startDate,
+            endDate: (eventData as any).endDate,
             allDay: eventData.allDay,
             type: eventData.type || "Meeting",
             attendees: eventData.attendees || [],
             googleId: editingEvent?.googleId || null,
-            zohoId: editingEvent?.zohoId || null,
+            zohoId: eventData.zohoId ?? editingEvent?.zohoId ?? null,
+            source: (eventData as any).source ?? editingEvent?.source,
+            projectId: (eventData as any).projectId ?? (editingEvent as any)?.projectId,
           },
         };
 
@@ -156,8 +160,8 @@ const CalendarView = () => {
           },
         });
 
-        if (error || data?._proxyError) {
-          throw new Error(error?.message || data?.error || "Failed to save event");
+        if (error || data?._proxyError || data?.success === false) {
+          throw new Error(error?.message || data?.error || data?.message || "Failed to save event");
         }
 
         setCalendarDebug({
