@@ -1738,15 +1738,21 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       dataHealth, quotesDebug, isLoading, isRefreshing, hasLiveData, connectedCount, lastUpdated,
       sources: ds.sources, toggleConnection: ds.toggleConnection,
       updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow, syncProjectKPIs: ds.syncProjectKPIs, syncCalendar: ds.syncCalendar, refetchCalendar: ds.refetchCalendar,
-      calendarEvents: calendarEventsOverride !== null
-        ? [
-            ...rawCalendarEvents.filter((e) => !e.id.startsWith("sqb-")),
-            ...calendarEventsOverride.filter((e) => e.id.startsWith("sqb-")),
-          ]
-        : rawCalendarEvents,
+      calendarEvents: (() => {
+        const base = calendarEventsOverride !== null
+          ? [
+              ...rawCalendarEvents.filter((e) => !e.id.startsWith("sqb-")),
+              ...calendarEventsOverride.filter((e) => e.id.startsWith("sqb-")),
+            ]
+          : rawCalendarEvents;
+        return applyOverlay(base);
+      })(),
       upcomingEvents: rawUpcomingEvents,
       calendarSummary: rawCalendarSummary,
       setCalendarEvents: setCalendarEventsState,
+      pinCalendarCreate,
+      pinCalendarDelete,
+      pinCalendarEdit,
       zohoProjects: Array.isArray((calendarData as any)?.zohoProjects) ? (calendarData as any).zohoProjects : [],
       projectKPIData,
       liveData,
