@@ -194,12 +194,12 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
           {errors.date && <p className="text-[11px] text-destructive -mt-3">Date is required</p>}
 
           {/* Type chips */}
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1">
             {EVENT_TYPES.map((t) => (
               <button
                 key={t}
                 onClick={() => setType(t)}
-                className="px-2.5 py-1 rounded-full text-[11px] font-medium transition-all duration-150"
+                className="px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-150"
                 style={
                   type === t
                     ? { backgroundColor: TYPE_COLORS[t], color: "#fff" }
