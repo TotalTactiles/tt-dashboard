@@ -858,13 +858,12 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
         </div>
       </div>
 
-      {/* 2×2 quadrant grid */}
+      {/* Section-driven grid (drag to reorder) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {PHASE_ORDER.map((phase) => {
-          const sections = data.sections.filter((s) => s.phase === phase);
-          const accent = PHASE_COLORS[phase];
-          const pct = zoneProgress(sections);
-          const { complete: listComplete, total: listTotal } = zoneListStats(sections);
+        {data.sections.map((section, idx) => {
+          const accent = PHASE_COLORS[section.phase];
+          const pct = zoneProgress([section]);
+          const { complete: listComplete, total: listTotal } = zoneListStats([section]);
           const allDone = listTotal > 0 && listComplete === listTotal;
           const statusLabel: "On Pace" | "At Risk" | "Complete" = allDone
             ? "Complete"
@@ -872,64 +871,103 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
             ? "At Risk"
             : "On Pace";
           const statusColor = STATUS_COLORS[statusLabel];
-
           const r = 18, circ = 2 * Math.PI * r, off = circ * (1 - pct / 100);
 
           return (
             <div
-              key={phase}
-              className="relative rounded-2xl border border-border overflow-hidden flex flex-col min-h-[300px]"
-              style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0.008))" }}
+              key={section.id}
+              className={`relative rounded-2xl border overflow-hidden flex flex-col min-h-[210px] transition-all ${
+                dragIndex === idx ? "opacity-40" : ""
+              } ${dropIndex === idx ? "ring-2" : "border-border"}`}
+              style={{
+                background: "linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0.008))",
+                ...(dropIndex === idx ? { boxShadow: `0 0 0 2px ${accent}` } : {}),
+              }}
+              onDragOver={(e) => { e.preventDefault(); setDropIndex(idx); }}
+              onDragLeave={() => setDropIndex((c) => (c === idx ? null : c))}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (dragIndex !== null) reorderSections(dragIndex, idx);
+                setDragIndex(null);
+                setDropIndex(null);
+              }}
             >
               <span className="absolute inset-y-0 left-0 w-[3px]" style={{ background: accent }} />
 
-              {/* Zone header */}
+              {/* Header */}
               <div
-                className="flex items-center gap-3 px-4 pt-3.5 pb-3 pl-[18px] border-b border-border"
+                className="flex items-start gap-2.5 px-4 pt-3.5 pb-3 pl-[18px] border-b border-border"
                 style={{ background: `linear-gradient(180deg, ${hexA(accent, 0.05)}, transparent)` }}
               >
+                <span
+                  draggable
+                  onDragStart={() => setDragIndex(idx)}
+                  onDragEnd={() => { setDragIndex(null); setDropIndex(null); }}
+                  className="cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground pt-0.5 shrink-0"
+                  title="Drag to reorder"
+                >
+                  <GripVertical className="h-3.5 w-3.5" />
+                </span>
+
                 <div className="flex-1 min-w-0">
                   <span
                     className="inline-block text-[9.5px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full mb-1.5"
                     style={{ color: accent, background: hexA(accent, 0.15) }}
                   >
-                    {phase}
+                    {section.phase}
                   </span>
-                  {sections.length === 1 ? (
-                    <>
-                      <div className="text-[13px] font-semibold text-foreground truncate">
-                        <InlineEdit
-                          value={sections[0].title}
-                          onSave={(v) => updateSectionTitle(sections[0].id, v)}
-                          className="text-[13px] font-semibold text-foreground block w-full truncate"
-                          placeholder="Section title…"
-                        />
-                      </div>
-                      <div className="text-[10.5px] text-muted-foreground font-mono mt-0.5 flex items-center gap-1">
-                        <InlineEdit
-                          value={sections[0].quarter}
-                          onSave={(v) => updateSectionQuarter(sections[0].id, v)}
-                          className="text-muted-foreground"
-                          placeholder="Quarter…"
-                        />
-                        <span>· {listComplete}/{listTotal} lists complete</span>
-                      </div>
-                    </>
-                  ) : sections.length > 1 ? (
-                    <>
-                      <div className="text-[13px] font-semibold text-foreground truncate">
-                        {`${phase} — ${sections.length} sections`}
-                      </div>
-                      <div className="text-[10.5px] text-muted-foreground font-mono mt-0.5">
-                        {`${sections.map((s) => s.quarter).join(" · ")} · ${listComplete}/${listTotal} lists complete`}
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="text-[13px] font-semibold text-foreground truncate">{phase}</div>
-                      <div className="text-[10.5px] text-muted-foreground font-mono mt-0.5">No sections yet</div>
-                    </>
-                  )}
+                  <div className="text-[13px] font-semibold text-foreground truncate">
+                    <InlineEdit
+                      value={section.title}
+                      onSave={(v) => updateSectionTitle(section.id, v)}
+                      className="text-[13px] font-semibold text-foreground block w-full truncate"
+                      placeholder="Section title…"
+                    />
+                  </div>
+                  <div className="text-[10.5px] text-muted-foreground font-mono mt-0.5 flex items-center gap-1">
+                    <InlineEdit
+                      value={section.quarter}
+                      onSave={(v) => updateSectionQuarter(section.id, v)}
+                      className="text-muted-foreground"
+                      placeholder="Quarter…"
+                    />
+                    <span>· {listComplete}/{listTotal} lists complete</span>
+                  </div>
+
+                  {/* Deadline chip */}
+                  <div className="mt-1.5">
+                    {editingDeadlineId === section.id ? (
+                      <input
+                        type="date"
+                        autoFocus
+                        defaultValue={section.deadline ?? ""}
+                        onChange={(e) => { setSectionDeadline(section.id, e.target.value || null); setEditingDeadlineId(null); }}
+                        onBlur={() => setEditingDeadlineId(null)}
+                        className="text-[10.5px] font-mono bg-white/[0.06] text-foreground border rounded-lg px-1.5 py-0.5 outline-none"
+                        style={{ colorScheme: "dark", borderColor: hexA(accent, 0.28) }}
+                      />
+                    ) : section.deadline ? (
+                      <button
+                        onClick={() => setEditingDeadlineId(section.id)}
+                        className="inline-flex items-center gap-1.5 text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full"
+                        style={{
+                          background: hexA(countdownColor(daysUntil(section.deadline)), 0.16),
+                          color: countdownColor(daysUntil(section.deadline)),
+                        }}
+                      >
+                        <CalendarDays className="h-3 w-3" />
+                        {fmtDeadline(section.deadline)} · {countdownLabel(daysUntil(section.deadline))}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setEditingDeadlineId(section.id)}
+                        className="inline-flex items-center gap-1.5 text-[10px] font-mono px-2 py-0.5 rounded-full border border-border text-muted-foreground hover:text-foreground"
+                      >
+                        <CalendarDays className="h-3 w-3" />
+                        Set deadline
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex flex-col items-center gap-1 shrink-0">
@@ -952,211 +990,193 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
                   >
                     {statusLabel}
                   </span>
+                  <button
+                    onClick={() => deleteSection(section.id)}
+                    className="opacity-0 hover:opacity-100 text-muted-foreground hover:text-destructive mt-0.5"
+                    title="Delete section"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
                 </div>
               </div>
 
-
-              {/* Zone body */}
+              {/* Body */}
               <div className="px-2.5 pt-2 pb-3 overflow-y-auto flex-1 max-h-[360px]">
-                {sections.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full gap-2 py-8 text-muted-foreground text-[11px]">
-                    Nothing here yet — use + Add Section below to add a {phase} list.
+                {section.tasks.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center gap-2 py-6 text-muted-foreground text-[11px]">
+                    No tasks yet — use + Add task below.
                   </div>
                 ) : (
-                  sections.map((section) => (
-                    <div key={section.id} className="mb-1 group/section">
-                      {sections.length > 1 && (
-                        <div className="flex items-center gap-2 px-1.5 pt-1 pb-1">
-                          <InlineEdit
-                            value={section.title}
-                            onSave={(v) => updateSectionTitle(section.id, v)}
-                            className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground"
-                          />
-                          <InlineEdit
-                            value={section.quarter}
-                            onSave={(v) => updateSectionQuarter(section.id, v)}
-                            className="text-[10px] font-mono text-muted-foreground/70"
-                          />
-                          <button
-                            onClick={() => deleteSection(section.id)}
-                            className="opacity-0 group-hover/section:opacity-100 text-muted-foreground hover:text-destructive ml-auto"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        </div>
-                      )}
+                  section.tasks.map((task) => {
+                    const subTotal = task.subtasks?.length ?? 0;
+                    const subDone = task.subtasks?.filter((s) => s.done).length ?? 0;
+                    const pctT = taskProgress(task);
+                    const complete = pctT === 100;
 
-                      {section.tasks.map((task) => {
-                        const subTotal = task.subtasks?.length ?? 0;
-                        const subDone = task.subtasks?.filter((s) => s.done).length ?? 0;
-                        const pctT = taskProgress(task);
-                        const complete = pctT === 100;
-
-                        return (
-                          <div
-                            key={task.id}
-                            className={`rounded-xl px-1.5 py-1 mb-0.5 hover:bg-white/[0.04] transition-colors group/task ${complete ? "opacity-95" : ""}`}
-                          >
-                            <div className="flex items-center gap-2.5 py-1">
-                              {subTotal > 0 ? (
-                                <button
-                                  onClick={() => toggleTaskExpand(section.id, task.id)}
-                                  className="text-muted-foreground/60 w-[11px] shrink-0"
-                                >
-                                  {task.expanded ? (
-                                    <ChevronDown className="h-3 w-3" />
-                                  ) : (
-                                    <ChevronRight className="h-3 w-3" />
-                                  )}
-                                </button>
+                    return (
+                      <div
+                        key={task.id}
+                        className={`rounded-xl px-1.5 py-1 mb-0.5 hover:bg-white/[0.04] transition-colors group/task ${complete ? "opacity-95" : ""}`}
+                      >
+                        <div className="flex items-center gap-2.5 py-1">
+                          {subTotal > 0 ? (
+                            <button
+                              onClick={() => toggleTaskExpand(section.id, task.id)}
+                              className="text-muted-foreground/60 w-[11px] shrink-0"
+                            >
+                              {task.expanded ? (
+                                <ChevronDown className="h-3 w-3" />
                               ) : (
-                                <span className="w-[11px] shrink-0" />
+                                <ChevronRight className="h-3 w-3" />
                               )}
+                            </button>
+                          ) : (
+                            <span className="w-[11px] shrink-0" />
+                          )}
 
-                              <button
-                                onClick={() => toggleTask(section.id, task.id)}
-                                className="w-[19px] h-[19px] rounded-md shrink-0 flex items-center justify-center border-2 transition-all"
-                                style={
-                                  complete
-                                    ? { background: accent, borderColor: accent }
-                                    : { background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.16)" }
-                                }
-                              >
-                                {complete && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
-                              </button>
+                          <button
+                            onClick={() => toggleTask(section.id, task.id)}
+                            className="w-[19px] h-[19px] rounded-md shrink-0 flex items-center justify-center border-2 transition-all"
+                            style={
+                              complete
+                                ? { background: accent, borderColor: accent }
+                                : { background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.16)" }
+                            }
+                          >
+                            {complete && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+                          </button>
 
-                              <div className="flex-1 min-w-0">
-                                <InlineEdit
-                                  value={task.title}
-                                  onSave={(v) => updateTaskTitle(section.id, task.id, v)}
-                                  className={`text-[12.5px] font-medium block w-full truncate ${complete ? "line-through text-muted-foreground font-normal" : "text-foreground/85"}`}
-                                />
-                              </div>
+                          <div className="flex-1 min-w-0">
+                            <InlineEdit
+                              value={task.title}
+                              onSave={(v) => updateTaskTitle(section.id, task.id, v)}
+                              className={`text-[12.5px] font-medium block w-full truncate ${complete ? "line-through text-muted-foreground font-normal" : "text-foreground/85"}`}
+                            />
+                          </div>
 
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <DateChip
-                                  dueDate={task.dueDate}
-                                  phaseColor={accent}
-                                  onSetDate={(d) => setTaskDate(section.id, task.id, d)}
-                                  onClearDate={() => setTaskDate(section.id, task.id, null)}
-                                  hoverClass="opacity-0 group-hover/task:opacity-100"
-                                />
-                                {subTotal > 0 && (
-                                  <span className="font-mono text-[10px] text-muted-foreground">
-                                    {subDone}/{subTotal}
-                                  </span>
-                                )}
-                                <span
-                                  className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[38px] text-center"
-                                  style={
-                                    complete
-                                      ? { background: "rgba(29,158,117,0.16)", color: "#38c99b" }
-                                      : { background: hexA(accent, 0.15), color: accent }
-                                  }
-                                >
-                                  {pctT}%
-                                </span>
-                                <button
-                                  onClick={() => deleteTask(section.id, task.id)}
-                                  className="opacity-0 group-hover/task:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              </div>
-                            </div>
-
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <DateChip
+                              dueDate={task.dueDate}
+                              phaseColor={accent}
+                              onSetDate={(d) => setTaskDate(section.id, task.id, d)}
+                              onClearDate={() => setTaskDate(section.id, task.id, null)}
+                              hoverClass="opacity-0 group-hover/task:opacity-100"
+                            />
                             {subTotal > 0 && (
-                              <div className="h-[3px] rounded-full bg-white/[0.06] overflow-hidden ml-[29px] mb-0.5">
-                                <div
-                                  className="h-full rounded-full"
-                                  style={{ width: `${pctT}%`, background: accent, transition: "width .3s ease" }}
-                                />
-                              </div>
+                              <span className="font-mono text-[10px] text-muted-foreground">
+                                {subDone}/{subTotal}
+                              </span>
                             )}
+                            <span
+                              className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[38px] text-center"
+                              style={
+                                complete
+                                  ? { background: "rgba(29,158,117,0.16)", color: "#38c99b" }
+                                  : { background: hexA(accent, 0.15), color: accent }
+                              }
+                            >
+                              {pctT}%
+                            </span>
+                            <button
+                              onClick={() => deleteTask(section.id, task.id)}
+                              className="opacity-0 group-hover/task:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
 
-                            <AnimatePresence initial={false}>
-                              {task.expanded && subTotal > 0 && (
-                                <motion.div
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: "auto", opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  transition={{ duration: 0.15 }}
-                                  className="overflow-hidden"
-                                >
+                        {subTotal > 0 && (
+                          <div className="h-[3px] rounded-full bg-white/[0.06] overflow-hidden ml-[29px] mb-0.5">
+                            <div
+                              className="h-full rounded-full"
+                              style={{ width: `${pctT}%`, background: accent, transition: "width .3s ease" }}
+                            />
+                          </div>
+                        )}
+
+                        <AnimatePresence initial={false}>
+                          {task.expanded && subTotal > 0 && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.15 }}
+                              className="overflow-hidden"
+                            >
+                              <div
+                                className="ml-[28px] pl-3.5 mt-0.5 mb-1"
+                                style={{ borderLeft: `2px solid ${hexA(accent, 0.28)}` }}
+                              >
+                                {task.subtasks.map((st) => (
                                   <div
-                                    className="ml-[28px] pl-3.5 mt-0.5 mb-1"
-                                    style={{ borderLeft: `2px solid ${hexA(accent, 0.28)}` }}
+                                    key={st.id}
+                                    className="relative flex items-center gap-2.5 py-1 px-1 rounded-md hover:bg-white/[0.04] group/subtask"
                                   >
-                                    {task.subtasks.map((st) => (
-                                      <div
-                                        key={st.id}
-                                        className="relative flex items-center gap-2.5 py-1 px-1 rounded-md hover:bg-white/[0.04] group/subtask"
-                                      >
-                                        <span
-                                          className="absolute -left-3.5 top-1/2 w-3 h-[2px]"
-                                          style={{ background: hexA(accent, 0.28) }}
-                                        />
-                                        <button
-                                          onClick={() => toggleSubtask(section.id, task.id, st.id)}
-                                          className="w-4 h-4 rounded shrink-0 flex items-center justify-center border-2 transition-all"
-                                          style={
-                                            st.done
-                                              ? { background: accent, borderColor: accent }
-                                              : { background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.16)" }
-                                          }
-                                        >
-                                          {st.done && <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />}
-                                        </button>
-                                        <div className="flex-1 min-w-0">
-                                          <InlineEdit
-                                            value={st.title}
-                                            onSave={(v) => updateSubtaskTitle(section.id, task.id, st.id, v)}
-                                            className={`text-[11.5px] block w-full ${st.done ? "line-through text-muted-foreground" : "text-foreground/65"}`}
-                                          />
-                                        </div>
-                                        <DateChip
-                                          dueDate={st.dueDate}
-                                          phaseColor={accent}
-                                          onSetDate={(d) => setSubtaskDate(section.id, task.id, st.id, d)}
-                                          onClearDate={() => setSubtaskDate(section.id, task.id, st.id, null)}
-                                          hoverClass="opacity-0 group-hover/subtask:opacity-100"
-                                        />
-                                        <button
-                                          onClick={() => deleteSubtask(section.id, task.id, st.id)}
-                                          className="opacity-0 group-hover/subtask:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                                        >
-                                          <Trash2 className="h-3 w-3" />
-                                        </button>
-                                      </div>
-                                    ))}
+                                    <span
+                                      className="absolute -left-3.5 top-1/2 w-3 h-[2px]"
+                                      style={{ background: hexA(accent, 0.28) }}
+                                    />
                                     <button
-                                      onClick={() => addSubtask(section.id, task.id)}
-                                      className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground py-1 transition-colors"
+                                      onClick={() => toggleSubtask(section.id, task.id, st.id)}
+                                      className="w-4 h-4 rounded shrink-0 flex items-center justify-center border-2 transition-all"
+                                      style={
+                                        st.done
+                                          ? { background: accent, borderColor: accent }
+                                          : { background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.16)" }
+                                      }
                                     >
-                                      <Plus className="h-3 w-3" /> Add subtask
+                                      {st.done && <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />}
+                                    </button>
+                                    <div className="flex-1 min-w-0">
+                                      <InlineEdit
+                                        value={st.title}
+                                        onSave={(v) => updateSubtaskTitle(section.id, task.id, st.id, v)}
+                                        className={`text-[11.5px] block w-full ${st.done ? "line-through text-muted-foreground" : "text-foreground/65"}`}
+                                      />
+                                    </div>
+                                    <DateChip
+                                      dueDate={st.dueDate}
+                                      phaseColor={accent}
+                                      onSetDate={(d) => setSubtaskDate(section.id, task.id, st.id, d)}
+                                      onClearDate={() => setSubtaskDate(section.id, task.id, st.id, null)}
+                                      hoverClass="opacity-0 group-hover/subtask:opacity-100"
+                                    />
+                                    <button
+                                      onClick={() => deleteSubtask(section.id, task.id, st.id)}
+                                      className="opacity-0 group-hover/subtask:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
                                     </button>
                                   </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                        );
-                      })}
-
-                      <button
-                        onClick={() => addTask(section.id)}
-                        className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground px-1.5 py-1 mt-0.5 transition-colors"
-                      >
-                        <Plus className="h-3 w-3" /> Add task
-                      </button>
-                    </div>
-                  ))
+                                ))}
+                                <button
+                                  onClick={() => addSubtask(section.id, task.id)}
+                                  className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground py-1 transition-colors"
+                                >
+                                  <Plus className="h-3 w-3" /> Add subtask
+                                </button>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  })
                 )}
+
+                <button
+                  onClick={() => addTask(section.id)}
+                  className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground px-1.5 py-1 mt-0.5 transition-colors"
+                >
+                  <Plus className="h-3 w-3" /> Add task
+                </button>
               </div>
             </div>
           );
         })}
       </div>
+
 
       {/* Add Section */}
       <div className="mt-4">
