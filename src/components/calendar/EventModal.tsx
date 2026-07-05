@@ -271,18 +271,20 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate, zohoProjects =
           />
           {errors.title && <p className="text-[11px] text-destructive -mt-2">Title is required</p>}
 
-          {/* All-day toggle */}
-          <div className="flex items-center justify-end gap-1.5">
-            <Switch
-              id="allDay"
-              checked={allDay}
-              onCheckedChange={setAllDay}
-              className="scale-90 origin-right"
-            />
-            <Label htmlFor="allDay" className="text-xs text-muted-foreground whitespace-nowrap cursor-pointer">
-              All-day
-            </Label>
-          </div>
+          {/* All-day toggle (hidden for Zoho create — Zoho tasks are always all-day) */}
+          {!isZohoCreate && (
+            <div className="flex items-center justify-end gap-1.5">
+              <Switch
+                id="allDay"
+                checked={allDay}
+                onCheckedChange={setAllDay}
+                className="scale-90 origin-right"
+              />
+              <Label htmlFor="allDay" className="text-xs text-muted-foreground whitespace-nowrap cursor-pointer">
+                All-day
+              </Label>
+            </div>
+          )}
 
           {/* Date */}
           <Input
