@@ -759,6 +759,20 @@ export function useDataSources() {
         ? unwrapped.upcomingEvents.map(normaliseEvent)
         : [];
       const calSummary = unwrapped?.calendarSummary ?? { totalEvents: 0, upcomingCount: 0, byType: {} };
+      const zohoProjectsList = Array.isArray(unwrapped?.zohoProjects)
+        ? unwrapped.zohoProjects.map((p: any) => ({
+            id: String(p?.id ?? ''),
+            name: String(p?.name ?? ''),
+            tasks: Array.isArray(p?.tasks)
+              ? p.tasks.map((t: any) => ({
+                  id: String(t?.id ?? ''),
+                  name: String(t?.name ?? ''),
+                  hasSubtasks: Boolean(t?.hasSubtasks),
+                }))
+              : [],
+          }))
+        : [];
+      console.log('[Calendar Unwrap] zohoProjects count:', zohoProjectsList.length);
 
       console.log('[Calendar Poll] sources in response:', [...new Set(calEvents.map((e: any) => e.source))]);
       console.log('[Calendar Poll] types in response:', [...new Set(calEvents.map((e: any) => e.type))]);
