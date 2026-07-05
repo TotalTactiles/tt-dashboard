@@ -101,7 +101,7 @@ export function useCalendarOverlay(rawEvents: LiveCalendarEvent[]) {
       const filtered = events.filter((e) => !pendingDeletes.has(e.id));
       const withEdits = filtered.map((e) => {
         const edit = pendingEdits.get(e.id);
-        return edit ? { ...e, ...edit.patch } : e;
+        return edit ? { ...e, ...edit.patch, _pending: "edit" as const } : e;
       });
       const existingIds = new Set(withEdits.map((e) => e.id));
       const additions: LiveCalendarEvent[] = [];
@@ -113,7 +113,7 @@ export function useCalendarOverlay(rawEvents: LiveCalendarEvent[]) {
             sameDay(e.start, event.start) &&
             e.source === event.source
         );
-        if (!dup) additions.push(event);
+        if (!dup) additions.push({ ...event, _pending: "create" });
       }
       return additions.length ? [...withEdits, ...additions] : withEdits;
     },

@@ -117,19 +117,28 @@ const DaySchedulePanel = ({ events, selectedDate, onPrevDay, onNextDay, onEventC
               <div key={hour} className="flex gap-3 min-h-[48px]">
                 <span className="text-[10px] font-mono text-muted-foreground/50 w-10 shrink-0 pt-1 text-right">{timeLabel}</span>
                 <div className={`flex-1 pt-1 pb-2 ${hourEvents.length === 0 ? "border-t border-dashed border-border/20" : "border-t border-border/30"}`}>
-                  {hourEvents.map((ev) => (
+                  {hourEvents.map((ev) => {
+                    const isPending = !!ev._pending;
+                    return (
                     <div
                       key={ev.id}
-                      className="rounded-xl p-3 mb-1.5 transition-all duration-150 hover:scale-[1.01] cursor-pointer"
+                      className="rounded-xl p-3 mb-1.5 transition-all duration-300 hover:scale-[1.01] cursor-pointer"
                       style={{
                         background: "hsl(var(--secondary))",
                         borderLeft: `3px solid ${getTypeColor(ev.type)}`,
+                        opacity: isPending ? 0.6 : 1,
                       }}
                       onClick={() => onEventClick(ev)}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5">
                           <p className="text-xs font-bold text-foreground">{ev.title}</p>
+                          {isPending && (
+                            <span className="inline-flex items-center gap-1 text-[9px] italic text-muted-foreground">
+                              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                              syncing…
+                            </span>
+                          )}
                           {ev.htmlLink && (
                             <a href={ev.htmlLink} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
                               <ExternalLink className="h-3 w-3 text-muted-foreground hover:text-primary" />
@@ -202,7 +211,8 @@ const DaySchedulePanel = ({ events, selectedDate, onPrevDay, onNextDay, onEventC
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );

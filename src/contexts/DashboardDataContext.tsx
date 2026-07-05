@@ -236,6 +236,8 @@ export interface LiveCalendarEvent {
   status?: string;
   organizer?: string;
   htmlLink?: string;
+  /** Optimistic overlay marker — set by useCalendarOverlay when a pin is active. */
+  _pending?: "create" | "edit";
 }
 
 export interface CalendarSummary {
