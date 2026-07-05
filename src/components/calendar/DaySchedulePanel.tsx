@@ -109,13 +109,14 @@ const DaySchedulePanel = ({ events, selectedDate, onPrevDay, onNextDay, onEventC
                 <div className={`flex-1 pt-1 pb-2 ${hourEvents.length === 0 ? "border-t border-dashed border-border/20" : "border-t border-border/30"}`}>
                   {hourEvents.map((ev) => {
                     const isPending = !!ev._pending;
+                    const theme = getEventTheme(ev);
                     return (
                     <div
                       key={ev.id}
                       className="rounded-xl p-3 mb-1.5 transition-all duration-300 hover:scale-[1.01] cursor-pointer"
                       style={{
-                        background: "hsl(var(--secondary))",
-                        borderLeft: `3px solid ${getTypeColor(ev.type)}`,
+                        background: theme.bg,
+                        borderLeft: `3px solid ${theme.border}`,
                         opacity: isPending ? 0.6 : 1,
                       }}
                       onClick={() => onEventClick(ev)}
