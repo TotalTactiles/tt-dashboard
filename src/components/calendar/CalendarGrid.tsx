@@ -88,6 +88,25 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
   const [expandedPastDays, setExpandedPastDays] = useState<Set<string>>(new Set());
   const [viewAllDay, setViewAllDay] = useState<Date | null>(null);
+  const [userSelectedKey, setUserSelectedKey] = useState<string | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  // Clear transient day-selection highlight when clicking outside the calendar grid.
+  useEffect(() => {
+    const onDown = (e: PointerEvent) => {
+      const el = rootRef.current;
+      if (!el) return;
+      const target = e.target as Node | null;
+      if (target && el.contains(target)) return;
+      // Ignore clicks inside dialogs/popovers (portals live outside root)
+      if (target instanceof Element) {
+        if (target.closest('[role="dialog"], [data-radix-popper-content-wrapper]')) return;
+      }
+      setUserSelectedKey(null);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, []);
 
   const hoverCapable = useMediaQuery("(hover: hover) and (pointer: fine)", false);
   const isNarrow = useMediaQuery("(max-width: 639px)", false);
