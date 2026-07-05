@@ -468,11 +468,17 @@ const CalendarView = () => {
             <CollapsibleCardWrapper
               title="Upcoming Projects"
               defaultOpen={true}
-              badge={projectsInViewedMonth.length}
+              badge={filteredProjects.length}
             >
               <UpcomingProjectsPanel
-                projects={projectsInViewedMonth}
-                emptyMessage="No projects starting or ending this month"
+                projects={filteredProjects}
+                mode={projectsMode}
+                onModeChange={setProjectsMode}
+                emptyMessage={
+                  projectsMode === "this-month"
+                    ? "No projects starting or ending this month"
+                    : "No projects active during this month"
+                }
               />
             </CollapsibleCardWrapper>
           </div>
