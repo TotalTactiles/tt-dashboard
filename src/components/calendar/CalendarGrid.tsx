@@ -184,8 +184,17 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
 
   const isToday = (d: number) =>
     d === todayDate.getDate() && month === todayDate.getMonth() && year === todayDate.getFullYear();
-  const isPast = (d: number) => dateKeyNum(new Date(year, month, d)) < todayKey;
+  const isPast = (d: number) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const cellDate = new Date(year, month, d);
+    cellDate.setHours(0, 0, 0, 0);
+
+    return cellDate.getTime() < today.getTime();
+  };
   const isDatePast = (d: Date) => dateKeyNum(d) < todayKey;
+
   const isSelected = (d: number) =>
     d === selectedDate.getDate() && month === selectedDate.getMonth() && year === selectedDate.getFullYear();
 
