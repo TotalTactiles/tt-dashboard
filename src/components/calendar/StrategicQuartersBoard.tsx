@@ -75,6 +75,28 @@ function fmtDate(iso: string): string {
   return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
 }
 
+function fmtDeadline(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
+}
+function daysUntil(iso: string): number {
+  const n = new Date(); n.setHours(0, 0, 0, 0);
+  const t = new Date(iso); t.setHours(0, 0, 0, 0);
+  return Math.round((t.getTime() - n.getTime()) / 86400000);
+}
+function countdownLabel(d: number): string {
+  if (d === 0) return "today";
+  if (d === 1) return "in 1 day";
+  if (d > 1) return `in ${d} days`;
+  if (d === -1) return "1 day ago";
+  return `${Math.abs(d)} days ago`;
+}
+function countdownColor(d: number): string {
+  if (d <= 1) return "#E24B4A";
+  if (d <= 7) return "#E0A13C";
+  return "#1FB37E";
+}
+
 // ---- Quadrant helpers ----
 
 const PHASE_ORDER: Phase[] = ["Pre Seal", "Post Seal", "Close the Seal", "Legacy"];
