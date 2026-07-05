@@ -31,7 +31,7 @@ const TYPE_COLORS: Record<string, string> = {
 
 const getTypeColor = (type: string) => TYPE_COLORS[type] || "#378ADD";
 
-const CalendarGrid = ({ events, selectedDate, onSelectDate }: CalendarGridProps) => {
+const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayClick }: CalendarGridProps) => {
   const [currentDate, setCurrentDate] = useState(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
 
   const year = currentDate.getFullYear();
