@@ -390,27 +390,16 @@ const CalendarView = () => {
           />
         </div>
 
-        {/* Top row: Calendar grid + Scheduled panel */}
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-4 items-stretch min-h-0">
-          <div className="min-w-0 h-full">
-            <CalendarGrid
-              events={filtered}
-              selectedDate={selectedDate}
-              onSelectDate={setSelectedDate}
-              onEventClick={handleOpenEdit}
-              onAddEvent={handleOpenCreate}
-              onDayClick={handleDayClick}
-            />
-          </div>
-          <div className="min-w-0 h-full flex flex-col [&>*]:!h-full [&>*]:!w-full">
-            <DaySchedulePanel
-              events={filtered}
-              selectedDate={selectedDate}
-              onPrevDay={prevDay}
-              onNextDay={nextDay}
-              onEventClick={handleOpenEdit}
-            />
-          </div>
+        {/* Calendar grid — full width */}
+        <div className="min-w-0 h-full">
+          <CalendarGrid
+            events={filtered}
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+            onEventClick={handleOpenEdit}
+            onAddEvent={handleOpenCreate}
+            onDayClick={handleDayClick}
+          />
         </div>
 
         {/* Bottom row: 3 tidy cards — stack on smaller screens so each has enough width */}
