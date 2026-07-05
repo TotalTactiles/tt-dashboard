@@ -358,15 +358,17 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                   onClick={() => cell.inMonth && handleMonthDayClick(cell.day)}
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
-                  className={`relative flex items-start rounded-lg transition-all duration-150
-                    ${collapsedPast ? (tvMode ? "h-10 px-2 py-1 justify-between" : "h-6 px-1.5 py-0.5 justify-between") : `flex-col ${tvMode ? "p-2" : "p-1.5"}`}
+                  className={`relative rounded-lg transition-all duration-150
+                    ${collapsedPast
+                      ? `flex items-center justify-between ${tvMode ? "h-10 px-2 py-1" : "min-h-[34px] h-[34px] px-2 py-1"} cursor-pointer`
+                      : `flex flex-col items-start ${tvMode ? "p-2" : "p-1.5"}`}
                     ${!cell.inMonth ? "opacity-30 pointer-events-none" : "cursor-pointer"}
                     ${cell.inMonth && isToday(cell.day) ? "bg-primary/15 ring-1 ring-primary/40" : ""}
                     ${cell.inMonth && isSelected(cell.day) && !isToday(cell.day) ? "bg-secondary ring-1 ring-primary/30" : ""}
                     ${cell.inMonth && !isToday(cell.day) && !isSelected(cell.day) ? "bg-muted/50 hover:bg-secondary/70" : ""}
                     ${isExpanded ? "z-20 shadow-lg ring-1 ring-primary/40 bg-card" : "overflow-hidden"}
                   `}
-                  style={{ minHeight: 0 }}
+                  style={{ minHeight: collapsedPast ? undefined : 0 }}
                 >
                   <div className={`flex items-center ${collapsedPast ? "justify-between w-full" : "mb-1"}`}>
                     <span
