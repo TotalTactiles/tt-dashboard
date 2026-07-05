@@ -298,8 +298,8 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate, zohoProjects =
           />
           {errors.date && <p className="text-[11px] text-destructive -mt-2">Date is required</p>}
 
-          {/* Time range (hidden when all-day) */}
-          {!allDay && (
+          {/* Time range (hidden when all-day or Zoho create) */}
+          {!allDay && !isZohoCreate && (
             <div className="flex flex-wrap items-center gap-1.5 min-w-0">
               <Input
                 type="time"
@@ -317,7 +317,8 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate, zohoProjects =
             </div>
           )}
 
-          {/* Type chips */}
+          {/* Type chips (hidden for Zoho create — Zoho items are Tasks) */}
+          {!isZohoCreate && (
           <div className="flex flex-wrap gap-2 min-w-0">
             {EVENT_TYPES.map((t) => (
               <button
@@ -334,6 +335,7 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate, zohoProjects =
               </button>
             ))}
           </div>
+          )}
 
           {/* Description */}
           <div className="flex items-start gap-2 min-w-0">
