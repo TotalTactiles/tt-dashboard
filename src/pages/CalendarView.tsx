@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import CalendarGrid from "@/components/calendar/CalendarGrid";
 import CalendarFilters, { type CustomFilter } from "@/components/calendar/CalendarFilters";
-import DaySchedulePanel from "@/components/calendar/DaySchedulePanel";
 import DeadlineTracker from "@/components/calendar/DeadlineTracker";
 import EventTimeline from "@/components/calendar/EventTimeline";
 import StrategicQuartersBoard from "@/components/calendar/StrategicQuartersBoard";
