@@ -68,6 +68,45 @@ function fmtDate(iso: string): string {
   return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
 }
 
+// ---- Quadrant helpers ----
+
+const PHASE_ORDER: Phase[] = ["Post Seal", "Pre Seal", "Close the Seal", "Legacy"];
+
+function taskProgress(task: TaskItem): number {
+  if (!task.subtasks || task.subtasks.length === 0) {
+    return task.done ? 100 : 0;
+  }
+  const done = task.subtasks.filter((s) => s.done).length;
+  return Math.round((done / task.subtasks.length) * 100);
+}
+
+function zoneProgress(sections: BoardSection[]): number {
+  let done = 0, total = 0;
+  sections.forEach((sec) =>
+    sec.tasks.forEach((t) => {
+      if (t.subtasks && t.subtasks.length) {
+        total += t.subtasks.length;
+        done += t.subtasks.filter((s) => s.done).length;
+      } else {
+        total += 1;
+        done += t.done ? 1 : 0;
+      }
+    })
+  );
+  return total ? Math.round((done / total) * 100) : 0;
+}
+
+function zoneListStats(sections: BoardSection[]) {
+  const tasks = sections.flatMap((s) => s.tasks);
+  const complete = tasks.filter((t) => taskProgress(t) === 100).length;
+  return { complete, total: tasks.length };
+}
+
+function hexA(hex: string, a: number): string {
+  const n = parseInt(hex.replace("#", ""), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+}
+
 // ---- Seed ----
 
 function buildSeed(): BoardData {
