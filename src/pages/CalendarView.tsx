@@ -202,7 +202,7 @@ const CalendarView = () => {
         setCalendarEvents(prevEvents);
       }
     },
-    [calendarEvents, editingEvent, setCalendarEvents, syncCalendar, toast]
+    [calendarEvents, editingEvent, setCalendarEvents, syncCalendar, refetchCalendar, toast]
   );
 
   const debugBadge = (() => {
