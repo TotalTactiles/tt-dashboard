@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
@@ -89,16 +89,12 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
   const [expandedPastDays, setExpandedPastDays] = useState<Set<string>>(new Set());
   const [viewAllDay, setViewAllDay] = useState<Date | null>(null);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const rootRef = useRef<HTMLDivElement | null>(null);
 
   // Clear transient day-selection highlight when clicking anywhere that is not a day tile.
   useEffect(() => {
     const onDown = (e: PointerEvent) => {
       const target = e.target;
-      if (target instanceof Element) {
-        if (target.closest('[role="dialog"], [data-radix-popper-content-wrapper]')) return;
-        if (target.closest('[data-day-tile="true"]')) return;
-      }
+      if (target instanceof Element && target.closest('[data-day-tile="true"]')) return;
       setSelectedDay(null);
     };
     document.addEventListener("pointerdown", onDown);
@@ -303,7 +299,6 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
 
   return (
     <motion.div
-      ref={rootRef}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       className="stat-card flex-1 min-w-0 flex flex-col overflow-hidden"
@@ -447,7 +442,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                             key={ev.id}
                             type="button"
                             title={isPending ? `${ev.title} (syncing…)` : ev.title}
-                            onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
+                            onClick={(e) => { e.stopPropagation(); setSelectedDay(null); onEventClick(ev); }}
                             className={`group flex items-center min-w-0 w-full rounded-md cursor-pointer text-left transition-all duration-300 border-l-[3px] ${
                               tvMode
                                 ? "gap-2 px-2 py-1.5 border-y border-r border-border/40"
@@ -586,7 +581,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                         key={ev.id}
                         type="button"
                         title={isPending ? `${ev.title} (syncing…)` : ev.title}
-                        onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
+                        onClick={(e) => { e.stopPropagation(); setSelectedDay(null); onEventClick(ev); }}
                         className="group flex flex-col min-w-0 w-full rounded-md cursor-pointer text-left border-l-[3px] border-y border-r border-border/40 px-2 py-1.5 gap-0.5"
                         style={{
                           opacity: isPending ? 0.5 : 1,
@@ -654,7 +649,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                 <button
                   key={ev.id}
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
+                  onClick={(e) => { e.stopPropagation(); setSelectedDay(null); onEventClick(ev); }}
                   className="group flex items-center min-w-0 w-full rounded-md cursor-pointer text-left border-l-[3px] border-y border-r border-border/40 px-3 py-2 gap-3"
                   style={{
                     opacity: isPending ? 0.5 : 1,
@@ -702,6 +697,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                       onClick={() => {
                         if (past) return;
                         if (list.length === 0 && onDayClick) {
+                          setSelectedDay(null);
                           onDayClick(dateISO(selectedDate));
                         }
                       }}
@@ -739,7 +735,10 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
 
       <DayEventsModal
         open={!!viewAllDay}
-        onClose={() => setViewAllDay(null)}
+        onClose={() => {
+          setViewAllDay(null);
+          setSelectedDay(null);
+        }}
         date={viewAllDay}
         events={viewAllDay ? events.filter((e) => eventOccupiesDay(e, viewAllDay)) : []}
         onEventClick={(ev) => {
