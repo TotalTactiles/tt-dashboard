@@ -301,62 +301,59 @@ const CalendarView = () => {
           </div>
         </div>
 
-        {/* Bottom row: 3 fixed-height panels */}
-        <div
-          className="flex gap-2 shrink-0"
-          style={{ height: "clamp(140px, 22vh, 200px)" }}
-        >
-          <CollapsibleCardWrapper
-            title="Fund Deadlines & Obligations"
-            defaultOpen={true}
-            badge={filtered.filter(e => e.type === "Deadline" || e.type === "Milestone" || e.type === "Distribution" || e.type === "Valuation").length}
-          >
-            <div
-              className="flex-1 min-h-0 overflow-y-auto"
-              style={{ maxHeight: "180px", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
+        {/* Bottom row: 3 tidy cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          <div className="min-w-0 h-full flex flex-col">
+            <CollapsibleCardWrapper
+              title="Fund Deadlines & Obligations"
+              defaultOpen={true}
+              badge={filtered.filter(e => e.type === "Deadline" || e.type === "Milestone" || e.type === "Distribution" || e.type === "Valuation").length}
             >
-              <DeadlineTracker events={filtered} />
-            </div>
-          </CollapsibleCardWrapper>
-          <CollapsibleCardWrapper
-            title="Zoho Project Milestones"
-            defaultOpen={true}
-            badge={allCalendarEvents.filter(e =>
-              e.source === "Zoho Projects" ||
-              e.source?.toLowerCase().includes("zoho") ||
-              e.type === "Milestone" ||
-              e.type === "Task"
-            ).length}
-          >
-            <div
-              className="flex-1 min-h-0 overflow-y-auto"
-              style={{ maxHeight: "180px", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
+              <div
+                className="flex-1 min-h-0 overflow-y-auto"
+                style={{ maxHeight: "180px", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
+              >
+                <DeadlineTracker events={filtered} />
+              </div>
+            </CollapsibleCardWrapper>
+          </div>
+          <div className="min-w-0 h-full flex flex-col">
+            <CollapsibleCardWrapper
+              title="Zoho Project Milestones"
+              defaultOpen={true}
+              badge={allCalendarEvents.filter(e =>
+                e.source === "Zoho Projects" ||
+                e.source?.toLowerCase().includes("zoho") ||
+                e.type === "Milestone" ||
+                e.type === "Task"
+              ).length}
             >
-              <ZohoMilestonesPanel events={allCalendarEvents} onEventClick={handleOpenEdit} />
-            </div>
-          </CollapsibleCardWrapper>
-          <CollapsibleCardWrapper
-            title="Upcoming Events"
-            defaultOpen={true}
-            badge={filteredUpcoming.length}
-          >
-            <div
-              className="flex-1 min-h-0 overflow-y-auto"
-              style={{ maxHeight: "180px", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
+              <div
+                className="flex-1 min-h-0 overflow-y-auto"
+                style={{ maxHeight: "180px", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
+              >
+                <ZohoMilestonesPanel events={allCalendarEvents} onEventClick={handleOpenEdit} />
+              </div>
+            </CollapsibleCardWrapper>
+          </div>
+          <div className="min-w-0 h-full flex flex-col">
+            <CollapsibleCardWrapper
+              title="Upcoming Events"
+              defaultOpen={true}
+              badge={filteredUpcoming.length}
             >
-              <EventTimeline events={filteredUpcoming} onEventClick={handleOpenEdit} />
-            </div>
-
-          </CollapsibleCardWrapper>
+              <div
+                className="flex-1 min-h-0 overflow-y-auto"
+                style={{ maxHeight: "180px", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
+              >
+                <EventTimeline events={filteredUpcoming} onEventClick={handleOpenEdit} />
+              </div>
+            </CollapsibleCardWrapper>
+          </div>
         </div>
-      </div>
 
-      {/* Auxiliary sections below — scrollable beyond the viewport-locked calendar zone */}
-      <div className="mt-4">
         <StrategicQuartersBoard onInjectEvents={setSqbEvents} />
-      </div>
 
-      <div className="mt-4 mb-4">
         <KeepNotesPanel />
       </div>
 
