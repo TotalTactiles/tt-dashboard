@@ -38,6 +38,7 @@ const toDateInput = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${
 const toTimeInput = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
 const EventModal = ({ open, onClose, event, onSave, selectedDate, zohoProjects = [] }: EventModalProps) => {
+  console.log('[EventModal] zohoProjects:', zohoProjects);
   const isEditing = !!event;
 
   const [title, setTitle] = useState("");
