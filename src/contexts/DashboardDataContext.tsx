@@ -320,6 +320,7 @@ export interface DashboardData {
   syncProjectKPIs: () => Promise<{ success: boolean; data?: ProjectKPIData; error?: string }>;
   syncCalendar: () => Promise<number>;
   refetchCalendar: () => Promise<number>;
+  evictCalendarIds: (ids: string[]) => Promise<number>;
   calendarEvents: LiveCalendarEvent[];
   upcomingEvents: LiveCalendarEvent[];
   calendarSummary: CalendarSummary | null;
@@ -1739,7 +1740,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       formulas, addFormula, updateFormula, deleteFormula,
       dataHealth, quotesDebug, isLoading, isRefreshing, hasLiveData, connectedCount, lastUpdated,
       sources: ds.sources, toggleConnection: ds.toggleConnection,
-      updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow, syncProjectKPIs: ds.syncProjectKPIs, syncCalendar: ds.syncCalendar, refetchCalendar: ds.refetchCalendar,
+      updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow, syncProjectKPIs: ds.syncProjectKPIs, syncCalendar: ds.syncCalendar, refetchCalendar: ds.refetchCalendar, evictCalendarIds: (ds as any).evictCalendarIds ?? (async () => 0),
       calendarEvents: (() => {
         const base = calendarEventsOverride !== null
           ? [
@@ -1823,7 +1824,7 @@ export function useDashboardData(): DashboardData {
       },
       isLoading: false, isRefreshing: false, hasLiveData: false, connectedCount: 0, lastUpdated: null,
       sources: [], toggleConnection: () => {}, updateWebhookUrl: () => {},
-      saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {}, syncProjectKPIs: async () => ({ success: false, error: "Not initialized" }), syncCalendar: async () => 0, refetchCalendar: async () => 0,
+      saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {}, syncProjectKPIs: async () => ({ success: false, error: "Not initialized" }), syncCalendar: async () => 0, refetchCalendar: async () => 0, evictCalendarIds: async () => 0,
       calendarEvents: [], upcomingEvents: [], calendarSummary: null, setCalendarEvents: () => {}, pinCalendarCreate: () => {}, pinCalendarDelete: () => {}, pinCalendarEdit: () => {}, zohoProjects: [],
       projectKPIData: null,
       liveData: {},

@@ -31,7 +31,7 @@ interface WriteDebug {
 }
 
 const CalendarView = () => {
-  const { calendarEvents, upcomingEvents, calendarSummary, setCalendarEvents, syncCalendar, refetchCalendar, zohoProjects, pinCalendarCreate, pinCalendarDelete, pinCalendarEdit } = useDashboardData();
+  const { calendarEvents, upcomingEvents, calendarSummary, setCalendarEvents, syncCalendar, refetchCalendar, evictCalendarIds, zohoProjects, pinCalendarCreate, pinCalendarDelete, pinCalendarEdit } = useDashboardData();
   const { toast } = useToast();
 
   console.log('[Calendar Debug] raw events:', calendarEvents?.length, 'sample source:', calendarEvents?.[0]?.source, 'sample type:', calendarEvents?.[0]?.type);
@@ -190,7 +190,6 @@ const CalendarView = () => {
           if (typeof cur === "string") {
             try { cur = JSON.parse(cur); } catch { /* keep string */ }
           }
-          // Peel common envelopes: {body:{...}}, {data:{...}}, {response:{...}}, [{...}]
           for (let i = 0; i < 4; i++) {
             if (!cur || typeof cur !== "object") break;
             if (Array.isArray(cur) && cur.length === 1) { cur = cur[0]; continue; }
@@ -203,14 +202,13 @@ const CalendarView = () => {
           return cur;
         };
 
-        // Deep-scan for a `success` boolean if not on top level
-        const deepFindSuccess = (obj: any, depth = 0): boolean | undefined => {
+        const deepFindBool = (obj: any, key: "success", depth = 0): boolean | undefined => {
           if (!obj || typeof obj !== "object" || depth > 3) return undefined;
-          if (typeof obj.success === "boolean") return obj.success;
+          if (typeof obj[key] === "boolean") return obj[key];
           for (const k of Object.keys(obj)) {
             const v = (obj as any)[k];
             if (v && typeof v === "object") {
-              const found = deepFindSuccess(v, depth + 1);
+              const found = deepFindBool(v, key, depth + 1);
               if (typeof found === "boolean") return found;
             }
           }
@@ -218,22 +216,23 @@ const CalendarView = () => {
         };
 
         const unwrapped = unwrapResponse(data);
-        const explicitSuccess = deepFindSuccess(unwrapped);
+        const explicitSuccess = deepFindBool(unwrapped, "success");
         const hasError = !!(unwrapped?.error || unwrapped?._error || unwrapped?._proxyError);
-        // Success rule: explicit true; OR (no explicit flag AND no error AND no transport error)
-        const isSuccess =
-          !error &&
-          !hasError &&
-          (explicitSuccess === true || (explicitSuccess === undefined && !!unwrapped));
 
-        console.log("[write result]", { action, unwrapped, explicitSuccess, isSuccess, transportError: error?.message });
+        // Source-agnostic success:
+        //   success === true  → OK
+        //   no explicit flag AND no error/_proxyError → OK (Zoho delete/update return no id)
+        //   only fail if success === false OR an error field is present
+        const isSuccess = !error && !hasError && explicitSuccess !== false;
+
+        console.log("[write result]", { action, response: data, unwrapped, explicitSuccess, isSuccess, transportError: error?.message });
 
         if (!isSuccess) {
           throw new Error(
             error?.message ||
               unwrapped?.error ||
               unwrapped?.message ||
-              (explicitSuccess === false ? "Workflow reported success:false" : "Failed to save event")
+              "Failed to save event"
           );
         }
 
@@ -269,6 +268,14 @@ const CalendarView = () => {
           pinCalendarEdit(editingEvent.id, patch);
         } else if (action === "delete" && editingEvent) {
           pinCalendarDelete(editingEvent.id);
+          // Backend evict — tells the read cache to permanently drop this event
+          // so it does NOT reappear after a page reload once the optimistic
+          // overlay is wiped. Send every id shape the backend might match.
+          const rawId = editingEvent.id;
+          const zohoId = editingEvent.zohoId || "";
+          const stripped = rawId.replace(/^zoho-(subtask|task)-/, "");
+          const evictIds = Array.from(new Set([rawId, stripped, zohoId].filter(Boolean))) as string[];
+          evictCalendarIds(evictIds).catch((e) => console.warn("[Calendar Evict] failed:", e?.message));
         }
 
         setCalendarDebug({
