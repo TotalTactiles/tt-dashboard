@@ -84,10 +84,17 @@ export default function UpcomingProjectsPanel({
   };
 
   return (
-    <div
-      className="flex-1 min-h-0 min-w-0 space-y-2 overflow-y-auto pr-1"
-      style={{ maxHeight: 320, scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
-    >
+    <div className="flex-1 min-h-0 min-w-0 flex flex-col">
+      {showPills && (
+        <div className="flex items-center gap-1.5 mb-2 shrink-0">
+          {pill("this-month", "This month")}
+          {pill("active-during", "Active during")}
+        </div>
+      )}
+      <div
+        className="flex-1 min-h-0 space-y-2 overflow-y-auto pr-1"
+        style={{ maxHeight: 320, scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
+      >
       {sorted.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-6 text-center">
           <FolderKanban className="w-5 h-5 text-muted-foreground/50 mb-2" />
