@@ -778,6 +778,9 @@ export function useDataSources() {
         ? unwrapped.zohoProjects.map((p: any) => ({
             id: String(p?.id ?? ''),
             name: String(p?.name ?? ''),
+            startDate: p?.startDate ? String(p.startDate) : null,
+            endDate: p?.endDate ? String(p.endDate) : null,
+            link: p?.link ? String(p.link) : null,
             tasks: Array.isArray(p?.tasks)
               ? p.tasks.map((t: any) => ({
                   id: String(t?.id ?? ''),

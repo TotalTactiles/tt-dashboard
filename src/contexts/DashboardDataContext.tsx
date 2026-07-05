@@ -246,6 +246,15 @@ export interface CalendarSummary {
   byType: Record<string, number>;
 }
 
+export interface ZohoProject {
+  id: string;
+  name: string;
+  startDate?: string | null;
+  endDate?: string | null;
+  link?: string | null;
+  tasks: Array<{ id: string; name: string; hasSubtasks?: boolean }>;
+}
+
 export interface DashboardData {
   quotedJobs: QuotedJob[];
   revenueProjects: RevenueProject[];
