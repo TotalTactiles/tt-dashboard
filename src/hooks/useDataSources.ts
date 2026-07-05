@@ -701,14 +701,21 @@ export function useDataSources() {
   const isLoading = isInitialLoad && !hasLiveData;
 
   // ===== Calendar-specific polling (3 min) =====
-  const fetchCalendar = useCallback(async () => {
+  const fetchCalendar = useCallback(async (opts?: { refresh?: boolean }) => {
     try {
       // Abort previous calendar request
       if (calendarAbortRef.current) calendarAbortRef.current.abort();
       calendarAbortRef.current = new AbortController();
 
+      const invokeBody = opts?.refresh
+        ? {
+            webhookUrl: CALENDAR_READ_WEBHOOK,
+            payload: { source: "calendar", refresh: true, timestamp: new Date().toISOString() },
+          }
+        : { webhookUrl: CALENDAR_READ_WEBHOOK, source: "calendar" };
+
       const { data: responseData, error } = await supabase.functions.invoke("n8n-proxy", {
-        body: { webhookUrl: CALENDAR_READ_WEBHOOK, source: "calendar" },
+        body: invokeBody,
       });
 
       if (error) throw new Error(error.message || "Calendar proxy request failed");
