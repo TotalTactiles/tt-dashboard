@@ -213,39 +213,43 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
 
           {/* Description */}
           <div className="flex items-start gap-2.5">
-            <AlignLeft className="h-4 w-4 text-muted-foreground mt-2.5 shrink-0" />
+            <AlignLeft className="h-4 w-4 text-muted-foreground mt-2 shrink-0" />
             <div className="flex-1">
+              <Label className="text-[11px] font-normal text-muted-foreground mb-0.5 block">Description</Label>
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Description"
+                placeholder="Add description"
                 rows={2}
-                className="text-sm border-0 bg-transparent px-0 py-1.5 resize-none placeholder:text-muted-foreground/70 focus-visible:ring-0"
+                className="text-sm border-0 bg-transparent px-0 py-1 resize-none placeholder:text-muted-foreground/70 focus-visible:ring-0"
               />
             </div>
           </div>
 
           {/* Location */}
-          <div className="flex items-center gap-2.5">
-            <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-            <Input
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="Location"
-              className="h-9 text-sm border-0 bg-transparent px-0 py-1.5 placeholder:text-muted-foreground/70 focus-visible:ring-0"
-            />
+          <div className="flex items-start gap-2.5">
+            <MapPin className="h-4 w-4 text-muted-foreground mt-2 shrink-0" />
+            <div className="flex-1">
+              <Label className="text-[11px] font-normal text-muted-foreground mb-0.5 block">Location</Label>
+              <Input
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Add location"
+                className="h-8 text-sm border-0 bg-transparent px-0 py-1 placeholder:text-muted-foreground/70 focus-visible:ring-0"
+              />
+            </div>
           </div>
 
           {/* Attendees */}
           <div className="flex items-start gap-2.5">
-            <Users className="h-4 w-4 text-muted-foreground mt-2.5 shrink-0" />
+            <Users className="h-4 w-4 text-muted-foreground mt-2 shrink-0" />
             <div className="flex-1">
               <Label className="text-[11px] font-normal text-muted-foreground mb-0.5 block">Attendees</Label>
               <Input
                 value={attendeesStr}
                 onChange={(e) => setAttendeesStr(e.target.value)}
                 placeholder="email1@example.com, email2@example.com"
-                className="h-9 text-sm border-0 bg-transparent px-0 py-1.5 placeholder:text-muted-foreground/70 focus-visible:ring-0"
+                className="h-8 text-sm border-0 bg-transparent px-0 py-1 placeholder:text-muted-foreground/70 focus-visible:ring-0"
               />
             </div>
           </div>
