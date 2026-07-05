@@ -759,205 +759,301 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35 }}
-      className="rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm p-5"
+      transition={{ delay: 0.2 }}
+      className="stat-card"
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-end justify-between gap-3 flex-wrap mb-4">
         <div>
-          <h2 className="text-base font-semibold text-foreground tracking-tight">Strategic Quarters</h2>
-          <p className="text-[11px] text-muted-foreground font-mono">Quarterly targets & task tracking</p>
+          <h3 className="text-sm font-semibold text-foreground">Strategic Quarters</h3>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Quarterly targets &amp; task tracking · four-phase hierarchy
+          </p>
+        </div>
+        <div className="flex gap-3 flex-wrap">
+          {PHASE_ORDER.map((p) => (
+            <span key={p} className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground">
+              <span className="w-2 h-2 rounded-full" style={{ background: PHASE_COLORS[p] }} />
+              {p}
+            </span>
+          ))}
         </div>
       </div>
 
-      {/* Section cards */}
-      <div className={`grid gap-4 ${
-            data.sections.length === 1 ? 'grid-cols-1' :
-            data.sections.length === 2 ? 'grid-cols-1 sm:grid-cols-2' :
-            'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3'
-          }`}>
-        {data.sections.map((sec) => {
-          const phaseColor = PHASE_COLORS[sec.phase];
-          const doneCount = sec.tasks.filter((t) => t.done).length;
-          const totalCount = sec.tasks.length;
+      {/* 2×2 quadrant grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {PHASE_ORDER.map((phase) => {
+          const sections = data.sections.filter((s) => s.phase === phase);
+          const accent = PHASE_COLORS[phase];
+          const pct = zoneProgress(sections);
+          const { complete: listComplete, total: listTotal } = zoneListStats(sections);
+          const allDone = listTotal > 0 && listComplete === listTotal;
+          const status = allDone
+            ? { cls: "bg-[rgba(29,158,117,0.16)] text-[#38c99b]", label: "Complete" }
+            : pct < 34
+            ? { cls: "bg-[rgba(186,117,23,0.18)] text-[#e0a13c]", label: "At Risk" }
+            : { cls: "bg-[rgba(29,158,117,0.14)] text-[#38c99b]", label: "On Pace" };
+
+          const r = 18, circ = 2 * Math.PI * r, off = circ * (1 - pct / 100);
 
           return (
-            <motion.div
-              key={sec.id}
-              layout
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full rounded-xl border border-border/40 bg-background/60 p-4 min-w-0 overflow-hidden"
-              style={{ borderLeft: `4px solid ${phaseColor}` }}
+            <div
+              key={phase}
+              className="relative rounded-2xl border border-border overflow-hidden flex flex-col min-h-[300px]"
+              style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0.008))" }}
             >
-              {/* Section header */}
-              <div className="flex items-center gap-2 mb-3 group/section min-w-0">
-                <button onClick={() => toggleSectionCollapse(sec.id)} className="text-muted-foreground shrink-0">
-                  {sec.collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </button>
-                <span
-                  className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0"
-                  style={{ background: `${phaseColor}22`, color: phaseColor }}
-                >
-                  {sec.phase}
-                </span>
-                <InlineEdit
-                  value={sec.title}
-                  onSave={(v) => updateSectionTitle(sec.id, v)}
-                  className="text-sm font-semibold text-foreground truncate min-w-0 overflow-hidden whitespace-nowrap"
-                />
-                <InlineEdit
-                  value={sec.quarter}
-                  onSave={(v) => updateSectionQuarter(sec.id, v)}
-                  className="text-[11px] font-mono text-muted-foreground"
-                />
-                <span className="text-[10px] text-muted-foreground ml-auto whitespace-nowrap">
-                  {doneCount}/{totalCount} tasks
-                </span>
-                <button
-                  onClick={() => deleteSection(sec.id)}
-                  className="opacity-0 group-hover/section:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+              <span className="absolute inset-y-0 left-0 w-[3px]" style={{ background: accent }} />
+
+              {/* Zone header */}
+              <div
+                className="flex items-center gap-3 px-4 pt-3.5 pb-3 pl-[18px] border-b border-border"
+                style={{ background: `linear-gradient(180deg, ${hexA(accent, 0.05)}, transparent)` }}
+              >
+                <div className="flex-1 min-w-0">
+                  <span
+                    className="inline-block text-[9.5px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full mb-1.5"
+                    style={{ color: accent, background: hexA(accent, 0.15) }}
+                  >
+                    {phase}
+                  </span>
+                  <div className="text-[13px] font-semibold text-foreground truncate">
+                    {sections.length === 1
+                      ? sections[0].title
+                      : sections.length > 1
+                      ? `${phase} — ${sections.length} sections`
+                      : `${phase}`}
+                  </div>
+                  <div className="text-[10.5px] text-muted-foreground font-mono mt-0.5">
+                    {sections.length
+                      ? `${sections.map((s) => s.quarter).join(" · ")} · ${listComplete}/${listTotal} lists complete`
+                      : "No sections yet"}
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-1 shrink-0">
+                  <div className="relative w-[46px] h-[46px]">
+                    <svg width="46" height="46" viewBox="0 0 46 46" style={{ transform: "rotate(-90deg)" }}>
+                      <circle cx="23" cy="23" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4" />
+                      <circle
+                        cx="23" cy="23" r={r} fill="none" stroke={accent} strokeWidth="4" strokeLinecap="round"
+                        strokeDasharray={circ} strokeDashoffset={off}
+                        style={{ transition: "stroke-dashoffset .4s ease" }}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center font-mono text-[12px] font-bold text-foreground">
+                      {pct}%
+                    </div>
+                  </div>
+                  <span className={`text-[9.5px] font-mono font-semibold px-2 py-0.5 rounded-full ${status.cls}`}>
+                    {status.label}
+                  </span>
+                </div>
               </div>
 
-              {/* Tasks */}
-              <AnimatePresence initial={false}>
-                {!sec.collapsed && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden"
-                  >
-                    {sec.tasks.map((task) => {
-                      const subDone = task.subtasks.filter((s) => s.done).length;
-                      const subTotal = task.subtasks.length;
+              {/* Zone body */}
+              <div className="px-2.5 pt-2 pb-3 overflow-y-auto flex-1 max-h-[360px]">
+                {sections.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full gap-2 py-8 text-muted-foreground text-[11px]">
+                    Nothing here yet — use + Add Section below to add a {phase} list.
+                  </div>
+                ) : (
+                  sections.map((section) => (
+                    <div key={section.id} className="mb-1 group/section">
+                      {sections.length > 1 && (
+                        <div className="flex items-center gap-2 px-1.5 pt-1 pb-1">
+                          <InlineEdit
+                            value={section.title}
+                            onSave={(v) => updateSectionTitle(section.id, v)}
+                            className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground"
+                          />
+                          <InlineEdit
+                            value={section.quarter}
+                            onSave={(v) => updateSectionQuarter(section.id, v)}
+                            className="text-[10px] font-mono text-muted-foreground/70"
+                          />
+                          <button
+                            onClick={() => deleteSection(section.id)}
+                            className="opacity-0 group-hover/section:opacity-100 text-muted-foreground hover:text-destructive ml-auto"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      )}
 
-                      return (
-                        <div key={task.id}>
-                          {/* Task row */}
-                          <div className="flex items-center gap-2 py-1.5 group/task">
-                            <GripVertical className="h-3 w-3 text-muted-foreground/30 opacity-0 group-hover/task:opacity-100 transition-opacity cursor-grab" />
-                            <CustomCheckbox
-                              checked={task.done}
-                              onChange={() => toggleTask(sec.id, task.id)}
-                              size={16}
-                              color={phaseColor}
-                            />
-                            <InlineEdit
-                              value={task.title}
-                              onSave={(v) => updateTaskTitle(sec.id, task.id, v)}
-                              className={`text-sm ${task.done ? "line-through text-muted-foreground/50" : "text-foreground"}`}
-                            />
-                            <DateChip
-                              dueDate={task.dueDate}
-                              phaseColor={phaseColor}
-                              onSetDate={(d) => setTaskDate(sec.id, task.id, d)}
-                              onClearDate={() => setTaskDate(sec.id, task.id, null)}
-                              hoverClass="opacity-0 group-hover/task:opacity-100"
-                            />
-                            {subTotal > 0 && (
-                              <span
-                                className="text-[10px] font-mono px-1.5 py-0.5 rounded-full"
-                                style={{ background: `${phaseColor}15`, color: phaseColor }}
-                              >
-                                {subDone}/{subTotal}
-                              </span>
-                            )}
-                            {subTotal > 0 && (
+                      {section.tasks.map((task) => {
+                        const subTotal = task.subtasks?.length ?? 0;
+                        const subDone = task.subtasks?.filter((s) => s.done).length ?? 0;
+                        const pctT = taskProgress(task);
+                        const complete = pctT === 100;
+
+                        return (
+                          <div
+                            key={task.id}
+                            className={`rounded-xl px-1.5 py-1 mb-0.5 hover:bg-white/[0.04] transition-colors group/task ${complete ? "opacity-95" : ""}`}
+                          >
+                            <div className="flex items-center gap-2.5 py-1">
+                              {subTotal > 0 ? (
+                                <button
+                                  onClick={() => toggleTaskExpand(section.id, task.id)}
+                                  className="text-muted-foreground/60 w-[11px] shrink-0"
+                                >
+                                  {task.expanded ? (
+                                    <ChevronDown className="h-3 w-3" />
+                                  ) : (
+                                    <ChevronRight className="h-3 w-3" />
+                                  )}
+                                </button>
+                              ) : (
+                                <span className="w-[11px] shrink-0" />
+                              )}
+
                               <button
-                                onClick={() => toggleTaskExpand(sec.id, task.id)}
-                                className="text-muted-foreground"
+                                onClick={() => toggleTask(section.id, task.id)}
+                                className="w-[19px] h-[19px] rounded-md shrink-0 flex items-center justify-center border-2 transition-all"
+                                style={
+                                  complete
+                                    ? { background: accent, borderColor: accent }
+                                    : { background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.16)" }
+                                }
                               >
-                                {task.expanded ? (
-                                  <ChevronDown className="h-3 w-3" />
-                                ) : (
-                                  <ChevronRight className="h-3 w-3" />
-                                )}
+                                {complete && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
                               </button>
-                            )}
-                            <button
-                              onClick={() => deleteTask(sec.id, task.id)}
-                              className="opacity-0 group-hover/task:opacity-100 transition-opacity text-muted-foreground hover:text-destructive ml-auto"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          </div>
 
-                          {/* Subtasks */}
-                          <AnimatePresence initial={false}>
-                            {task.expanded && (
-                              <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: "auto", opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.15 }}
-                                className="overflow-hidden"
-                              >
-                                {task.subtasks.map((st) => (
+                              <div className="flex-1 min-w-0">
+                                <InlineEdit
+                                  value={task.title}
+                                  onSave={(v) => updateTaskTitle(section.id, task.id, v)}
+                                  className={`text-[12.5px] font-medium block w-full truncate ${complete ? "line-through text-muted-foreground font-normal" : "text-foreground/85"}`}
+                                />
+                              </div>
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <DateChip
+                                  dueDate={task.dueDate}
+                                  phaseColor={accent}
+                                  onSetDate={(d) => setTaskDate(section.id, task.id, d)}
+                                  onClearDate={() => setTaskDate(section.id, task.id, null)}
+                                  hoverClass="opacity-0 group-hover/task:opacity-100"
+                                />
+                                {subTotal > 0 && (
+                                  <span className="font-mono text-[10px] text-muted-foreground">
+                                    {subDone}/{subTotal}
+                                  </span>
+                                )}
+                                <span
+                                  className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[38px] text-center"
+                                  style={
+                                    complete
+                                      ? { background: "rgba(29,158,117,0.16)", color: "#38c99b" }
+                                      : { background: hexA(accent, 0.15), color: accent }
+                                  }
+                                >
+                                  {pctT}%
+                                </span>
+                                <button
+                                  onClick={() => deleteTask(section.id, task.id)}
+                                  className="opacity-0 group-hover/task:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {subTotal > 0 && (
+                              <div className="h-[3px] rounded-full bg-white/[0.06] overflow-hidden ml-[29px] mb-0.5">
+                                <div
+                                  className="h-full rounded-full"
+                                  style={{ width: `${pctT}%`, background: accent, transition: "width .3s ease" }}
+                                />
+                              </div>
+                            )}
+
+                            <AnimatePresence initial={false}>
+                              {task.expanded && subTotal > 0 && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.15 }}
+                                  className="overflow-hidden"
+                                >
                                   <div
-                                    key={st.id}
-                                    className="flex items-center gap-2 py-1 group/subtask ml-2 pl-4 border-l border-border/30"
+                                    className="ml-[28px] pl-3.5 mt-0.5 mb-1"
+                                    style={{ borderLeft: `2px solid ${hexA(accent, 0.28)}` }}
                                   >
-                                    <CustomCheckbox
-                                      checked={st.done}
-                                      onChange={() => toggleSubtask(sec.id, task.id, st.id)}
-                                      size={14}
-                                      color={phaseColor}
-                                    />
-                                    <InlineEdit
-                                      value={st.title}
-                                      onSave={(v) => updateSubtaskTitle(sec.id, task.id, st.id, v)}
-                                      className={`text-xs ${st.done ? "line-through text-muted-foreground/50" : "text-foreground"}`}
-                                    />
-                                    <DateChip
-                                      dueDate={st.dueDate}
-                                      phaseColor={phaseColor}
-                                      onSetDate={(d) => setSubtaskDate(sec.id, task.id, st.id, d)}
-                                      onClearDate={() => setSubtaskDate(sec.id, task.id, st.id, null)}
-                                      hoverClass="opacity-0 group-hover/subtask:opacity-100"
-                                    />
+                                    {task.subtasks.map((st) => (
+                                      <div
+                                        key={st.id}
+                                        className="relative flex items-center gap-2.5 py-1 px-1 rounded-md hover:bg-white/[0.04] group/subtask"
+                                      >
+                                        <span
+                                          className="absolute -left-3.5 top-1/2 w-3 h-[2px]"
+                                          style={{ background: hexA(accent, 0.28) }}
+                                        />
+                                        <button
+                                          onClick={() => toggleSubtask(section.id, task.id, st.id)}
+                                          className="w-4 h-4 rounded shrink-0 flex items-center justify-center border-2 transition-all"
+                                          style={
+                                            st.done
+                                              ? { background: accent, borderColor: accent }
+                                              : { background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.16)" }
+                                          }
+                                        >
+                                          {st.done && <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />}
+                                        </button>
+                                        <div className="flex-1 min-w-0">
+                                          <InlineEdit
+                                            value={st.title}
+                                            onSave={(v) => updateSubtaskTitle(section.id, task.id, st.id, v)}
+                                            className={`text-[11.5px] block w-full ${st.done ? "line-through text-muted-foreground" : "text-foreground/65"}`}
+                                          />
+                                        </div>
+                                        <DateChip
+                                          dueDate={st.dueDate}
+                                          phaseColor={accent}
+                                          onSetDate={(d) => setSubtaskDate(section.id, task.id, st.id, d)}
+                                          onClearDate={() => setSubtaskDate(section.id, task.id, st.id, null)}
+                                          hoverClass="opacity-0 group-hover/subtask:opacity-100"
+                                        />
+                                        <button
+                                          onClick={() => deleteSubtask(section.id, task.id, st.id)}
+                                          className="opacity-0 group-hover/subtask:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </button>
+                                      </div>
+                                    ))}
                                     <button
-                                      onClick={() => deleteSubtask(sec.id, task.id, st.id)}
-                                      className="opacity-0 group-hover/subtask:opacity-100 transition-opacity text-muted-foreground hover:text-destructive ml-auto"
+                                      onClick={() => addSubtask(section.id, task.id)}
+                                      className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground py-1 transition-colors"
                                     >
-                                      <Trash2 className="h-3 w-3" />
+                                      <Plus className="h-3 w-3" /> Add subtask
                                     </button>
                                   </div>
-                                ))}
-                                <button
-                                  onClick={() => addSubtask(sec.id, task.id)}
-                                  className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground ml-6 pl-4 py-1 transition-colors"
-                                >
-                                  <Plus className="h-3 w-3" /> Add subtask
-                                </button>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      );
-                    })}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        );
+                      })}
 
-                    <button
-                      onClick={() => addTask(sec.id)}
-                      className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground mt-1 py-1 transition-colors"
-                    >
-                      <Plus className="h-3 w-3" /> Add task
-                    </button>
-                  </motion.div>
+                      <button
+                        onClick={() => addTask(section.id)}
+                        className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground px-1.5 py-1 mt-0.5 transition-colors"
+                      >
+                        <Plus className="h-3 w-3" /> Add task
+                      </button>
+                    </div>
+                  ))
                 )}
-              </AnimatePresence>
-            </motion.div>
+              </div>
+            </div>
           );
         })}
       </div>
 
       {/* Add Section */}
-      <div className="mt-3">
+      <div className="mt-4">
         <Popover>
           <PopoverTrigger asChild>
             <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
@@ -965,7 +1061,6 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
             </button>
           </PopoverTrigger>
           <PopoverContent className="w-72 p-3 space-y-3" align="start">
-            {/* Phase pills */}
             <div className="flex flex-wrap gap-1.5">
               {(Object.keys(PHASE_COLORS) as Phase[]).map((phase) => (
                 <button
