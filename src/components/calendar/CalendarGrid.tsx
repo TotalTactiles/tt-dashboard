@@ -1,8 +1,24 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+
+const useTvMode = () => {
+  const [tv, setTv] = useState<boolean>(() =>
+    typeof document !== "undefined" && document.body.classList.contains("tv-mode")
+  );
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const check = () => setTv(document.body.classList.contains("tv-mode"));
+    check();
+    const obs = new MutationObserver(check);
+    obs.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
+  return tv;
+};
 
 interface CalendarGridProps {
   events: LiveCalendarEvent[];
@@ -38,7 +54,9 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
 
   const hoverCapable = useMediaQuery("(hover: hover) and (pointer: fine)", false);
   const isNarrow = useMediaQuery("(max-width: 639px)", false);
-  const collapsedLimit = isNarrow ? 2 : 4;
+  const tvMode = useTvMode();
+  // TV wallboards get more room per cell → show more pills, no interactive expand.
+  const collapsedLimit = tvMode ? 6 : isNarrow ? 2 : 4;
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -146,20 +164,22 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
       >
         {cells.map((cell, i) => {
           const dayEvents = cell.inMonth ? eventsByDay[cell.day] || [] : [];
-          const isExpanded = cell.inMonth && expandedDay === cell.day && dayEvents.length > collapsedLimit;
+          // In TV mode, never expand interactively — just show up to collapsedLimit and a static "+X" if any remain.
+          const isExpanded = !tvMode && cell.inMonth && expandedDay === cell.day && dayEvents.length > collapsedLimit;
           const visibleEvents = isExpanded ? dayEvents : dayEvents.slice(0, collapsedLimit);
           const overflow = dayEvents.length - collapsedLimit;
 
           const handleMouseEnter = () => {
-            if (hoverCapable && cell.inMonth && dayEvents.length > collapsedLimit) {
+            if (!tvMode && hoverCapable && cell.inMonth && dayEvents.length > collapsedLimit) {
               setExpandedDay(cell.day);
             }
           };
           const handleMouseLeave = () => {
-            if (hoverCapable && expandedDay === cell.day) setExpandedDay(null);
+            if (!tvMode && hoverCapable && expandedDay === cell.day) setExpandedDay(null);
           };
           const handleChipClick = (e: React.MouseEvent) => {
             e.stopPropagation();
+            if (tvMode) return;
             setExpandedDay(isExpanded ? null : cell.day);
           };
 
@@ -169,23 +189,23 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
               onClick={() => cell.inMonth && handleDayClick(cell.day)}
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
-              className={`relative flex flex-col p-1.5 rounded-lg transition-all duration-150
+              className={`relative flex flex-col ${tvMode ? "p-2" : "p-1.5"} rounded-lg transition-all duration-150
                 ${!cell.inMonth ? "opacity-30 pointer-events-none" : "cursor-pointer"}
                 ${cell.inMonth && isToday(cell.day) ? "bg-primary/15 ring-1 ring-primary/40" : ""}
                 ${cell.inMonth && isSelected(cell.day) && !isToday(cell.day) ? "bg-secondary ring-1 ring-primary/30" : ""}
                 ${cell.inMonth && !isToday(cell.day) && !isSelected(cell.day) ? "bg-muted/50 hover:bg-secondary/70" : ""}
                 ${isExpanded ? "z-20 shadow-lg ring-1 ring-primary/40 bg-card" : "overflow-hidden"}
               `}
-              style={isExpanded ? { minHeight: 0 } : { minHeight: 0 }}
+              style={{ minHeight: 0 }}
             >
               <span
-                className={`font-bold leading-none mb-0.5 ${cell.inMonth && isToday(cell.day) ? "text-primary" : "text-foreground/80"}`}
-                style={{ fontSize: "clamp(10px, 1vw, 12px)" }}
+                className={`font-bold leading-none mb-1 ${cell.inMonth && isToday(cell.day) ? "text-primary" : "text-foreground/80"}`}
+                style={{ fontSize: tvMode ? "clamp(16px, 1.1vw, 22px)" : "clamp(10px, 1vw, 12px)" }}
               >
                 {cell.day}
               </span>
               <div
-                className={`flex flex-col gap-1 flex-1 min-h-0 ${isExpanded ? "overflow-y-auto max-h-[60vh]" : "overflow-hidden"}`}
+                className={`flex flex-col ${tvMode ? "gap-1.5" : "gap-1"} flex-1 min-h-0 ${isExpanded ? "overflow-y-auto max-h-[60vh]" : "overflow-hidden"}`}
               >
                 {visibleEvents.map((ev) => {
                   const color = getTypeColor(ev.type);
@@ -195,15 +215,19 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                       type="button"
                       title={ev.title}
                       onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
-                      className={`group flex items-center gap-1 min-w-0 w-full px-1 rounded-md border border-transparent bg-secondary/40 hover:bg-secondary hover:border-border cursor-pointer text-left transition-colors ${hoverCapable ? "py-0.5" : "py-1.5 min-h-[36px]"}`}
+                      className={`group flex items-center min-w-0 w-full rounded-md border cursor-pointer text-left transition-colors ${
+                        tvMode
+                          ? "gap-2 px-2 py-1.5 bg-secondary border-border/60 hover:bg-secondary/80"
+                          : `gap-1 px-1 border-transparent bg-secondary/40 hover:bg-secondary hover:border-border ${hoverCapable ? "py-0.5" : "py-1.5 min-h-[36px]"}`
+                      }`}
                     >
                       <span
-                        className="w-1.5 h-1.5 rounded-full shrink-0"
+                        className={`rounded-full shrink-0 ${tvMode ? "w-2.5 h-2.5" : "w-1.5 h-1.5"}`}
                         style={{ backgroundColor: color }}
                       />
                       <span
-                        className="text-foreground/80 group-hover:text-foreground truncate leading-tight"
-                        style={{ fontSize: "clamp(9px, 0.9vw, 11px)" }}
+                        className={`truncate leading-tight ${tvMode ? "text-foreground font-medium" : "text-foreground/80 group-hover:text-foreground"}`}
+                        style={{ fontSize: tvMode ? "clamp(13px, 0.9vw, 17px)" : "clamp(9px, 0.9vw, 11px)" }}
                       >
                         {ev.title}
                       </span>
@@ -211,14 +235,23 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                   );
                 })}
                 {overflow > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleChipClick}
-                    className={`text-primary hover:text-primary/80 font-medium truncate text-left cursor-pointer rounded-md px-1 hover:bg-primary/10 ${hoverCapable ? "" : "min-h-[40px] py-1.5 bg-primary/5"}`}
-                    style={{ fontSize: "clamp(9px, 0.9vw, 11px)" }}
-                  >
-                    {isExpanded ? "Show less" : `+${overflow} more`}
-                  </button>
+                  tvMode ? (
+                    <span
+                      className="text-muted-foreground font-medium px-2 pt-0.5"
+                      style={{ fontSize: "clamp(12px, 0.85vw, 15px)" }}
+                    >
+                      +{overflow} more
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleChipClick}
+                      className={`text-primary hover:text-primary/80 font-medium truncate text-left cursor-pointer rounded-md px-1 hover:bg-primary/10 ${hoverCapable ? "" : "min-h-[40px] py-1.5 bg-primary/5"}`}
+                      style={{ fontSize: "clamp(9px, 0.9vw, 11px)" }}
+                    >
+                      {isExpanded ? "Show less" : `+${overflow} more`}
+                    </button>
+                  )
                 )}
               </div>
             </div>
