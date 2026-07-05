@@ -32,14 +32,16 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!
     );
-    const { data: userData, error: userErr } = await supabase.auth.getUser(token);
-    if (userErr || !userData?.user) {
+    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims?.sub) {
+      console.error("[n8n-proxy] auth failed:", claimsErr?.message);
       return new Response(
         JSON.stringify({ error: "Unauthorized", _proxyError: true }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-  } catch {
+  } catch (e) {
+    console.error("[n8n-proxy] auth exception:", e instanceof Error ? e.message : String(e));
     return new Response(
       JSON.stringify({ error: "Unauthorized", _proxyError: true }),
       { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
