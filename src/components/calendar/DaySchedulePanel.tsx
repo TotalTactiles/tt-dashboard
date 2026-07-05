@@ -211,7 +211,8 @@ const DaySchedulePanel = ({ events, selectedDate, onPrevDay, onNextDay, onEventC
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );
