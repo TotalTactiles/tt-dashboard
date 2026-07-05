@@ -556,3 +556,71 @@
 .animate-formula-pulse {
   animation: formula-pulse 1.5s ease-in-out 2;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   TV / WALLBOARD MODE — scoped to .tv-mode only.
+   Targets 1920x1080, viewed from distance, remote-driven cursor.
+   ══════════════════════════════════════════════════════════════ */
+.tv-mode {
+  font-size: 22px;
+  line-height: 1.5;
+}
+
+.tv-mode h1 { font-size: clamp(2rem, 2.4vw, 3rem) !important; letter-spacing: 0.01em; }
+.tv-mode h2 { font-size: clamp(1.5rem, 1.8vw, 2.2rem) !important; }
+.tv-mode h3 { font-size: clamp(1.2rem, 1.4vw, 1.75rem) !important; }
+
+.tv-mode button,
+.tv-mode a[role="button"],
+.tv-mode [role="tab"],
+.tv-mode .tt-tap {
+  min-height: 48px;
+  min-width: 48px;
+}
+
+.tv-mode {
+  --border: 0 0% 22%;
+  --muted-foreground: 210 10% 72%;
+}
+.tv-mode .border,
+.tv-mode .border-b,
+.tv-mode .border-t,
+.tv-mode .border-l,
+.tv-mode .border-r {
+  border-width: 2px;
+}
+
+.tv-mode .text-fluid-xs   { font-size: 0.95rem !important; }
+.tv-mode .text-fluid-sm   { font-size: 1.05rem !important; }
+.tv-mode .text-fluid-base { font-size: 1.15rem !important; }
+.tv-mode .text-fluid-lg   { font-size: 1.4rem !important; }
+.tv-mode .text-fluid-xl   { font-size: 1.7rem !important; }
+.tv-mode .text-fluid-2xl  { font-size: 2.1rem !important; }
+.tv-mode .text-fluid-heading { font-size: 1.6rem !important; }
+.tv-mode .kpi-value { font-size: clamp(1.8rem, 2.6cqw, 2.8rem) !important; }
+.tv-mode .kpi-value-short { font-size: clamp(2rem, 3cqw, 3.2rem) !important; }
+.tv-mode .kpi-title { font-size: 0.85rem !important; }
+.tv-mode .kpi-subline { font-size: 0.9rem !important; }
+
+/* Reveal hover-only content inline in TV mode */
+.tv-mode [data-tv-hover-only],
+.tv-mode .hover-reveal {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.tv-mode hr { border-width: 2px; opacity: 0.6; }
+
+/* Prevent full-white burn-in blocks */
+.tv-mode .bg-white { background-color: hsl(var(--card)) !important; }
+/* Hide standard dashboard chrome inside TV mode — TvLayout provides its own */
+.tv-mode [data-sidebar="sidebar"],
+.tv-mode [data-sidebar="rail"],
+.tv-mode [data-sidebar="trigger"],
+.tv-mode header,
+.tv-mode nav.md\:hidden {
+  display: none !important;
+}
+.tv-mode .landscape-main-offset { padding-left: 0 !important; }
+.tv-mode .dashboard-main-padding { padding: 0 !important; }
+.tv-mode .pb-20 { padding-bottom: 0 !important; }
