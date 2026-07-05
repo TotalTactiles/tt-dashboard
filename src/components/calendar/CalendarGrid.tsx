@@ -54,7 +54,9 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
 
   const hoverCapable = useMediaQuery("(hover: hover) and (pointer: fine)", false);
   const isNarrow = useMediaQuery("(max-width: 639px)", false);
-  const collapsedLimit = isNarrow ? 2 : 4;
+  const tvMode = useTvMode();
+  // TV wallboards get more room per cell → show more pills, no interactive expand.
+  const collapsedLimit = tvMode ? 6 : isNarrow ? 2 : 4;
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
