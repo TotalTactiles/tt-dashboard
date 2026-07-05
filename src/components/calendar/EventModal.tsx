@@ -96,19 +96,22 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate, zohoProjects =
   }, [event, selectedDate, open]);
 
   const handleSave = async () => {
-    const newErrors: { title?: boolean; date?: boolean } = {};
+    const isZohoCreate = !isEditing && createSource === "Zoho Projects";
+    const newErrors: { title?: boolean; date?: boolean; project?: boolean } = {};
     if (!title.trim()) newErrors.title = true;
     if (!date) newErrors.date = true;
+    if (isZohoCreate && !zohoProjectId) newErrors.project = true;
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
     setErrors({});
 
-    const startISO = allDay
+    const effectiveAllDay = isZohoCreate ? true : allDay;
+    const startISO = effectiveAllDay
       ? new Date(`${date}T00:00:00`).toISOString()
       : new Date(`${date}T${startTime}:00`).toISOString();
-    const endISO = allDay
+    const endISO = effectiveAllDay
       ? new Date(`${date}T23:59:59`).toISOString()
       : new Date(`${date}T${endTime}:00`).toISOString();
 
@@ -118,22 +121,38 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate, zohoProjects =
       .filter(Boolean);
 
     setLoading(true);
-    await onSave(isEditing ? "update" : "create", {
-      title: title.trim(),
-      description: description.trim() || "",
-      location: location.trim() || "",
-      start: startISO,
-      end: endISO,
-      startDate: date,
-      endDate: date,
-      allDay,
-      type,
-      attendees,
-      googleId: event?.googleId,
-      zohoId: event?.zohoId,
-      source: event?.source,
-      projectId: (event as any)?.projectId,
-    } as any);
+    if (isZohoCreate) {
+      await onSave("create", {
+        title: title.trim(),
+        description: description.trim() || "",
+        start: startISO,
+        end: endISO,
+        startDate: date,
+        endDate: date,
+        allDay: true,
+        type: "Task",
+        source: "Zoho Projects",
+        projectId: zohoProjectId,
+        parentTaskId: zohoMode === "subtask" ? zohoParentTaskId : "",
+      } as any);
+    } else {
+      await onSave(isEditing ? "update" : "create", {
+        title: title.trim(),
+        description: description.trim() || "",
+        location: location.trim() || "",
+        start: startISO,
+        end: endISO,
+        startDate: date,
+        endDate: date,
+        allDay,
+        type,
+        attendees,
+        googleId: event?.googleId,
+        zohoId: event?.zohoId,
+        source: event?.source ?? "Google Calendar",
+        projectId: (event as any)?.projectId,
+      } as any);
+    }
     setLoading(false);
   };
 
