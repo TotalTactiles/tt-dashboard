@@ -4,6 +4,7 @@ import { resolveKpiVariables, createFormulaCache, DataStore, type EvaluationCach
 import { useFormulas } from "@/hooks/useFormulas";
 import { useCrmStages, type QuotingOpp } from "@/hooks/useCrmStages";
 import { formatMetricValue } from "@/lib/formatMetricValue";
+import { useCalendarOverlay } from "@/hooks/useCalendarOverlay";
 
 // Module-level formula cache singleton — survives re-renders
 const formulaCacheInstance = createFormulaCache();
@@ -321,6 +322,9 @@ export interface DashboardData {
   upcomingEvents: LiveCalendarEvent[];
   calendarSummary: CalendarSummary | null;
   setCalendarEvents: React.Dispatch<React.SetStateAction<LiveCalendarEvent[]>>;
+  pinCalendarCreate: (event: LiveCalendarEvent) => void;
+  pinCalendarDelete: (id: string) => void;
+  pinCalendarEdit: (id: string, patch: Partial<LiveCalendarEvent>) => void;
   zohoProjects: Array<{ id: string; name: string; tasks: Array<{ id: string; name: string; hasSubtasks?: boolean }> }>;
   projectKPIData: ProjectKPIData | null;
   liveData: import("@/hooks/useDataSources").LiveData;
@@ -378,6 +382,13 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
   const { formulas, addFormula, updateFormula, deleteFormula } = useFormulas();
   const { quotingOpp, totalLeads } = useCrmStages();
   const [calendarEventsOverride, setCalendarEventsState] = useState<LiveCalendarEvent[] | null>(null);
+
+  const rawCalendarEventsForOverlay = useMemo<LiveCalendarEvent[]>(
+    () => (Array.isArray(calendarData?.calendarEvents) ? calendarData.calendarEvents : []),
+    [calendarData?.calendarEvents]
+  );
+  const { apply: applyOverlay, pinCreate: pinCalendarCreate, pinDelete: pinCalendarDelete, pinEdit: pinCalendarEdit } =
+    useCalendarOverlay(rawCalendarEventsForOverlay);
 
   const data = useMemo<DashboardData>(() => {
     const webhookResponse: any = liveData;
@@ -1727,15 +1738,21 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       dataHealth, quotesDebug, isLoading, isRefreshing, hasLiveData, connectedCount, lastUpdated,
       sources: ds.sources, toggleConnection: ds.toggleConnection,
       updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow, syncProjectKPIs: ds.syncProjectKPIs, syncCalendar: ds.syncCalendar, refetchCalendar: ds.refetchCalendar,
-      calendarEvents: calendarEventsOverride !== null
-        ? [
-            ...rawCalendarEvents.filter((e) => !e.id.startsWith("sqb-")),
-            ...calendarEventsOverride.filter((e) => e.id.startsWith("sqb-")),
-          ]
-        : rawCalendarEvents,
+      calendarEvents: (() => {
+        const base = calendarEventsOverride !== null
+          ? [
+              ...rawCalendarEvents.filter((e) => !e.id.startsWith("sqb-")),
+              ...calendarEventsOverride.filter((e) => e.id.startsWith("sqb-")),
+            ]
+          : rawCalendarEvents;
+        return applyOverlay(base);
+      })(),
       upcomingEvents: rawUpcomingEvents,
       calendarSummary: rawCalendarSummary,
       setCalendarEvents: setCalendarEventsState,
+      pinCalendarCreate,
+      pinCalendarDelete,
+      pinCalendarEdit,
       zohoProjects: Array.isArray((calendarData as any)?.zohoProjects) ? (calendarData as any).zohoProjects : [],
       projectKPIData,
       liveData,
@@ -1750,7 +1767,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       xeroPnl,
       xeroMonthlyCashflow,
     };
-  }, [liveData, hasLiveData, connectedCount, isLoading, isRefreshing, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride, calendarData, projectKPIData, quotingOpp, totalLeads]);
+  }, [liveData, hasLiveData, connectedCount, isLoading, isRefreshing, ds, formulas, addFormula, updateFormula, deleteFormula, setCalendarEventsState, calendarEventsOverride, calendarData, projectKPIData, quotingOpp, totalLeads, applyOverlay, pinCalendarCreate, pinCalendarDelete, pinCalendarEdit]);
 
   return <DashboardDataContext.Provider value={data}>{children}</DashboardDataContext.Provider>;
 }
@@ -1805,7 +1822,7 @@ export function useDashboardData(): DashboardData {
       isLoading: false, isRefreshing: false, hasLiveData: false, connectedCount: 0, lastUpdated: null,
       sources: [], toggleConnection: () => {}, updateWebhookUrl: () => {},
       saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {}, syncProjectKPIs: async () => ({ success: false, error: "Not initialized" }), syncCalendar: async () => 0, refetchCalendar: async () => 0,
-      calendarEvents: [], upcomingEvents: [], calendarSummary: null, setCalendarEvents: () => {}, zohoProjects: [],
+      calendarEvents: [], upcomingEvents: [], calendarSummary: null, setCalendarEvents: () => {}, pinCalendarCreate: () => {}, pinCalendarDelete: () => {}, pinCalendarEdit: () => {}, zohoProjects: [],
       projectKPIData: null,
       liveData: {},
       isOffline: false,

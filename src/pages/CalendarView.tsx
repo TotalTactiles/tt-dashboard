@@ -31,7 +31,7 @@ interface WriteDebug {
 }
 
 const CalendarView = () => {
-  const { calendarEvents, upcomingEvents, calendarSummary, setCalendarEvents, syncCalendar, refetchCalendar, zohoProjects } = useDashboardData();
+  const { calendarEvents, upcomingEvents, calendarSummary, setCalendarEvents, syncCalendar, refetchCalendar, zohoProjects, pinCalendarCreate, pinCalendarDelete, pinCalendarEdit } = useDashboardData();
   const { toast } = useToast();
 
   console.log('[Calendar Debug] raw events:', calendarEvents?.length, 'sample source:', calendarEvents?.[0]?.source, 'sample type:', calendarEvents?.[0]?.type);
@@ -143,28 +143,15 @@ const CalendarView = () => {
 
   const handleSaveEvent = useCallback(
     async (action: "create" | "update" | "delete", eventData: Partial<LiveCalendarEvent>) => {
-      const prevEvents = [...calendarEvents];
-      if (action === "create") {
-        const newEvent: LiveCalendarEvent = {
-          id: `temp-${Date.now()}`,
-          title: eventData.title || "",
-          description: eventData.description,
-          location: eventData.location,
-          start: eventData.start || new Date().toISOString(),
-          end: eventData.end || new Date().toISOString(),
-          allDay: eventData.allDay || false,
-          source: "Google Calendar",
-          type: eventData.type || "Meeting",
-          attendees: eventData.attendees || [],
-        };
-        setCalendarEvents([...calendarEvents, newEvent]);
-      } else if (action === "update" && editingEvent) {
-        setCalendarEvents(
-          calendarEvents.map((e) => (e.id === editingEvent.id ? { ...e, ...eventData } : e))
-        );
-      } else if (action === "delete" && editingEvent) {
-        setCalendarEvents(calendarEvents.filter((e) => e.id !== editingEvent.id));
-      }
+      // Build a stable id for overlay pinning
+      const buildStableId = (): string => {
+        if (action === "create") {
+          // Zoho creates: prefer zohoId shape if backend echoes one back later; for now temp id
+          return `temp-${Date.now()}`;
+        }
+        return editingEvent?.id ?? `temp-${Date.now()}`;
+      };
+      const stableId = buildStableId();
 
       setModalOpen(false);
 
@@ -201,6 +188,40 @@ const CalendarView = () => {
           throw new Error(error?.message || data?.error || data?.message || "Failed to save event");
         }
 
+        // ===== OPTIMISTIC OVERLAY — instant UI, reconciled silently by polling =====
+        if (action === "create") {
+          const source = (eventData as any).source ?? "Google Calendar";
+          const newEvent: LiveCalendarEvent = {
+            id: stableId,
+            title: eventData.title || "",
+            description: eventData.description,
+            location: eventData.location,
+            start: eventData.start || new Date().toISOString(),
+            end: eventData.end || eventData.start || new Date().toISOString(),
+            allDay: eventData.allDay || false,
+            source,
+            type: eventData.type || "Meeting",
+            attendees: eventData.attendees || [],
+            zohoId: eventData.zohoId ?? null,
+            googleId: undefined,
+          };
+          pinCalendarCreate(newEvent);
+        } else if (action === "update" && editingEvent) {
+          const patch: Partial<LiveCalendarEvent> = {
+            title: eventData.title,
+            description: eventData.description,
+            location: eventData.location,
+            start: eventData.start,
+            end: eventData.end,
+            allDay: eventData.allDay,
+            type: eventData.type,
+            attendees: eventData.attendees,
+          };
+          pinCalendarEdit(editingEvent.id, patch);
+        } else if (action === "delete" && editingEvent) {
+          pinCalendarDelete(editingEvent.id);
+        }
+
         setCalendarDebug({
           lastAction: action,
           lastError: null,
@@ -211,58 +232,6 @@ const CalendarView = () => {
         const actionLabel = action === "create" ? "Event created" : action === "update" ? "Event updated" : "Event deleted";
         toast({ title: actionLabel, className: action === "delete" ? "" : "border-green-500/30" });
 
-        const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-        (async () => {
-          const getCachedEvents = (): LiveCalendarEvent[] => {
-            try {
-              const raw = localStorage.getItem("dashboard_calendar_data");
-              const parsed = raw ? JSON.parse(raw) : {};
-              return Array.isArray(parsed.calendarEvents) ? parsed.calendarEvents : [];
-            } catch {
-              return [];
-            }
-          };
-
-          const toDateKey = (iso?: string) => {
-            if (!iso) return "";
-            const d = new Date(iso);
-            if (isNaN(d.getTime())) return "";
-            const y = d.getFullYear();
-            const m = String(d.getMonth() + 1).padStart(2, "0");
-            const day = String(d.getDate()).padStart(2, "0");
-            return `${y}-${m}-${day}`;
-          };
-
-          const targetTitle = eventData.title ?? "";
-          const targetDate = toDateKey(
-            (eventData as any).startDate ?? eventData.start
-          );
-          const targetSource =
-            (eventData as any).source ?? editingEvent?.source ?? "Google Calendar";
-
-          const isCreatedEventPresent = (events: LiveCalendarEvent[]) =>
-            events.some(
-              (e) =>
-                e.title === targetTitle &&
-                toDateKey(e.start) === targetDate &&
-                e.source === targetSource
-            );
-
-          await delay(2500);
-          const count1 = await refetchCalendar();
-          console.log(`[refetch] attempt 1, events=${count1}`);
-
-          if (action === "create" && targetTitle && targetDate) {
-            const eventsAfterFirst = getCachedEvents();
-            if (isCreatedEventPresent(eventsAfterFirst)) return;
-
-            await delay(3000);
-            const count2 = await refetchCalendar();
-            console.log(`[refetch] attempt 2, events=${count2}`);
-          }
-        })();
-
       } catch (err: any) {
         const errMsg = err?.message || "Unknown error";
         setCalendarDebug({
@@ -272,10 +241,9 @@ const CalendarView = () => {
           timestamp: new Date().toLocaleString(),
         });
         toast({ title: "Failed to save event — please try again", variant: "destructive" });
-        setCalendarEvents(prevEvents);
       }
     },
-    [calendarEvents, editingEvent, setCalendarEvents, syncCalendar, refetchCalendar, toast]
+    [editingEvent, pinCalendarCreate, pinCalendarDelete, pinCalendarEdit, toast]
   );
 
   const debugBadge = (() => {
