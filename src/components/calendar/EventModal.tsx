@@ -352,7 +352,8 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate, zohoProjects =
             </div>
           </div>
 
-          {/* Location */}
+          {/* Location (hidden for Zoho create) */}
+          {!isZohoCreate && (
           <div className="flex items-start gap-2 min-w-0">
             <MapPin className="h-4 w-4 text-muted-foreground mt-2 shrink-0" />
             <div className="flex-1 min-w-0">
@@ -365,8 +366,10 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate, zohoProjects =
               />
             </div>
           </div>
+          )}
 
-          {/* Attendees */}
+          {/* Attendees (hidden for Zoho create) */}
+          {!isZohoCreate && (
           <div className="flex items-start gap-2 min-w-0">
             <Users className="h-4 w-4 text-muted-foreground mt-2 shrink-0" />
             <div className="flex-1 min-w-0">
@@ -379,6 +382,8 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate, zohoProjects =
               />
             </div>
           </div>
+          )}
+
 
           {/* Actions */}
           <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
