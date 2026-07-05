@@ -290,6 +290,7 @@ const CalendarView = () => {
               onSelectDate={setSelectedDate}
               onEventClick={handleOpenEdit}
               onAddEvent={handleOpenCreate}
+              onDayClick={handleDayClick}
             />
           </div>
           <div className="w-full lg:w-[360px] shrink-0 min-w-0 min-h-0 max-h-[60vh] lg:max-h-none overflow-y-auto">
