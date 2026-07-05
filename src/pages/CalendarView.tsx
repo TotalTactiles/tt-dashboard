@@ -368,7 +368,8 @@ const CalendarView = () => {
         onClose={() => setModalOpen(false)}
         event={editingEvent}
         onSave={handleSaveEvent}
-        selectedDate={selectedDate}
+        selectedDate={createInitialDate ?? selectedDate}
+        zohoProjects={zohoProjects}
       />
     </DashboardLayout>
   );
