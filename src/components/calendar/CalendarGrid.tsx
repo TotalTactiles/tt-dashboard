@@ -429,9 +429,25 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                       />
                     )}
                   </div>
+                  {!collapsedPast && !tvMode && dayEvts.length > 0 && (
+                    <div className="flex sm:hidden flex-wrap items-center gap-[3px] w-full mt-0.5">
+                      {dayEvts.slice(0, 3).map((ev) => (
+                        <span
+                          key={ev.id}
+                          className="w-[7px] h-[7px] rounded-full"
+                          style={{ background: getEventTheme(ev).accent }}
+                        />
+                      ))}
+                      {dayEvts.length > 3 && (
+                        <span className="text-[8.5px] font-mono text-muted-foreground leading-none">
+                          +{dayEvts.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {!collapsedPast && (
                     <div
-                      className={`flex flex-col ${tvMode ? "gap-1.5" : "gap-1"} flex-1 min-h-0 w-full overflow-y-auto ${isExpanded ? "max-h-[60vh]" : ""}`}
+                      className={`${tvMode ? "flex" : "hidden sm:flex"} flex-col ${tvMode ? "gap-1.5" : "gap-1"} flex-1 min-h-0 w-full overflow-y-auto ${isExpanded ? "max-h-[60vh]" : ""}`}
                     >
                       {visibleEvents.map((ev) => {
                         const theme = getEventTheme(ev);
