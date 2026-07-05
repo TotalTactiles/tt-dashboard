@@ -89,7 +89,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
   const hoverCapable = useMediaQuery("(hover: hover) and (pointer: fine)", false);
   const isNarrow = useMediaQuery("(max-width: 639px)", false);
   const tvMode = useTvMode();
-  const collapsedLimit = tvMode ? 6 : isNarrow ? 2 : 4;
+  const collapsedLimit = tvMode ? 6 : isNarrow ? 2 : 3;
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
