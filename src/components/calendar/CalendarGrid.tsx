@@ -226,7 +226,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
               className={`relative flex items-start rounded-lg transition-all duration-150
-                ${collapsedPast ? (tvMode ? "h-12 px-2 py-1 justify-between" : "h-8 px-1.5 py-0.5 justify-between") : `flex-col ${tvMode ? "p-2" : "p-1.5"}`}
+                ${collapsedPast ? (tvMode ? "h-10 px-2 py-1 justify-between" : "h-6 px-1.5 py-0.5 justify-between") : `flex-col ${tvMode ? "p-2" : "p-1.5"}`}
                 ${!cell.inMonth ? "opacity-30 pointer-events-none" : "cursor-pointer"}
                 ${cell.inMonth && isToday(cell.day) ? "bg-primary/15 ring-1 ring-primary/40" : ""}
                 ${cell.inMonth && isSelected(cell.day) && !isToday(cell.day) ? "bg-secondary ring-1 ring-primary/30" : ""}
