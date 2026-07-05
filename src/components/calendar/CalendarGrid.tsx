@@ -92,7 +92,12 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
 
   const handleDayClick = (day: number) => {
     onSelectDate(new Date(year, month, day));
+    if (onDayClick) {
+      const iso = `${year}-${pad(month + 1)}-${pad(day)}`;
+      onDayClick(iso);
+    }
   };
+  const pad = (n: number) => n.toString().padStart(2, "0");
 
   return (
     <motion.div
