@@ -1,22 +1,20 @@
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
+import { getEventTheme } from "./eventColors";
 
 interface EventTimelineProps {
   events: LiveCalendarEvent[];
   onEventClick: (event: LiveCalendarEvent) => void;
 }
 
-const TYPE_COLORS: Record<string, string> = {
-  Meeting: "#378ADD",
-  Deadline: "#E24B4A",
-  Milestone: "#7F77DD",
-  Care: "#639922",
-  Valuation: "#BA7517",
-  Distribution: "#1D9E75",
+const getSourceLabel = (source: string) => {
+  const s = source.toLowerCase();
+  if (s.includes("google")) return "Google";
+  if (s.includes("zoho")) return "Zoho";
+  if (s.includes("strategic")) return "Strategic";
+  return source;
 };
-
-const getTypeColor = (type: string) => TYPE_COLORS[type] || "#378ADD";
 
 const EventTimeline = ({ events, onEventClick }: EventTimelineProps) => {
   const formatDateTime = (iso: string) => {
@@ -38,13 +36,13 @@ const EventTimeline = ({ events, onEventClick }: EventTimelineProps) => {
         <p className="text-xs text-muted-foreground py-6 text-center">No upcoming events</p>
       ) : (
         events.slice(0, 20).map((ev) => {
-          const isGoogle = ev.source.includes("Google");
+          const theme = getEventTheme(ev);
           return (
             <div
               key={ev.id}
               onClick={() => onEventClick(ev)}
               className="flex items-center gap-3 p-2.5 rounded-[10px] bg-muted/40 hover:bg-secondary/60 transition-all duration-150 cursor-pointer min-w-0"
-              style={{ borderLeft: `3px solid ${getTypeColor(ev.type)}` }}
+              style={{ borderLeft: `3px solid ${theme.border}` }}
             >
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate" title={ev.title}>
@@ -62,11 +60,11 @@ const EventTimeline = ({ events, onEventClick }: EventTimelineProps) => {
               <span
                 className="text-[10px] font-mono px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap"
                 style={{
-                  background: isGoogle ? "hsl(4, 74%, 52% / 0.15)" : "hsl(217, 79%, 48% / 0.15)",
-                  color: isGoogle ? "hsl(4, 74%, 52%)" : "hsl(217, 79%, 55%)",
+                  background: theme.accent + "22",
+                  color: theme.accent,
                 }}
               >
-                {isGoogle ? "Google" : "Zoho"}
+                {getSourceLabel(ev.source)}
               </span>
             </div>
           );

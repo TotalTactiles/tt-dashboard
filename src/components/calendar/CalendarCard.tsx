@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { CalendarEvent, eventTypeColors } from "@/data/calendarMockData";
 import { Badge } from "@/components/ui/badge";
+import { SOURCE_THEME } from "./eventColors";
 
 interface CalendarCardProps {
   title: string;
@@ -52,7 +53,12 @@ const CalendarCard = ({ title, source, events }: CalendarCardProps) => {
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <span className={`pulse-dot ${source === "google" ? "bg-chart-blue" : "bg-chart-purple"}`} />
+          <span
+            className="pulse-dot"
+            style={{
+              backgroundColor: source === "google" ? SOURCE_THEME.google.accent : SOURCE_THEME.zohoParent.accent,
+            }}
+          />
           <h3 className="text-sm font-semibold text-foreground">{title}</h3>
           <Badge variant="outline" className="text-[10px] font-mono">
             {source === "google" ? "Google" : "Zoho"}
