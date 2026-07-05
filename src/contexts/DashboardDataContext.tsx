@@ -1735,6 +1735,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       upcomingEvents: rawUpcomingEvents,
       calendarSummary: rawCalendarSummary,
       setCalendarEvents: setCalendarEventsState,
+      zohoProjects: Array.isArray((calendarData as any)?.zohoProjects) ? (calendarData as any).zohoProjects : [],
       projectKPIData,
       liveData,
       isOffline: ds.isOffline ?? false,
