@@ -769,17 +769,31 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
       className="mt-8 pt-6 border-t border-white/15"
     >
       {/* Header */}
-      <div className="flex items-end justify-between gap-3 flex-wrap mb-4">
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">Strategic Quarters</h3>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            Quarterly targets &amp; task tracking · four-phase hierarchy
-          </p>
+      <div className="flex items-center justify-between gap-4 flex-wrap mb-5">
+        {/* Left: accent bar + title + subtitle */}
+        <div className="flex items-center gap-3">
+          <div
+            className="w-1 h-9 rounded-full shrink-0"
+            style={{ background: "linear-gradient(180deg, #E24B4A, #378ADD 55%, #BA7517)" }}
+          />
+          <div>
+            <h2 className="text-[22px] leading-none font-bold tracking-tight text-foreground">
+              Strategic Quarters
+            </h2>
+            <p className="text-[13px] text-muted-foreground mt-1">
+              Quarterly targets &amp; task tracking · four-phase hierarchy
+            </p>
+          </div>
         </div>
-        <div className="flex gap-3 flex-wrap">
-          {PHASE_ORDER.map((p) => (
-            <span key={p} className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground">
-              <span className="w-2 h-2 rounded-full" style={{ background: PHASE_COLORS[p] }} />
+
+        {/* Right: larger legend keys */}
+        <div className="flex items-center gap-[18px] flex-wrap">
+          {(["Pre Seal", "Close the Seal", "Post Seal", "Legacy"] as const).map((p) => (
+            <span key={p} className="flex items-center gap-2 text-[13px] font-medium text-foreground">
+              <span
+                className="w-[11px] h-[11px] rounded-full"
+                style={{ background: PHASE_COLORS[p], boxShadow: "0 0 0 3px rgba(255,255,255,0.04)" }}
+              />
               {p}
             </span>
           ))}
