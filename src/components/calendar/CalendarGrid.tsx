@@ -131,14 +131,20 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
     d === selectedDate.getDate() && month === selectedDate.getMonth() && year === selectedDate.getFullYear();
 
   const handleDayClick = (day: number) => {
-    if (isPast(day)) {
-      const key = dateKey(year, month, day);
+    const key = dateKey(year, month, day);
+    const past = isPast(day);
+    if (past) {
+      // Past days toggle expand/collapse in-place instead of opening the create modal.
       setExpandedPastDays((prev) => {
         const next = new Set(prev);
         if (next.has(key)) next.delete(key);
         else next.add(key);
         return next;
       });
+      // Still update the selected day so the side panels reflect the chosen date,
+      // but do not trigger the day-click → create-event modal.
+      onSelectDate(new Date(year, month, day));
+      return;
     }
     onSelectDate(new Date(year, month, day));
     if (onDayClick) {
