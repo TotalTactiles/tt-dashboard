@@ -55,7 +55,7 @@ interface StrategicQuartersBoardProps {
 const PHASE_COLORS: Record<Phase, string> = {
   "Pre Seal": "#E24B4A",
   "Close the Seal": "#378ADD",
-  "Post Seal": "#378ADD",
+  "Post Seal": "#22C55E",
   Legacy: "#BA7517",
 };
 
