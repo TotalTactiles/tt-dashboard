@@ -441,8 +441,11 @@ const CalendarView = () => {
             onEventClick={handleOpenEdit}
             onAddEvent={handleOpenCreate}
             onDayClick={handleDayClick}
+            onViewMonthChange={handleViewMonthChange}
           />
         </div>
+
+
 
         {/* Bottom row: 3 tidy cards — stack on smaller screens so each has enough width */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4 items-stretch">
