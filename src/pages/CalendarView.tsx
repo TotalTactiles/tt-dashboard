@@ -184,8 +184,57 @@ const CalendarView = () => {
           },
         });
 
-        if (error || data?._proxyError || data?.success === false) {
-          throw new Error(error?.message || data?.error || data?.message || "Failed to save event");
+        // ---- Normalise n8n-proxy write response (envelope-agnostic) ----
+        const unwrapResponse = (raw: any): any => {
+          let cur: any = raw;
+          if (typeof cur === "string") {
+            try { cur = JSON.parse(cur); } catch { /* keep string */ }
+          }
+          // Peel common envelopes: {body:{...}}, {data:{...}}, {response:{...}}, [{...}]
+          for (let i = 0; i < 4; i++) {
+            if (!cur || typeof cur !== "object") break;
+            if (Array.isArray(cur) && cur.length === 1) { cur = cur[0]; continue; }
+            if ("success" in cur || "error" in cur || "_proxyError" in cur) break;
+            if (cur.body && typeof cur.body === "object") { cur = cur.body; continue; }
+            if (cur.data && typeof cur.data === "object") { cur = cur.data; continue; }
+            if (cur.response && typeof cur.response === "object") { cur = cur.response; continue; }
+            break;
+          }
+          return cur;
+        };
+
+        // Deep-scan for a `success` boolean if not on top level
+        const deepFindSuccess = (obj: any, depth = 0): boolean | undefined => {
+          if (!obj || typeof obj !== "object" || depth > 3) return undefined;
+          if (typeof obj.success === "boolean") return obj.success;
+          for (const k of Object.keys(obj)) {
+            const v = (obj as any)[k];
+            if (v && typeof v === "object") {
+              const found = deepFindSuccess(v, depth + 1);
+              if (typeof found === "boolean") return found;
+            }
+          }
+          return undefined;
+        };
+
+        const unwrapped = unwrapResponse(data);
+        const explicitSuccess = deepFindSuccess(unwrapped);
+        const hasError = !!(unwrapped?.error || unwrapped?._error || unwrapped?._proxyError);
+        // Success rule: explicit true; OR (no explicit flag AND no error AND no transport error)
+        const isSuccess =
+          !error &&
+          !hasError &&
+          (explicitSuccess === true || (explicitSuccess === undefined && !!unwrapped));
+
+        console.log("[write result]", { action, unwrapped, explicitSuccess, isSuccess, transportError: error?.message });
+
+        if (!isSuccess) {
+          throw new Error(
+            error?.message ||
+              unwrapped?.error ||
+              unwrapped?.message ||
+              (explicitSuccess === false ? "Workflow reported success:false" : "Failed to save event")
+          );
         }
 
         // ===== OPTIMISTIC OVERLAY — instant UI, reconciled silently by polling =====
