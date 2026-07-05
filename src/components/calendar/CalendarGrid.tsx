@@ -352,12 +352,11 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
       {view === "month" && (
         <>
           {/* Day headers */}
-          <div className="grid grid-cols-7 gap-1 mb-1 shrink-0">
+          <div className="grid grid-cols-7 gap-[3px] sm:gap-1 mb-1 shrink-0">
             {DAYS.map((d) => (
               <div
                 key={d}
-                className="text-center font-mono text-muted-foreground py-1 font-medium"
-                style={{ fontSize: "clamp(9px, 1vw, 11px)" }}
+                className="text-center font-mono text-muted-foreground py-1 font-medium text-[9.5px] sm:text-[11px]"
               >
                 {d}
               </div>
@@ -366,7 +365,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
 
           {/* Grid */}
           <div
-            className="grid grid-cols-7 gap-1 flex-1 min-h-0 items-stretch"
+            className="grid grid-cols-7 gap-[3px] sm:gap-1 flex-1 min-h-0 items-stretch"
             style={{ gridTemplateRows: `repeat(${rowCount}, minmax(0, auto))` }}
           >
             {cells.map((cell, i) => {
