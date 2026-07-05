@@ -462,9 +462,12 @@ const CalendarView = () => {
             <CollapsibleCardWrapper
               title="Upcoming Projects"
               defaultOpen={true}
-              badge={zohoProjects.length}
+              badge={projectsInViewedMonth.length}
             >
-              <UpcomingProjectsPanel projects={zohoProjects} />
+              <UpcomingProjectsPanel
+                projects={projectsInViewedMonth}
+                emptyMessage="No projects starting or ending this month"
+              />
             </CollapsibleCardWrapper>
           </div>
           <div className="min-w-0 flex flex-col">
