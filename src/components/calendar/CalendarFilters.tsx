@@ -84,14 +84,14 @@ const CalendarFilters = ({
         <div key={f.id} className="group/cf flex items-center">
           <button
             onClick={() => toggleCustom(f.id)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-l-full text-[11px] font-medium transition-all duration-150"
+            className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-l-full text-[10.5px] sm:text-[11px] font-medium transition-all duration-150"
             style={
               f.active
                 ? { background: f.color, color: "#fff" }
                 : { background: "transparent", border: `1px solid ${f.color}`, borderRight: "none", color: f.color }
             }
           >
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: f.active ? "#fff" : f.color }} />
+            <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full" style={{ background: f.active ? "#fff" : f.color }} />
             {f.label}
           </button>
           <button
