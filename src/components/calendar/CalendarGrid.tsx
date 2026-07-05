@@ -209,20 +209,22 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
               >
                 {visibleEvents.map((ev) => {
                   const color = getTypeColor(ev.type);
+                  const isPending = !!ev._pending;
                   return (
                     <button
                       key={ev.id}
                       type="button"
-                      title={ev.title}
+                      title={isPending ? `${ev.title} (syncing…)` : ev.title}
                       onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
-                      className={`group flex items-center min-w-0 w-full rounded-md border cursor-pointer text-left transition-colors ${
+                      className={`group flex items-center min-w-0 w-full rounded-md border cursor-pointer text-left transition-all duration-300 ${
                         tvMode
                           ? "gap-2 px-2 py-1.5 bg-secondary border-border/60 hover:bg-secondary/80"
                           : `gap-1 px-1 border-transparent bg-secondary/40 hover:bg-secondary hover:border-border ${hoverCapable ? "py-0.5" : "py-1.5 min-h-[36px]"}`
                       }`}
+                      style={{ opacity: isPending ? (tvMode ? 0.6 : 0.5) : 1 }}
                     >
                       <span
-                        className={`rounded-full shrink-0 ${tvMode ? "w-2.5 h-2.5" : "w-1.5 h-1.5"}`}
+                        className={`rounded-full shrink-0 ${tvMode ? "w-2.5 h-2.5" : "w-1.5 h-1.5"} ${isPending ? "animate-pulse" : ""}`}
                         style={{ backgroundColor: color }}
                       />
                       <span
@@ -231,6 +233,14 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                       >
                         {ev.title}
                       </span>
+                      {isPending && (
+                        <span
+                          className="ml-auto shrink-0 italic text-muted-foreground"
+                          style={{ fontSize: tvMode ? "11px" : "9px" }}
+                        >
+                          syncing…
+                        </span>
+                      )}
                     </button>
                   );
                 })}
