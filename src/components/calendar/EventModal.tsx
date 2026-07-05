@@ -107,12 +107,16 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
       location: location.trim() || "",
       start: startISO,
       end: endISO,
+      startDate: date,
+      endDate: date,
       allDay,
       type,
       attendees,
       googleId: event?.googleId,
       zohoId: event?.zohoId,
-    });
+      source: event?.source,
+      projectId: (event as any)?.projectId,
+    } as any);
     setLoading(false);
   };
 
