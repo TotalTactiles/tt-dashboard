@@ -89,11 +89,14 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  const todayStart = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
+  // Today as a local-midnight Date, computed once per mount so collapsed styling is stable.
+  const todayDate = useMemo(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
   }, []);
+
+  const dateKeyNum = (d: Date) => d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+  const todayKey = dateKeyNum(todayDate);
 
   // ---- Navigation dispatched by active view ----
   const goPrev = () => {
