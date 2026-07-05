@@ -1740,7 +1740,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       formulas, addFormula, updateFormula, deleteFormula,
       dataHealth, quotesDebug, isLoading, isRefreshing, hasLiveData, connectedCount, lastUpdated,
       sources: ds.sources, toggleConnection: ds.toggleConnection,
-      updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow, syncProjectKPIs: ds.syncProjectKPIs, syncCalendar: ds.syncCalendar, refetchCalendar: ds.refetchCalendar,
+      updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow, syncProjectKPIs: ds.syncProjectKPIs, syncCalendar: ds.syncCalendar, refetchCalendar: ds.refetchCalendar, evictCalendarIds: (ds as any).evictCalendarIds ?? (async () => 0),
       calendarEvents: (() => {
         const base = calendarEventsOverride !== null
           ? [
