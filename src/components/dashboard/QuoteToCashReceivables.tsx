@@ -113,6 +113,19 @@ interface ReceivablesData {
   chaseList?: InvoiceRow[];
   retentionList?: InvoiceRow[];
   monthlyTrend: MonthlyTrend[];
+  invoicing?: InvoicingProfile;
+}
+
+interface InvoicingProfile {
+  totalInvoiced: number;
+  invoiceCount: number;
+  monthsSpan: number;
+  avgInvoicesPerMonth: number;
+  avgInvoicedPerMonth: number;
+  avgInvoiceValue: number;
+  medianInvoiceValue: number;
+  largestInvoice: { company: string; amount: number; invoiceNumber: string } | null;
+  collectionRatePct: number;
 }
 
 const fmtMoney = (n: number | null | undefined) => {
