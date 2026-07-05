@@ -787,8 +787,16 @@ export function useDataSources() {
 
       if (calEvents.length === 0) {
         console.warn('[Calendar Poll] calendarEvents empty from tt-calendar-read webhook');
+        // GUARD: on a forced refresh, an empty response usually means the Zoho
+        // rebuild hasn't finished yet. Do NOT overwrite existing state — return
+        // 0 so the caller can retry.
+        if (opts?.refresh) {
+          console.warn('[Calendar Poll] refresh returned empty — keeping existing state, will not clobber');
+          return 0;
+        }
       }
 
+      let mergedCount = 0;
       // Merge logic: keep Zoho Projects events sticky across polls
       // - Google Calendar / other sources: always replaced with fresh data
       // - Zoho Projects: only replace if new response contains Zoho events; otherwise keep previous
@@ -801,6 +809,7 @@ export function useDataSources() {
           : prevEvents.filter((e: any) => e.source === 'Zoho Projects');
 
         const mergedEvents = [...nonZohoFresh, ...zohoToUse];
+        mergedCount = mergedEvents.length;
         const newData = { calendarEvents: mergedEvents, upcomingEvents: upEvents, calendarSummary: calSummary, zohoProjects: zohoProjectsList.length > 0 ? zohoProjectsList : (Array.isArray(prev?.zohoProjects) ? prev.zohoProjects : []) };
         localStorage.setItem(CALENDAR_CACHE_KEY, JSON.stringify(newData));
 
@@ -817,9 +826,11 @@ export function useDataSources() {
         console.log(`[Calendar Poll] Fetched ${calEvents.length} events (Zoho fresh=${freshZoho.length}, Zoho merged=${zohoToUse.length})`);
         return newData;
       });
+      return mergedCount;
     } catch (err: any) {
-      if (err.name === 'AbortError') return; // intentionally cancelled
+      if (err.name === 'AbortError') return 0; // intentionally cancelled
       console.error('[Calendar Poll] Error:', err.message);
+      return 0;
     }
   }, []);
 
