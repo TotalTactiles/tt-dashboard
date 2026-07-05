@@ -58,9 +58,13 @@ const CalendarView = () => {
     );
   }, []);
 
-  const projectsInViewedMonth = useMemo(() => {
+  const [projectsMode, setProjectsMode] = useState<"this-month" | "active-during">("this-month");
+
+  const filteredProjects = useMemo(() => {
     const vy = viewedMonth.getFullYear();
     const vm = viewedMonth.getMonth();
+    const firstDay = new Date(vy, vm, 1);
+    const lastDay = new Date(vy, vm + 1, 0);
     const parse = (raw: unknown): Date | null => {
       if (!raw || typeof raw !== "string") return null;
       const s = raw.trim();
@@ -74,12 +78,14 @@ const CalendarView = () => {
       .map((p) => ({ p, start: parse(p.startDate), end: parse(p.endDate) }))
       .filter(({ start, end }) => {
         if (!start && !end) return false;
-        const startIdx = start ? monthIndex(start) : null;
-        const endIdx = end ? monthIndex(end) : null;
-        if (startIdx === viewedIdx || endIdx === viewedIdx) return true;
-        // spans across viewed month
-        if (startIdx !== null && endIdx !== null && startIdx < viewedIdx && endIdx > viewedIdx) return true;
-        return false;
+        if (projectsMode === "this-month") {
+          const startIdx = start ? monthIndex(start) : null;
+          const endIdx = end ? monthIndex(end) : null;
+          return startIdx === viewedIdx || endIdx === viewedIdx;
+        }
+        // active-during: overlaps the viewed month
+        if (!start || !end) return false;
+        return start.getTime() <= lastDay.getTime() && end.getTime() >= firstDay.getTime();
       })
       .sort((a, b) => {
         const ad = (a.start ?? a.end)!.getTime();
@@ -87,7 +93,7 @@ const CalendarView = () => {
         return ad - bd;
       })
       .map(({ p }) => p);
-  }, [zohoProjects, viewedMonth]);
+  }, [zohoProjects, viewedMonth, projectsMode]);
 
   const handleSyncClick = useCallback(async () => {
     if (syncStatus === "syncing") return;
@@ -462,11 +468,17 @@ const CalendarView = () => {
             <CollapsibleCardWrapper
               title="Upcoming Projects"
               defaultOpen={true}
-              badge={projectsInViewedMonth.length}
+              badge={filteredProjects.length}
             >
               <UpcomingProjectsPanel
-                projects={projectsInViewedMonth}
-                emptyMessage="No projects starting or ending this month"
+                projects={filteredProjects}
+                mode={projectsMode}
+                onModeChange={setProjectsMode}
+                emptyMessage={
+                  projectsMode === "this-month"
+                    ? "No projects starting or ending this month"
+                    : "No projects active during this month"
+                }
               />
             </CollapsibleCardWrapper>
           </div>

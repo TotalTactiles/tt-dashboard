@@ -3,9 +3,13 @@ import { FolderKanban } from "lucide-react";
 import { type ZohoProject } from "@/contexts/DashboardDataContext";
 import { SOURCE_THEME } from "./eventColors";
 
+export type ProjectsFilterMode = "this-month" | "active-during";
+
 interface UpcomingProjectsPanelProps {
   projects: ZohoProject[];
   emptyMessage?: string;
+  mode?: ProjectsFilterMode;
+  onModeChange?: (mode: ProjectsFilterMode) => void;
 }
 
 function parseDate(raw: unknown): Date | null {
@@ -20,7 +24,42 @@ function fmtDate(d: Date): string {
   return d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
 }
 
-export default function UpcomingProjectsPanel({ projects, emptyMessage = "No upcoming projects" }: UpcomingProjectsPanelProps) {
+export default function UpcomingProjectsPanel({
+  projects,
+  emptyMessage = "No upcoming projects",
+  mode,
+  onModeChange,
+}: UpcomingProjectsPanelProps) {
+  const showPills = !!mode && !!onModeChange;
+  const pill = (m: ProjectsFilterMode, label: string) => {
+    const active = mode === m;
+    return (
+      <button
+        key={m}
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onModeChange?.(m);
+        }}
+        className={
+          "px-2.5 py-1 rounded-full text-[10px] font-mono font-medium transition-colors " +
+          (active
+            ? "text-white"
+            : "bg-muted/60 text-muted-foreground hover:bg-muted")
+        }
+        style={
+          active
+            ? {
+                background: SOURCE_THEME.zohoParent.accent,
+                color: SOURCE_THEME.zohoParent.accent ? "#fff" : undefined,
+              }
+            : undefined
+        }
+      >
+        {label}
+      </button>
+    );
+  };
   const sorted = useMemo(() => {
     return [...projects]
       .map((p) => {
@@ -45,10 +84,17 @@ export default function UpcomingProjectsPanel({ projects, emptyMessage = "No upc
   };
 
   return (
-    <div
-      className="flex-1 min-h-0 min-w-0 space-y-2 overflow-y-auto pr-1"
-      style={{ maxHeight: 320, scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
-    >
+    <div className="flex-1 min-h-0 min-w-0 flex flex-col">
+      {showPills && (
+        <div className="flex items-center gap-1.5 mb-2 shrink-0">
+          {pill("this-month", "This month")}
+          {pill("active-during", "Active during")}
+        </div>
+      )}
+      <div
+        className="flex-1 min-h-0 space-y-2 overflow-y-auto pr-1"
+        style={{ maxHeight: 320, scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
+      >
       {sorted.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-6 text-center">
           <FolderKanban className="w-5 h-5 text-muted-foreground/50 mb-2" />
@@ -93,6 +139,7 @@ export default function UpcomingProjectsPanel({ projects, emptyMessage = "No upc
           );
         })
       )}
+      </div>
     </div>
   );
 }
