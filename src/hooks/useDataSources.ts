@@ -894,6 +894,7 @@ export function useDataSources() {
     syncProjectKPIs,
     syncCalendar: fetchCalendar,
     refetchCalendar: () => fetchCalendar({ refresh: true }),
+    evictCalendarIds: (ids: string[]) => fetchCalendar({ evictIds: ids }),
     updateScreenshot,
     removeScreenshot,
     changeDetectorMeta,
