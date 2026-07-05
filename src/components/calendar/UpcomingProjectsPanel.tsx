@@ -20,7 +20,7 @@ function fmtDate(d: Date): string {
   return d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
 }
 
-export default function UpcomingProjectsPanel({ projects }: UpcomingProjectsPanelProps) {
+export default function UpcomingProjectsPanel({ projects, emptyMessage = "No upcoming projects" }: UpcomingProjectsPanelProps) {
   const sorted = useMemo(() => {
     return [...projects]
       .map((p) => {
