@@ -269,21 +269,25 @@ const CalendarView = () => {
         </div>
 
         {/* Top row: Calendar grid + Scheduled panel */}
-        <div className="flex flex-1 min-h-0 gap-2 overflow-hidden">
-          <CalendarGrid
-            events={filtered}
-            selectedDate={selectedDate}
-            onSelectDate={setSelectedDate}
-            onEventClick={handleOpenEdit}
-            onAddEvent={handleOpenCreate}
-          />
-          <DaySchedulePanel
-            events={filtered}
-            selectedDate={selectedDate}
-            onPrevDay={prevDay}
-            onNextDay={nextDay}
-            onEventClick={handleOpenEdit}
-          />
+        <div className="flex flex-col lg:flex-row flex-1 min-h-0 min-w-0 gap-2 overflow-y-auto lg:overflow-hidden">
+          <div className="flex-1 min-w-0 min-h-0 lg:overflow-hidden">
+            <CalendarGrid
+              events={filtered}
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+              onEventClick={handleOpenEdit}
+              onAddEvent={handleOpenCreate}
+            />
+          </div>
+          <div className="w-full lg:w-[360px] shrink-0 min-w-0 min-h-0 max-h-[60vh] lg:max-h-none overflow-y-auto">
+            <DaySchedulePanel
+              events={filtered}
+              selectedDate={selectedDate}
+              onPrevDay={prevDay}
+              onNextDay={nextDay}
+              onEventClick={handleOpenEdit}
+            />
+          </div>
         </div>
 
         {/* Bottom row: 3 fixed-height panels */}

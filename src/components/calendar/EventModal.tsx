@@ -135,70 +135,72 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-[420px] p-5">
+      <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-[460px] max-h-[85vh] overflow-y-auto p-5">
         <DialogHeader className="sr-only">
           <DialogTitle>{isEditing ? "Edit Event" : "Add Event"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 mt-1">
+        <div className="flex flex-col gap-4 mt-1 min-w-0">
           {/* Title */}
           <Input
             value={title}
             onChange={(e) => { setTitle(e.target.value); setErrors((p) => ({ ...p, title: false })); }}
             placeholder="Add title"
             className={[
-              "text-lg font-medium border-0 border-b rounded-none bg-transparent px-0 py-1.5",
+              "w-full min-w-0 text-lg font-medium border-0 border-b rounded-none bg-transparent px-0 py-1.5",
               "placeholder:text-muted-foreground/70 placeholder:font-normal",
               "focus-visible:ring-0 focus-visible:border-b-ring",
               errors.title ? "border-b-destructive focus-visible:border-b-destructive" : "border-b-transparent",
             ].join(" ")}
           />
-          {errors.title && <p className="text-[11px] text-destructive -mt-3">Title is required</p>}
+          {errors.title && <p className="text-[11px] text-destructive -mt-2">Title is required</p>}
 
-          {/* Date + time + all-day row */}
-          <div className="flex items-center gap-3">
-            <Input
-              type="date"
-              value={date}
-              onChange={(e) => { setDate(e.target.value); setErrors((p) => ({ ...p, date: false })); }}
-              className={[
-                "h-9 text-sm border-0 bg-secondary/50 rounded-lg px-2.5",
-                errors.date ? "ring-1 ring-destructive" : "",
-              ].join(" ")}
+          {/* All-day toggle */}
+          <div className="flex items-center justify-end gap-1.5">
+            <Switch
+              id="allDay"
+              checked={allDay}
+              onCheckedChange={setAllDay}
+              className="scale-90 origin-right"
             />
-            {!allDay && (
-              <div className="flex items-center gap-1.5 flex-1">
-                <Input
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className="h-9 text-sm border-0 bg-secondary/50 rounded-lg px-2.5"
-                />
-                <span className="text-muted-foreground">–</span>
-                <Input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  className="h-9 text-sm border-0 bg-secondary/50 rounded-lg px-2.5"
-                />
-              </div>
-            )}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Switch
-                id="allDay"
-                checked={allDay}
-                onCheckedChange={setAllDay}
-                className="scale-90 origin-right"
-              />
-              <Label htmlFor="allDay" className="text-xs text-muted-foreground whitespace-nowrap cursor-pointer">
-                All-day
-              </Label>
-            </div>
+            <Label htmlFor="allDay" className="text-xs text-muted-foreground whitespace-nowrap cursor-pointer">
+              All-day
+            </Label>
           </div>
-          {errors.date && <p className="text-[11px] text-destructive -mt-3">Date is required</p>}
+
+          {/* Date */}
+          <Input
+            type="date"
+            value={date}
+            onChange={(e) => { setDate(e.target.value); setErrors((p) => ({ ...p, date: false })); }}
+            className={[
+              "w-full min-w-0 h-9 text-sm border-0 bg-secondary/50 rounded-lg px-2.5",
+              errors.date ? "ring-1 ring-destructive" : "",
+            ].join(" ")}
+          />
+          {errors.date && <p className="text-[11px] text-destructive -mt-2">Date is required</p>}
+
+          {/* Time range (hidden when all-day) */}
+          {!allDay && (
+            <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+              <Input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="flex-1 basis-0 min-w-0 h-9 text-sm border-0 bg-secondary/50 rounded-lg px-2.5"
+              />
+              <span className="text-muted-foreground shrink-0">–</span>
+              <Input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                className="flex-1 basis-0 min-w-0 h-9 text-sm border-0 bg-secondary/50 rounded-lg px-2.5"
+              />
+            </div>
+          )}
 
           {/* Type chips */}
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-2 min-w-0">
             {EVENT_TYPES.map((t) => (
               <button
                 key={t}
@@ -216,51 +218,51 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
           </div>
 
           {/* Description */}
-          <div className="flex items-start gap-2.5">
+          <div className="flex items-start gap-2 min-w-0">
             <AlignLeft className="h-4 w-4 text-muted-foreground mt-2 shrink-0" />
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <Label className="text-[11px] font-normal text-muted-foreground mb-0.5 block">Description</Label>
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Add description"
                 rows={2}
-                className="text-sm border-0 bg-transparent px-0 py-1 resize-none placeholder:text-muted-foreground/70 focus-visible:ring-0"
+                className="w-full min-w-0 min-h-[60px] text-sm border-0 bg-transparent px-0 py-1 resize-y placeholder:text-muted-foreground/70 focus-visible:ring-0"
               />
             </div>
           </div>
 
           {/* Location */}
-          <div className="flex items-start gap-2.5">
+          <div className="flex items-start gap-2 min-w-0">
             <MapPin className="h-4 w-4 text-muted-foreground mt-2 shrink-0" />
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <Label className="text-[11px] font-normal text-muted-foreground mb-0.5 block">Location</Label>
               <Input
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="Add location"
-                className="h-8 text-sm border-0 bg-transparent px-0 py-1 placeholder:text-muted-foreground/70 focus-visible:ring-0"
+                className="w-full min-w-0 h-8 text-sm border-0 bg-transparent px-0 py-1 placeholder:text-muted-foreground/70 focus-visible:ring-0"
               />
             </div>
           </div>
 
           {/* Attendees */}
-          <div className="flex items-start gap-2.5">
+          <div className="flex items-start gap-2 min-w-0">
             <Users className="h-4 w-4 text-muted-foreground mt-2 shrink-0" />
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <Label className="text-[11px] font-normal text-muted-foreground mb-0.5 block">Attendees</Label>
               <Input
                 value={attendeesStr}
                 onChange={(e) => setAttendeesStr(e.target.value)}
                 placeholder="email1@example.com, email2@example.com"
-                className="h-8 text-sm border-0 bg-transparent px-0 py-1 placeholder:text-muted-foreground/70 focus-visible:ring-0"
+                className="w-full min-w-0 h-8 text-sm border-0 bg-transparent px-0 py-1 placeholder:text-muted-foreground/70 focus-visible:ring-0 overflow-x-hidden text-ellipsis"
               />
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-between pt-2">
-            <div>
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+            <div className="min-w-0">
               {isEditing && event?.source === "Zoho Projects" ? (
                 <span className="text-[11px] text-muted-foreground">
                   Managed in Zoho Projects — edits sync back.
@@ -275,7 +277,7 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
                 </button>
               ) : null}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={onClose}
                 disabled={loading}
