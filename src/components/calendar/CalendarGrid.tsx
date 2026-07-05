@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
@@ -88,6 +88,25 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
   const [expandedPastDays, setExpandedPastDays] = useState<Set<string>>(new Set());
   const [viewAllDay, setViewAllDay] = useState<Date | null>(null);
+  const [userSelectedKey, setUserSelectedKey] = useState<string | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  // Clear transient day-selection highlight when clicking outside the calendar grid.
+  useEffect(() => {
+    const onDown = (e: PointerEvent) => {
+      const el = rootRef.current;
+      if (!el) return;
+      const target = e.target as Node | null;
+      if (target && el.contains(target)) return;
+      // Ignore clicks inside dialogs/popovers (portals live outside root)
+      if (target instanceof Element) {
+        if (target.closest('[role="dialog"], [data-radix-popper-content-wrapper]')) return;
+      }
+      setUserSelectedKey(null);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, []);
 
   const hoverCapable = useMediaQuery("(hover: hover) and (pointer: fine)", false);
   const isNarrow = useMediaQuery("(max-width: 639px)", false);
@@ -198,11 +217,11 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
   };
   const isDatePast = (d: Date) => dateKeyNum(d) < todayKey;
 
-  const isSelected = (d: number) =>
-    d === selectedDate.getDate() && month === selectedDate.getMonth() && year === selectedDate.getFullYear();
+  const isSelected = (d: number) => userSelectedKey === dateKey(year, month, d);
 
   const handleMonthDayClick = (day: number) => {
     const key = dateKey(year, month, day);
+    setUserSelectedKey(key);
     const past = isPast(day);
     if (past) {
       setExpandedPastDays((prev) => {
@@ -272,15 +291,31 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
     });
   })();
 
+  // Countdown suffix — only shown in month view when viewing the current month.
+  const daysLeftSuffix = (() => {
+    if (view !== "month") return "";
+    if (todayDate.getFullYear() !== year || todayDate.getMonth() !== month) return "";
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    const n = lastDay - todayDate.getDate();
+    if (n <= 0) return " · last day";
+    return ` · ${n} day${n === 1 ? "" : "s"} left`;
+  })();
+
   return (
     <motion.div
+      ref={rootRef}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       className="stat-card flex-1 min-w-0 flex flex-col overflow-hidden"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-3 shrink-0 gap-2 flex-wrap">
-        <h3 className="text-sm font-semibold text-foreground truncate">{headerTitle}</h3>
+        <h3 className="text-sm font-semibold text-foreground truncate">
+          {headerTitle}
+          {daysLeftSuffix && (
+            <span className="ml-1 text-muted-foreground font-normal">{daysLeftSuffix}</span>
+          )}
+        </h3>
         <div className="flex items-center gap-2">
           {/* Segmented view switcher */}
           <div
