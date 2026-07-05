@@ -217,11 +217,11 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
   };
   const isDatePast = (d: Date) => dateKeyNum(d) < todayKey;
 
-  const isSelected = (d: number) =>
-    d === selectedDate.getDate() && month === selectedDate.getMonth() && year === selectedDate.getFullYear();
+  const isSelected = (d: number) => userSelectedKey === dateKey(year, month, d);
 
   const handleMonthDayClick = (day: number) => {
     const key = dateKey(year, month, day);
+    setUserSelectedKey(key);
     const past = isPast(day);
     if (past) {
       setExpandedPastDays((prev) => {
