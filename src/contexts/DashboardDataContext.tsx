@@ -315,8 +315,8 @@ export interface DashboardData {
   saveAndTest: ReturnType<typeof useDataSources>["saveAndTest"];
   syncNow: ReturnType<typeof useDataSources>["syncNow"];
   syncProjectKPIs: () => Promise<{ success: boolean; data?: ProjectKPIData; error?: string }>;
-  syncCalendar: () => Promise<void>;
-  refetchCalendar: () => Promise<void>;
+  syncCalendar: () => Promise<number>;
+  refetchCalendar: () => Promise<number>;
   calendarEvents: LiveCalendarEvent[];
   upcomingEvents: LiveCalendarEvent[];
   calendarSummary: CalendarSummary | null;
