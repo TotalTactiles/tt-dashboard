@@ -37,7 +37,7 @@ const pad = (n: number) => n.toString().padStart(2, "0");
 const toDateInput = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const toTimeInput = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
-const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalProps) => {
+const EventModal = ({ open, onClose, event, onSave, selectedDate, zohoProjects = [] }: EventModalProps) => {
   const isEditing = !!event;
 
   const [title, setTitle] = useState("");
@@ -50,8 +50,14 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
   const [location, setLocation] = useState("");
   const [attendeesStr, setAttendeesStr] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ title?: boolean; date?: boolean }>({});
+  const [errors, setErrors] = useState<{ title?: boolean; date?: boolean; project?: boolean }>({});
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Create-mode: Google Calendar vs Zoho Projects
+  const [createSource, setCreateSource] = useState<"Google Calendar" | "Zoho Projects">("Google Calendar");
+  const [zohoProjectId, setZohoProjectId] = useState<string>("");
+  const [zohoMode, setZohoMode] = useState<"task" | "subtask">("task");
+  const [zohoParentTaskId, setZohoParentTaskId] = useState<string>("");
 
   useEffect(() => {
     if (!open) {
@@ -82,6 +88,10 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
       setDescription("");
       setLocation("");
       setAttendeesStr("");
+      setCreateSource("Google Calendar");
+      setZohoProjectId("");
+      setZohoMode("task");
+      setZohoParentTaskId("");
     }
   }, [event, selectedDate, open]);
 
