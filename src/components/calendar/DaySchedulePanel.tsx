@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { CalendarDays, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import { type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
+import { getEventTheme } from "./eventColors";
 
 interface DaySchedulePanelProps {
   events: LiveCalendarEvent[];
@@ -10,17 +11,6 @@ interface DaySchedulePanelProps {
   onNextDay: () => void;
   onEventClick: (event: LiveCalendarEvent) => void;
 }
-
-const TYPE_COLORS: Record<string, string> = {
-  Meeting: "#378ADD",
-  Deadline: "#E24B4A",
-  Milestone: "#7F77DD",
-  Care: "#639922",
-  Valuation: "#BA7517",
-  Distribution: "#1D9E75",
-};
-
-const getTypeColor = (type: string) => TYPE_COLORS[type] || "#378ADD";
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 08:00–20:00
 
