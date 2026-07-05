@@ -331,14 +331,32 @@ const CalendarView = () => {
               + Add Event
             </button>
             <button
-              onClick={() => {
-                localStorage.removeItem("dashboard_calendar_data");
-                syncCalendar();
-                toast({ title: "Calendar sync triggered", description: "Fetching fresh data from Google Calendar & Zoho Projects…" });
-              }}
-              className="px-3 py-1.5 rounded-xl border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors duration-150"
+              onClick={handleSyncClick}
+              disabled={syncStatus === "syncing"}
+              aria-busy={syncStatus === "syncing"}
+              className={
+                "px-3 py-1.5 tv-mode:px-5 tv-mode:py-3 tv-mode:text-base rounded-xl border text-xs font-medium transition-colors duration-150 inline-flex items-center gap-2 disabled:cursor-wait " +
+                (syncStatus === "syncing"
+                  ? "border-primary/50 text-primary bg-primary/10"
+                  : syncStatus === "success"
+                  ? "border-emerald-500/50 text-emerald-400 bg-emerald-500/10"
+                  : syncStatus === "error"
+                  ? "border-destructive/50 text-destructive bg-destructive/10 hover:bg-destructive/20"
+                  : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30")
+              }
             >
-              ↻ Sync
+              {syncStatus === "syncing" ? (
+                <>
+                  <span className="inline-block w-3 h-3 tv-mode:w-4 tv-mode:h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  Syncing…
+                </>
+              ) : syncStatus === "success" ? (
+                <>✓ Synced</>
+              ) : syncStatus === "error" ? (
+                <>⚠ Sync failed — retry</>
+              ) : (
+                <>↻ Sync</>
+              )}
             </button>
           </div>
         </div>
