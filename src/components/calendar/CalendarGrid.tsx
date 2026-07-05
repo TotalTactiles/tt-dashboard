@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 interface CalendarGridProps {
   events: LiveCalendarEvent[];
@@ -33,6 +34,11 @@ const getTypeColor = (type: string) => TYPE_COLORS[type] || "#378ADD";
 
 const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayClick }: CalendarGridProps) => {
   const [currentDate, setCurrentDate] = useState(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
+  const [expandedDay, setExpandedDay] = useState<number | null>(null);
+
+  const hoverCapable = useMediaQuery("(hover: hover) and (pointer: fine)", false);
+  const isNarrow = useMediaQuery("(max-width: 639px)", false);
+  const collapsedLimit = isNarrow ? 2 : 4;
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -40,8 +46,8 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const prevMonthDays = new Date(year, month, 0).getDate();
 
-  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
-  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+  const prevMonth = () => { setExpandedDay(null); setCurrentDate(new Date(year, month - 1, 1)); };
+  const nextMonth = () => { setExpandedDay(null); setCurrentDate(new Date(year, month + 1, 1)); };
 
   const eventsByDay = useMemo(() => {
     const map: Record<number, LiveCalendarEvent[]> = {};
@@ -90,6 +96,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
   const isSelected = (d: number) =>
     d === selectedDate.getDate() && month === selectedDate.getMonth() && year === selectedDate.getFullYear();
 
+  const pad = (n: number) => n.toString().padStart(2, "0");
   const handleDayClick = (day: number) => {
     onSelectDate(new Date(year, month, day));
     if (onDayClick) {
@@ -97,7 +104,6 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
       onDayClick(iso);
     }
   };
-  const pad = (n: number) => n.toString().padStart(2, "0");
 
   return (
     <motion.div
@@ -133,24 +139,44 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
         ))}
       </div>
 
-      {/* Grid — fills remaining height, rows split evenly */}
+      {/* Grid */}
       <div
         className="grid grid-cols-7 gap-1 flex-1 min-h-0"
         style={{ gridTemplateRows: `repeat(${rowCount}, minmax(0, 1fr))` }}
       >
         {cells.map((cell, i) => {
           const dayEvents = cell.inMonth ? eventsByDay[cell.day] || [] : [];
+          const isExpanded = cell.inMonth && expandedDay === cell.day && dayEvents.length > collapsedLimit;
+          const visibleEvents = isExpanded ? dayEvents : dayEvents.slice(0, collapsedLimit);
+          const overflow = dayEvents.length - collapsedLimit;
+
+          const handleMouseEnter = () => {
+            if (hoverCapable && cell.inMonth && dayEvents.length > collapsedLimit) {
+              setExpandedDay(cell.day);
+            }
+          };
+          const handleMouseLeave = () => {
+            if (hoverCapable && expandedDay === cell.day) setExpandedDay(null);
+          };
+          const handleChipClick = (e: React.MouseEvent) => {
+            e.stopPropagation();
+            setExpandedDay(isExpanded ? null : cell.day);
+          };
+
           return (
             <div
               key={i}
               onClick={() => cell.inMonth && handleDayClick(cell.day)}
-              className={`relative flex flex-col p-1.5 rounded-lg overflow-hidden transition-all duration-150
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+              className={`relative flex flex-col p-1.5 rounded-lg transition-all duration-150
                 ${!cell.inMonth ? "opacity-30 pointer-events-none" : "cursor-pointer"}
                 ${cell.inMonth && isToday(cell.day) ? "bg-primary/15 ring-1 ring-primary/40" : ""}
                 ${cell.inMonth && isSelected(cell.day) && !isToday(cell.day) ? "bg-secondary ring-1 ring-primary/30" : ""}
                 ${cell.inMonth && !isToday(cell.day) && !isSelected(cell.day) ? "bg-muted/50 hover:bg-secondary/70" : ""}
+                ${isExpanded ? "z-20 shadow-lg ring-1 ring-primary/40 bg-card" : "overflow-hidden"}
               `}
-              style={{ minHeight: 0 }}
+              style={isExpanded ? { minHeight: 0 } : { minHeight: 0 }}
             >
               <span
                 className={`font-bold leading-none mb-0.5 ${cell.inMonth && isToday(cell.day) ? "text-primary" : "text-foreground/80"}`}
@@ -158,8 +184,10 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
               >
                 {cell.day}
               </span>
-              <div className="flex flex-col gap-1 flex-1 min-h-0 overflow-hidden">
-                {dayEvents.slice(0, 2).map((ev) => {
+              <div
+                className={`flex flex-col gap-1 flex-1 min-h-0 ${isExpanded ? "overflow-y-auto max-h-[60vh]" : "overflow-hidden"}`}
+              >
+                {visibleEvents.map((ev) => {
                   const color = getTypeColor(ev.type);
                   return (
                     <button
@@ -167,7 +195,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                       type="button"
                       title={ev.title}
                       onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
-                      className="group flex items-center gap-1 min-w-0 w-full px-1 py-0.5 rounded-md border border-transparent bg-secondary/40 hover:bg-secondary hover:border-border cursor-pointer text-left transition-colors"
+                      className={`group flex items-center gap-1 min-w-0 w-full px-1 rounded-md border border-transparent bg-secondary/40 hover:bg-secondary hover:border-border cursor-pointer text-left transition-colors ${hoverCapable ? "py-0.5" : "py-1.5 min-h-[36px]"}`}
                     >
                       <span
                         className="w-1.5 h-1.5 rounded-full shrink-0"
@@ -182,14 +210,14 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                     </button>
                   );
                 })}
-                {dayEvents.length > 2 && (
+                {overflow > 0 && (
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); onSelectDate(new Date(year, month, cell.day)); }}
-                    className="text-primary hover:text-primary/80 font-medium truncate text-left cursor-pointer"
-                    style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}
+                    onClick={handleChipClick}
+                    className={`text-primary hover:text-primary/80 font-medium truncate text-left cursor-pointer rounded-md px-1 hover:bg-primary/10 ${hoverCapable ? "" : "min-h-[40px] py-1.5 bg-primary/5"}`}
+                    style={{ fontSize: "clamp(9px, 0.9vw, 11px)" }}
                   >
-                    +{dayEvents.length - 2} more
+                    {isExpanded ? "Show less" : `+${overflow} more`}
                   </button>
                 )}
               </div>
