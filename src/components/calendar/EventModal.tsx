@@ -166,7 +166,10 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate, zohoProjects =
     await onSave("delete", {
       googleId: event?.googleId,
       zohoId: event?.zohoId,
-    });
+      source: event?.source,
+      projectId: (event as any)?.projectId,
+      parentTaskId: (event as any)?.parentTaskId ?? "",
+    } as any);
     setLoading(false);
   };
 
