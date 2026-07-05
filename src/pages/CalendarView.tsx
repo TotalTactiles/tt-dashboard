@@ -58,7 +58,7 @@ const CalendarView = () => {
     );
   }, []);
 
-  const [projectsMode, setProjectsMode] = useState<"this-month" | "active-during">("this-month");
+  const [projectsMode, setProjectsMode] = useState<"this-month" | "active-during">("active-during");
 
   const filteredProjects = useMemo(() => {
     const vy = viewedMonth.getFullYear();
