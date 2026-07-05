@@ -320,6 +320,7 @@ export interface DashboardData {
   upcomingEvents: LiveCalendarEvent[];
   calendarSummary: CalendarSummary | null;
   setCalendarEvents: React.Dispatch<React.SetStateAction<LiveCalendarEvent[]>>;
+  zohoProjects: Array<{ id: string; name: string; tasks: Array<{ id: string; name: string; hasSubtasks?: boolean }> }>;
   projectKPIData: ProjectKPIData | null;
   liveData: import("@/hooks/useDataSources").LiveData;
   isOffline: boolean;
@@ -1734,6 +1735,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       upcomingEvents: rawUpcomingEvents,
       calendarSummary: rawCalendarSummary,
       setCalendarEvents: setCalendarEventsState,
+      zohoProjects: Array.isArray((calendarData as any)?.zohoProjects) ? (calendarData as any).zohoProjects : [],
       projectKPIData,
       liveData,
       isOffline: ds.isOffline ?? false,
@@ -1802,7 +1804,7 @@ export function useDashboardData(): DashboardData {
       isLoading: false, isRefreshing: false, hasLiveData: false, connectedCount: 0, lastUpdated: null,
       sources: [], toggleConnection: () => {}, updateWebhookUrl: () => {},
       saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {}, syncProjectKPIs: async () => ({ success: false, error: "Not initialized" }), syncCalendar: async () => {},
-      calendarEvents: [], upcomingEvents: [], calendarSummary: null, setCalendarEvents: () => {},
+      calendarEvents: [], upcomingEvents: [], calendarSummary: null, setCalendarEvents: () => {}, zohoProjects: [],
       projectKPIData: null,
       liveData: {},
       isOffline: false,

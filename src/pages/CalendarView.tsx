@@ -31,7 +31,7 @@ interface WriteDebug {
 }
 
 const CalendarView = () => {
-  const { calendarEvents, upcomingEvents, calendarSummary, setCalendarEvents, syncCalendar } = useDashboardData();
+  const { calendarEvents, upcomingEvents, calendarSummary, setCalendarEvents, syncCalendar, zohoProjects } = useDashboardData();
   const { toast } = useToast();
 
   console.log('[Calendar Debug] raw events:', calendarEvents?.length, 'sample source:', calendarEvents?.[0]?.source, 'sample type:', calendarEvents?.[0]?.type);
@@ -42,6 +42,7 @@ const CalendarView = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<LiveCalendarEvent | null>(null);
+  const [createInitialDate, setCreateInitialDate] = useState<Date | null>(null);
   const [calendarDebug, setCalendarDebug] = useState<WriteDebug>({
     lastAction: null, lastError: null, lastSuccess: null, timestamp: null,
   });
@@ -97,11 +98,22 @@ const CalendarView = () => {
 
   const handleOpenCreate = () => {
     setEditingEvent(null);
+    setCreateInitialDate(null);
+    setModalOpen(true);
+  };
+
+  const handleDayClick = (dateISO: string) => {
+    const [y, m, d] = dateISO.split("-").map(Number);
+    const clicked = new Date(y, m - 1, d);
+    setSelectedDate(clicked);
+    setEditingEvent(null);
+    setCreateInitialDate(clicked);
     setModalOpen(true);
   };
 
   const handleOpenEdit = (event: LiveCalendarEvent) => {
     setEditingEvent(event);
+    setCreateInitialDate(null);
     setModalOpen(true);
   };
 
@@ -148,8 +160,9 @@ const CalendarView = () => {
             attendees: eventData.attendees || [],
             googleId: editingEvent?.googleId || null,
             zohoId: eventData.zohoId ?? editingEvent?.zohoId ?? null,
-            source: (eventData as any).source ?? editingEvent?.source,
+            source: (eventData as any).source ?? editingEvent?.source ?? "Google Calendar",
             projectId: (eventData as any).projectId ?? (editingEvent as any)?.projectId,
+            parentTaskId: (eventData as any).parentTaskId ?? "",
           },
         };
 
@@ -277,6 +290,7 @@ const CalendarView = () => {
               onSelectDate={setSelectedDate}
               onEventClick={handleOpenEdit}
               onAddEvent={handleOpenCreate}
+              onDayClick={handleDayClick}
             />
           </div>
           <div className="w-full lg:w-[360px] shrink-0 min-w-0 min-h-0 max-h-[60vh] lg:max-h-none overflow-y-auto">
@@ -354,7 +368,8 @@ const CalendarView = () => {
         onClose={() => setModalOpen(false)}
         event={editingEvent}
         onSave={handleSaveEvent}
-        selectedDate={selectedDate}
+        selectedDate={createInitialDate ?? selectedDate}
+        zohoProjects={zohoProjects}
       />
     </DashboardLayout>
   );

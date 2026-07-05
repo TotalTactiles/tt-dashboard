@@ -7,12 +7,19 @@ import { Label } from "@/components/ui/label";
 import { type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
 import { Loader2, AlignLeft, MapPin, Users } from "lucide-react";
 
+interface ZohoProjectOption {
+  id: string;
+  name: string;
+  tasks: Array<{ id: string; name: string; hasSubtasks?: boolean }>;
+}
+
 interface EventModalProps {
   open: boolean;
   onClose: () => void;
   event: LiveCalendarEvent | null;
   onSave: (action: "create" | "update" | "delete", data: Partial<LiveCalendarEvent>) => Promise<void>;
   selectedDate: Date;
+  zohoProjects?: ZohoProjectOption[];
 }
 
 const EVENT_TYPES = ["Meeting", "Deadline", "Milestone", "Care", "Valuation", "Distribution"];
@@ -30,7 +37,7 @@ const pad = (n: number) => n.toString().padStart(2, "0");
 const toDateInput = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const toTimeInput = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
-const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalProps) => {
+const EventModal = ({ open, onClose, event, onSave, selectedDate, zohoProjects = [] }: EventModalProps) => {
   const isEditing = !!event;
 
   const [title, setTitle] = useState("");
@@ -43,8 +50,14 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
   const [location, setLocation] = useState("");
   const [attendeesStr, setAttendeesStr] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ title?: boolean; date?: boolean }>({});
+  const [errors, setErrors] = useState<{ title?: boolean; date?: boolean; project?: boolean }>({});
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Create-mode: Google Calendar vs Zoho Projects
+  const [createSource, setCreateSource] = useState<"Google Calendar" | "Zoho Projects">("Google Calendar");
+  const [zohoProjectId, setZohoProjectId] = useState<string>("");
+  const [zohoMode, setZohoMode] = useState<"task" | "subtask">("task");
+  const [zohoParentTaskId, setZohoParentTaskId] = useState<string>("");
 
   useEffect(() => {
     if (!open) {
@@ -75,23 +88,30 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
       setDescription("");
       setLocation("");
       setAttendeesStr("");
+      setCreateSource("Google Calendar");
+      setZohoProjectId("");
+      setZohoMode("task");
+      setZohoParentTaskId("");
     }
   }, [event, selectedDate, open]);
 
   const handleSave = async () => {
-    const newErrors: { title?: boolean; date?: boolean } = {};
+    const isZohoCreate = !isEditing && createSource === "Zoho Projects";
+    const newErrors: { title?: boolean; date?: boolean; project?: boolean } = {};
     if (!title.trim()) newErrors.title = true;
     if (!date) newErrors.date = true;
+    if (isZohoCreate && !zohoProjectId) newErrors.project = true;
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
     setErrors({});
 
-    const startISO = allDay
+    const effectiveAllDay = isZohoCreate ? true : allDay;
+    const startISO = effectiveAllDay
       ? new Date(`${date}T00:00:00`).toISOString()
       : new Date(`${date}T${startTime}:00`).toISOString();
-    const endISO = allDay
+    const endISO = effectiveAllDay
       ? new Date(`${date}T23:59:59`).toISOString()
       : new Date(`${date}T${endTime}:00`).toISOString();
 
@@ -101,22 +121,38 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
       .filter(Boolean);
 
     setLoading(true);
-    await onSave(isEditing ? "update" : "create", {
-      title: title.trim(),
-      description: description.trim() || "",
-      location: location.trim() || "",
-      start: startISO,
-      end: endISO,
-      startDate: date,
-      endDate: date,
-      allDay,
-      type,
-      attendees,
-      googleId: event?.googleId,
-      zohoId: event?.zohoId,
-      source: event?.source,
-      projectId: (event as any)?.projectId,
-    } as any);
+    if (isZohoCreate) {
+      await onSave("create", {
+        title: title.trim(),
+        description: description.trim() || "",
+        start: startISO,
+        end: endISO,
+        startDate: date,
+        endDate: date,
+        allDay: true,
+        type: "Task",
+        source: "Zoho Projects",
+        projectId: zohoProjectId,
+        parentTaskId: zohoMode === "subtask" ? zohoParentTaskId : "",
+      } as any);
+    } else {
+      await onSave(isEditing ? "update" : "create", {
+        title: title.trim(),
+        description: description.trim() || "",
+        location: location.trim() || "",
+        start: startISO,
+        end: endISO,
+        startDate: date,
+        endDate: date,
+        allDay,
+        type,
+        attendees,
+        googleId: event?.googleId,
+        zohoId: event?.zohoId,
+        source: event?.source ?? "Google Calendar",
+        projectId: (event as any)?.projectId,
+      } as any);
+    }
     setLoading(false);
   };
 
@@ -133,6 +169,9 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
     setLoading(false);
   };
 
+  const isZohoCreate = !isEditing && createSource === "Zoho Projects";
+  const selectedProject = zohoProjects.find((p) => p.id === zohoProjectId);
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-[460px] max-h-[85vh] overflow-y-auto p-5">
@@ -141,6 +180,83 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
         </DialogHeader>
 
         <div className="flex flex-col gap-4 mt-1 min-w-0">
+          {/* Calendar source selector (create mode only) */}
+          {!isEditing && (
+            <div className="flex items-center gap-1 p-1 bg-secondary/50 rounded-lg">
+              {(["Google Calendar", "Zoho Projects"] as const).map((src) => (
+                <button
+                  key={src}
+                  onClick={() => setCreateSource(src)}
+                  className={[
+                    "flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
+                    createSource === src
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  ].join(" ")}
+                >
+                  {src}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Zoho project + task/subtask selectors */}
+          {isZohoCreate && (
+            <div className="flex flex-col gap-2 min-w-0">
+              <div>
+                <Label className="text-[11px] font-normal text-muted-foreground mb-1 block">Project</Label>
+                <select
+                  value={zohoProjectId}
+                  onChange={(e) => { setZohoProjectId(e.target.value); setZohoParentTaskId(""); setErrors((p) => ({ ...p, project: false })); }}
+                  className={[
+                    "w-full h-9 text-sm rounded-lg bg-secondary/50 border-0 px-2.5",
+                    errors.project ? "ring-1 ring-destructive" : "",
+                  ].join(" ")}
+                >
+                  <option value="">Select project…</option>
+                  {zohoProjects.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+                {errors.project && <p className="text-[11px] text-destructive mt-1">Project is required</p>}
+                {zohoProjects.length === 0 && (
+                  <p className="text-[11px] text-muted-foreground mt-1">No Zoho projects loaded yet — try syncing.</p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1 p-1 bg-secondary/50 rounded-lg">
+                {(["task", "subtask"] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setZohoMode(m)}
+                    className={[
+                      "flex-1 px-3 py-1 rounded-md text-[11px] font-medium transition-colors",
+                      zohoMode === m
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    ].join(" ")}
+                  >
+                    {m === "task" ? "New task" : "Subtask of…"}
+                  </button>
+                ))}
+              </div>
+
+              {zohoMode === "subtask" && (
+                <select
+                  value={zohoParentTaskId}
+                  onChange={(e) => setZohoParentTaskId(e.target.value)}
+                  disabled={!selectedProject}
+                  className="w-full h-9 text-sm rounded-lg bg-secondary/50 border-0 px-2.5 disabled:opacity-50"
+                >
+                  <option value="">Select parent task…</option>
+                  {selectedProject?.tasks.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
+
           {/* Title */}
           <Input
             value={title}
@@ -155,18 +271,20 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
           />
           {errors.title && <p className="text-[11px] text-destructive -mt-2">Title is required</p>}
 
-          {/* All-day toggle */}
-          <div className="flex items-center justify-end gap-1.5">
-            <Switch
-              id="allDay"
-              checked={allDay}
-              onCheckedChange={setAllDay}
-              className="scale-90 origin-right"
-            />
-            <Label htmlFor="allDay" className="text-xs text-muted-foreground whitespace-nowrap cursor-pointer">
-              All-day
-            </Label>
-          </div>
+          {/* All-day toggle (hidden for Zoho create — Zoho tasks are always all-day) */}
+          {!isZohoCreate && (
+            <div className="flex items-center justify-end gap-1.5">
+              <Switch
+                id="allDay"
+                checked={allDay}
+                onCheckedChange={setAllDay}
+                className="scale-90 origin-right"
+              />
+              <Label htmlFor="allDay" className="text-xs text-muted-foreground whitespace-nowrap cursor-pointer">
+                All-day
+              </Label>
+            </div>
+          )}
 
           {/* Date */}
           <Input
@@ -180,8 +298,8 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
           />
           {errors.date && <p className="text-[11px] text-destructive -mt-2">Date is required</p>}
 
-          {/* Time range (hidden when all-day) */}
-          {!allDay && (
+          {/* Time range (hidden when all-day or Zoho create) */}
+          {!allDay && !isZohoCreate && (
             <div className="flex flex-wrap items-center gap-1.5 min-w-0">
               <Input
                 type="time"
@@ -199,7 +317,8 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
             </div>
           )}
 
-          {/* Type chips */}
+          {/* Type chips (hidden for Zoho create — Zoho items are Tasks) */}
+          {!isZohoCreate && (
           <div className="flex flex-wrap gap-2 min-w-0">
             {EVENT_TYPES.map((t) => (
               <button
@@ -216,6 +335,7 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
               </button>
             ))}
           </div>
+          )}
 
           {/* Description */}
           <div className="flex items-start gap-2 min-w-0">
@@ -232,7 +352,8 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
             </div>
           </div>
 
-          {/* Location */}
+          {/* Location (hidden for Zoho create) */}
+          {!isZohoCreate && (
           <div className="flex items-start gap-2 min-w-0">
             <MapPin className="h-4 w-4 text-muted-foreground mt-2 shrink-0" />
             <div className="flex-1 min-w-0">
@@ -245,8 +366,10 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
               />
             </div>
           </div>
+          )}
 
-          {/* Attendees */}
+          {/* Attendees (hidden for Zoho create) */}
+          {!isZohoCreate && (
           <div className="flex items-start gap-2 min-w-0">
             <Users className="h-4 w-4 text-muted-foreground mt-2 shrink-0" />
             <div className="flex-1 min-w-0">
@@ -259,6 +382,8 @@ const EventModal = ({ open, onClose, event, onSave, selectedDate }: EventModalPr
               />
             </div>
           </div>
+          )}
+
 
           {/* Actions */}
           <div className="flex flex-wrap items-center justify-between gap-2 pt-2">

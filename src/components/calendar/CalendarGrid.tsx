@@ -9,6 +9,7 @@ interface CalendarGridProps {
   onSelectDate: (date: Date) => void;
   onEventClick: (event: LiveCalendarEvent) => void;
   onAddEvent: () => void;
+  onDayClick?: (dateISO: string) => void;
 }
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -30,7 +31,7 @@ const TYPE_COLORS: Record<string, string> = {
 
 const getTypeColor = (type: string) => TYPE_COLORS[type] || "#378ADD";
 
-const CalendarGrid = ({ events, selectedDate, onSelectDate }: CalendarGridProps) => {
+const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayClick }: CalendarGridProps) => {
   const [currentDate, setCurrentDate] = useState(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
 
   const year = currentDate.getFullYear();
@@ -91,7 +92,12 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate }: CalendarGridProps)
 
   const handleDayClick = (day: number) => {
     onSelectDate(new Date(year, month, day));
+    if (onDayClick) {
+      const iso = `${year}-${pad(month + 1)}-${pad(day)}`;
+      onDayClick(iso);
+    }
   };
+  const pad = (n: number) => n.toString().padStart(2, "0");
 
   return (
     <motion.div
@@ -154,7 +160,11 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate }: CalendarGridProps)
               </span>
               <div className="flex flex-col gap-0.5 flex-1 min-h-0 overflow-hidden">
                 {dayEvents.slice(0, 2).map((ev) => (
-                  <div key={ev.id} className="flex items-center gap-1 min-w-0">
+                  <div
+                    key={ev.id}
+                    className="flex items-center gap-1 min-w-0 cursor-pointer hover:bg-secondary/70 rounded px-0.5"
+                    onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
+                  >
                     <span
                       className="w-1.5 h-1.5 rounded-full shrink-0"
                       style={{ backgroundColor: getTypeColor(ev.type) }}
