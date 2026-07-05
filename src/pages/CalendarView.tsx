@@ -47,6 +47,30 @@ const CalendarView = () => {
     lastAction: null, lastError: null, lastSuccess: null, timestamp: null,
   });
   const [sqbEvents, setSqbEvents] = useState<LiveCalendarEvent[]>([]);
+  const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "success" | "error">("idle");
+
+  const handleSyncClick = useCallback(async () => {
+    if (syncStatus === "syncing") return;
+    setSyncStatus("syncing");
+    try {
+      const TIMEOUT_MS = 90_000;
+      const result = await Promise.race<number>([
+        refetchCalendar(),
+        new Promise<number>((_, reject) =>
+          setTimeout(() => reject(new Error("Sync timeout after 90s")), TIMEOUT_MS)
+        ),
+      ]);
+      console.log(`[Sync] workflow completed, events=${result}`);
+      setSyncStatus("success");
+      toast({ title: "Calendar synced", description: `${result} events loaded from Google Calendar & Zoho.`, className: "border-green-500/30" });
+      setTimeout(() => setSyncStatus("idle"), 3000);
+    } catch (err: any) {
+      console.error("[Sync] failed:", err?.message);
+      setSyncStatus("error");
+      toast({ title: "Sync failed", description: err?.message || "Please retry.", variant: "destructive" });
+      setTimeout(() => setSyncStatus("idle"), 5000);
+    }
+  }, [refetchCalendar, syncStatus, toast]);
 
   const allCalendarEvents = useMemo(() => {
     const real = Array.isArray(calendarEvents) ? calendarEvents : [];
@@ -307,14 +331,32 @@ const CalendarView = () => {
               + Add Event
             </button>
             <button
-              onClick={() => {
-                localStorage.removeItem("dashboard_calendar_data");
-                syncCalendar();
-                toast({ title: "Calendar sync triggered", description: "Fetching fresh data from Google Calendar & Zoho Projects…" });
-              }}
-              className="px-3 py-1.5 rounded-xl border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors duration-150"
+              onClick={handleSyncClick}
+              disabled={syncStatus === "syncing"}
+              aria-busy={syncStatus === "syncing"}
+              className={
+                "px-3 py-1.5 rounded-xl border text-xs font-medium transition-colors duration-150 inline-flex items-center gap-2 disabled:cursor-wait sync-btn " +
+                (syncStatus === "syncing"
+                  ? "border-primary/50 text-primary bg-primary/10"
+                  : syncStatus === "success"
+                  ? "border-emerald-500/50 text-emerald-400 bg-emerald-500/10"
+                  : syncStatus === "error"
+                  ? "border-destructive/50 text-destructive bg-destructive/10 hover:bg-destructive/20"
+                  : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30")
+              }
             >
-              ↻ Sync
+              {syncStatus === "syncing" ? (
+                <>
+                  <span className="inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  Syncing…
+                </>
+              ) : syncStatus === "success" ? (
+                <>✓ Synced</>
+              ) : syncStatus === "error" ? (
+                <>⚠ Sync failed — retry</>
+              ) : (
+                <>↻ Sync</>
+              )}
             </button>
           </div>
         </div>
