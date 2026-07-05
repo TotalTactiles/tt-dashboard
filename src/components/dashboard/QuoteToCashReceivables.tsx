@@ -10,9 +10,10 @@ import {
   ReferenceLine,
   CartesianGrid,
 } from "recharts";
-import { AlertTriangle, ArrowUpDown, ChevronDown, ChevronRight, Info } from "lucide-react";
+import { AlertTriangle, ArrowUpDown, ChevronDown, ChevronRight, Info, Maximize2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tooltip as ShadTooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 
 const WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-receivables";
