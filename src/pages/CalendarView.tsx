@@ -31,7 +31,7 @@ interface WriteDebug {
 }
 
 const CalendarView = () => {
-  const { calendarEvents, upcomingEvents, calendarSummary, setCalendarEvents, syncCalendar, zohoProjects } = useDashboardData();
+  const { calendarEvents, upcomingEvents, calendarSummary, setCalendarEvents, syncCalendar, refetchCalendar, zohoProjects } = useDashboardData();
   const { toast } = useToast();
 
   console.log('[Calendar Debug] raw events:', calendarEvents?.length, 'sample source:', calendarEvents?.[0]?.source, 'sample type:', calendarEvents?.[0]?.type);
@@ -187,7 +187,9 @@ const CalendarView = () => {
         const actionLabel = action === "create" ? "Event created" : action === "update" ? "Event updated" : "Event deleted";
         toast({ title: actionLabel, className: action === "delete" ? "" : "border-green-500/30" });
 
-        setTimeout(() => syncCalendar(), 5000);
+        // Force-refresh calendar so the change appears immediately
+        refetchCalendar();
+        setTimeout(() => refetchCalendar(), 2500);
       } catch (err: any) {
         const errMsg = err?.message || "Unknown error";
         setCalendarDebug({
@@ -200,7 +202,7 @@ const CalendarView = () => {
         setCalendarEvents(prevEvents);
       }
     },
-    [calendarEvents, editingEvent, setCalendarEvents, syncCalendar, toast]
+    [calendarEvents, editingEvent, setCalendarEvents, syncCalendar, refetchCalendar, toast]
   );
 
   const debugBadge = (() => {

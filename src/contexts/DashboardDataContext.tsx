@@ -316,6 +316,7 @@ export interface DashboardData {
   syncNow: ReturnType<typeof useDataSources>["syncNow"];
   syncProjectKPIs: () => Promise<{ success: boolean; data?: ProjectKPIData; error?: string }>;
   syncCalendar: () => Promise<void>;
+  refetchCalendar: () => Promise<void>;
   calendarEvents: LiveCalendarEvent[];
   upcomingEvents: LiveCalendarEvent[];
   calendarSummary: CalendarSummary | null;
@@ -1725,7 +1726,7 @@ export function DashboardDataProvider({ children }: { children: React.ReactNode 
       formulas, addFormula, updateFormula, deleteFormula,
       dataHealth, quotesDebug, isLoading, isRefreshing, hasLiveData, connectedCount, lastUpdated,
       sources: ds.sources, toggleConnection: ds.toggleConnection,
-      updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow, syncProjectKPIs: ds.syncProjectKPIs, syncCalendar: ds.syncCalendar,
+      updateWebhookUrl: ds.updateWebhookUrl, saveAndTest: ds.saveAndTest, syncNow: ds.syncNow, syncProjectKPIs: ds.syncProjectKPIs, syncCalendar: ds.syncCalendar, refetchCalendar: ds.refetchCalendar,
       calendarEvents: calendarEventsOverride !== null
         ? [
             ...rawCalendarEvents.filter((e) => !e.id.startsWith("sqb-")),
@@ -1803,7 +1804,7 @@ export function useDashboardData(): DashboardData {
       },
       isLoading: false, isRefreshing: false, hasLiveData: false, connectedCount: 0, lastUpdated: null,
       sources: [], toggleConnection: () => {}, updateWebhookUrl: () => {},
-      saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {}, syncProjectKPIs: async () => ({ success: false, error: "Not initialized" }), syncCalendar: async () => {},
+      saveAndTest: async () => ({ success: false, error: "Not initialized" }), syncNow: () => {}, syncProjectKPIs: async () => ({ success: false, error: "Not initialized" }), syncCalendar: async () => {}, refetchCalendar: async () => {},
       calendarEvents: [], upcomingEvents: [], calendarSummary: null, setCalendarEvents: () => {}, zohoProjects: [],
       projectKPIData: null,
       liveData: {},

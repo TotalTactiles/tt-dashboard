@@ -158,32 +158,39 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
               >
                 {cell.day}
               </span>
-              <div className="flex flex-col gap-0.5 flex-1 min-h-0 overflow-hidden">
-                {dayEvents.slice(0, 2).map((ev) => (
-                  <div
-                    key={ev.id}
-                    className="flex items-center gap-1 min-w-0 cursor-pointer hover:bg-secondary/70 rounded px-0.5"
-                    onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
-                  >
-                    <span
-                      className="w-1.5 h-1.5 rounded-full shrink-0"
-                      style={{ backgroundColor: getTypeColor(ev.type) }}
-                    />
-                    <span
-                      className="text-foreground/70 truncate leading-tight"
-                      style={{ fontSize: "clamp(9px, 0.9vw, 11px)" }}
+              <div className="flex flex-col gap-1 flex-1 min-h-0 overflow-hidden">
+                {dayEvents.slice(0, 2).map((ev) => {
+                  const color = getTypeColor(ev.type);
+                  return (
+                    <button
+                      key={ev.id}
+                      type="button"
+                      title={ev.title}
+                      onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
+                      className="group flex items-center gap-1 min-w-0 w-full px-1 py-0.5 rounded-md border border-transparent bg-secondary/40 hover:bg-secondary hover:border-border cursor-pointer text-left transition-colors"
                     >
-                      {ev.title}
-                    </span>
-                  </div>
-                ))}
+                      <span
+                        className="w-1.5 h-1.5 rounded-full shrink-0"
+                        style={{ backgroundColor: color }}
+                      />
+                      <span
+                        className="text-foreground/80 group-hover:text-foreground truncate leading-tight"
+                        style={{ fontSize: "clamp(9px, 0.9vw, 11px)" }}
+                      >
+                        {ev.title}
+                      </span>
+                    </button>
+                  );
+                })}
                 {dayEvents.length > 2 && (
-                  <span
-                    className="text-primary font-medium truncate"
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onSelectDate(new Date(year, month, cell.day)); }}
+                    className="text-primary hover:text-primary/80 font-medium truncate text-left cursor-pointer"
                     style={{ fontSize: "clamp(8px, 0.85vw, 10px)" }}
                   >
                     +{dayEvents.length - 2} more
-                  </span>
+                  </button>
                 )}
               </div>
             </div>
