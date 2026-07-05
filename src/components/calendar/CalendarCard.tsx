@@ -6,8 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { SOURCE_THEME } from "./eventColors";
 
 interface CalendarCardProps {
-
-interface CalendarCardProps {
   title: string;
   source: "google" | "zoho";
   events: CalendarEvent[];
