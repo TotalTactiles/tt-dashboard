@@ -42,18 +42,10 @@ export default function UpcomingProjectsPanel({
           onModeChange?.(m);
         }}
         className={
-          "px-2.5 py-1 rounded-full text-[10px] font-mono font-medium transition-colors " +
+          "font-mono text-[10px] font-semibold px-2.5 py-1 rounded-full transition-colors " +
           (active
-            ? "text-white"
-            : "bg-muted/60 text-muted-foreground hover:bg-muted")
-        }
-        style={
-          active
-            ? {
-                background: SOURCE_THEME.zohoParent.accent,
-                color: SOURCE_THEME.zohoParent.accent ? "#fff" : undefined,
-              }
-            : undefined
+            ? "bg-white/10 text-foreground"
+            : "border border-border text-muted-foreground hover:text-foreground bg-transparent")
         }
       >
         {label}
@@ -83,6 +75,8 @@ export default function UpcomingProjectsPanel({
     return "No date";
   };
 
+  const zoho = SOURCE_THEME.zohoParent.accent;
+
   return (
     <div className="flex-1 min-h-0 min-w-0 flex flex-col">
       {showPills && (
@@ -92,53 +86,61 @@ export default function UpcomingProjectsPanel({
         </div>
       )}
       <div
-        className="flex-1 min-h-0 space-y-2 overflow-y-auto pr-1"
-        style={{ maxHeight: 320, scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.15) transparent" }}
+        className="flex-1 min-h-0 space-y-1 overflow-y-auto pr-1"
+        style={{
+          maxHeight: 320,
+          scrollbarWidth: "thin",
+          scrollbarColor: "rgba(255,255,255,0.15) transparent",
+        }}
       >
-      {sorted.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-6 text-center">
-          <FolderKanban className="w-5 h-5 text-muted-foreground/50 mb-2" />
-          <p className="text-xs text-muted-foreground">{emptyMessage}</p>
-        </div>
-      ) : (
-        sorted.map((p) => {
-          const label = buildDateLabel(p.start, p.end);
-          const hasLink = !!p.link && p.link !== "#";
-          return (
-            <a
-              key={p.id}
-              href={p.link || "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-disabled={!hasLink}
-              onClick={(e) => {
-                if (!hasLink) e.preventDefault();
-              }}
-              className="group flex items-center gap-3 p-2.5 rounded-[10px] bg-muted/40 hover:bg-secondary/60 transition-all cursor-pointer aria-disabled:cursor-default aria-disabled:hover:bg-muted/40 min-w-0"
-              style={{ borderLeft: `3px solid ${SOURCE_THEME.zohoParent.accent}` }}
-            >
-              <div className="flex-1 min-w-0">
-                <p
-                  className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors"
-                  title={p.name}
-                >
-                  {p.name}
-                </p>
-                <p className="text-[11px] font-mono text-muted-foreground mt-1 truncate">{label}</p>
-              </div>
-              <span
-                className="text-[10px] font-mono px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap"
-                style={{
-                  background: SOURCE_THEME.zohoParent.accent + "22",
-                  color: SOURCE_THEME.zohoParent.accent,
+        {sorted.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+            <FolderKanban className="w-5 h-5 text-muted-foreground/50 mb-2" />
+            <p className="text-[11.5px] text-muted-foreground/70 leading-relaxed">
+              {emptyMessage}
+            </p>
+          </div>
+        ) : (
+          sorted.map((p) => {
+            const label = buildDateLabel(p.start, p.end);
+            const hasLink = !!p.link && p.link !== "#";
+            return (
+              <a
+                key={p.id}
+                href={p.link || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-disabled={!hasLink}
+                onClick={(e) => {
+                  if (!hasLink) e.preventDefault();
                 }}
+                className="group relative flex items-center gap-2.5 py-2 pl-3 pr-2.5 rounded-xl cursor-pointer transition-colors hover:bg-white/[0.04] aria-disabled:cursor-default min-w-0"
               >
-                Zoho
-              </span>
-            </a>
-          );
-        })
-      )}
+                <span
+                  className="absolute left-0 top-2 bottom-2 w-[2.5px] rounded-full"
+                  style={{ background: zoho }}
+                />
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="text-[12.5px] font-medium text-foreground/85 truncate group-hover:text-foreground transition-colors"
+                    title={p.name}
+                  >
+                    {p.name}
+                  </p>
+                  <p className="font-mono text-[10px] text-muted-foreground mt-0.5 truncate">
+                    {label}
+                  </p>
+                </div>
+                <span
+                  className="font-mono text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap"
+                  style={{ background: zoho + "29", color: zoho }}
+                >
+                  Zoho
+                </span>
+              </a>
+            );
+          })
+        )}
       </div>
     </div>
   );

@@ -23,7 +23,7 @@ export default function CollapsibleCardWrapper({
         style={{ minWidth: "44px", maxWidth: "52px", padding: "12px 8px" }}
         onClick={() => setOpen(true)}
       >
-        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground mb-3 flex-shrink-0" />
+        <ChevronRight className="h-3 w-3 text-muted-foreground/60 mb-3 flex-shrink-0" />
         <div
           className="flex-1 flex items-center justify-center"
           style={{
@@ -32,9 +32,11 @@ export default function CollapsibleCardWrapper({
             transform: "rotate(180deg)",
           }}
         >
-          <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">{title}</span>
+          <span className="text-[13px] font-semibold tracking-tight text-foreground whitespace-nowrap">
+            {title}
+          </span>
           {badge !== undefined && (
-            <span className="text-[10px] font-mono ml-2 text-muted-foreground/60">({badge})</span>
+            <span className="font-mono text-[10px] ml-2 text-muted-foreground/60">({badge})</span>
           )}
         </div>
       </div>
@@ -45,22 +47,17 @@ export default function CollapsibleCardWrapper({
     <div className="stat-card flex-1 min-w-0 flex flex-col overflow-hidden">
       <button
         onClick={() => setOpen(false)}
-        className="flex items-center justify-between w-full mb-2 shrink-0"
+        className="flex items-center gap-2 w-full shrink-0 border-b border-border pb-2.5 mb-2.5"
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          <span
-            className="font-semibold text-foreground truncate"
-            style={{ fontSize: "clamp(11px, 1.1vw, 13px)" }}
-          >
-            {title}
+        <ChevronDown className="h-3 w-3 text-muted-foreground/60 shrink-0" />
+        <span className="flex-1 min-w-0 text-left text-[13px] font-semibold tracking-tight text-foreground truncate">
+          {title}
+        </span>
+        {badge !== undefined && (
+          <span className="font-mono text-[10px] font-semibold text-muted-foreground bg-white/[0.06] px-2 py-0.5 rounded-full min-w-[22px] text-center shrink-0">
+            {badge}
           </span>
-          {badge !== undefined && (
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
-              {badge}
-            </span>
-          )}
-        </div>
+        )}
       </button>
       {children}
     </div>
