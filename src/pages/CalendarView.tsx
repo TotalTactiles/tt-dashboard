@@ -290,7 +290,7 @@ const CalendarView = () => {
               onDayClick={handleDayClick}
             />
           </div>
-          <div className="min-w-0 h-full flex flex-col">
+          <div className="min-w-0 h-full flex flex-col [&>*]:!h-full [&>*]:!w-full">
             <DaySchedulePanel
               events={filtered}
               selectedDate={selectedDate}
