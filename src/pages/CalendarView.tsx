@@ -116,10 +116,6 @@ const CalendarView = () => {
       .sort((a, b) => a.start.localeCompare(b.start));
   }, [allCalendarEvents, activeTypes, activeSources, customFilters]);
 
-  const prevDay = () => setSelectedDate((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1));
-  const nextDay = () => setSelectedDate((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1));
-
-  const handleOpenCreate = () => {
     setEditingEvent(null);
     setCreateInitialDate(null);
     setModalOpen(true);
