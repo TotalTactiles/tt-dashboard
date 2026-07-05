@@ -461,7 +461,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                       )}
                     </div>
                   )}
-                  {!collapsedPast && dayEvts.length >= 2 && (
+                  {!collapsedPast && dayEvts.length > 3 && (
                     <button
                       type="button"
                       onClick={(e) => {
