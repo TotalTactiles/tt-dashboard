@@ -56,6 +56,7 @@ const getTypeColor = (type: string) => TYPE_COLORS[type] || "#378ADD";
 const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayClick }: CalendarGridProps) => {
   const [currentDate, setCurrentDate] = useState(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
   const [expandedDay, setExpandedDay] = useState<number | null>(null);
+  const [expandedPastDays, setExpandedPastDays] = useState<Set<string>>(new Set());
 
   const hoverCapable = useMediaQuery("(hover: hover) and (pointer: fine)", false);
   const isNarrow = useMediaQuery("(max-width: 639px)", false);
@@ -69,8 +70,14 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const prevMonthDays = new Date(year, month, 0).getDate();
 
-  const prevMonth = () => { setExpandedDay(null); setCurrentDate(new Date(year, month - 1, 1)); };
-  const nextMonth = () => { setExpandedDay(null); setCurrentDate(new Date(year, month + 1, 1)); };
+  const prevMonth = () => { setExpandedDay(null); setExpandedPastDays(new Set()); setCurrentDate(new Date(year, month - 1, 1)); };
+  const nextMonth = () => { setExpandedDay(null); setExpandedPastDays(new Set()); setCurrentDate(new Date(year, month + 1, 1)); };
+
+  const todayStart = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, [month, year]);
 
   const eventsByDay = useMemo(() => {
     const map: Record<number, LiveCalendarEvent[]> = {};
@@ -113,20 +120,33 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
   while (cells.length % 7 !== 0) cells.push({ day: cells.length - firstDay - daysInMonth + 1, inMonth: false });
   const rowCount = cells.length / 7;
 
-  const today = new Date();
   const isToday = (d: number) =>
-    d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+    d === todayStart.getDate() && month === todayStart.getMonth() && year === todayStart.getFullYear();
+  const isPast = (d: number) => {
+    const dObj = new Date(year, month, d);
+    dObj.setHours(0, 0, 0, 0);
+    return dObj.getTime() < todayStart.getTime();
+  };
   const isSelected = (d: number) =>
     d === selectedDate.getDate() && month === selectedDate.getMonth() && year === selectedDate.getFullYear();
 
-  const pad = (n: number) => n.toString().padStart(2, "0");
   const handleDayClick = (day: number) => {
+    if (isPast(day)) {
+      const key = dateKey(year, month, day);
+      setExpandedPastDays((prev) => {
+        const next = new Set(prev);
+        if (next.has(key)) next.delete(key);
+        else next.add(key);
+        return next;
+      });
+    }
     onSelectDate(new Date(year, month, day));
     if (onDayClick) {
-      const iso = `${year}-${pad(month + 1)}-${pad(day)}`;
+      const iso = `${year}-${pad2(month + 1)}-${pad2(day)}`;
       onDayClick(iso);
     }
   };
+
 
   return (
     <motion.div
