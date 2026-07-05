@@ -321,6 +321,9 @@ export interface DashboardData {
   upcomingEvents: LiveCalendarEvent[];
   calendarSummary: CalendarSummary | null;
   setCalendarEvents: React.Dispatch<React.SetStateAction<LiveCalendarEvent[]>>;
+  pinCalendarCreate: (event: LiveCalendarEvent) => void;
+  pinCalendarDelete: (id: string) => void;
+  pinCalendarEdit: (id: string, patch: Partial<LiveCalendarEvent>) => void;
   zohoProjects: Array<{ id: string; name: string; tasks: Array<{ id: string; name: string; hasSubtasks?: boolean }> }>;
   projectKPIData: ProjectKPIData | null;
   liveData: import("@/hooks/useDataSources").LiveData;
