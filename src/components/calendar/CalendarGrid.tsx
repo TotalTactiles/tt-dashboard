@@ -89,11 +89,14 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  const todayStart = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
+  // Today as a local-midnight Date, computed once per mount so collapsed styling is stable.
+  const todayDate = useMemo(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
   }, []);
+
+  const dateKeyNum = (d: Date) => d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+  const todayKey = dateKeyNum(todayDate);
 
   // ---- Navigation dispatched by active view ----
   const goPrev = () => {
@@ -175,12 +178,9 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
   const rowCount = cells.length / 7;
 
   const isToday = (d: number) =>
-    d === todayStart.getDate() && month === todayStart.getMonth() && year === todayStart.getFullYear();
-  const isPast = (d: number) => {
-    const dObj = new Date(year, month, d);
-    dObj.setHours(0, 0, 0, 0);
-    return dObj.getTime() < todayStart.getTime();
-  };
+    d === todayDate.getDate() && month === todayDate.getMonth() && year === todayDate.getFullYear();
+  const isPast = (d: number) => dateKeyNum(new Date(year, month, d)) < todayKey;
+  const isDatePast = (d: Date) => dateKeyNum(d) < todayKey;
   const isSelected = (d: number) =>
     d === selectedDate.getDate() && month === selectedDate.getMonth() && year === selectedDate.getFullYear();
 
@@ -455,7 +455,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
           {/* Day headers */}
           <div className="grid grid-cols-7 gap-1 mb-1 shrink-0">
             {weekDays.map((d) => {
-              const today = sameDay(d, todayStart);
+              const today = sameDay(d, todayDate);
               const selected = sameDay(d, selectedDate);
               return (
                 <div
@@ -477,9 +477,9 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
             {weekDays.map((d) => {
               const iso = dateISO(d);
               const list = weekEventsByDate[iso] || [];
-              const today = sameDay(d, todayStart);
+              const today = sameDay(d, todayDate);
               const selected = sameDay(d, selectedDate);
-              const past = d.getTime() < todayStart.getTime();
+              const past = isDatePast(d);
               return (
                 <div
                   key={iso}
@@ -552,7 +552,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
         <div className="flex-1 min-h-0 overflow-y-auto">
           {(() => {
             const HOURS = Array.from({ length: 17 }, (_, i) => i + 6); // 06:00 – 22:00
-            const past = selectedDate.getTime() < todayStart.getTime() && !sameDay(selectedDate, todayStart);
+            const past = isDatePast(selectedDate) && !sameDay(selectedDate, todayDate);
             // Bucket timed events by hour; keep all-day separately.
             const allDay: LiveCalendarEvent[] = [];
             const byHour: Record<number, LiveCalendarEvent[]> = {};
