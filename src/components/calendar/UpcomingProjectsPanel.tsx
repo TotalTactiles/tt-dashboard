@@ -52,7 +52,7 @@ export default function UpcomingProjectsPanel({ projects, emptyMessage = "No upc
       {sorted.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-6 text-center">
           <FolderKanban className="w-5 h-5 text-muted-foreground/50 mb-2" />
-          <p className="text-xs text-muted-foreground">No upcoming projects</p>
+          <p className="text-xs text-muted-foreground">{emptyMessage}</p>
         </div>
       ) : (
         sorted.map((p) => {
