@@ -9,6 +9,7 @@ interface CalendarGridProps {
   onSelectDate: (date: Date) => void;
   onEventClick: (event: LiveCalendarEvent) => void;
   onAddEvent: () => void;
+  onDayClick?: (dateISO: string) => void;
 }
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
