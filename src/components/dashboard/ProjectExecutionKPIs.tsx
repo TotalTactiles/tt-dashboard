@@ -1364,7 +1364,7 @@ export default function ProjectExecutionKPIs({ selectedPeriodIdx, onPeriodChange
 
         return (
           <SectionPeriodHeader
-            title="Doing The Deed"
+            title="DOING THE DEED - NEED MEM AND ASAD TO USE ZP MORE TO GET DATA PROPERLY"
             pills={[
               { key: "quarter", label: moneyScopeLabel("quarter").pill },
               { key: "ytd", label: "YTD" },
