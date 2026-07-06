@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle, Circle, AlertTriangle, ExternalLink, Trash2, Plus, X } from "lucide-react";
 import { type LiveCalendarEvent } from "@/contexts/DashboardDataContext";
