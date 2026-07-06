@@ -2369,6 +2369,8 @@ const LenderFitPanel = ({
         const parsed = JSON.parse(raw) as LenderRow[];
         return DEFAULT_LENDER_MATRIX.map((def) => {
           const found = parsed.find((p) => p.key === def.key);
+          // Residential is now business-assessed; always use current defaults, ignore stale cache.
+          if (def.key === "residential_property") return def;
           return found ? { ...def, ...found } : def;
         });
       }
