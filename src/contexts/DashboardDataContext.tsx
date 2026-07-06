@@ -238,6 +238,8 @@ export interface LiveCalendarEvent {
   htmlLink?: string;
   /** Optimistic overlay marker — set by useCalendarOverlay when a pin is active. */
   _pending?: "create" | "edit";
+  /** Optional passthrough metadata (e.g. Strategic Board hierarchy for popup). */
+  meta?: any;
 }
 
 export interface CalendarSummary {
