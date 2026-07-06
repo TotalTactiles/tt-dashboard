@@ -904,6 +904,7 @@ export function CashflowReportPDF({ reportData, options }: CashflowReportPDFProp
       <ContentsPage options={options} />
       {options.includeExecutiveSummary && <ExecutiveSummaryPage reportData={reportData} />}
       <CashFlowOverviewPage reportData={reportData} />
+      {options.includeCharts && <ChartPage reportData={reportData} />}
       <CashflowBridgePage reportData={reportData} />
       <ExpenseSummaryPage reportData={reportData} />
       {options.includeDetailTable && <DetailTablePage reportData={reportData} />}
