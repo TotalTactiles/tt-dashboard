@@ -315,6 +315,7 @@ export function assembleReportData(
       qtdLabel,
       expenseSummary,
       totalExpenses,
+      chartMonths: [previous, current].filter(Boolean) as ReportMonthData[],
     };
 
     return { data, errors };
