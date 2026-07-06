@@ -67,6 +67,7 @@ export interface MonthlyReportData {
   qtdLabel: string | null;
   expenseSummary: ExpenseSummaryItem[];
   totalExpenses: number;
+  chartMonths: ReportMonthData[];
 }
 
 export interface QuarterlyReportData {
