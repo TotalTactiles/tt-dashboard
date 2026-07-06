@@ -2546,6 +2546,7 @@ const LenderFitPanel = ({
         <div>
           <p className="text-sm font-medium text-foreground">Lender Fit & Borrowing Readiness</p>
           <p className="text-[10px] text-muted-foreground font-mono">Indicative AU averages, June 2026 — click a facility to research it</p>
+          <p className="text-[10px] text-muted-foreground/80 mt-0.5 leading-snug">All facilities assessed on business criteria (borrowing through the business). Personal income/guarantees only where a lender additionally requires them.</p>
         </div>
         <button
           type="button"
