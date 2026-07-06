@@ -32,6 +32,8 @@ type Row = {
 
 const STRATEGIC_COLOR = "#BA7517";
 const FD_KEY = "tt_fund_deadlines";
+const FD_CACHE_KEY = "tt_fund_deadlines";
+const CACHE_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
 
 const PHASE_COLORS: Record<string, string> = {
   "Pre Seal": "#E24B4A",
