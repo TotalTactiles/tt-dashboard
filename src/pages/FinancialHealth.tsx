@@ -2451,15 +2451,10 @@ const LenderFitPanel = ({
       : currentDSCR;
     const serviceable = target > 0 && reqMonthly <= M && impliedDSCR >= row.dscrMin;
 
-    if (isResidential) {
-      const hasTrading = tradingYears >= row.minTradingYrs;
-      const tone: RowCalc["tone"] = "muted";
-      const verdictLabel = "Personal assessment";
-      const reason = hasTrading
-        ? "assessed on personal income — APRA +3% buffer, DTI ≤6×, HEM"
-        : `needs ${row.minTradingYrs}+ yrs trading · assessed on personal income`;
-      return { row, activeRate, activeTerm, midRate, isResidential, maxCap, reqMonthly, impliedDSCR, serviceable, tone, verdictLabel, reason };
-    }
+    // Residential property borrowed through the business is assessed on business DSCR
+    // (same engine as commercial/investment property). Personal income/guarantees are a
+    // supplementary lender ask surfaced as a muted note — they do not drive the verdict.
+
 
     const needsSecurity = row.security !== "None";
     const hasTrading = tradingYears >= row.minTradingYrs;
