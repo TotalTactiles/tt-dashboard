@@ -186,6 +186,7 @@ function ContentsPage({ options }: { options: ReportOptions }) {
     "Contents",
     ...(options.includeExecutiveSummary ? ["Executive Summary"] : []),
     "Cash Flow Overview",
+    ...(options.includeCharts ? ["Cash Flow Chart"] : []),
     "Cashflow Bridge",
     ...(options.includeDetailTable ? ["Monthly Cash Flow Detail"] : []),
     "Expense Summary",
