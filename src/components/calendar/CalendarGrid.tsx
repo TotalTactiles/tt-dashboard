@@ -400,7 +400,14 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                   onPointerDown={(e) => cell.inMonth && e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
-                    cell.inMonth && handleMonthDayClick(cell.day);
+                    if (!cell.inMonth) return;
+                    const past = isPast(cell.day);
+                    if (isNarrow && !tvMode && !past && dayEvts.length > 0) {
+                      setSelectedDay(null);
+                      setViewAllDay(new Date(year, month, cell.day));
+                      return;
+                    }
+                    handleMonthDayClick(cell.day);
                   }}
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
