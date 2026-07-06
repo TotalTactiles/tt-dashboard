@@ -16,8 +16,9 @@ import {
   Line,
   Polyline,
   Circle,
-  Text as SvgText,
 } from "@react-pdf/renderer";
+// SvgText is the same Text primitive; used inside <Svg> it renders as SVG text.
+const SvgText = Text;
 import type {
   ReportData,
   MonthlyReportData,
