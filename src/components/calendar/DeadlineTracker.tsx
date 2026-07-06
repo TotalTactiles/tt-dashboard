@@ -27,6 +27,7 @@ type Row = {
   subtasks: { id?: string; title: string; done: boolean }[];
   progress: number;
   standalone: boolean;
+  meta?: any;
 };
 
 const STRATEGIC_COLOR = "#BA7517";
