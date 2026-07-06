@@ -506,6 +506,50 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
       return next;
     });
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onFocus = (e: Event) => {
+      const { taskId, sectionId } = (e as CustomEvent).detail || {};
+      if (!taskId) return;
+      if (sectionId) {
+        setOpenSealedIds((prev) => {
+          const n = new Set(prev);
+          n.add(sectionId);
+          return n;
+        });
+      }
+      // expand the task's subtasks
+      setData((prev) => {
+        const next = {
+          ...prev,
+          sections: prev.sections.map((s) =>
+            sectionId && s.id !== sectionId
+              ? s
+              : {
+                  ...s,
+                  tasks: s.tasks.map((t) =>
+                    t.id === taskId ? { ...t, expanded: true } : t
+                  ),
+                }
+          ),
+        };
+        saveData(next);
+        return next;
+      });
+      setFocusedTaskId(taskId);
+      setTimeout(() => {
+        document.getElementById(`strategic-quarters`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        setTimeout(() => {
+          document.getElementById(`sqb-task-${taskId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 250);
+      }, 60);
+      setTimeout(() => setFocusedTaskId((cur) => (cur === taskId ? null : cur)), 2800);
+    };
+    window.addEventListener("sqb-focus-task", onFocus);
+    return () => window.removeEventListener("sqb-focus-task", onFocus);
+  }, []);
+
 
 
   const reorderSections = (from: number, to: number) => {
