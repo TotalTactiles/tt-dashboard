@@ -27,6 +27,7 @@ type Row = {
   subtasks: { id?: string; title: string; done: boolean }[];
   progress: number;
   standalone: boolean;
+  meta?: any;
 };
 
 const STRATEGIC_COLOR = "#BA7517";
@@ -97,6 +98,7 @@ const DeadlineTracker = ({ events }: DeadlineTrackerProps) => {
           subtasks: meta.subtasks ?? [],
           progress: meta.progress ?? 0,
           standalone: false,
+          meta,
         };
       });
 
@@ -158,10 +160,11 @@ const DeadlineTracker = ({ events }: DeadlineTrackerProps) => {
     : selected?.progress ?? 0;
 
   const handleOpenInBoard = () => {
+    const meta = (selected as any)?.meta ?? {};
+    window.dispatchEvent(new CustomEvent("sqb-focus-task", {
+      detail: { taskId: meta.taskId, sectionId: meta.sectionId },
+    }));
     setOpenId(null);
-    requestAnimationFrame(() => {
-      document.getElementById("strategic-quarters")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
   };
 
   const openEditor = (task: FDTask | null) => {
@@ -194,7 +197,6 @@ const DeadlineTracker = ({ events }: DeadlineTrackerProps) => {
 
   return (
     <div className="relative flex-1 min-h-0 min-w-0 flex flex-col">
-      <span className="absolute inset-y-0 -left-1 w-[3px] rounded-full bg-[#BA7517] pointer-events-none" />
       <div className="flex justify-end mb-1.5 shrink-0">
         <span
           className="font-mono text-[8.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
