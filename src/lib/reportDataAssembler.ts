@@ -373,6 +373,7 @@ export function assembleReportData(
     bridge,
     expenseSummary,
     totalExpenses,
+    chartMonths: months,
   };
 
   return { data, errors };
