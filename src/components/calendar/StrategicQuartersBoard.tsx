@@ -56,9 +56,9 @@ interface StrategicQuartersBoardProps {
 
 const PHASE_COLORS: Record<Phase, string> = {
   "Pre Seal": "#E24B4A",
-  "Close the Seal": "#378ADD",
-  "Post Seal": "#22C55E",
-  Legacy: "#BA7517",
+  "Close the Seal": "#BA7517",
+  "Post Seal": "#378ADD",
+  Legacy: "#22C55E",
 };
 
 const STATUS_COLORS: Record<"On Pace" | "At Risk" | "Complete", string> = {
@@ -875,7 +875,7 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
         <div className="flex items-center gap-3">
           <div
             className="w-1 h-9 rounded-full shrink-0"
-            style={{ background: "linear-gradient(180deg, #E24B4A, #378ADD 55%, #BA7517)" }}
+            style={{ background: "linear-gradient(180deg, #E24B4A, #BA7517 40%, #378ADD 70%, #22C55E)" }}
           />
           <div>
             <h2 className="text-[22px] leading-none font-bold tracking-tight text-foreground">
