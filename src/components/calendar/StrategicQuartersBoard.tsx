@@ -68,6 +68,8 @@ const STATUS_COLORS: Record<"On Pace" | "At Risk" | "Complete", string> = {
 };
 
 const STORAGE_KEY = "tt_strategic_quarters";
+const SQ_CACHE_KEY = "tt_strategic_quarters";
+const CACHE_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
