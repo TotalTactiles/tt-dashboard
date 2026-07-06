@@ -302,8 +302,10 @@ function loadData(): BoardData {
   return buildSeed();
 }
 
-function saveData(d: BoardData) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+function saveData(_d: BoardData) {
+  // Persistence handled by the autosave effect in the main component
+  // (instant localStorage + debounced cache POST). Kept as a no-op so
+  // existing call sites remain valid.
 }
 
 // ---- InlineEdit ----
