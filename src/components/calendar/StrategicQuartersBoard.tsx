@@ -68,6 +68,8 @@ const STATUS_COLORS: Record<"On Pace" | "At Risk" | "Complete", string> = {
 };
 
 const STORAGE_KEY = "tt_strategic_quarters";
+const SQ_CACHE_KEY = "tt_strategic_quarters";
+const CACHE_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -300,8 +302,10 @@ function loadData(): BoardData {
   return buildSeed();
 }
 
-function saveData(d: BoardData) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+function saveData(_d: BoardData) {
+  // Persistence handled by the autosave effect in the main component
+  // (instant localStorage + debounced cache POST). Kept as a no-op so
+  // existing call sites remain valid.
 }
 
 // ---- InlineEdit ----
@@ -494,6 +498,40 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
       return next;
     });
   }, []);
+
+  // ---- Cache-backed persistence (mirrors tt_debt_register pattern) ----
+  const sqInitRef = useRef(false);
+  const sqSaveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(CACHE_WEBHOOK);
+        const rows = await res.json();
+        const row = Array.isArray(rows) ? rows.find((r: any) => r?.key === SQ_CACHE_KEY) : null;
+        if (alive && row?.value) {
+          const parsed = typeof row.value === "string" ? JSON.parse(row.value) : row.value;
+          if (parsed && Array.isArray(parsed.sections)) setData(parsed);
+        }
+      } catch { /* offline: keep localStorage-seeded value */ }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!sqInitRef.current) { sqInitRef.current = true; return; }
+    const serialised = JSON.stringify(data);
+    try { localStorage.setItem(STORAGE_KEY, serialised); } catch {}
+    clearTimeout(sqSaveTimer.current);
+    sqSaveTimer.current = setTimeout(() => {
+      fetch(CACHE_WEBHOOK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: SQ_CACHE_KEY, value: serialised }),
+      }).catch(() => { /* offline: localStorage already saved */ });
+    }, 1000);
+  }, [data]);
 
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
