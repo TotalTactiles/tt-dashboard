@@ -1903,7 +1903,7 @@ const ChartsSection = ({
                           const dscrColor = impliedDSCR == null ? "text-muted-foreground" : dscrOk ? "text-emerald-400" : dscrAmber ? "text-amber-400" : "text-red-400";
                           const dscrTxt = impliedDSCR == null ? "—" : impliedDSCR.toFixed(2);
                           const facilityNote = isResidential
-                            ? `Residential is also assessed on personal/director income under consumer rules. APRA serviceability buffer: assess at rate + ${bench.apraBufferPct.toFixed(1)}%. APRA debt-to-income cap restricts lenders from issuing more than ${(bench.dtiCapShare * 100).toFixed(0)}% of new loans at ≥ ${bench.dtiCapMultiple}× gross income (in force from Feb 2026).`
+                            ? `Borrowed through the business (investment / residential-secured business facility), this is a business lending decision assessed on business DSCR ≥ ${bench.dscrStandard.toFixed(2)} with the property as security — not consumer rules. Personal guarantees / director income may be a supplementary lender requirement, but do not drive the verdict.`
                             : isUnsecured
                             ? `Unsecured facilities: lenders typically require a higher DSCR (~${bench.dscrUnsecured.toFixed(2)}) and price materially above secured lines.`
                             : `Asset / secured facility: assessed on business cash flow with the asset as security. DSCR ≥ ${bench.dscrStandard.toFixed(2)} is the governing test.`;
@@ -2308,7 +2308,7 @@ const BORROWER_PROFILE_KEY = "tt_borrower_profile_v1";
 const DEFAULT_LENDER_MATRIX: LenderRow[] = [
   { key: "unsecured",            facility: "Unsecured business loan", tier: "Fintech / non-bank",rateLow: 9.5, rateHigh: 18.0, termMonths: 36,  minTradingYrs: 0.5, security: "None",                  dscrMin: 1.50 },
   { key: "secured_business",     facility: "Secured business loan",   tier: "Bank (Big 4)",       rateLow: 6.8, rateHigh: 11.5, termMonths: 84,  minTradingYrs: 2,   security: "Property/asset",        dscrMin: 1.25 },
-  { key: "residential_property", facility: "Residential property",    tier: "Bank / non-bank",   rateLow: 5.5, rateHigh: 6.5,  termMonths: 360, minTradingYrs: 0,   security: "Residential property",  dscrMin: 1.00 },
+  { key: "residential_property", facility: "Residential property",    tier: "Bank / non-bank",   rateLow: 5.5, rateHigh: 6.5,  termMonths: 360, minTradingYrs: 2,   security: "Residential property",  dscrMin: 1.25 },
   { key: "commercial_property",  facility: "Commercial property",     tier: "Bank / non-bank",   rateLow: 6.5, rateHigh: 10.0, termMonths: 180, minTradingYrs: 2,   security: "Property (LVR 65–70%)", dscrMin: 1.25 },
   { key: "vehicle",              facility: "Vehicle finance",         tier: "Bank / non-bank",   rateLow: 7.5, rateHigh: 9.0,  termMonths: 60,  minTradingYrs: 0.5, security: "The vehicle",           dscrMin: 1.25 },
   { key: "equipment",            facility: "Equipment finance",       tier: "Bank / non-bank",   rateLow: 7.0, rateHigh: 10.0, termMonths: 60,  minTradingYrs: 1,   security: "The asset",             dscrMin: 1.25 },
@@ -2369,6 +2369,8 @@ const LenderFitPanel = ({
         const parsed = JSON.parse(raw) as LenderRow[];
         return DEFAULT_LENDER_MATRIX.map((def) => {
           const found = parsed.find((p) => p.key === def.key);
+          // Residential is now business-assessed; always use current defaults, ignore stale cache.
+          if (def.key === "residential_property") return def;
           return found ? { ...def, ...found } : def;
         });
       }
@@ -2451,15 +2453,10 @@ const LenderFitPanel = ({
       : currentDSCR;
     const serviceable = target > 0 && reqMonthly <= M && impliedDSCR >= row.dscrMin;
 
-    if (isResidential) {
-      const hasTrading = tradingYears >= row.minTradingYrs;
-      const tone: RowCalc["tone"] = "muted";
-      const verdictLabel = "Personal assessment";
-      const reason = hasTrading
-        ? "assessed on personal income — APRA +3% buffer, DTI ≤6×, HEM"
-        : `needs ${row.minTradingYrs}+ yrs trading · assessed on personal income`;
-      return { row, activeRate, activeTerm, midRate, isResidential, maxCap, reqMonthly, impliedDSCR, serviceable, tone, verdictLabel, reason };
-    }
+    // Residential property borrowed through the business is assessed on business DSCR
+    // (same engine as commercial/investment property). Personal income/guarantees are a
+    // supplementary lender ask surfaced as a muted note — they do not drive the verdict.
+
 
     const needsSecurity = row.security !== "None";
     const hasTrading = tradingYears >= row.minTradingYrs;
@@ -2551,6 +2548,7 @@ const LenderFitPanel = ({
         <div>
           <p className="text-sm font-medium text-foreground">Lender Fit & Borrowing Readiness</p>
           <p className="text-[10px] text-muted-foreground font-mono">Indicative AU averages, June 2026 — click a facility to research it</p>
+          <p className="text-[10px] text-muted-foreground/80 mt-0.5 leading-snug">All facilities assessed on business criteria (borrowing through the business). Personal income/guarantees only where a lender additionally requires them.</p>
         </div>
         <button
           type="button"
@@ -2658,8 +2656,13 @@ const LenderFitPanel = ({
                     </div>
                   </div>
                   <p className="text-[9px] text-muted-foreground/70 font-mono">
-                    AU avg — replace with the rate/term you've researched · Security: {c.row.security}{c.isResidential ? "" : ` · DSCR ≥ ${c.row.dscrMin.toFixed(2)}`}
+                    AU avg — replace with the rate/term you've researched · Security: {c.row.security} · DSCR ≥ {c.row.dscrMin.toFixed(2)}
                   </p>
+                  {(c.row.key === "residential_property" || c.row.key === "commercial_property") && (
+                    <p className="text-[9px] text-muted-foreground/70 leading-snug">
+                      Note: personal guarantees / director income may be an additional lender requirement on top of the business assessment — they do not drive this verdict.
+                    </p>
+                  )}
 
                   {/* Computed figures */}
                   <div className="font-mono text-[11px] space-y-0.5">
@@ -2677,14 +2680,12 @@ const LenderFitPanel = ({
                           <span className="text-muted-foreground">Available (M)</span>
                           <span className="text-foreground">{fmt(M)}</span>
                         </div>
-                        {!c.isResidential && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Implied DSCR</span>
-                            <span className={c.impliedDSCR >= c.row.dscrMin ? "text-emerald-400" : "text-red-400"}>
-                              {c.impliedDSCR.toFixed(2)} (min {c.row.dscrMin.toFixed(2)})
-                            </span>
-                          </div>
-                        )}
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Implied DSCR</span>
+                          <span className={c.impliedDSCR >= c.row.dscrMin ? "text-emerald-400" : "text-red-400"}>
+                            {c.impliedDSCR.toFixed(2)} (min {c.row.dscrMin.toFixed(2)})
+                          </span>
+                        </div>
                       </>
                     )}
                   </div>
