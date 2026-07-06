@@ -281,7 +281,7 @@ const DeadlineTracker = ({ events }: DeadlineTrackerProps) => {
           )}
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 };
 
