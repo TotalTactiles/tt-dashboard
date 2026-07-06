@@ -76,16 +76,18 @@ const DeadlineTracker = ({ events }: DeadlineTrackerProps) => {
   };
 
   return (
-    <>
-      {/* Amber Strategic Board rail on the card */}
-      <span className="absolute inset-y-0 left-0 w-[3px] bg-[#BA7517] pointer-events-none" />
+    <div className="relative flex-1 min-h-0 min-w-0 flex flex-col">
+      {/* Amber Strategic Board rail on the card body */}
+      <span className="absolute inset-y-0 -left-1 w-[3px] rounded-full bg-[#BA7517] pointer-events-none" />
       {/* Strategic Board pill */}
-      <span
-        className="absolute top-2 right-2 font-mono text-[8.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full pointer-events-none z-10"
-        style={{ color: STRATEGIC_COLOR, background: hexA(STRATEGIC_COLOR, 0.16) }}
-      >
-        Strategic Board
-      </span>
+      <div className="flex justify-end mb-1.5 shrink-0">
+        <span
+          className="font-mono text-[8.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
+          style={{ color: STRATEGIC_COLOR, background: hexA(STRATEGIC_COLOR, 0.16) }}
+        >
+          Strategic Board
+        </span>
+      </div>
 
       <motion.div
         initial={{ opacity: 0, y: 12 }}
