@@ -11,6 +11,12 @@ import {
   View,
   StyleSheet,
   Font,
+  Svg,
+  Rect,
+  Line,
+  Polyline,
+  Circle,
+  Text as SvgText,
 } from "@react-pdf/renderer";
 import type {
   ReportData,
