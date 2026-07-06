@@ -127,6 +127,10 @@ function zoneProgress(sections: BoardSection[]): number {
   return total ? Math.round((done / total) * 100) : 0;
 }
 
+function sectionProgress(section: BoardSection): number {
+  return zoneProgress([section]);
+}
+
 function zoneListStats(sections: BoardSection[]) {
   const tasks = sections.flatMap((s) => s.tasks);
   const complete = tasks.filter((t) => taskProgress(t) === 100).length;
