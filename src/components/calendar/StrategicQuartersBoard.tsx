@@ -541,6 +541,8 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
           deadline: task.dueDate,
           subtasks: subtaskSnap,
           progress,
+          taskId: task.id,
+          sectionId: sec.id,
         };
         if (task.dueDate) {
           events.push({
