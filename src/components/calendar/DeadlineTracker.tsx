@@ -74,7 +74,40 @@ const DeadlineTracker = ({ events }: DeadlineTrackerProps) => {
   const [fdTasks, setFdTasks] = useState<FDTask[]>(() => {
     try { return JSON.parse(localStorage.getItem(FD_KEY) || "[]"); } catch { return []; }
   });
-  useEffect(() => { localStorage.setItem(FD_KEY, JSON.stringify(fdTasks)); }, [fdTasks]);
+
+  // Cache-backed persistence (mirrors tt_debt_register pattern)
+  const fdInitRef = useRef(false);
+  const fdSaveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(CACHE_WEBHOOK);
+        const rows = await res.json();
+        const row = Array.isArray(rows) ? rows.find((r: any) => r?.key === FD_CACHE_KEY) : null;
+        if (alive && row?.value) {
+          const parsed = typeof row.value === "string" ? JSON.parse(row.value) : row.value;
+          if (Array.isArray(parsed)) setFdTasks(parsed);
+        }
+      } catch { /* offline: keep localStorage-seeded value */ }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!fdInitRef.current) { fdInitRef.current = true; return; }
+    const serialised = JSON.stringify(fdTasks);
+    try { localStorage.setItem(FD_KEY, serialised); } catch {}
+    clearTimeout(fdSaveTimer.current);
+    fdSaveTimer.current = setTimeout(() => {
+      fetch(CACHE_WEBHOOK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: FD_CACHE_KEY, value: serialised }),
+      }).catch(() => { /* offline: localStorage already saved */ });
+    }, 1000);
+  }, [fdTasks]);
 
   const upsertFd = (t: FDTask) =>
     setFdTasks(prev => prev.some(x => x.id === t.id) ? prev.map(x => x.id === t.id ? t : x) : [...prev, t]);
