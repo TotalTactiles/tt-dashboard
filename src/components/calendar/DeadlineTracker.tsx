@@ -98,6 +98,7 @@ const DeadlineTracker = ({ events }: DeadlineTrackerProps) => {
           subtasks: meta.subtasks ?? [],
           progress: meta.progress ?? 0,
           standalone: false,
+          meta,
         };
       });
 
