@@ -82,6 +82,7 @@ export interface QuarterlyReportData {
   bridge: CashflowBridge | null;
   expenseSummary: ExpenseSummaryItem[];
   totalExpenses: number;
+  chartMonths: ReportMonthData[];
 }
 
 export type ReportData = MonthlyReportData | QuarterlyReportData;
