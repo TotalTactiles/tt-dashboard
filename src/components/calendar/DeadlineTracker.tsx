@@ -197,7 +197,6 @@ const DeadlineTracker = ({ events }: DeadlineTrackerProps) => {
 
   return (
     <div className="relative flex-1 min-h-0 min-w-0 flex flex-col">
-      <span className="absolute inset-y-0 -left-1 w-[3px] rounded-full bg-[#BA7517] pointer-events-none" />
       <div className="flex justify-end mb-1.5 shrink-0">
         <span
           className="font-mono text-[8.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
