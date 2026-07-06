@@ -34,9 +34,9 @@ const FD_KEY = "tt_fund_deadlines";
 
 const PHASE_COLORS: Record<string, string> = {
   "Pre Seal": "#E24B4A",
-  "Close the Seal": "#378ADD",
-  "Post Seal": "#22C55E",
-  "Legacy": "#BA7517",
+  "Close the Seal": "#BA7517",
+  "Post Seal": "#378ADD",
+  "Legacy": "#22C55E",
   "General": "#BA7517",
   "Strategic": "#BA7517",
 };
