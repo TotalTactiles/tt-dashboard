@@ -2308,7 +2308,7 @@ const BORROWER_PROFILE_KEY = "tt_borrower_profile_v1";
 const DEFAULT_LENDER_MATRIX: LenderRow[] = [
   { key: "unsecured",            facility: "Unsecured business loan", tier: "Fintech / non-bank",rateLow: 9.5, rateHigh: 18.0, termMonths: 36,  minTradingYrs: 0.5, security: "None",                  dscrMin: 1.50 },
   { key: "secured_business",     facility: "Secured business loan",   tier: "Bank (Big 4)",       rateLow: 6.8, rateHigh: 11.5, termMonths: 84,  minTradingYrs: 2,   security: "Property/asset",        dscrMin: 1.25 },
-  { key: "residential_property", facility: "Residential property",    tier: "Bank / non-bank",   rateLow: 5.5, rateHigh: 6.5,  termMonths: 360, minTradingYrs: 0,   security: "Residential property",  dscrMin: 1.00 },
+  { key: "residential_property", facility: "Residential property",    tier: "Bank / non-bank",   rateLow: 5.5, rateHigh: 6.5,  termMonths: 360, minTradingYrs: 2,   security: "Residential property",  dscrMin: 1.25 },
   { key: "commercial_property",  facility: "Commercial property",     tier: "Bank / non-bank",   rateLow: 6.5, rateHigh: 10.0, termMonths: 180, minTradingYrs: 2,   security: "Property (LVR 65–70%)", dscrMin: 1.25 },
   { key: "vehicle",              facility: "Vehicle finance",         tier: "Bank / non-bank",   rateLow: 7.5, rateHigh: 9.0,  termMonths: 60,  minTradingYrs: 0.5, security: "The vehicle",           dscrMin: 1.25 },
   { key: "equipment",            facility: "Equipment finance",       tier: "Bank / non-bank",   rateLow: 7.0, rateHigh: 10.0, termMonths: 60,  minTradingYrs: 1,   security: "The asset",             dscrMin: 1.25 },
