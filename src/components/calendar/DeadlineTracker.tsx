@@ -160,18 +160,11 @@ const DeadlineTracker = ({ events }: DeadlineTrackerProps) => {
     : selected?.progress ?? 0;
 
   const handleOpenInBoard = () => {
-    const taskId = (selected as any)?.__taskId ?? selected?.id?.replace(/^sqb-[^-]+-/, "");
-    const sectionId = (selected as any)?.__sectionId;
+    const meta = (selected as any)?.meta ?? {};
     window.dispatchEvent(new CustomEvent("sqb-focus-task", {
-      detail: {
-        taskId: (selected as any)?.meta?.taskId ?? taskId,
-        sectionId: (selected as any)?.meta?.sectionId ?? sectionId,
-      },
+      detail: { taskId: meta.taskId, sectionId: meta.sectionId },
     }));
     setOpenId(null);
-    requestAnimationFrame(() => {
-      document.getElementById("strategic-quarters")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
   };
 
   const openEditor = (task: FDTask | null) => {
