@@ -1234,7 +1234,9 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
                         return (
                           <div
                             key={task.id}
-                            className={`rounded-xl px-1.5 py-1 mb-0.5 hover:bg-white/[0.04] transition-colors group/task ${complete ? "opacity-95" : ""}`}
+                            id={`sqb-task-${task.id}`}
+                            style={focusedTaskId === task.id ? ({ ["--flash" as any]: accent } as any) : undefined}
+                            className={`rounded-xl px-1.5 py-1 mb-0.5 hover:bg-white/[0.04] transition-colors group/task ${complete ? "opacity-95" : ""} ${focusedTaskId === task.id ? "sqb-flash" : ""}`}
                           >
                             <div className="flex items-center gap-2.5 py-1">
                               {subTotal > 0 ? (
