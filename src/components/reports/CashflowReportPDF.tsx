@@ -720,6 +720,171 @@ function CommentaryPage() {
   );
 }
 
+
+// ---- Cash Flow Chart Page (native SVG) ----
+
+function ChartPage({ reportData }: { reportData: ReportData }) {
+  const months = reportData.chartMonths ?? [];
+  if (months.length === 0) return null;
+
+  // Layout
+  const W = 495; // usable width within page (A4 595 - 100 padding)
+  const H = 300;
+  const padL = 60, padR = 20, padT = 20, padB = 40;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+
+  const maxVal = Math.max(
+    1,
+    ...months.map(m => Math.max(m.income, m.outgoings, Math.abs(m.surplus))),
+  );
+  // Round up to a "nice" number for gridlines
+  const niceMax = (() => {
+    const pow = Math.pow(10, Math.floor(Math.log10(maxVal)));
+    const n = Math.ceil(maxVal / pow) * pow;
+    return n;
+  })();
+
+  const groupW = innerW / months.length;
+  const barW = Math.min(28, groupW * 0.32);
+  const gap = 4;
+
+  const yFor = (v: number) => padT + innerH - (v / niceMax) * innerH;
+  const xForGroup = (i: number) => padL + groupW * i + groupW / 2;
+
+  // Running surplus for the polyline
+  let running = 0;
+  const linePoints = months.map((m, i) => {
+    running += m.surplus;
+    const x = xForGroup(i);
+    // Clamp the running value to niceMax range for visualization
+    const clamped = Math.max(-niceMax, Math.min(niceMax, running));
+    const y = padT + innerH - ((clamped + niceMax) / (2 * niceMax)) * innerH;
+    return { x, y, value: running };
+  });
+
+  const polylineStr = linePoints.map(p => `${p.x},${p.y}`).join(" ");
+
+  const gridSteps = 4;
+  const gridlines: number[] = [];
+  for (let i = 0; i <= gridSteps; i++) gridlines.push((niceMax / gridSteps) * i);
+
+  const fmtShort = (v: number) => {
+    if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+    if (v >= 1_000) return `$${Math.round(v / 1_000)}k`;
+    return `$${Math.round(v)}`;
+  };
+
+  const periodLabel = reportData.type === "monthly"
+    ? (reportData as MonthlyReportData).periodLabel
+    : (reportData as QuarterlyReportData).periodLabel;
+
+  return (
+    <Page size="A4" style={s.page}>
+      <Text style={s.sectionHeading}>Cash Flow Chart</Text>
+      <Text style={s.bodyText}>{periodLabel}</Text>
+
+      <View style={{ marginTop: 8 }}>
+        <Svg width={W} height={H}>
+          {/* Gridlines + Y labels */}
+          {gridlines.map((g, i) => (
+            <React.Fragment key={i}>
+              <Line
+                x1={padL}
+                y1={yFor(g)}
+                x2={W - padR}
+                y2={yFor(g)}
+                stroke="#e5e7eb"
+                strokeWidth={0.5}
+              />
+              <SvgText
+                x={padL - 6}
+                y={yFor(g) + 3}
+                style={{ fontSize: 7, fill: TEXT_GREY, textAnchor: "end" } as any}
+              >
+                {fmtShort(g)}
+              </SvgText>
+            </React.Fragment>
+          ))}
+
+          {/* Bars */}
+          {months.map((m, i) => {
+            const cx = xForGroup(i);
+            const incomeX = cx - barW - gap / 2;
+            const outX = cx + gap / 2;
+            const incomeY = yFor(m.income);
+            const outY = yFor(m.outgoings);
+            const baseY = yFor(0);
+            return (
+              <React.Fragment key={m.month}>
+                <Rect
+                  x={incomeX}
+                  y={incomeY}
+                  width={barW}
+                  height={Math.max(0, baseY - incomeY)}
+                  fill="#3D89DA"
+                />
+                <Rect
+                  x={outX}
+                  y={outY}
+                  width={barW}
+                  height={Math.max(0, baseY - outY)}
+                  fill="#C0392B"
+                />
+                {/* X label */}
+                <SvgText
+                  x={cx}
+                  y={H - padB + 14}
+                  style={{ fontSize: 8, fill: TEXT_BLACK, textAnchor: "middle" } as any}
+                >
+                  {m.month}
+                </SvgText>
+              </React.Fragment>
+            );
+          })}
+
+          {/* Dashed running-surplus polyline */}
+          {linePoints.length >= 2 && (
+            <Polyline
+              points={polylineStr}
+              fill="none"
+              stroke="#3C79C3"
+              strokeWidth={1.2}
+              strokeDasharray="5 4"
+              strokeOpacity={0.7}
+            />
+          )}
+          {linePoints.map((p, i) => (
+            <Circle key={i} cx={p.x} cy={p.y} r={2.5} fill="#3C79C3" />
+          ))}
+        </Svg>
+
+        {/* Legend */}
+        <View style={{ flexDirection: "row", gap: 16, marginTop: 8, paddingLeft: padL }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+            <View style={{ width: 10, height: 10, backgroundColor: "#3D89DA" }} />
+            <Text style={{ fontSize: 8, color: TEXT_BLACK }}>Income</Text>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+            <View style={{ width: 10, height: 10, backgroundColor: "#C0392B" }} />
+            <Text style={{ fontSize: 8, color: TEXT_BLACK }}>Outgoings</Text>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+            <View style={{ width: 14, height: 2, backgroundColor: "#3C79C3", opacity: 0.7 }} />
+            <Text style={{ fontSize: 8, color: TEXT_BLACK }}>Running Surplus</Text>
+          </View>
+        </View>
+
+        <Text style={[s.bodyText, { fontSize: 8, color: TEXT_GREY, marginTop: 10, fontStyle: "italic" }]}>
+          Rendered natively — crisp at any zoom, prints clean on white.
+        </Text>
+      </View>
+
+      <Footer />
+    </Page>
+  );
+}
+
 // ---- Main Document ----
 
 interface CashflowReportPDFProps {
