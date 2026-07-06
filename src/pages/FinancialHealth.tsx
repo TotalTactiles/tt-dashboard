@@ -1903,7 +1903,7 @@ const ChartsSection = ({
                           const dscrColor = impliedDSCR == null ? "text-muted-foreground" : dscrOk ? "text-emerald-400" : dscrAmber ? "text-amber-400" : "text-red-400";
                           const dscrTxt = impliedDSCR == null ? "—" : impliedDSCR.toFixed(2);
                           const facilityNote = isResidential
-                            ? `Residential is also assessed on personal/director income under consumer rules. APRA serviceability buffer: assess at rate + ${bench.apraBufferPct.toFixed(1)}%. APRA debt-to-income cap restricts lenders from issuing more than ${(bench.dtiCapShare * 100).toFixed(0)}% of new loans at ≥ ${bench.dtiCapMultiple}× gross income (in force from Feb 2026).`
+                            ? `Borrowed through the business (investment / residential-secured business facility), this is a business lending decision assessed on business DSCR ≥ ${bench.dscrStandard.toFixed(2)} with the property as security — not consumer rules. Personal guarantees / director income may be a supplementary lender requirement, but do not drive the verdict.`
                             : isUnsecured
                             ? `Unsecured facilities: lenders typically require a higher DSCR (~${bench.dscrUnsecured.toFixed(2)}) and price materially above secured lines.`
                             : `Asset / secured facility: assessed on business cash flow with the asset as security. DSCR ≥ ${bench.dscrStandard.toFixed(2)} is the governing test.`;
