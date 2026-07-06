@@ -2677,14 +2677,12 @@ const LenderFitPanel = ({
                           <span className="text-muted-foreground">Available (M)</span>
                           <span className="text-foreground">{fmt(M)}</span>
                         </div>
-                        {!c.isResidential && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Implied DSCR</span>
-                            <span className={c.impliedDSCR >= c.row.dscrMin ? "text-emerald-400" : "text-red-400"}>
-                              {c.impliedDSCR.toFixed(2)} (min {c.row.dscrMin.toFixed(2)})
-                            </span>
-                          </div>
-                        )}
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Implied DSCR</span>
+                          <span className={c.impliedDSCR >= c.row.dscrMin ? "text-emerald-400" : "text-red-400"}>
+                            {c.impliedDSCR.toFixed(2)} (min {c.row.dscrMin.toFixed(2)})
+                          </span>
+                        </div>
                       </>
                     )}
                   </div>
