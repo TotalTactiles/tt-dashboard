@@ -499,6 +499,40 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
     });
   }, []);
 
+  // ---- Cache-backed persistence (mirrors tt_debt_register pattern) ----
+  const sqInitRef = useRef(false);
+  const sqSaveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(CACHE_WEBHOOK);
+        const rows = await res.json();
+        const row = Array.isArray(rows) ? rows.find((r: any) => r?.key === SQ_CACHE_KEY) : null;
+        if (alive && row?.value) {
+          const parsed = typeof row.value === "string" ? JSON.parse(row.value) : row.value;
+          if (parsed && Array.isArray(parsed.sections)) setData(parsed);
+        }
+      } catch { /* offline: keep localStorage-seeded value */ }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!sqInitRef.current) { sqInitRef.current = true; return; }
+    const serialised = JSON.stringify(data);
+    try { localStorage.setItem(STORAGE_KEY, serialised); } catch {}
+    clearTimeout(sqSaveTimer.current);
+    sqSaveTimer.current = setTimeout(() => {
+      fetch(CACHE_WEBHOOK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: SQ_CACHE_KEY, value: serialised }),
+      }).catch(() => { /* offline: localStorage already saved */ });
+    }, 1000);
+  }, [data]);
+
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const [editingDeadlineId, setEditingDeadlineId] = useState<string | null>(null);
