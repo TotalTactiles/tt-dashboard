@@ -400,7 +400,14 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                   onPointerDown={(e) => cell.inMonth && e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
-                    cell.inMonth && handleMonthDayClick(cell.day);
+                    if (!cell.inMonth) return;
+                    const past = isPast(cell.day);
+                    if (isNarrow && !tvMode && !past && dayEvts.length > 0) {
+                      setSelectedDay(null);
+                      setViewAllDay(new Date(year, month, cell.day));
+                      return;
+                    }
+                    handleMonthDayClick(cell.day);
                   }}
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
@@ -430,15 +437,7 @@ const CalendarGrid = ({ events, selectedDate, onSelectDate, onEventClick, onDayC
                     )}
                   </div>
                   {!collapsedPast && !tvMode && dayEvts.length > 0 && (
-                    <div
-                      className="flex sm:hidden flex-wrap items-center gap-[3px] w-full mt-0.5 cursor-pointer"
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedDay(null);
-                        setViewAllDay(new Date(year, month, cell.day));
-                      }}
-                    >
+                    <div className="flex sm:hidden flex-wrap items-center gap-[3px] w-full mt-0.5 pointer-events-none">
                       {dayEvts.slice(0, 3).map((ev) => (
                         <span
                           key={ev.id}
