@@ -67,6 +67,7 @@ export interface MonthlyReportData {
   qtdLabel: string | null;
   expenseSummary: ExpenseSummaryItem[];
   totalExpenses: number;
+  chartMonths: ReportMonthData[];
 }
 
 export interface QuarterlyReportData {
@@ -81,6 +82,7 @@ export interface QuarterlyReportData {
   bridge: CashflowBridge | null;
   expenseSummary: ExpenseSummaryItem[];
   totalExpenses: number;
+  chartMonths: ReportMonthData[];
 }
 
 export type ReportData = MonthlyReportData | QuarterlyReportData;
@@ -313,6 +315,7 @@ export function assembleReportData(
       qtdLabel,
       expenseSummary,
       totalExpenses,
+      chartMonths: [previous, current].filter(Boolean) as ReportMonthData[],
     };
 
     return { data, errors };
@@ -370,6 +373,7 @@ export function assembleReportData(
     bridge,
     expenseSummary,
     totalExpenses,
+    chartMonths: months,
   };
 
   return { data, errors };
