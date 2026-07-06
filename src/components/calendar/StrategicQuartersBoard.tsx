@@ -529,6 +529,19 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
     const events: LiveCalendarEvent[] = [];
     data.sections.forEach((sec) => {
       sec.tasks.forEach((task) => {
+        const subtaskSnap = task.subtasks.map((s) => ({ title: s.title, done: s.done }));
+        const progress = task.subtasks.length
+          ? Math.round((task.subtasks.filter((s) => s.done).length / task.subtasks.length) * 100)
+          : (task.done ? 100 : 0);
+        const taskMeta = {
+          kind: "task" as const,
+          phase: sec.phase,
+          parent: `${sec.title} · ${sec.quarter}`,
+          taskTitle: task.title,
+          deadline: task.dueDate,
+          subtasks: subtaskSnap,
+          progress,
+        };
         if (task.dueDate) {
           events.push({
             id: `sqb-${sec.id}-${task.id}`,
@@ -540,6 +553,7 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
             source: "Strategic Board",
             type: "Deadline",
             attendees: [],
+            meta: taskMeta,
           });
         }
         task.subtasks.forEach((st) => {
@@ -554,6 +568,7 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
               source: "Strategic Board",
               type: "Deadline",
               attendees: [],
+              meta: { ...taskMeta, deadline: st.dueDate },
             });
           }
         });
@@ -571,6 +586,18 @@ export default function StrategicQuartersBoard({ onInjectEvents }: StrategicQuar
           source: "Strategic Board",
           type: "Deadline",
           attendees: [],
+          meta: {
+            kind: "section" as const,
+            phase: section.phase,
+            parent: section.quarter,
+            taskTitle: section.title,
+            deadline: section.deadline,
+            subtasks: section.tasks.map((t) => ({
+              title: t.title,
+              done: taskProgress(t) === 100,
+            })),
+            progress: sectionProgress(section),
+          },
         });
       }
     });
