@@ -242,12 +242,12 @@ export function CashflowExportModal({ open, onOpenChange }: CashflowExportModalP
               />
             </div>
 
-            <div className="flex items-center justify-between opacity-50">
-              <Label htmlFor="charts" className="text-sm">Charts (coming soon)</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="charts" className="text-sm">Charts</Label>
               <Switch
                 id="charts"
-                checked={false}
-                disabled
+                checked={includeCharts}
+                onCheckedChange={setIncludeCharts}
               />
             </div>
 
