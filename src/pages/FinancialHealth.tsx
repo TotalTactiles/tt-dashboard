@@ -2653,8 +2653,13 @@ const LenderFitPanel = ({
                     </div>
                   </div>
                   <p className="text-[9px] text-muted-foreground/70 font-mono">
-                    AU avg — replace with the rate/term you've researched · Security: {c.row.security}{c.isResidential ? "" : ` · DSCR ≥ ${c.row.dscrMin.toFixed(2)}`}
+                    AU avg — replace with the rate/term you've researched · Security: {c.row.security} · DSCR ≥ {c.row.dscrMin.toFixed(2)}
                   </p>
+                  {(c.row.key === "residential_property" || c.row.key === "commercial_property") && (
+                    <p className="text-[9px] text-muted-foreground/70 leading-snug">
+                      Note: personal guarantees / director income may be an additional lender requirement on top of the business assessment — they do not drive this verdict.
+                    </p>
+                  )}
 
                   {/* Computed figures */}
                   <div className="font-mono text-[11px] space-y-0.5">
