@@ -624,3 +624,11 @@
 .tv-mode .landscape-main-offset { padding-left: 0 !important; }
 .tv-mode .dashboard-main-padding { padding: 0 !important; }
 .tv-mode .pb-20 { padding-bottom: 0 !important; }
+
+/* Strategic Quarters focus flash */
+@keyframes sqbFlash {
+  0%   { background: color-mix(in srgb, var(--flash) 28%, transparent); box-shadow: 0 0 0 2px var(--flash); }
+  40%  { background: color-mix(in srgb, var(--flash) 16%, transparent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--flash) 60%, transparent); }
+  100% { background: transparent; box-shadow: 0 0 0 0 transparent; }
+}
+.sqb-flash { animation: sqbFlash 2.6s ease-out forwards; border-radius: 10px; }
