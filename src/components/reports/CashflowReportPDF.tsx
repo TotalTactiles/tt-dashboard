@@ -4,6 +4,7 @@
  * Styled to match a professional management report aesthetic.
  */
 
+import React from "react";
 import {
   Document,
   Page,
