@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { RefreshCw, Loader2 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 
-const XERO_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/xero-pull";
+const CACHE_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
 const CACHE_KEY = "xero_mgmt_report";
+
 
 type LineItem = { label: string; value: number };
 
