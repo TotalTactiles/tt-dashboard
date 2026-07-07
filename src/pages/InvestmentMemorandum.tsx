@@ -889,7 +889,10 @@ Each value: 3–5 sentences quoting the real figures, ending with one concrete r
           debtTotals,
           liveData,
           investorMetrics,
-          accountingData,
+          accountingData: ctxData,
+          managementReport: ctxData?.xero?.managementReport ?? ctxData?.managementReport ?? null,
+          sheets: ctxData?.sheets ?? null,
+
         },
       });
       const parsed = parseResponseAndButtons(text);
