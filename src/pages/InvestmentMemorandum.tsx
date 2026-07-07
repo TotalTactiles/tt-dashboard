@@ -832,7 +832,24 @@ Each value: 3–5 sentences quoting the real figures, ending with one concrete r
     const updated = [...messages, userMessage];
     setMessages(updated);
     setLoading(true);
-    const dataContext = buildDataContext(liveData, investorMetrics, accountingData);
+    // Ensure FULL context before any command/turn — never send partial context.
+    let ctxData = accountingData;
+    if (!ctxData || !ctxData?.sheets) {
+      try {
+        const res = await fetch(ACCOUNTING_DATA_WEBHOOK);
+        const raw = await res.json();
+        ctxData = Array.isArray(raw) ? raw[0] : raw;
+        setAccountingData(ctxData);
+      } catch { /* fall through */ }
+    }
+    if (!ctxData?.xero?.managementReport && !ctxData?.managementReport) {
+      const mr = await fetchManagementReport();
+      if (mr) {
+        ctxData = { ...(ctxData ?? {}), xero: { ...(ctxData?.xero ?? {}), managementReport: mr } };
+      }
+    }
+    const dataContext = buildDataContext(liveData, investorMetrics, ctxData);
+
     const apiMessages = updated.slice(-20).map((m, idx, arr) => {
       if (m.role === "user" && idx === arr.length - 1 && attachedFile) {
         if (attachedFile.type === "pdf") {
