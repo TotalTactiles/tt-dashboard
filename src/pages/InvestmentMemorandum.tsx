@@ -354,62 +354,69 @@ export default function ConsultingPage() {
   const [showCommandMenu, setShowCommandMenu] = useState(false);
   const [commandFilter, setCommandFilter] = useState("");
 
+  function currentMonthLabel() {
+    return new Date().toLocaleDateString("en-AU", { month: "long", year: "numeric" });
+  }
+  function currentQuarterLabel() {
+    const now = new Date();
+    const q = Math.floor(now.getMonth() / 3) + 1;
+    return `Q${q} ${now.getFullYear()}`;
+  }
+  function ytdLabel() {
+    return `YTD ${new Date().getFullYear()}`;
+  }
+
   function startReportFlow() {
     setReportMode(true);
     setReportData({});
     setMessages(prev => [...prev, {
       role: "assistant",
-      content: "I'll generate a Monthly Management Report in the Total Tactiles Pty Ltd format.\n\nWhich period should the report cover?",
+      content: "I'll generate a Management Report from live Xero data.\n\nWhich period?",
       timestamp: new Date(),
-      buttons: ["April 2026", "March 2026", "YTD 2026", "Custom period"]
+      buttons: ["Monthly", "Quarterly", "YTD", "Custom period"]
     }]);
   }
 
   async function handleReportFlow(userText: string) {
-    if (!reportData.period) {
-      const period = userText;
-      setReportData(prev => ({ ...prev, period }));
+    // Awaiting custom-period free-text input
+    if (reportData.awaitingCustom) {
+      const period = userText.trim() || currentMonthLabel();
+      setReportData({ period });
       setMessages(prev => [...prev,
         { role: "user", content: userText, timestamp: new Date() },
-        {
-          role: "assistant",
-          content: `${period} selected.\n\nI need your Profit & Loss data from Xero for this period.\n\nIn Xero: Reports → Profit & Loss → set date range to ${period} → Export as PDF → attach here.\n\nAlternatively if you have it already, attach it now.`,
-          timestamp: new Date(),
-          buttons: ["I'll use dashboard data only", "Skip — generate with available data"]
-        }
+        { role: "assistant", content: `Generating your Management Report for ${period}…`, timestamp: new Date() }
       ]);
+      setTimeout(() => generateManagementReport(period), 200);
       return;
     }
-    if (!reportData.plProvided) {
-      setReportData(prev => ({ ...prev, plProvided: true, plNote: userText }));
+
+    // First-step quick-reply selection
+    let period: string | null = null;
+    if (userText === "Monthly") period = currentMonthLabel();
+    else if (userText === "Quarterly") period = currentQuarterLabel();
+    else if (userText === "YTD") period = ytdLabel();
+    else if (userText === "Custom period") {
+      setReportData({ awaitingCustom: true });
       setMessages(prev => [...prev,
         { role: "user", content: userText, timestamp: new Date() },
-        {
-          role: "assistant",
-          content: `Got it.\n\nDo you have an Aged Receivables report from Xero?\n\nIn Xero: Reports → Aged Receivables → set date to end of ${reportData.period} → Export as PDF → attach here.`,
-          timestamp: new Date(),
-          buttons: ["Skip Aged Receivables", "I'll attach it now"]
-        }
+        { role: "assistant", content: "Type the period you want (e.g. \"April 2026\" or \"1 Apr 2026 – 30 Jun 2026\").", timestamp: new Date() }
       ]);
       return;
+    } else {
+      // Treat any other free text as a custom period label
+      period = userText;
     }
-    if (!reportData.arProvided) {
-      setReportData(prev => ({ ...prev, arProvided: true, arNote: userText }));
-      setMessages(prev => [...prev,
-        { role: "user", content: userText, timestamp: new Date() },
-        {
-          role: "assistant",
-          content: `Generating your Management Report for ${reportData.period}...`,
-          timestamp: new Date()
-        }
-      ]);
-      setTimeout(() => generateManagementReport(), 500);
-      return;
-    }
+
+    setReportData({ period });
+    setMessages(prev => [...prev,
+      { role: "user", content: userText, timestamp: new Date() },
+      { role: "assistant", content: `Generating your Management Report for ${period}…`, timestamp: new Date() }
+    ]);
+    setTimeout(() => generateManagementReport(period!), 200);
   }
 
-  function generateManagementReport() {
-    const period = reportData.period ?? "Current Period";
+  function generateManagementReport(periodOverride?: string) {
+    const period = periodOverride ?? reportData.period ?? "Current Period";
     const d = accountingData ?? {};
     const sheets = d.sheets ?? {};
     const summary = d.summary ?? {};
