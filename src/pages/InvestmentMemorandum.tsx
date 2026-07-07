@@ -487,31 +487,43 @@ export default function ConsultingPage() {
   }
 
   async function fetchCommentary(mr: ManagementReport, periodKey: PeriodKey): Promise<ReportCommentary> {
-    const analysisSystem = `You are The Consigliere writing accountant's commentary for a Management Report PDF.
-Return STRICT JSON only — no prose, no markdown fences — with exactly these keys:
-{"execSummary": string, "pnl": string, "balanceSheet": string, "agedReceivables": string}
-Each value: 3–5 sentences of quantitative analysis referencing the ACTUAL figures from the management report JSON provided, followed by ONE concrete recommendation. AUD, GST 10%. Never invent numbers.`;
-    const userTurn = {
-      role: "user",
-      content: `Management report (period=${periodLabelOf(periodKey)}):\n\n${JSON.stringify(mr)}\n\nReturn the JSON now.`,
-    };
-    try {
+    const analysisSystem = `You are The Consigliere — Total Tactiles' senior accountant and financial adviser (Deloitte-grade rigour, banker's judgement). Using ONLY the figures in the managementReport JSON provided by the user, return STRICT JSON with no markdown fences and no prose outside the JSON object, in exactly this shape:
+{ "execSummary": string, "pnl": string, "balanceSheet": string, "agedReceivables": string }
+Each value: 3–5 sentences quoting the real figures, ending with one concrete recommendation. Where relevant, note the accrual-vs-cash gap (income invoiced vs cash received), the receivables concentration in the top two debtors, and the ATO liabilities position. Never invent numbers not present in the JSON.`;
+    const userTurn = { role: "user", content: JSON.stringify(mr) };
+
+    const attempt = async (): Promise<ReportCommentary | null> => {
       const { content } = await callAIRaw(analysisSystem, [userTurn], {
         mode: "consigliere-analysis",
         context: { source: "consigliere", mode: "consigliere-analysis", managementReport: mr, periodKey },
       });
       const text = content.filter((b: any) => b?.type === "text").map((b: any) => b.text).join("\n").trim();
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) return {};
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        execSummary: typeof parsed.execSummary === "string" ? parsed.execSummary : undefined,
-        pnl: typeof parsed.pnl === "string" ? parsed.pnl : undefined,
-        balanceSheet: typeof parsed.balanceSheet === "string" ? parsed.balanceSheet : undefined,
-        agedReceivables: typeof parsed.agedReceivables === "string" ? parsed.agedReceivables : undefined,
-      };
+      const stripped = text.replace(/```json\s*/gi, "").replace(/```/g, "").trim();
+      const jsonMatch = stripped.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) return null;
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        const pick = (k: string) => (typeof parsed[k] === "string" ? parsed[k] : "");
+        return {
+          execSummary: pick("execSummary"),
+          pnl: pick("pnl"),
+          balanceSheet: pick("balanceSheet"),
+          agedReceivables: pick("agedReceivables"),
+        };
+      } catch {
+        return null;
+      }
+    };
+
+    try {
+      const first = await attempt();
+      if (first) return first;
+      const second = await attempt();
+      if (second) return second;
+      toast.error("Commentary unavailable — report generated without analysis");
+      return {};
     } catch {
-      toast.error("Commentary unavailable");
+      toast.error("Commentary unavailable — report generated without analysis");
       return {};
     }
   }
@@ -532,7 +544,7 @@ Each value: 3–5 sentences of quantitative analysis referencing the ACTUAL figu
     setLoading(true);
     setMessages(prev => [...prev, {
       role: "assistant",
-      content: "Drafting commentary for each section before building the PDF…",
+      content: "Consigliere is analysing the figures…",
       timestamp: new Date(),
     }]);
 
@@ -579,7 +591,7 @@ Each value: 3–5 sentences of quantitative analysis referencing the ACTUAL figu
     setLoading(true);
     setMessages(prev => [...prev, {
       role: "assistant",
-      content: "Re-analysing the report — drafting fresh commentary…",
+      content: "Consigliere is analysing the figures…",
       timestamp: new Date(),
     }]);
 
