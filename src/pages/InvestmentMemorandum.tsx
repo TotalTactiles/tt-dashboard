@@ -2,17 +2,22 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Send, RefreshCw, BrainCircuit, Paperclip, Crown } from "lucide-react";
 import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  generateManagementReportPDF,
+  type ManagementReport,
+  type PeriodKey,
+  type ReportCommentary,
+} from "@/lib/generateManagementReportPDF";
 
 const WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-accountant-ai";
 const XERO_TOOL_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-xero-tool";
 const ACCOUNTING_DATA_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-accounting-consultant";
+const MGMT_REPORT_CACHE_KEY = "xero_mgmt_report";
 const MAX_TOOL_ITERATIONS = 6;
 
 const SYSTEM_PROMPT = `You are "The Consigliere" — the in-house financial adviser for Total Tactiles Pty Ltd, a Sydney commercial tactile-paving contractor. You combine a Deloitte senior accountant's rigour, a JP-Morgan-grade banker's judgement, and a trusted consigliere's directness.
