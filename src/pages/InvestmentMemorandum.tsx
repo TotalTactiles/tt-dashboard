@@ -572,9 +572,9 @@ Each value: 2–4 sentences, quantitative, direct, referencing the actual figure
       // Fall through — regenerate without commentary.
     }
 
-    let filename = "";
+    const filename = `TT_Management_Report_${periodKey}.pdf`;
     try {
-      filename = await generateManagementReportPDF(mr, periodKey, commentary);
+      generateManagementReportPDF(mr, periodKey, commentary);
     } catch (err: any) {
       setLoading(false);
       setMessages(prev => [...prev, {
@@ -583,6 +583,7 @@ Each value: 2–4 sentences, quantitative, direct, referencing the actual figure
         timestamp: new Date(),
       }]);
       return;
+    }
     }
 
     setLoading(false);
