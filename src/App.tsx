@@ -80,6 +80,7 @@ const App = () => (
                   <Route path="/settings" element={<Protected><Settings /></Protected>} />
                   <Route path="/deals" element={<Protected><DealFlow /></Protected>} />
                   <Route path="/financial-health" element={<Protected><FinancialHealth /></Protected>} />
+                  <Route path="/management-report" element={<Protected><ManagementReport /></Protected>} />
                   {/* ── TV / Wallboard mode ── */}
                   <Route path="/tv" element={<Protected><TvLayout><Index /></TvLayout></Protected>} />
                   <Route path="/tv/deals" element={<Protected><TvLayout><DealFlow /></TvLayout></Protected>} />
