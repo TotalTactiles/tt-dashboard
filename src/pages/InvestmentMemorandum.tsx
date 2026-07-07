@@ -591,7 +591,7 @@ Each value: 3–5 sentences quoting the real figures, ending with one concrete r
     setLoading(true);
     setMessages(prev => [...prev, {
       role: "assistant",
-      content: "Re-analysing the report — drafting fresh commentary…",
+      content: "Consigliere is analysing the figures…",
       timestamp: new Date(),
     }]);
 
