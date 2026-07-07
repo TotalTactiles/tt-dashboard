@@ -926,7 +926,7 @@ export default function ConsultingPage() {
     try {
       const debtRegister = await getDebtRegister();
       const debtTotals = computeDebtTotals(debtRegister);
-      const text = await callAI(SYSTEM_PROMPT + dataContext, apiMessages as any, {
+      const text = await runAgenticLoop(SYSTEM_PROMPT + dataContext, apiMessages as any, {
         message: trimmed,
         mode: "consigliere",
         context: {
