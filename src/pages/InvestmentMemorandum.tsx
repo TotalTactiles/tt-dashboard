@@ -298,11 +298,12 @@ function computeDebtTotals(register: any[]) {
   return { totalDebt, totalMonthlyRepayment, blendedRate };
 }
 
-async function callAI(
+// Raw AI proxy call — returns Anthropic-style { stop_reason, content }.
+async function callAIRaw(
   system: string,
-  messages: { role: string; content: string }[],
-  extra: { message: string; mode: string; context: Record<string, any> }
-): Promise<string> {
+  messages: any[],
+  extra: { message?: string; mode: string; context: Record<string, any> }
+): Promise<{ stop_reason: string; content: any[] }> {
   const response = await fetch(WEBHOOK_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -310,12 +311,72 @@ async function callAI(
   });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const data = await response.json();
-  const text = data?.content?.find((b: any) => b.type === "text")?.text
-    ?? data?.text
-    ?? data?.reply
-    ?? "No response received.";
-  return text;
+  const content = Array.isArray(data?.content)
+    ? data.content
+    : (data?.text || data?.reply)
+      ? [{ type: "text", text: data.text ?? data.reply }]
+      : [];
+  const stop_reason = data?.stop_reason ?? (content.some((b: any) => b?.type === "tool_use") ? "tool_use" : "end_turn");
+  return { stop_reason, content };
 }
+
+// Execute one tool_use block against the tt-xero-tool executor via n8n-proxy.
+async function runXeroTool(name: string, input: any): Promise<string> {
+  try {
+    const { data, error } = await supabase.functions.invoke("n8n-proxy", {
+      body: {
+        webhookUrl: XERO_TOOL_WEBHOOK,
+        payload: { tool: name, input },
+      },
+    });
+    if (error) return `Tool ${name} error: ${error.message ?? String(error)}`;
+    if (data?._proxyError) return `Tool ${name} error: ${data.error ?? "proxy failure"}`;
+    if (typeof data === "string") return data;
+    return JSON.stringify(data ?? {});
+  } catch (err: any) {
+    return `Tool ${name} exception: ${err?.message ?? String(err)}`;
+  }
+}
+
+// Agentic loop: keep calling the model, execute tool_use blocks, feed results back,
+// until end_turn or the iteration cap is reached. Returns the final joined text.
+async function runAgenticLoop(
+  system: string,
+  initialMessages: any[],
+  extra: { message?: string; mode: string; context: Record<string, any> }
+): Promise<string> {
+  const conversation: any[] = [...initialMessages];
+  for (let iter = 0; iter < MAX_TOOL_ITERATIONS; iter++) {
+    const { stop_reason, content } = await callAIRaw(system, conversation, extra);
+    if (stop_reason !== "tool_use") {
+      return content
+        .filter((b: any) => b?.type === "text")
+        .map((b: any) => b.text)
+        .join("\n")
+        .trim() || "No response received.";
+    }
+    // Append assistant turn with tool_use blocks intact.
+    conversation.push({ role: "assistant", content });
+    // Execute every tool_use block, gather tool_result entries.
+    const toolUses = content.filter((b: any) => b?.type === "tool_use");
+    const toolResults = await Promise.all(
+      toolUses.map(async (b: any) => ({
+        type: "tool_result",
+        tool_use_id: b.id,
+        content: await runXeroTool(b.name, b.input),
+      }))
+    );
+    conversation.push({ role: "user", content: toolResults });
+  }
+  // Cap hit — request a final answer with no more tools.
+  const { content } = await callAIRaw(system, conversation, extra);
+  return content
+    .filter((b: any) => b?.type === "text")
+    .map((b: any) => b.text)
+    .join("\n")
+    .trim() || "Tool loop reached the iteration cap without a final answer.";
+}
+
 
 
 function welcomeFor(): Message {
