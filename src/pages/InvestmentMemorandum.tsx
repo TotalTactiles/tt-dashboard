@@ -485,6 +485,35 @@ export default function ConsultingPage() {
     await generateManagementReport(periodKey);
   }
 
+  async function fetchCommentary(mr: ManagementReport, periodKey: PeriodKey): Promise<ReportCommentary> {
+    const analysisSystem = `You are The Consigliere writing accountant's commentary for a Management Report PDF.
+Return STRICT JSON only — no prose, no markdown fences — with exactly these keys:
+{"execSummary": string, "pnl": string, "balanceSheet": string, "agedReceivables": string}
+Each value: 3–5 sentences of quantitative analysis referencing the ACTUAL figures from the management report JSON provided, followed by ONE concrete recommendation. AUD, GST 10%. Never invent numbers.`;
+    const userTurn = {
+      role: "user",
+      content: `Management report (period=${periodLabelOf(periodKey)}):\n\n${JSON.stringify(mr)}\n\nReturn the JSON now.`,
+    };
+    try {
+      const { content } = await callAIRaw(analysisSystem, [userTurn], {
+        mode: "consigliere-analysis",
+        context: { source: "consigliere", mode: "consigliere-analysis", managementReport: mr, periodKey },
+      });
+      const text = content.filter((b: any) => b?.type === "text").map((b: any) => b.text).join("\n").trim();
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) return {};
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        execSummary: typeof parsed.execSummary === "string" ? parsed.execSummary : undefined,
+        pnl: typeof parsed.pnl === "string" ? parsed.pnl : undefined,
+        balanceSheet: typeof parsed.balanceSheet === "string" ? parsed.balanceSheet : undefined,
+        agedReceivables: typeof parsed.agedReceivables === "string" ? parsed.agedReceivables : undefined,
+      };
+    } catch {
+      return {};
+    }
+  }
+
   async function generateManagementReport(periodKey: PeriodKey) {
     const mr = await fetchManagementReport();
     if (!mr) {
@@ -498,10 +527,20 @@ export default function ConsultingPage() {
       return;
     }
 
+    setLoading(true);
+    setMessages(prev => [...prev, {
+      role: "assistant",
+      content: "Drafting commentary for each section before building the PDF…",
+      timestamp: new Date(),
+    }]);
+
+    const commentary = await fetchCommentary(mr, periodKey);
+
     const filename = `TT_Management_Report_${periodKey}.pdf`;
     try {
-      generateManagementReportPDF(mr, periodKey);
+      generateManagementReportPDF(mr, periodKey, commentary);
     } catch (err: any) {
+      setLoading(false);
       setReportMode(false);
       setReportData({});
       setMessages(prev => [...prev, {
@@ -512,12 +551,12 @@ export default function ConsultingPage() {
       return;
     }
 
-    // Persist last report for the follow-up "analyse" flow.
-    setReportData({ periodKey, mr });
+    setLoading(false);
+    setReportData({ periodKey, mr, commentary });
     setReportMode(false);
     setMessages(prev => [...prev, {
       role: "assistant",
-      content: `Management Report (${periodLabelOf(periodKey)}) downloaded as ${filename}.\n\nWould you like me to add written commentary under each section?`,
+      content: `Management Report (${periodLabelOf(periodKey)}) downloaded as ${filename} — commentary included under each section.\n\nWant a deeper written analysis in-chat?`,
       timestamp: new Date(),
       buttons: ["Yes, analyse the report", "No thanks"],
     }]);
@@ -538,39 +577,11 @@ export default function ConsultingPage() {
     setLoading(true);
     setMessages(prev => [...prev, {
       role: "assistant",
-      content: "Analysing the report — drafting commentary for each section…",
+      content: "Re-analysing the report — drafting fresh commentary…",
       timestamp: new Date(),
     }]);
 
-    const analysisSystem = `You are The Consigliere writing short accountant's commentary for a Management Report PDF.
-Return STRICT JSON only — no prose, no markdown fences — with exactly these keys:
-{"execSummary": string, "pnl": string, "balanceSheet": string, "agedReceivables": string}
-Each value: 2–4 sentences, quantitative, direct, referencing the actual figures from the management report JSON provided. AUD, GST 10%. Never invent numbers.`;
-    const userTurn = {
-      role: "user",
-      content: `Management report (period=${periodLabelOf(periodKey)}):\n\n${JSON.stringify(mr)}\n\nReturn the JSON now.`,
-    };
-
-    let commentary: ReportCommentary = {};
-    try {
-      const { content } = await callAIRaw(analysisSystem, [userTurn], {
-        mode: "consigliere-analysis",
-        context: { source: "consigliere", mode: "consigliere-analysis", managementReport: mr, periodKey },
-      });
-      const text = content.filter((b: any) => b?.type === "text").map((b: any) => b.text).join("\n").trim();
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        commentary = {
-          execSummary: typeof parsed.execSummary === "string" ? parsed.execSummary : undefined,
-          pnl: typeof parsed.pnl === "string" ? parsed.pnl : undefined,
-          balanceSheet: typeof parsed.balanceSheet === "string" ? parsed.balanceSheet : undefined,
-          agedReceivables: typeof parsed.agedReceivables === "string" ? parsed.agedReceivables : undefined,
-        };
-      }
-    } catch (err) {
-      // Fall through — regenerate without commentary.
-    }
+    const commentary = await fetchCommentary(mr, periodKey);
 
     const filename = `TT_Management_Report_${periodKey}.pdf`;
     try {
@@ -589,7 +600,7 @@ Each value: 2–4 sentences, quantitative, direct, referencing the actual figure
     setMessages(prev => [...prev, {
       role: "assistant",
       content: Object.values(commentary).some(Boolean)
-        ? `Annotated Management Report downloaded as ${filename} — commentary added under each section.`
+        ? `Annotated Management Report downloaded as ${filename} — commentary refreshed under each section.`
         : `Regenerated the report as ${filename}, but commentary was unavailable. Try again shortly.`,
       timestamp: new Date(),
     }]);
