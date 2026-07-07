@@ -498,9 +498,9 @@ export default function ConsultingPage() {
       return;
     }
 
-    let filename = "";
+    const filename = `TT_Management_Report_${periodKey}.pdf`;
     try {
-      filename = await generateManagementReportPDF(mr, periodKey);
+      generateManagementReportPDF(mr, periodKey);
     } catch (err: any) {
       setReportMode(false);
       setReportData({});
