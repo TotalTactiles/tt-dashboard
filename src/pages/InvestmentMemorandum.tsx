@@ -7,6 +7,7 @@ import { useDashboardData } from "@/contexts/DashboardDataContext";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   generateManagementReportPDF,
   type ManagementReport,
@@ -510,6 +511,7 @@ Each value: 3–5 sentences of quantitative analysis referencing the ACTUAL figu
         agedReceivables: typeof parsed.agedReceivables === "string" ? parsed.agedReceivables : undefined,
       };
     } catch {
+      toast.error("Commentary unavailable");
       return {};
     }
   }

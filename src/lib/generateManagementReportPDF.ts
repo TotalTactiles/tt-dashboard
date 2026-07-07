@@ -219,7 +219,7 @@ export function generateManagementReportPDF(mr: ManagementReport, period: "month
   y = (doc as any).lastAutoTable.finalY + 16;
   // Accrual vs Cash — latest COMPLETE month
   if (latest) {
-    doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...GREEN); doc.text(`Accrual vs Cash — ${latest.label}`, M, y);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...GREEN); doc.text(`Xero vs Cashflow Sheet — ${latest.label}`, M, y);
     const gap = (latest.pnl.totalIncome || 0) - (latest.cash.receipts || 0);
     autoTable(doc, {
       startY: y + 6, theme: "plain", margin: { left: M, right: M },
