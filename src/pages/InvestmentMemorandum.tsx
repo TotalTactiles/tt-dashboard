@@ -762,6 +762,19 @@ Each value: 2–4 sentences, quantitative, direct, referencing the actual figure
       startReportFlow();
       return;
     }
+    if (trimmed === "Yes, analyse the report") {
+      setMessages(prev => [...prev, { role: "user", content: trimmed, timestamp: new Date() }]);
+      await analyseAndRegenerate();
+      return;
+    }
+    if (trimmed === "No thanks" && reportData?.mr) {
+      setMessages(prev => [...prev,
+        { role: "user", content: trimmed, timestamp: new Date() },
+        { role: "assistant", content: "Understood — report is in your downloads. Anything else?", timestamp: new Date() },
+      ]);
+      setReportData({});
+      return;
+    }
     if (reportMode && trimmed !== "Let's Talk" && trimmed !== "Financial Review") {
       await handleReportFlow(trimmed);
       return;
