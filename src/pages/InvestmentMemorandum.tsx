@@ -511,6 +511,7 @@ Each value: 3–5 sentences of quantitative analysis referencing the ACTUAL figu
         agedReceivables: typeof parsed.agedReceivables === "string" ? parsed.agedReceivables : undefined,
       };
     } catch {
+      toast.error("Commentary unavailable");
       return {};
     }
   }
