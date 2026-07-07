@@ -10,9 +10,10 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   generateManagementReportPDF,
   type ManagementReport,
-  type PeriodKey,
-  type ReportCommentary,
+  type Commentary as ReportCommentary,
 } from "@/lib/generateManagementReportPDF";
+
+type PeriodKey = "month" | "quarter" | "ytd";
 
 const WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-accountant-ai";
 const XERO_TOOL_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-xero-tool";
