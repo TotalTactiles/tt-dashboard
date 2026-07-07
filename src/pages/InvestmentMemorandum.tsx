@@ -584,7 +584,6 @@ Each value: 2–4 sentences, quantitative, direct, referencing the actual figure
       }]);
       return;
     }
-    }
 
     setLoading(false);
     setMessages(prev => [...prev, {
