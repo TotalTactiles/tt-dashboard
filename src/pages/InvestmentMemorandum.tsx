@@ -47,6 +47,14 @@ function buildDataContext(liveData: any, investorMetrics: any, accountingData?: 
   const sheets = accountingData?.sheets ?? null;
   const summary = accountingData?.summary ?? null;
 
+  // --- Xero Management Report (source of truth: BS, AR, P&L reconciled to Xero) ---
+  const mgmt = accountingData?.xero?.managementReport ?? accountingData?.managementReport ?? null;
+  if (mgmt) {
+    try {
+      sections.push(`XERO MANAGEMENT REPORT (reconciled — Balance Sheet, Aged Receivables, P&L):\n${JSON.stringify(mgmt, null, 2)}`);
+    } catch { /* skip */ }
+  }
+
   // --- Accounting webhook summary block ---
   if (summary) {
     sections.push(`FINANCIAL SUMMARY (from accounting data feed):
