@@ -425,16 +425,30 @@ export default function ConsultingPage() {
   const [showCommandMenu, setShowCommandMenu] = useState(false);
   const [commandFilter, setCommandFilter] = useState("");
 
-  function currentMonthLabel() {
-    return new Date().toLocaleDateString("en-AU", { month: "long", year: "numeric" });
+  function periodLabelOf(k: PeriodKey) {
+    return k === "month" ? "Monthly" : k === "quarter" ? "Quarterly" : "YTD";
   }
-  function currentQuarterLabel() {
-    const now = new Date();
-    const q = Math.floor(now.getMonth() / 3) + 1;
-    return `Q${q} ${now.getFullYear()}`;
-  }
-  function ytdLabel() {
-    return `YTD ${new Date().getFullYear()}`;
+
+  async function fetchManagementReport(): Promise<ManagementReport | null> {
+    // Try live cache first, fall back to localStorage.
+    try {
+      const res = await fetch(CACHE_WEBHOOK);
+      const rows = await res.json();
+      const list: any[] = Array.isArray(rows) ? rows : Array.isArray(rows?.rows) ? rows.rows : [];
+      const row = list.find((r) => r?.key === "xero_management_report");
+      if (row?.value) {
+        const mr = typeof row.value === "string" ? JSON.parse(row.value) : row.value;
+        if (mr) {
+          try { localStorage.setItem(MGMT_REPORT_CACHE_KEY, JSON.stringify(mr)); } catch { /* ignore */ }
+          return mr as ManagementReport;
+        }
+      }
+    } catch { /* fall through */ }
+    try {
+      const raw = localStorage.getItem(MGMT_REPORT_CACHE_KEY);
+      if (raw) return JSON.parse(raw) as ManagementReport;
+    } catch { /* ignore */ }
+    return null;
   }
 
   function startReportFlow() {
@@ -444,280 +458,142 @@ export default function ConsultingPage() {
       role: "assistant",
       content: "I'll generate a Management Report from live Xero data.\n\nWhich period?",
       timestamp: new Date(),
-      buttons: ["Monthly", "Quarterly", "YTD", "Custom period"]
+      buttons: ["Monthly", "Quarterly", "YTD"]
     }]);
   }
 
   async function handleReportFlow(userText: string) {
-    // Awaiting custom-period free-text input
-    if (reportData.awaitingCustom) {
-      const period = userText.trim() || currentMonthLabel();
-      setReportData({ period });
-      setMessages(prev => [...prev,
-        { role: "user", content: userText, timestamp: new Date() },
-        { role: "assistant", content: `Generating your Management Report for ${period}…`, timestamp: new Date() }
-      ]);
-      setTimeout(() => generateManagementReport(period), 200);
+    let periodKey: PeriodKey | null = null;
+    if (userText === "Monthly") periodKey = "month";
+    else if (userText === "Quarterly") periodKey = "quarter";
+    else if (userText === "YTD") periodKey = "ytd";
+
+    if (!periodKey) {
+      // Unrecognised — bail out of report mode and treat as normal input.
+      setReportMode(false);
+      setReportData({});
+      await sendMessage(userText);
       return;
     }
 
-    // First-step quick-reply selection
-    let period: string | null = null;
-    if (userText === "Monthly") period = currentMonthLabel();
-    else if (userText === "Quarterly") period = currentQuarterLabel();
-    else if (userText === "YTD") period = ytdLabel();
-    else if (userText === "Custom period") {
-      setReportData({ awaitingCustom: true });
-      setMessages(prev => [...prev,
-        { role: "user", content: userText, timestamp: new Date() },
-        { role: "assistant", content: "Type the period you want (e.g. \"April 2026\" or \"1 Apr 2026 – 30 Jun 2026\").", timestamp: new Date() }
-      ]);
-      return;
-    } else {
-      // Treat any other free text as a custom period label
-      period = userText;
-    }
-
-    setReportData({ period });
     setMessages(prev => [...prev,
       { role: "user", content: userText, timestamp: new Date() },
-      { role: "assistant", content: `Generating your Management Report for ${period}…`, timestamp: new Date() }
+      { role: "assistant", content: `Generating your ${periodLabelOf(periodKey!)} Management Report from live Xero data…`, timestamp: new Date() }
     ]);
-    setTimeout(() => generateManagementReport(period!), 200);
+
+    await generateManagementReport(periodKey);
   }
 
-  function generateManagementReport(periodOverride?: string) {
-    const period = periodOverride ?? reportData.period ?? "Current Period";
-    const d = accountingData ?? {};
-    const sheets = d.sheets ?? {};
-    const summary = d.summary ?? {};
-    const revenue = sheets.revenue ?? liveData?.revenue ?? [];
-    const expenses = sheets.expenses ?? liveData?.expenses ?? [];
-    const quotes = sheets.quotes ?? liveData?.quotes ?? [];
-
-    const totalIncome = summary.totalRevIncGST ??
-      revenue.reduce((s: number, r: any) => {
-        const v = parseFloat(String(r['Contract Value'] ?? r['Contract Value ($)'] ?? 0).replace(/[^0-9.-]/g,''));
-        return s + (isNaN(v) ? 0 : v);
-      }, 0);
-    const totalIncomeExGST = Math.round(totalIncome / 1.1 * 100) / 100;
-    const totalCOGS = summary.totalCOGS ?? 0;
-    const grossProfit = summary.grossProfit ?? (totalIncomeExGST - totalCOGS);
-    const grossMarginPct = totalIncomeExGST > 0 ? Math.round(grossProfit / totalIncomeExGST * 100) : 0;
-    const totalMonthlyExp = expenses.reduce((s: number, e: any) => {
-      const sub = String(e['Sub-Category'] ?? '').toUpperCase();
-      if (sub === 'TOTAL' || sub === 'GRAND TOTAL') return s;
-      const v = parseFloat(String(e['Monthly Cost'] ?? 0).replace(/[^0-9.-]/g,''));
-      return s + (isNaN(v) ? 0 : v);
-    }, 0);
-    const netProfit = grossProfit - totalMonthlyExp;
-    const netMarginPct = totalIncomeExGST > 0 ? Math.round(netProfit / totalIncomeExGST * 100) : 0;
-    const wonQuotes = quotes.filter((q: any) => {
-      const s = String(q['Current Status'] ?? q['Status'] ?? '').toLowerCase();
-      return s.includes('won') || s.includes('awarded');
-    });
-    const invoiceCount = wonQuotes.length;
-    const avgInvoiceValue = invoiceCount > 0 ? Math.round(totalIncomeExGST / invoiceCount) : 0;
-
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const GREEN: [number, number, number] = [31, 115, 71];
-    const DARK: [number, number, number] = [40, 40, 40];
-    const LIGHT_GREEN: [number, number, number] = [232, 245, 238];
-    const pageW = 210;
-    const margin = 15;
-
-    doc.setFillColor(...GREEN);
-    doc.rect(0, 0, pageW, 45, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(22);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Management Report', margin, 20);
-    doc.setFontSize(13);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Total Tactiles Pty Ltd', margin, 30);
-    doc.text('ABN 69 682 573 333', margin, 37);
-    doc.setTextColor(...DARK);
-    doc.setFontSize(11);
-    doc.text(`For the period: ${period}`, margin, 55);
-    doc.setFontSize(9);
-    doc.setTextColor(120, 120, 120);
-    doc.text(`Generated: ${new Date().toLocaleDateString('en-AU')}`, margin, 62);
-    doc.setTextColor(...GREEN);
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Contents', margin, 85);
-    doc.setDrawColor(...GREEN);
-    doc.setLineWidth(0.5);
-    doc.line(margin, 88, pageW - margin, 88);
-    const contents: [string, string][] = [
-      ['3', 'Executive Summary'],
-      ['4', 'Profit and Loss'],
-      ['6', 'Pipeline Summary'],
-    ];
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
-    doc.setTextColor(...DARK);
-    contents.forEach(([pg, title], i) => {
-      doc.text(pg, margin + 5, 98 + i * 10);
-      doc.text(title, margin + 15, 98 + i * 10);
-    });
-
-    doc.addPage();
-    doc.setFillColor(...GREEN);
-    doc.rect(0, 0, pageW, 30, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Executive Summary', margin, 15);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Total Tactiles Pty Ltd  |  ${period}`, margin, 23);
-    const fmt = (n: number) => n < 0
-      ? `(${Math.abs(n).toLocaleString('en-AU', {minimumFractionDigits: 0})})`
-      : n.toLocaleString('en-AU', {minimumFractionDigits: 0});
-    autoTable(doc, {
-      startY: 38,
-      margin: { left: margin, right: margin },
-      head: [['', period, 'YEAR TO DATE']],
-      body: [
-        [{ content: 'Profitability', styles: { fontStyle: 'bold', fillColor: LIGHT_GREEN, textColor: GREEN } }, '', ''],
-        ['Income', `$${fmt(totalIncomeExGST)}`, `$${fmt(totalIncomeExGST)}`],
-        ['Direct Costs (COGS)', `$${fmt(totalCOGS)}`, `$${fmt(totalCOGS)}`],
-        ['Gross Profit', `$${fmt(grossProfit)}`, `$${fmt(grossProfit)}`],
-        ['Operating Expenses', `$${fmt(totalMonthlyExp)}`, `$${fmt(totalMonthlyExp * 4)}`],
-        ['Net Profit / (Loss)', `$${fmt(netProfit)}`, `$${fmt(netProfit)}`],
-        [{ content: 'Performance', styles: { fontStyle: 'bold', fillColor: LIGHT_GREEN, textColor: GREEN } }, '', ''],
-        ['Gross Profit Margin %', `${grossMarginPct}%`, `${grossMarginPct}%`],
-        ['Net Profit Margin %', `${netMarginPct}%`, `${netMarginPct}%`],
-        [{ content: 'Sales', styles: { fontStyle: 'bold', fillColor: LIGHT_GREEN, textColor: GREEN } }, '', ''],
-        ['Number of Invoices', String(invoiceCount), String(invoiceCount)],
-        ['Average Invoice Value', `$${fmt(avgInvoiceValue)}`, `$${fmt(avgInvoiceValue)}`],
-      ] as any,
-      styles: { fontSize: 9, cellPadding: 3 },
-      headStyles: { fillColor: GREEN, textColor: [255,255,255], fontStyle: 'bold' },
-      columnStyles: { 0: { cellWidth: 90 }, 1: { halign: 'right' }, 2: { halign: 'right' } },
-      alternateRowStyles: { fillColor: [250, 250, 250] },
-    });
-
-    doc.addPage();
-    doc.setFillColor(...GREEN);
-    doc.rect(0, 0, pageW, 30, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Profit and Loss', margin, 15);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Total Tactiles Pty Ltd  |  ${period}`, margin, 23);
-
-    const expRows: any[][] = [];
-    expenses.forEach((e: any) => {
-      const sub = String(e['Sub-Category'] ?? e['Name'] ?? '').trim();
-      const monthly = parseFloat(String(e['Monthly Cost'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
-      if (sub && sub.toUpperCase() !== 'TOTAL' && sub.toUpperCase() !== 'GRAND TOTAL' && monthly > 0) {
-        expRows.push([sub, `$${fmt(monthly)}`, `$${fmt(monthly * 12)}`]);
-      }
-    });
-
-    autoTable(doc, {
-      startY: 38,
-      margin: { left: margin, right: margin },
-      head: [['', period, 'ANNUALISED']],
-      body: [
-        [{ content: 'Trading Income', styles: { fontStyle: 'bold', fillColor: LIGHT_GREEN, textColor: GREEN } }, '', ''],
-        ['Sales', `$${fmt(totalIncomeExGST)}`, ''],
-        [{ content: 'Total Trading Income', styles: { fontStyle: 'bold' } }, `$${fmt(totalIncomeExGST)}`, ''],
-        [{ content: 'Cost of Sales', styles: { fontStyle: 'bold', fillColor: LIGHT_GREEN, textColor: GREEN } }, '', ''],
-        ['Total Cost of Sales', `$${fmt(totalCOGS)}`, ''],
-        [{ content: 'Gross Profit', styles: { fontStyle: 'bold' } }, `$${fmt(grossProfit)}`, ''],
-        [{ content: `Gross Profit %`, styles: { fontStyle: 'bold' } }, `${grossMarginPct}%`, ''],
-        [{ content: 'Operating Expenses', styles: { fontStyle: 'bold', fillColor: LIGHT_GREEN, textColor: GREEN } }, '', ''],
-        ...expRows,
-        [{ content: 'Total Operating Expenses', styles: { fontStyle: 'bold' } }, `$${fmt(totalMonthlyExp)}`, `$${fmt(totalMonthlyExp * 12)}`],
-        [{ content: 'Net Profit / (Loss)', styles: { fontStyle: 'bold', fontSize: 10 } }, `$${fmt(netProfit)}`, ''],
-        [{ content: `Net Profit %`, styles: { fontStyle: 'bold' } }, `${netMarginPct}%`, ''],
-      ] as any,
-      styles: { fontSize: 9, cellPadding: 3 },
-      headStyles: { fillColor: GREEN, textColor: [255,255,255], fontStyle: 'bold' },
-      columnStyles: { 0: { cellWidth: 100 }, 1: { halign: 'right' }, 2: { halign: 'right' } },
-      alternateRowStyles: { fillColor: [250, 250, 250] },
-    });
-
-    doc.addPage();
-    doc.setFillColor(...GREEN);
-    doc.rect(0, 0, pageW, 30, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Pipeline Summary', margin, 15);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Total Tactiles Pty Ltd  |  ${period}`, margin, 23);
-
-    const pipelineRows = quotes
-      .filter((q: any) => {
-        const s = String(q['Current Status'] ?? q['Status'] ?? '').toLowerCase();
-        return !s.includes('lost') && !s.includes('dead');
-      })
-      .sort((a: any, b: any) => {
-        const av = parseFloat(String(a['Contract Value ($)'] ?? a['Contract Value'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
-        const bv = parseFloat(String(b['Contract Value ($)'] ?? b['Contract Value'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
-        return bv - av;
-      })
-      .slice(0, 20)
-      .map((q: any) => {
-        const val = parseFloat(String(q['Contract Value ($)'] ?? q['Contract Value'] ?? 0).replace(/[^0-9.-]/g,'')) || 0;
-        return [
-          String(q['Company Name'] ?? q['_company'] ?? ''),
-          String(q['Project Name'] ?? q['_project'] ?? '').substring(0, 35),
-          `$${fmt(val)}`,
-          String(q['Current Status'] ?? q['Status'] ?? ''),
-          String(q['Estimated Job Date'] ?? q['Date Quoted'] ?? ''),
-        ];
-      });
-
-    autoTable(doc, {
-      startY: 38,
-      margin: { left: margin, right: margin },
-      head: [['Company', 'Project', 'Value', 'Stage', 'Date']],
-      body: pipelineRows,
-      styles: { fontSize: 8, cellPadding: 2.5 },
-      headStyles: { fillColor: GREEN, textColor: [255,255,255], fontStyle: 'bold' },
-      columnStyles: {
-        0: { cellWidth: 38 },
-        1: { cellWidth: 60 },
-        2: { halign: 'right', cellWidth: 28 },
-        3: { cellWidth: 28 },
-        4: { cellWidth: 26 }
-      },
-      alternateRowStyles: { fillColor: [250, 250, 250] },
-    });
-
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(8);
-      doc.setTextColor(150, 150, 150);
-      doc.text(
-        `Management Report  |  Total Tactiles Pty Ltd  |  Page ${i} of ${pageCount}`,
-        margin, 290
-      );
-      doc.setDrawColor(200, 200, 200);
-      doc.line(margin, 287, pageW - margin, 287);
+  async function generateManagementReport(periodKey: PeriodKey) {
+    const mr = await fetchManagementReport();
+    if (!mr) {
+      setReportMode(false);
+      setReportData({});
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: "I couldn't load the Xero management report cache. Try again in a moment, or open the Management Report page and hit Refresh.",
+        timestamp: new Date(),
+      }]);
+      return;
     }
 
-    const filename = `TT_Management_Report_${period.replace(/\s/g,'_')}.pdf`;
-    doc.save(filename);
+    let filename = "";
+    try {
+      filename = await generateManagementReportPDF(mr, periodKey);
+    } catch (err: any) {
+      setReportMode(false);
+      setReportData({});
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: `PDF generation failed: ${err?.message ?? String(err)}`,
+        timestamp: new Date(),
+      }]);
+      return;
+    }
 
+    // Persist last report for the follow-up "analyse" flow.
+    setReportData({ periodKey, mr });
     setReportMode(false);
-    setReportData({});
     setMessages(prev => [...prev, {
       role: "assistant",
-      content: `Management Report for ${period} has been downloaded as ${filename}.\n\nWould you like me to provide a written analysis of the key figures in this report?`,
+      content: `Management Report (${periodLabelOf(periodKey)}) downloaded as ${filename}.\n\nWould you like me to add written commentary under each section?`,
       timestamp: new Date(),
-      buttons: ["Yes, analyse the report", "No thanks"]
+      buttons: ["Yes, analyse the report", "No thanks"],
     }]);
   }
+
+  async function analyseAndRegenerate() {
+    const mr: ManagementReport | undefined = reportData?.mr;
+    const periodKey: PeriodKey | undefined = reportData?.periodKey;
+    if (!mr || !periodKey) {
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: "I don't have the last report in memory anymore — please regenerate it first.",
+        timestamp: new Date(),
+      }]);
+      return;
+    }
+
+    setLoading(true);
+    setMessages(prev => [...prev, {
+      role: "assistant",
+      content: "Analysing the report — drafting commentary for each section…",
+      timestamp: new Date(),
+    }]);
+
+    const analysisSystem = `You are The Consigliere writing short accountant's commentary for a Management Report PDF.
+Return STRICT JSON only — no prose, no markdown fences — with exactly these keys:
+{"execSummary": string, "pnl": string, "balanceSheet": string, "agedReceivables": string}
+Each value: 2–4 sentences, quantitative, direct, referencing the actual figures from the management report JSON provided. AUD, GST 10%. Never invent numbers.`;
+    const userTurn = {
+      role: "user",
+      content: `Management report (period=${periodLabelOf(periodKey)}):\n\n${JSON.stringify(mr)}\n\nReturn the JSON now.`,
+    };
+
+    let commentary: ReportCommentary = {};
+    try {
+      const { content } = await callAIRaw(analysisSystem, [userTurn], {
+        mode: "consigliere-analysis",
+        context: { source: "consigliere", mode: "consigliere-analysis", managementReport: mr, periodKey },
+      });
+      const text = content.filter((b: any) => b?.type === "text").map((b: any) => b.text).join("\n").trim();
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        commentary = {
+          execSummary: typeof parsed.execSummary === "string" ? parsed.execSummary : undefined,
+          pnl: typeof parsed.pnl === "string" ? parsed.pnl : undefined,
+          balanceSheet: typeof parsed.balanceSheet === "string" ? parsed.balanceSheet : undefined,
+          agedReceivables: typeof parsed.agedReceivables === "string" ? parsed.agedReceivables : undefined,
+        };
+      }
+    } catch (err) {
+      // Fall through — regenerate without commentary.
+    }
+
+    let filename = "";
+    try {
+      filename = await generateManagementReportPDF(mr, periodKey, commentary);
+    } catch (err: any) {
+      setLoading(false);
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: `Annotated PDF generation failed: ${err?.message ?? String(err)}`,
+        timestamp: new Date(),
+      }]);
+      return;
+    }
+
+    setLoading(false);
+    setMessages(prev => [...prev, {
+      role: "assistant",
+      content: Object.values(commentary).some(Boolean)
+        ? `Annotated Management Report downloaded as ${filename} — commentary added under each section.`
+        : `Regenerated the report as ${filename}, but commentary was unavailable. Try again shortly.`,
+      timestamp: new Date(),
+    }]);
+  }
+
 
   async function handleFileAttach(file: File) {
     const ext = file.name.split('.').pop()?.toLowerCase();
