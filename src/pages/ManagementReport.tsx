@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { RefreshCw, Loader2 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 
-const XERO_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/xero-pull";
+const CACHE_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-cache";
 const CACHE_KEY = "xero_mgmt_report";
+
 
 type LineItem = { label: string; value: number };
 
@@ -100,16 +100,15 @@ export default function ManagementReportPage() {
     setLoading(true);
     setError(null);
     try {
-      const { data: responseData, error } = await supabase.functions.invoke("n8n-proxy", {
-        body: { webhookUrl: XERO_WEBHOOK, source: "xero_mgmt" },
-      });
-      if (error) throw new Error(error.message || "Proxy failed");
-      if (responseData?._proxyError) throw new Error(responseData.error || "Proxy error");
-      let unwrapped: any = responseData;
-      if (Array.isArray(unwrapped)) unwrapped = unwrapped[0];
-      if (unwrapped?.json && typeof unwrapped.json === "object") unwrapped = unwrapped.json;
-      const mgmt = unwrapped?.managementReport;
-      if (!mgmt) throw new Error("Response missing managementReport");
+      const res = await fetch(CACHE_URL);
+      if (!res.ok) throw new Error(`Cache fetch failed (${res.status})`);
+      const rows = await res.json();
+      const list: any[] = Array.isArray(rows) ? rows : Array.isArray(rows?.rows) ? rows.rows : [];
+      const row = list.find((r) => r?.key === "xero_management_report");
+      if (!row) throw new Error("xero_management_report row not found in cache");
+      const raw = row.value;
+      const mgmt = typeof raw === "string" ? JSON.parse(raw) : raw;
+      if (!mgmt) throw new Error("Empty managementReport value");
       setReport(mgmt as ManagementReport);
       localStorage.setItem(CACHE_KEY, JSON.stringify(mgmt));
     } catch (e: any) {
@@ -118,6 +117,7 @@ export default function ManagementReportPage() {
       setLoading(false);
     }
   }, []);
+
 
   useEffect(() => {
     fetchReport();
