@@ -10,9 +10,10 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   generateManagementReportPDF,
   type ManagementReport,
-  type PeriodKey,
-  type ReportCommentary,
+  type Commentary as ReportCommentary,
 } from "@/lib/generateManagementReportPDF";
+
+type PeriodKey = "month" | "quarter" | "ytd";
 
 const WEBHOOK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-accountant-ai";
 const XERO_TOOL_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-xero-tool";
@@ -497,9 +498,9 @@ export default function ConsultingPage() {
       return;
     }
 
-    let filename = "";
+    const filename = `TT_Management_Report_${periodKey}.pdf`;
     try {
-      filename = await generateManagementReportPDF(mr, periodKey);
+      generateManagementReportPDF(mr, periodKey);
     } catch (err: any) {
       setReportMode(false);
       setReportData({});
@@ -571,9 +572,9 @@ Each value: 2–4 sentences, quantitative, direct, referencing the actual figure
       // Fall through — regenerate without commentary.
     }
 
-    let filename = "";
+    const filename = `TT_Management_Report_${periodKey}.pdf`;
     try {
-      filename = await generateManagementReportPDF(mr, periodKey, commentary);
+      generateManagementReportPDF(mr, periodKey, commentary);
     } catch (err: any) {
       setLoading(false);
       setMessages(prev => [...prev, {
