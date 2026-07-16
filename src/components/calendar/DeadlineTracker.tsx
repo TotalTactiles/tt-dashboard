@@ -135,7 +135,8 @@ const DeadlineTracker = ({ events }: DeadlineTrackerProps) => {
           standalone: false,
           meta,
         };
-      });
+      })
+      .filter((r) => r.progress < 100);
 
     const stdRows: Row[] = fdTasks.map((t) => ({
       id: t.id,
