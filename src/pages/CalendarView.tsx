@@ -457,7 +457,7 @@ const CalendarView = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4 items-stretch">
           <div className="min-w-0 flex flex-col">
             <CollapsibleCardWrapper
-              title="Fund Deadlines & Obligations"
+              title="Strategic Deadlines & Obligations"
               defaultOpen={true}
               badge={filtered.filter(e => e.type === "Deadline" || e.type === "Milestone" || e.type === "Distribution" || e.type === "Valuation").length}
             >
