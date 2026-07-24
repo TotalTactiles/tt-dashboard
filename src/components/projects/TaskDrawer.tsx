@@ -4,10 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Task } from "@/hooks/useTasks";
 import { DATE_RULE_LABELS, formatDateShort } from "@/lib/projects/dateRules";
 import { useRole } from "@/hooks/useRole";
+import { useIsPmMobile } from "@/hooks/useProjects";
 import { ProjectCalcTable, TABLE_LABEL, TABLE_OFFICE_ONLY } from "@/components/projects/tables";
 import { FilesSection } from "@/components/projects/FilesSection";
+import { cn } from "@/lib/utils";
 
 const db = supabase as any;
+
 
 interface Comment {
   id: string;
