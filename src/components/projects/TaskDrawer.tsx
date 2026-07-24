@@ -28,7 +28,10 @@ interface Props {
 
 export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
   const { role } = useRole();
+  const isMobile = useIsPmMobile();
   const [task, setTask] = useState<Task | null>(null);
+  const [projectName, setProjectName] = useState<string>("");
+
   const [projectName, setProjectName] = useState<string>("");
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
