@@ -31,6 +31,7 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
   const isMobile = useIsPmMobile();
   const [task, setTask] = useState<Task | null>(null);
   const [projectName, setProjectName] = useState<string>("");
+  const { project } = useProjectDetail(task?.project_id ?? null);
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
