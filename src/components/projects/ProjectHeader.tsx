@@ -28,6 +28,7 @@ export function ProjectHeader({
 }: Props) {
   const { role } = useRole();
   const { project, financials, agg, refresh } = useProjectDetail(projectId);
+  const isMobile = useIsPmMobile();
   const [cascadeOpen, setCascadeOpen] = useState(false);
 
   if (!projectId || !project) {
