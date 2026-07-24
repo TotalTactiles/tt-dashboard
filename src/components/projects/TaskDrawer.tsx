@@ -4,8 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Task } from "@/hooks/useTasks";
 import { DATE_RULE_LABELS, formatDateShort } from "@/lib/projects/dateRules";
 import { useRole } from "@/hooks/useRole";
-import { CalcTable } from "@/components/projects/calc/CalcTable";
-import { CALC_TABLE_LABEL } from "@/components/projects/calc/calcCommon";
+import { ProjectCalcTable, TABLE_LABEL, TABLE_OFFICE_ONLY } from "@/components/projects/tables";
 import { cn } from "@/lib/utils";
 
 const db = supabase as any;
