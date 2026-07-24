@@ -182,6 +182,3 @@ export function AccessoriesTable({ projectId }: { projectId: string }) {
     </TableShell>
   );
 }
-
-// re-import for supabase.channel
-import { supabase } from "@/integrations/supabase/client";
