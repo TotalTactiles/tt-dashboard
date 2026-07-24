@@ -17,7 +17,9 @@ import { ChevronLeft, List, LayoutGrid, Calendar as CalendarIcon, Table as Table
 
 function ProjectsInner() {
   const { role, setRole } = useRole();
+  const isMobile = useIsMobile();
   const [projectId, setProjectId] = useState<string | null>(null);
+  const [mobileView, setMobileView] = useState<"list" | "detail">("list");
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
   const [search, setSearch] = useState("");
@@ -32,6 +34,12 @@ function ProjectsInner() {
   // Only join profiles when the Assignee column is active.
   const assigneeOn = columns.includes("assignee");
   const profiles = useProfiles(assigneeOn);
+
+  // On mobile, force a compact column set regardless of user preference.
+  const effectiveColumns = useMemo<ColumnKey[]>(
+    () => (isMobile ? (["name", "status"] as ColumnKey[]) : columns),
+    [isMobile, columns],
+  );
 
   const bump = () => setRefreshTick((t) => t + 1);
 
