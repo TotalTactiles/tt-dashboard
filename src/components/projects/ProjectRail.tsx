@@ -8,9 +8,10 @@ import { formatDateShort } from "@/lib/projects/dateRules";
 interface Props {
   activeProjectId: string | null;
   onSelect: (id: string) => void;
+  onOpen?: (id: string) => void;
 }
 
-export function ProjectRail({ activeProjectId, onSelect }: Props) {
+export function ProjectRail({ activeProjectId, onSelect, onOpen }: Props) {
   const { projects, progress, loading } = useProjects("active");
   const [q, setQ] = useState("");
 
@@ -30,7 +31,7 @@ export function ProjectRail({ activeProjectId, onSelect }: Props) {
 
   return (
     <aside
-      className="w-[280px] shrink-0 border-r flex flex-col"
+      className="w-full md:w-[280px] md:shrink-0 md:border-r flex flex-col min-h-0"
       style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
     >
       <div className="px-3 py-3 border-b" style={{ borderColor: "#1F2224" }}>
@@ -66,7 +67,7 @@ export function ProjectRail({ activeProjectId, onSelect }: Props) {
           return (
             <button
               key={p.id}
-              onClick={() => onSelect(p.id)}
+              onClick={() => { onSelect(p.id); onOpen?.(p.id); }}
               className={cn(
                 "w-full text-left px-3 py-2.5 border-l-2 transition-colors flex items-center gap-3",
                 active ? "bg-white/[0.04]" : "hover:bg-white/[0.02]",

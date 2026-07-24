@@ -52,15 +52,15 @@ export function ProjectHeader({
 
   return (
     <div className="border-b" style={{ borderColor: "#1F2224", background: "#0F1113" }}>
-      <div className="px-6 pt-5 pb-4">
-        <div className="flex items-start gap-4 mb-1">
+      <div className="px-3 md:px-6 pt-4 md:pt-5 pb-4">
+        <div className="flex items-start gap-3 md:gap-4 mb-1">
           <div className="shrink-0 pt-0.5">
-            <Ring pct={pct} size={56} stroke={4} showLabel labelSize={13} />
+            <Ring pct={pct} size={44} stroke={4} showLabel labelSize={11} />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
               <h1
-                className="text-[20px] font-semibold tracking-tight text-foreground truncate"
+                className="text-[15px] md:text-[20px] font-semibold tracking-tight text-foreground truncate"
                 style={{ fontFamily: "Inter, sans-serif" }}
               >
                 {project.name}
@@ -115,7 +115,7 @@ export function ProjectHeader({
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="mt-4 flex md:grid gap-3 md:grid-cols-3 lg:grid-cols-5 overflow-x-auto md:overflow-visible -mx-3 md:mx-0 px-3 md:px-0 snap-x snap-mandatory md:snap-none [&>*]:snap-start [&>*]:shrink-0 md:[&>*]:shrink [&>*]:min-w-[150px] md:[&>*]:min-w-0">
           <StatCard
             label="Est. Start"
             value={formatDateShort(project.estimated_start)}

@@ -11,12 +11,15 @@ import { loadColumns, saveColumns, type ColumnKey } from "@/components/projects/
 import { useTasks } from "@/hooks/useTasks";
 import { useProjectDetail } from "@/hooks/useProjects";
 import { useProfiles } from "@/hooks/useProfiles";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { List, LayoutGrid, Calendar as CalendarIcon, Table as TableIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
+import { ChevronLeft, List, LayoutGrid, Calendar as CalendarIcon, Table as TableIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
 
 function ProjectsInner() {
   const { role, setRole } = useRole();
+  const isMobile = useIsMobile();
   const [projectId, setProjectId] = useState<string | null>(null);
+  const [mobileView, setMobileView] = useState<"list" | "detail">("list");
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
   const [search, setSearch] = useState("");
@@ -31,6 +34,12 @@ function ProjectsInner() {
   // Only join profiles when the Assignee column is active.
   const assigneeOn = columns.includes("assignee");
   const profiles = useProfiles(assigneeOn);
+
+  // On mobile, force a compact column set regardless of user preference.
+  const effectiveColumns = useMemo<ColumnKey[]>(
+    () => (isMobile ? (["name", "status"] as ColumnKey[]) : columns),
+    [isMobile, columns],
+  );
 
   const bump = () => setRefreshTick((t) => t + 1);
 
@@ -51,25 +60,49 @@ function ProjectsInner() {
     );
   }, [tasks, search]);
 
-  return (
-    <div className="flex h-[calc(100vh-48px)] min-h-0" style={{ background: "#000" }}>
-      <ProjectRail activeProjectId={projectId} onSelect={setProjectId} />
+  const showRail = !isMobile || mobileView === "list";
+  const showDetail = !isMobile || mobileView === "detail";
 
+  return (
+    <div
+      className="flex h-[calc(100vh-48px)] min-h-0 max-w-[100vw] overflow-x-hidden"
+      style={{ background: "#000" }}
+    >
+      {showRail && (
+        <ProjectRail
+          activeProjectId={projectId}
+          onSelect={setProjectId}
+          onOpen={() => isMobile && setMobileView("detail")}
+        />
+      )}
+
+      {showDetail && (
       <div className="flex-1 flex flex-col min-w-0">
         <div
-          className="flex items-center justify-between px-6 py-2 border-b"
+          className="flex items-center justify-between px-3 md:px-6 py-2 border-b gap-2"
           style={{ borderColor: "#1F2224", background: "#0F1113" }}
         >
-          <h1 className="text-[13px] font-mono uppercase tracking-widest text-muted-foreground">
-            Project Management
-          </h1>
-          <div className="flex items-center rounded-md border overflow-hidden" style={{ borderColor: "#1F2224" }}>
+          <div className="flex items-center gap-2 min-w-0">
+            {isMobile && (
+              <button
+                onClick={() => setMobileView("list")}
+                className="inline-flex items-center gap-1 text-[11px] font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground shrink-0"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+                Projects
+              </button>
+            )}
+            <h1 className="text-[11px] md:text-[13px] font-mono uppercase tracking-widest text-muted-foreground truncate">
+              Project Management
+            </h1>
+          </div>
+          <div className="flex items-center rounded-md border overflow-hidden shrink-0" style={{ borderColor: "#1F2224" }}>
             <RoleTab active={role === "office"} onClick={() => setRole("office")}>Office</RoleTab>
             <RoleTab active={role === "worker"} onClick={() => setRole("worker")}>Worker</RoleTab>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 max-w-[100vw]">
           <ProjectHeader
             projectId={projectId}
             onChanged={() => { bump(); refresh(); }}
@@ -100,7 +133,7 @@ function ProjectsInner() {
             </>
           )}
 
-          <div className="px-6 py-4 space-y-3">
+          <div className="px-3 md:px-6 py-4 space-y-3">
             {projectId && lists.length === 0 && (
               <div
                 className="rounded-md border p-6 text-sm text-muted-foreground text-center"
@@ -114,7 +147,7 @@ function ProjectsInner() {
                 className="rounded-md border overflow-hidden"
                 style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
               >
-                <TaskListColumnHeader columns={columns} />
+                <TaskListColumnHeader columns={effectiveColumns} />
               </div>
             )}
             {lists.map((l) => (
@@ -122,7 +155,7 @@ function ProjectsInner() {
                 key={l.id}
                 list={l}
                 tasks={filteredTasks}
-                columns={columns}
+                columns={effectiveColumns}
                 profiles={profiles}
                 project={project}
                 onOpen={setOpenTaskId}
@@ -133,6 +166,8 @@ function ProjectsInner() {
           </div>
         </div>
       </div>
+      )}
+
 
       {openTaskId && (
         <TaskDrawer
