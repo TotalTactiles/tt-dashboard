@@ -13,30 +13,32 @@ export const T_AMBER = "#BA7517";
 /* ---------------- shell ---------------- */
 
 export function TableShell({
-  title,
   right,
   children,
   hint,
+  showLegend = true,
 }: {
-  title: string;
+  /** Deprecated — the section heading above the table names it now. */
+  title?: string;
   right?: ReactNode;
   children: ReactNode;
   hint?: ReactNode;
+  /** Set false on read-only tables (e.g. hour_log) that contain no ƒ/input/gold cells. */
+  showLegend?: boolean;
 }) {
   return (
     <div
       className="rounded-md border overflow-hidden"
       style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
     >
-      <div
-        className="flex items-center justify-between px-3 py-2 border-b"
-        style={{ borderColor: "#1F2224", background: "#0F1113" }}
-      >
-        <span className="text-[10.5px] font-mono uppercase tracking-widest text-muted-foreground">
-          {title}
-        </span>
-        <div className="flex items-center gap-1">{right}</div>
-      </div>
+      {right && (
+        <div
+          className="flex items-center justify-end px-3 py-1.5 border-b"
+          style={{ borderColor: "#1F2224", background: "#0F1113" }}
+        >
+          <div className="flex items-center gap-1">{right}</div>
+        </div>
+      )}
       {children}
       {hint && (
         <div
@@ -46,7 +48,7 @@ export function TableShell({
           {hint}
         </div>
       )}
-      <Legend />
+      {showLegend && <Legend />}
     </div>
   );
 }
