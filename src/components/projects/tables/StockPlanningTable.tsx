@@ -70,7 +70,6 @@ export function StockPlanningTable({ projectId }: { projectId: string }) {
 
   return (
     <TableShell
-      title="Stock Planning"
       right={
         !readOnly && (
           <button
@@ -82,19 +81,19 @@ export function StockPlanningTable({ projectId }: { projectId: string }) {
         )
       }
     >
+      <HeaderRow
+        gridTemplate={GRID}
+        cols={[
+          { label: "Item" },
+          { label: "Source" },
+          { label: "Amount", align: "right" },
+          { label: "" },
+        ]}
+      />
       {rows.length === 0 ? (
         <EmptyState message="Two rows are seeded when a project is created. If this is empty, the project predates that." />
       ) : (
         <>
-          <HeaderRow
-            gridTemplate={GRID}
-            cols={[
-              { label: "Item" },
-              { label: "Source" },
-              { label: "Amount", align: "right" },
-              { label: "" },
-            ]}
-          />
           {rows.map((r) => (
             <div
               key={r.id}
