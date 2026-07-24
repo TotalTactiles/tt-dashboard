@@ -200,10 +200,26 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
 
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Start">
-                    <span className="font-mono text-[12.5px]">{formatDateShort(task.start_date)}</span>
+                    <DateFieldEditor
+                      task={task}
+                      field="start_date"
+                      projectEstStart={project?.estimated_start ?? null}
+                      projectStart={project?.project_start ?? null}
+                      projectEnd={project?.project_end ?? null}
+                      onLocalUpdate={(patch) => setTask((t) => (t ? { ...t, ...patch } : t))}
+                      onChanged={onChanged}
+                    />
                   </Field>
                   <Field label="End">
-                    <span className="font-mono text-[12.5px]">{formatDateShort(task.end_date)}</span>
+                    <DateFieldEditor
+                      task={task}
+                      field="end_date"
+                      projectEstStart={project?.estimated_start ?? null}
+                      projectStart={project?.project_start ?? null}
+                      projectEnd={project?.project_end ?? null}
+                      onLocalUpdate={(patch) => setTask((t) => (t ? { ...t, ...patch } : t))}
+                      onChanged={onChanged}
+                    />
                   </Field>
                   <Field label="Rule">
                     <span className="font-mono text-[11.5px]">
