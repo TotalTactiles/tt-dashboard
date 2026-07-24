@@ -39,6 +39,7 @@ export function ReconciliationTable({ projectId }: { projectId: string }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [base, setBase] = useState<BaseRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const live = useLiveStock();
 
   const load = useCallback(async () => {
     setLoading(true);
