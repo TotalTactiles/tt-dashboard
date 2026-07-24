@@ -60,7 +60,19 @@ export function CalendarStrip({
   const [drag, setDrag] = useState<DragState | null>(null);
   const prefersReducedMotion = useRef(false);
   const isMobile = useIsPmMobile();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileCollapsed, setMobileCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("tt.projects.timeline.collapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const setMobileCollapsedPersist = (v: boolean) => {
+    setMobileCollapsed(v);
+    try {
+      localStorage.setItem("tt.projects.timeline.collapsed", v ? "1" : "0");
+    } catch {}
+  };
 
 
   useEffect(() => {
