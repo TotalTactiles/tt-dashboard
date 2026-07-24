@@ -132,6 +132,8 @@ function Cell({
   project,
   onPatch,
   childCounts,
+  expanded,
+  onToggleExpand,
 }: {
   k: ColumnKey;
   task: Task;
@@ -142,14 +144,26 @@ function Cell({
   project: Project | null;
   onPatch: (id: string, patch: Partial<Task>) => void;
   childCounts?: { total: number; done: number };
+  expanded?: boolean;
+  onToggleExpand?: () => void;
 }) {
   switch (k) {
     case "name":
       return (
-        <div className="min-w-0 flex items-center gap-2 px-1 pr-3" style={{ paddingLeft: depth * 20 }}>
-          {childCounts && childCounts.total > 0 && (
-            <ChevronRight className="h-3 w-3 text-muted-foreground/40 shrink-0" />
-          )}
+        <div className="min-w-0 flex items-center gap-2 px-1 pr-3">
+          {childCounts && childCounts.total > 0 ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleExpand?.();
+              }}
+              className="shrink-0 p-0.5 -m-0.5 rounded hover:bg-white/[0.06] text-muted-foreground/70 hover:text-foreground transition-transform"
+              style={{ transform: expanded ? "rotate(90deg)" : "rotate(0deg)" }}
+              aria-label={expanded ? "Collapse" : "Expand"}
+            >
+              <ChevronRight className="h-3 w-3" />
+            </button>
+          ) : null}
           {task.product_code && (
             <span
               className="text-[10.5px] font-mono uppercase tracking-wider shrink-0"
