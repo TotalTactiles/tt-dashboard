@@ -26,6 +26,8 @@ interface Props {
   onToggle: (task: Task) => void;
   onPatch: (id: string, patch: Partial<Task>) => void;
   childCounts?: { total: number; done: number };
+  expanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 /** Build the grid template columns string from the ordered visible column set. */
@@ -44,9 +46,20 @@ export function TaskRow({
   onToggle,
   onPatch,
   childCounts,
+  expanded,
+  onToggleExpand,
 }: Props) {
   const done = task.status === "done";
   const gridTemplate = useMemo(() => buildRowGrid(columns), [columns]);
+  const isSub = depth > 0;
+  const indent = depth * 28;
+
+  // Subtle background layer for subtasks + vertical guide line at the parent's indent depth.
+  const baseBg = done ? "rgba(34,197,94,0.03)" : isSub ? "rgba(0,0,0,0.16)" : "transparent";
+  const guideOffset = isSub ? (depth - 1) * 28 + 14 : 0;
+  const bg = isSub
+    ? `linear-gradient(#26262C, #26262C) ${guideOffset}px 0 / 1px 100% no-repeat, ${baseBg}`
+    : baseBg;
 
   return (
     <div
@@ -55,7 +68,8 @@ export function TaskRow({
         gridTemplateColumns: gridTemplate,
         height: 40,
         borderColor: "#131418",
-        background: done ? "rgba(34,197,94,0.03)" : "transparent",
+        background: bg,
+        paddingLeft: indent,
       }}
       onClick={() => onOpen(task.id)}
     >
@@ -95,6 +109,8 @@ export function TaskRow({
           project={project}
           onPatch={onPatch}
           childCounts={childCounts}
+          expanded={expanded}
+          onToggleExpand={onToggleExpand}
         />
       ))}
 
@@ -116,6 +132,8 @@ function Cell({
   project,
   onPatch,
   childCounts,
+  expanded,
+  onToggleExpand,
 }: {
   k: ColumnKey;
   task: Task;
@@ -126,14 +144,26 @@ function Cell({
   project: Project | null;
   onPatch: (id: string, patch: Partial<Task>) => void;
   childCounts?: { total: number; done: number };
+  expanded?: boolean;
+  onToggleExpand?: () => void;
 }) {
   switch (k) {
     case "name":
       return (
-        <div className="min-w-0 flex items-center gap-2 px-1 pr-3" style={{ paddingLeft: depth * 20 }}>
-          {childCounts && childCounts.total > 0 && (
-            <ChevronRight className="h-3 w-3 text-muted-foreground/40 shrink-0" />
-          )}
+        <div className="min-w-0 flex items-center gap-2 px-1 pr-3">
+          {childCounts && childCounts.total > 0 ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleExpand?.();
+              }}
+              className="shrink-0 p-0.5 -m-0.5 rounded hover:bg-white/[0.06] text-muted-foreground/70 hover:text-foreground transition-transform"
+              style={{ transform: expanded ? "rotate(90deg)" : "rotate(0deg)" }}
+              aria-label={expanded ? "Collapse" : "Expand"}
+            >
+              <ChevronRight className="h-3 w-3" />
+            </button>
+          ) : null}
           {task.product_code && (
             <span
               className="text-[10.5px] font-mono uppercase tracking-wider shrink-0"

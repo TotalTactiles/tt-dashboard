@@ -105,48 +105,80 @@ export function TaskListSection({
               No tasks in this list.
             </div>
           ) : (
-            parents.map((p) => {
-              const kids = childrenOf[p.id] ?? [];
-              return (
-                <div key={p.id}>
-                  <TaskRow
-                    task={p}
-                    depth={0}
-                    columns={columns}
-                    profiles={profiles}
-                    listName={list.name}
-                    project={project}
-                    onOpen={onOpen}
-                    onToggle={onToggle}
-                    onPatch={onPatch}
-                    childCounts={
-                      kids.length > 0
-                        ? { total: kids.length, done: kids.filter((k) => k.status === "done").length }
-                        : undefined
-                    }
-                  />
-                  {kids.map((k) => (
-                    <TaskRow
-                      key={k.id}
-                      task={k}
-                      depth={1}
-                      columns={columns}
-                      profiles={profiles}
-                      listName={list.name}
-                      project={project}
-                      onOpen={onOpen}
-                      onToggle={onToggle}
-                      onPatch={onPatch}
-                    />
-                  ))}
-                </div>
-              );
-            })
+            <TaskTree
+              parents={parents}
+              childrenOf={childrenOf}
+              columns={columns}
+              profiles={profiles}
+              listName={list.name}
+              project={project}
+              onOpen={onOpen}
+              onToggle={onToggle}
+              onPatch={onPatch}
+            />
           )}
         </div>
       )}
     </div>
   );
+}
+
+function TaskTree({
+  parents,
+  childrenOf,
+  columns,
+  profiles,
+  listName,
+  project,
+  onOpen,
+  onToggle,
+  onPatch,
+}: {
+  parents: Task[];
+  childrenOf: Record<string, Task[]>;
+  columns: ColumnKey[];
+  profiles: ProfileLite[];
+  listName: string;
+  project: Project | null;
+  onOpen: (id: string) => void;
+  onToggle: (task: Task) => void;
+  onPatch: (id: string, patch: Partial<Task>) => void;
+}) {
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const isExpanded = (id: string) => expanded[id] !== false; // default true
+
+  const renderNode = (t: Task, depth: number): JSX.Element => {
+    const kids = childrenOf[t.id] ?? [];
+    const hasKids = kids.length > 0;
+    const open = isExpanded(t.id);
+    return (
+      <div key={t.id}>
+        <TaskRow
+          task={t}
+          depth={depth}
+          columns={columns}
+          profiles={profiles}
+          listName={listName}
+          project={project}
+          onOpen={onOpen}
+          onToggle={onToggle}
+          onPatch={onPatch}
+          childCounts={
+            hasKids
+              ? { total: kids.length, done: kids.filter((k) => k.status === "done").length }
+              : undefined
+          }
+          expanded={hasKids ? open : undefined}
+          onToggleExpand={
+            hasKids ? () => setExpanded((prev) => ({ ...prev, [t.id]: !open })) : undefined
+          }
+        />
+        {hasKids && open && kids.map((k) => renderNode(k, depth + 1))}
+      </div>
+    );
+  };
+
+  return <>{parents.map((p) => renderNode(p, 0))}</>;
 }
 
 export function TaskListColumnHeader({ columns }: { columns: ColumnKey[] }) {
