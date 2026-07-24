@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LogOut, Menu } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { MobileNav } from "@/components/MobileNav";
@@ -22,13 +22,20 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isProjectsRoute = location.pathname.startsWith("/projects");
+  const [sidebarOpen, setSidebarOpen] = useState(isDesktop && !isProjectsRoute);
+  useEffect(() => {
+    // Force-collapse on the Projects route; restore on any other route (desktop only).
+    if (isDesktop) setSidebarOpen(!isProjectsRoute);
+  }, [isProjectsRoute, isDesktop]);
   const handleLogout = async () => {
     await signOut();
     navigate("/login", { replace: true });
   };
 
   return (
-    <SidebarProvider defaultOpen={isDesktop}>
+    <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
       <div className="min-h-screen flex w-full">
         {isDesktop && <AppSidebar />}
 
