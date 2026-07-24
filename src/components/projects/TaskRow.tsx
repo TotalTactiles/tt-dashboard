@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronRight, GripVertical, MoreHorizontal, Lock, Anchor } from "lucide-react";
+import { ChevronRight, GripVertical, Lock, Anchor, MoreHorizontal } from "lucide-react";
 import type { Task } from "@/hooks/useTasks";
 import type { ProfileLite } from "@/hooks/useProfiles";
 import { DATE_RULE_SHORT, formatDateShort, daysUntil } from "@/lib/projects/dateRules";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { buildRowGrid, COLUMN_DEFS, type ColumnKey } from "./columns";
 
 const db = supabase as any;
 
@@ -17,7 +18,9 @@ interface Project {
 interface Props {
   task: Task;
   depth: number;
+  columns: ColumnKey[];
   profiles: ProfileLite[];
+  listName?: string;
   project: Project | null;
   onOpen: (id: string) => void;
   onToggle: (task: Task) => void;
@@ -25,14 +28,17 @@ interface Props {
   childCounts?: { total: number; done: number };
 }
 
-// Shared grid template — must match TaskListHeader.
-export const ROW_GRID =
-  "24px 28px minmax(0,1fr) 120px 90px 100px 100px 110px 44px 44px";
+/** Build the grid template columns string from the ordered visible column set. */
+export function rowGridFor(cols: ColumnKey[]) {
+  return buildRowGrid(cols);
+}
 
 export function TaskRow({
   task,
   depth,
+  columns,
   profiles,
+  listName,
   project,
   onOpen,
   onToggle,
@@ -40,22 +46,13 @@ export function TaskRow({
   childCounts,
 }: Props) {
   const done = task.status === "done";
-  const dayD = daysUntil(task.end_date);
-  const dueColor = done
-    ? "#22C55E"
-    : dayD === null
-      ? "#B0B8BF"
-      : dayD < 0
-        ? "#EF4444"
-        : dayD <= 2
-          ? "#F59E0B"
-          : "#B0B8BF";
+  const gridTemplate = useMemo(() => buildRowGrid(columns), [columns]);
 
   return (
     <div
       className="group grid items-center text-[12.5px] transition-colors hover:bg-[#16161A] cursor-pointer border-b"
       style={{
-        gridTemplateColumns: ROW_GRID,
+        gridTemplateColumns: gridTemplate,
         height: 40,
         borderColor: "#131418",
         background: done ? "rgba(34,197,94,0.03)" : "transparent",
@@ -86,85 +83,238 @@ export function TaskRow({
         </button>
       </div>
 
-      {/* name */}
-      <div className="min-w-0 flex items-center gap-2 pr-3" style={{ paddingLeft: depth * 20 }}>
-        {childCounts && childCounts.total > 0 && (
-          <ChevronRight className="h-3 w-3 text-muted-foreground/40 shrink-0" />
-        )}
-        {task.product_code && (
-          <span
-            className="text-[10.5px] font-mono uppercase tracking-wider shrink-0"
-            style={{ color: "#3D89DA" }}
-          >
-            {task.product_code}
-          </span>
-        )}
-        <span
-          className={cn("truncate", done ? "line-through text-muted-foreground" : "text-foreground/90")}
-        >
-          {task.name}
-        </span>
-        {task.office_only && (
-          <span className="text-[9.5px] font-mono uppercase tracking-wider inline-flex items-center gap-1 shrink-0 px-1 py-0.5 rounded-sm"
-            style={{ background: "#7C5BC722", color: "#B9A5E5" }}>
-            <Lock className="h-2.5 w-2.5" /> office
-          </span>
-        )}
-        {childCounts && childCounts.total > 0 && (
-          <span className="text-[10px] font-mono text-muted-foreground shrink-0">
-            {childCounts.done}/{childCounts.total}
-          </span>
-        )}
-      </div>
+      {columns.map((k) => (
+        <Cell
+          key={k}
+          k={k}
+          task={task}
+          depth={depth}
+          done={done}
+          profiles={profiles}
+          listName={listName}
+          project={project}
+          onPatch={onPatch}
+          childCounts={childCounts}
+        />
+      ))}
 
-      {/* status */}
-      <div className="px-2" onClick={(e) => e.stopPropagation()}>
-        <StatusPill task={task} onChange={(s) => onPatch(task.id, { status: s, ...(s === "done" ? {} : {}) })} />
+      {/* overflow / more */}
+      <div className="flex items-center justify-center text-muted-foreground/30 opacity-0 group-hover:opacity-100">
+        <MoreHorizontal className="h-3.5 w-3.5" />
       </div>
-
-      {/* assignee */}
-      <div className="px-2" onClick={(e) => e.stopPropagation()}>
-        <AssigneeCell task={task} profiles={profiles} onChange={(id) => onPatch(task.id, { assignee_id: id })} />
-      </div>
-
-      {/* start */}
-      <div className="px-2" onClick={(e) => e.stopPropagation()}>
-        <DateCell task={task} field="start_date" project={project} onPatch={onPatch} />
-      </div>
-
-      {/* due */}
-      <div className="px-2 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-        <DateCell task={task} field="end_date" project={project} onPatch={onPatch} />
-        {task.end_date && !done && (
-          <span className="text-[9.5px] font-mono ml-auto" style={{ color: dueColor }}>
-            {dayD === 0 ? "today" : dayD! > 0 ? `${dayD}d` : `${-dayD!}d late`}
-          </span>
-        )}
-      </div>
-
-      {/* table */}
-      <div className="px-2">
-        {task.calc_table ? (
-          <span
-            className="text-[9.5px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded-sm"
-            style={{ background: "#3D89DA22", color: "#3D89DA" }}
-          >
-            {task.calc_table.replace(/_/g, " ")}
-          </span>
-        ) : (
-          <span className="text-muted-foreground/30">—</span>
-        )}
-      </div>
-
-      {/* comments count */}
-      <CommentAttachmentCount taskId={task.id} kind="comments" />
-      {/* attachments count */}
-      <CommentAttachmentCount taskId={task.id} kind="attachments" />
     </div>
   );
 }
 
-/* ---------------- Status ---------------- */
+function Cell({
+  k,
+  task,
+  depth,
+  done,
+  profiles,
+  listName,
+  project,
+  onPatch,
+  childCounts,
+}: {
+  k: ColumnKey;
+  task: Task;
+  depth: number;
+  done: boolean;
+  profiles: ProfileLite[];
+  listName?: string;
+  project: Project | null;
+  onPatch: (id: string, patch: Partial<Task>) => void;
+  childCounts?: { total: number; done: number };
+}) {
+  switch (k) {
+    case "name":
+      return (
+        <div className="min-w-0 flex items-center gap-2 px-1 pr-3" style={{ paddingLeft: depth * 20 }}>
+          {childCounts && childCounts.total > 0 && (
+            <ChevronRight className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+          )}
+          {task.product_code && (
+            <span
+              className="text-[10.5px] font-mono uppercase tracking-wider shrink-0"
+              style={{ color: "#3D89DA" }}
+            >
+              {task.product_code}
+            </span>
+          )}
+          <span
+            className={cn("truncate", done ? "line-through text-muted-foreground" : "text-foreground/90")}
+          >
+            {task.name}
+          </span>
+          {task.office_only && (
+            <span className="text-[9.5px] font-mono uppercase tracking-wider inline-flex items-center gap-1 shrink-0 px-1 py-0.5 rounded-sm"
+              style={{ background: "#7C5BC722", color: "#B9A5E5" }}>
+              <Lock className="h-2.5 w-2.5" /> office
+            </span>
+          )}
+          {childCounts && childCounts.total > 0 && (
+            <span className="text-[10px] font-mono text-muted-foreground shrink-0">
+              {childCounts.done}/{childCounts.total}
+            </span>
+          )}
+        </div>
+      );
+    case "status":
+      return (
+        <div className="px-2" onClick={(e) => e.stopPropagation()}>
+          <StatusPill task={task} onChange={(s) => onPatch(task.id, { status: s })} />
+        </div>
+      );
+    case "assignee":
+      return (
+        <div className="px-2" onClick={(e) => e.stopPropagation()}>
+          <AssigneeCell task={task} profiles={profiles} onChange={(id) => onPatch(task.id, { assignee_id: id })} />
+        </div>
+      );
+    case "start":
+      return (
+        <DateColumn task={task} field="start_date" project={project} onPatch={onPatch} showCount={false} />
+      );
+    case "due":
+      return (
+        <DateColumn task={task} field="end_date" project={project} onPatch={onPatch} showCount={true} />
+      );
+    case "table":
+      return (
+        <div className="px-2">
+          {task.calc_table ? (
+            <span
+              className="text-[9.5px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded-sm"
+              style={{ background: "#3D89DA22", color: "#3D89DA" }}
+            >
+              {task.calc_table.replace(/_/g, " ")}
+            </span>
+          ) : (
+            <span className="text-muted-foreground/30">—</span>
+          )}
+        </div>
+      );
+    case "rule":
+      return (
+        <div className="px-2 text-[10.5px] font-mono text-muted-foreground truncate">
+          {DATE_RULE_SHORT[task.rule]}
+        </div>
+      );
+    case "product_code":
+      return (
+        <div className="px-2 text-[10.5px] font-mono truncate" style={{ color: task.product_code ? "#3D89DA" : "#4B5058" }}>
+          {task.product_code ?? "—"}
+        </div>
+      );
+    case "list":
+      return (
+        <div className="px-2 text-[10.5px] font-mono text-muted-foreground truncate">
+          {listName ?? "—"}
+        </div>
+      );
+    case "comments":
+      return <CommentAttachmentCount taskId={task.id} kind="comments" />;
+    case "files":
+      return <CommentAttachmentCount taskId={task.id} kind="attachments" />;
+    default:
+      return null;
+  }
+}
+
+/* ---------------- Date column wrapper (measures width for count vs tooltip) ---------------- */
+
+function DateColumn({
+  task,
+  field,
+  project,
+  onPatch,
+  showCount,
+}: {
+  task: Task;
+  field: "start_date" | "end_date";
+  project: Project | null;
+  onPatch: (id: string, patch: Partial<Task>) => void;
+  showCount: boolean;
+}) {
+  const value = task[field];
+  const done = task.status === "done";
+  const dayD = daysUntil(value);
+  const isDate = value !== null && value !== undefined && value !== "";
+  const overdue = !done && isDate && dayD !== null && dayD < 0;
+  // For start col overdue means: start date passed and task still open.
+  // For due col overdue means: due date passed and task still open.
+  const soon = !done && !overdue && isDate && dayD !== null && dayD >= 0 && dayD <= 7;
+
+  const color = !isDate
+    ? "#4B5058"
+    : done
+      ? "#B0B8BF"
+      : overdue
+        ? "#E24B4A"
+        : soon
+          ? "#BA7517"
+          : "#E5E9EA";
+
+  // Measure the cell width to decide inline vs tooltip for count
+  const cellRef = useRef<HTMLDivElement>(null);
+  const [inline, setInline] = useState(true);
+
+  useEffect(() => {
+    if (!showCount) return;
+    const el = cellRef.current;
+    if (!el) return;
+    const check = () => {
+      // Threshold: inline text ("14 July · 11d late") needs ~115px of horizontal room
+      setInline(el.clientWidth >= 115);
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [showCount]);
+
+  const countLabel = overdue && isDate ? `${-dayD!}d late` : soon && isDate ? (dayD === 0 ? "today" : `${dayD}d`) : null;
+  const tooltip =
+    overdue && isDate
+      ? `${-dayD!} days overdue`
+      : soon && isDate
+        ? (dayD === 0 ? "Due today" : `${dayD} days remaining`)
+        : undefined;
+
+  return (
+    <div
+      ref={cellRef}
+      className="px-2 h-full flex items-center gap-1 min-w-0"
+      onClick={(e) => e.stopPropagation()}
+      title={showCount && !inline ? tooltip : undefined}
+      style={
+        overdue
+          ? { borderLeft: "2px solid #E24B4A", paddingLeft: "6px" }
+          : undefined
+      }
+    >
+      <DateEditor
+        task={task}
+        field={field}
+        value={value}
+        project={project}
+        onPatch={onPatch}
+        color={color}
+      />
+      {showCount && countLabel && inline && (
+        <span
+          className="text-[9.5px] font-mono ml-auto shrink-0 whitespace-nowrap"
+          style={{ color, opacity: 0.7 }}
+        >
+          {countLabel}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- Status pill ---------------- */
 
 function StatusPill({
   task,
@@ -175,7 +325,6 @@ function StatusPill({
 }) {
   const [open, setOpen] = useState(false);
   const done = task.status === "done";
-  // IN_PROGRESS is a derived display state — will be wired to calc_cells in Phase B.
   const inProgress = false;
 
   const label = done ? "DONE" : inProgress ? "IN PROGRESS" : "OPEN";
@@ -295,20 +444,23 @@ function AssigneeCell({
   );
 }
 
-/* ---------------- Date cell ---------------- */
+/* ---------------- Date editor ---------------- */
 
-function DateCell({
+function DateEditor({
   task,
   field,
+  value,
   project,
   onPatch,
+  color,
 }: {
   task: Task;
   field: "start_date" | "end_date";
+  value: string | null;
   project: Project | null;
   onPatch: (id: string, patch: Partial<Task>) => void;
+  color: string;
 }) {
-  const value = task[field];
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value ?? "");
 
@@ -341,11 +493,11 @@ function DateCell({
   };
 
   return (
-    <div className="relative">
+    <div className="relative flex-1 min-w-0">
       <button
         onClick={() => setOpen((o) => !o)}
         className="text-left font-mono text-[11px] w-full flex items-center gap-1"
-        style={{ color: value ? "#B0B8BF" : "#4B5058" }}
+        style={{ color }}
       >
         {task.date_manual && value && (
           <Anchor className="h-2.5 w-2.5 shrink-0" style={{ color: "#F59E0B" }} />
@@ -424,3 +576,6 @@ function CommentAttachmentCount({ taskId, kind }: { taskId: string; kind: "comme
     </div>
   );
 }
+
+// Backwards-compat export (unused after refactor). Consumers should use buildRowGrid.
+export const ROW_GRID = buildRowGrid(["name","status","start","due","comments","files"]);

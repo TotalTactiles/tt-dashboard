@@ -25,9 +25,10 @@ async function loadOnce() {
   return cache;
 }
 
-export function useProfiles() {
+export function useProfiles(enabled: boolean = true) {
   const [profiles, setProfiles] = useState<ProfileLite[]>(cache ?? []);
   useEffect(() => {
+    if (!enabled) return;
     let mounted = true;
     subs.add(setProfiles);
     loadOnce().then((p) => {
@@ -37,6 +38,6 @@ export function useProfiles() {
       mounted = false;
       subs.delete(setProfiles);
     };
-  }, []);
-  return profiles;
+  }, [enabled]);
+  return enabled ? profiles : [];
 }

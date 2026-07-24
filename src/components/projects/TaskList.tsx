@@ -2,8 +2,9 @@ import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Plus } from "lucide-react";
 import type { Task, TaskList as TL } from "@/hooks/useTasks";
 import type { ProfileLite } from "@/hooks/useProfiles";
-import { TaskRow, ROW_GRID } from "./TaskRow";
+import { TaskRow } from "./TaskRow";
 import { Ring } from "./Ring";
+import { buildRowGrid, COLUMN_DEFS, type ColumnKey } from "./columns";
 
 interface Project {
   estimated_start: string | null;
@@ -14,6 +15,7 @@ interface Project {
 interface Props {
   list: TL;
   tasks: Task[];
+  columns: ColumnKey[];
   profiles: ProfileLite[];
   project: Project | null;
   onOpen: (id: string) => void;
@@ -24,6 +26,7 @@ interface Props {
 export function TaskListSection({
   list,
   tasks,
+  columns,
   profiles,
   project,
   onOpen,
@@ -109,7 +112,9 @@ export function TaskListSection({
                   <TaskRow
                     task={p}
                     depth={0}
+                    columns={columns}
                     profiles={profiles}
+                    listName={list.name}
                     project={project}
                     onOpen={onOpen}
                     onToggle={onToggle}
@@ -125,7 +130,9 @@ export function TaskListSection({
                       key={k.id}
                       task={k}
                       depth={1}
+                      columns={columns}
                       profiles={profiles}
+                      listName={list.name}
                       project={project}
                       onOpen={onOpen}
                       onToggle={onToggle}
@@ -142,12 +149,12 @@ export function TaskListSection({
   );
 }
 
-export function TaskListColumnHeader() {
+export function TaskListColumnHeader({ columns }: { columns: ColumnKey[] }) {
   return (
     <div
       className="sticky top-0 z-10 grid text-[9.5px] font-mono uppercase tracking-widest text-muted-foreground border-b"
       style={{
-        gridTemplateColumns: ROW_GRID,
+        gridTemplateColumns: buildRowGrid(columns),
         background: "#0F1113",
         borderColor: "#1F2224",
         height: 30,
@@ -155,14 +162,19 @@ export function TaskListColumnHeader() {
     >
       <div />
       <div />
-      <div className="flex items-center px-1">Name</div>
-      <div className="flex items-center px-2">Status</div>
-      <div className="flex items-center px-2">Assignee</div>
-      <div className="flex items-center px-2">Start</div>
-      <div className="flex items-center px-2">Due</div>
-      <div className="flex items-center px-2">Table</div>
-      <div className="flex items-center justify-center">💬</div>
-      <div className="flex items-center justify-center">📎</div>
+      {columns.map((k) => {
+        const def = COLUMN_DEFS[k];
+        const isCount = k === "comments" || k === "files";
+        return (
+          <div
+            key={k}
+            className={isCount ? "flex items-center justify-center" : "flex items-center px-2"}
+          >
+            {isCount ? (k === "comments" ? "💬" : "📎") : def.label}
+          </div>
+        );
+      })}
+      <div />
     </div>
   );
 }

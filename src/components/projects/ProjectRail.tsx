@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2, Search, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProjects } from "@/hooks/useProjects";
+import { Ring } from "./Ring";
+import { formatDateShort } from "@/lib/projects/dateRules";
 
 interface Props {
   activeProjectId: string | null;
@@ -60,38 +62,31 @@ export function ProjectRail({ activeProjectId, onSelect }: Props) {
         {filtered.map((p) => {
           const active = p.id === activeProjectId;
           const pct = progress[p.id] ?? 0;
+          const completion = p.project_end ?? p.estimated_start ?? null;
           return (
             <button
               key={p.id}
               onClick={() => onSelect(p.id)}
               className={cn(
-                "w-full text-left px-3 py-2.5 border-l-2 transition-colors",
+                "w-full text-left px-3 py-2.5 border-l-2 transition-colors flex items-center gap-3",
                 active ? "bg-white/[0.04]" : "hover:bg-white/[0.02]",
               )}
               style={{ borderLeftColor: active ? "#3D89DA" : "transparent" }}
             >
-              <div className="flex items-center gap-2 mb-1">
-                <Circle
-                  className="h-2 w-2 shrink-0"
-                  style={{ color: "#22C55E", fill: "#22C55E" }}
-                />
-                <span className="text-[12.5px] font-semibold text-foreground/90 truncate">
-                  {p.name}
-                </span>
-              </div>
-              <div className="text-[10.5px] text-muted-foreground truncate font-mono">
-                {p.client_name ?? "—"}
-                {p.quote_number ? ` · ${p.quote_number}` : ""}
-              </div>
-              <div className="mt-2 h-1 rounded-full overflow-hidden" style={{ background: "#1F2224" }}>
-                <div
-                  className="h-full transition-all"
-                  style={{ width: `${pct}%`, background: "#3D89DA" }}
-                />
-              </div>
-              <div className="mt-1 flex justify-between text-[9.5px] font-mono text-muted-foreground uppercase tracking-wider">
-                <span>Progress</span>
-                <span>{pct}%</span>
+              <Ring pct={pct} size={36} stroke={3} showLabel labelSize={10} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <Circle
+                    className="h-2 w-2 shrink-0"
+                    style={{ color: "#22C55E", fill: "#22C55E" }}
+                  />
+                  <span className="text-[12.5px] font-semibold text-foreground/90 truncate">
+                    {p.name}
+                  </span>
+                </div>
+                <div className="text-[10.5px] text-muted-foreground truncate font-mono mt-0.5">
+                  Completion · {completion ? formatDateShort(completion) : "—"}
+                </div>
               </div>
             </button>
           );
