@@ -244,8 +244,6 @@ export function CalendarStrip({
       style={{
         borderColor: "#1F2224",
         background: "#0A0A0A",
-        maxHeight: isMobile ? 240 : undefined,
-        transition: isMobile ? "max-height 220ms ease" : undefined,
       }}
     >
       <div className={cn("flex items-center justify-between pt-3 pb-2", isMobile ? "px-3" : "px-6")}>
