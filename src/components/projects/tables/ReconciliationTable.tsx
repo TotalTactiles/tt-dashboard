@@ -90,6 +90,14 @@ export function ReconciliationTable({ projectId }: { projectId: string }) {
   }, [rows]);
 
   const returnAll = async () => {
+    const negative = rows.filter((r) => (Number(r.planned_qty) - Number(r.used_qty ?? 0)) < 0);
+    if (negative.length > 0) {
+      const codes = negative.map((r) => r.product_code).join(", ");
+      const ok = window.confirm(
+        `Used exceeds planned on ${codes}. That's a negative leftover. Continue returning positive leftovers to stock?`,
+      );
+      if (!ok) return;
+    }
     const ids = base.filter((b) => !b.returned_to_stock).map((b) => b.id);
     if (!ids.length) return;
     setBase((prev) => prev.map((b) => (ids.includes(b.id) ? { ...b, returned_to_stock: true } : b)));
@@ -102,7 +110,7 @@ export function ReconciliationTable({ projectId }: { projectId: string }) {
   if (loading) return <div className="p-6 text-[12px] text-muted-foreground">Loading…</div>;
 
   return (
-    <TableShell>
+    <TableShell right={<LiveStockBadge status={live.status} syncedAt={live.syncedAt} />}>
       <HeaderRow
         gridTemplate={GRID}
         cols={[
