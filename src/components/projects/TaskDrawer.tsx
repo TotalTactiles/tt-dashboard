@@ -5,6 +5,7 @@ import type { Task } from "@/hooks/useTasks";
 import { DATE_RULE_LABELS, formatDateShort } from "@/lib/projects/dateRules";
 import { useRole } from "@/hooks/useRole";
 import { ProjectCalcTable, TABLE_LABEL, TABLE_OFFICE_ONLY } from "@/components/projects/tables";
+import { FilesSection } from "@/components/projects/FilesSection";
 
 const db = supabase as any;
 
@@ -25,6 +26,7 @@ interface Props {
 export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
   const { role } = useRole();
   const [task, setTask] = useState<Task | null>(null);
+  const [projectName, setProjectName] = useState<string>("");
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
   const [newComment, setNewComment] = useState("");
@@ -33,6 +35,7 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
     if (!taskId) {
       setTask(null);
       setComments([]);
+      setProjectName("");
       return;
     }
     setLoading(true);
@@ -47,6 +50,10 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
       ]);
       setTask(t as Task | null);
       setComments((c as Comment[]) ?? []);
+      if (t?.project_id) {
+        const { data: p } = await db.from("projects").select("name").eq("id", t.project_id).maybeSingle();
+        setProjectName((p as { name?: string } | null)?.name ?? "");
+      }
       setLoading(false);
     })();
   }, [taskId, role]);
@@ -220,6 +227,17 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
                 </Section>
               );
             })()}
+
+            {/* FILES & PHOTOS */}
+            <Section title="Photos & Files">
+              <FilesSection
+                projectId={task.project_id}
+                projectName={projectName || "unknown-project"}
+                taskId={task.id}
+                taskName={task.name}
+                onCountChange={() => onChanged()}
+              />
+            </Section>
 
             {/* COMMENTS */}
             <Section title={`Comments · ${comments.length}`}>
