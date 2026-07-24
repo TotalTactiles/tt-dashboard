@@ -308,7 +308,7 @@ export function CalendarStrip({
               const left = ((s + deltaMs - range.start.getTime()) / DAY_MS) * DAY_WIDTH;
               const width = Math.max(DAY_WIDTH, ((e - s) / DAY_MS + 1) * DAY_WIDTH - 2);
               const done = t.status === "done";
-              const draggable = !!onPatch;
+              const draggable = dragEnabled;
               return (
                 <button
                   key={t.id}
