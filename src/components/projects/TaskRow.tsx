@@ -5,9 +5,11 @@ import type { ProfileLite } from "@/hooks/useProfiles";
 import { DATE_RULE_SHORT, formatDateShort, daysUntil } from "@/lib/projects/dateRules";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsPmMobile } from "@/hooks/useProjects";
 import { buildRowGrid, COLUMN_DEFS, type ColumnKey } from "./columns";
 
 const db = supabase as any;
+
 
 interface Project {
   estimated_start: string | null;
