@@ -67,7 +67,7 @@ export function ProjectRail({ activeProjectId, onSelect, onOpen }: Props) {
           return (
             <button
               key={p.id}
-              onClick={() => onSelect(p.id)}
+              onClick={() => { onSelect(p.id); onOpen?.(p.id); }}
               className={cn(
                 "w-full text-left px-3 py-2.5 border-l-2 transition-colors flex items-center gap-3",
                 active ? "bg-white/[0.04]" : "hover:bg-white/[0.02]",
