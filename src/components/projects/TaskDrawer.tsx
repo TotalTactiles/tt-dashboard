@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { X, Circle, CheckCircle2, Lock } from "lucide-react";
+import { X, Circle, CheckCircle2, Lock, Anchor } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Task } from "@/hooks/useTasks";
-import { DATE_RULE_LABELS, formatDateShort } from "@/lib/projects/dateRules";
+import { DATE_RULE_LABELS, DATE_RULE_SHORT, formatDateShort } from "@/lib/projects/dateRules";
 import { useRole } from "@/hooks/useRole";
-import { useIsPmMobile } from "@/hooks/useProjects";
+import { useIsPmMobile, useProjectDetail } from "@/hooks/useProjects";
 import { ProjectCalcTable, TABLE_LABEL, TABLE_OFFICE_ONLY } from "@/components/projects/tables";
 import { FilesSection } from "@/components/projects/FilesSection";
 import { cn } from "@/lib/utils";
