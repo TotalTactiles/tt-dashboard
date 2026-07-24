@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { RoleProvider, useRole } from "@/hooks/useRole";
 import { ProjectRail } from "@/components/projects/ProjectRail";
@@ -6,6 +6,8 @@ import { ProjectHeader } from "@/components/projects/ProjectHeader";
 import { CalendarStrip } from "@/components/projects/CalendarStrip";
 import { TaskListSection, TaskListColumnHeader } from "@/components/projects/TaskList";
 import { TaskDrawer } from "@/components/projects/TaskDrawer";
+import { ColumnsPopover } from "@/components/projects/ColumnsPopover";
+import { loadColumns, saveColumns, type ColumnKey } from "@/components/projects/columns";
 import { useTasks } from "@/hooks/useTasks";
 import { useProjectDetail } from "@/hooks/useProjects";
 import { useProfiles } from "@/hooks/useProfiles";
@@ -18,24 +20,25 @@ function ProjectsInner() {
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
   const [search, setSearch] = useState("");
+  const [columns, setColumns] = useState<ColumnKey[]>(() => loadColumns());
+
+  useEffect(() => {
+    saveColumns(columns);
+  }, [columns]);
 
   const { project } = useProjectDetail(projectId);
   const { lists, tasks, refresh, toggleTaskStatus, updateTask } = useTasks(projectId);
-  const profiles = useProfiles();
+  // Only join profiles when the Assignee column is active.
+  const assigneeOn = columns.includes("assignee");
+  const profiles = useProfiles(assigneeOn);
 
   const bump = () => setRefreshTick((t) => t + 1);
 
-  // Client-derived progress — moves the instant a checkbox flips.
   const { pct, total, done, open } = useMemo(() => {
     const countable = tasks.filter((t) => !t.office_only);
     const d = countable.filter((t) => t.status === "done").length;
     const p = countable.length ? Math.round((100 * d) / countable.length) : 0;
-    return {
-      pct: p,
-      total: countable.length,
-      done: d,
-      open: countable.length - d,
-    };
+    return { pct: p, total: countable.length, done: d, open: countable.length - d };
   }, [tasks]);
 
   const filteredTasks = useMemo(() => {
@@ -87,7 +90,12 @@ function ProjectsInner() {
                 onTaskClick={setOpenTaskId}
               />
 
-              <ViewsBar search={search} onSearch={setSearch} />
+              <ViewsBar
+                search={search}
+                onSearch={setSearch}
+                columns={columns}
+                onColumnsChange={setColumns}
+              />
             </>
           )}
 
@@ -105,7 +113,7 @@ function ProjectsInner() {
                 className="rounded-md border overflow-hidden"
                 style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
               >
-                <TaskListColumnHeader />
+                <TaskListColumnHeader columns={columns} />
               </div>
             )}
             {lists.map((l) => (
@@ -113,6 +121,7 @@ function ProjectsInner() {
                 key={l.id}
                 list={l}
                 tasks={filteredTasks}
+                columns={columns}
                 profiles={profiles}
                 project={project}
                 onOpen={setOpenTaskId}
@@ -135,7 +144,17 @@ function ProjectsInner() {
   );
 }
 
-function ViewsBar({ search, onSearch }: { search: string; onSearch: (s: string) => void }) {
+function ViewsBar({
+  search,
+  onSearch,
+  columns,
+  onColumnsChange,
+}: {
+  search: string;
+  onSearch: (s: string) => void;
+  columns: ColumnKey[];
+  onColumnsChange: (c: ColumnKey[]) => void;
+}) {
   return (
     <div
       className="flex items-center gap-1 px-6 py-2 border-b"
@@ -151,6 +170,7 @@ function ViewsBar({ search, onSearch }: { search: string; onSearch: (s: string) 
       <ToolButton icon={<Filter className="h-3 w-3" />} label="Filter" />
       <ToolButton icon={<ArrowUpDown className="h-3 w-3" />} label="Sort" />
       <ToolButton icon={<Group className="h-3 w-3" />} label="Group by" />
+      <ColumnsPopover columns={columns} onChange={onColumnsChange} />
 
       <div className="ml-auto relative">
         <Search className="h-3 w-3 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />

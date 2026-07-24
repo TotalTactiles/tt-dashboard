@@ -53,7 +53,10 @@ export function ProjectHeader({
   return (
     <div className="border-b" style={{ borderColor: "#1F2224", background: "#0F1113" }}>
       <div className="px-6 pt-5 pb-4">
-        <div className="flex items-start justify-between gap-6 mb-1">
+        <div className="flex items-start gap-4 mb-1">
+          <div className="shrink-0 pt-0.5">
+            <Ring pct={pct} size={56} stroke={4} showLabel labelSize={13} />
+          </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3 flex-wrap">
               <h1
@@ -112,7 +115,7 @@ export function ProjectHeader({
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           <StatCard
             label="Est. Start"
             value={formatDateShort(project.estimated_start)}
@@ -128,27 +131,10 @@ export function ProjectHeader({
               ) : null
             }
           />
-          <div
-            className="rounded-md border px-3 py-2.5 flex items-center gap-3"
-            style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
-          >
-            <Ring pct={pct} size={56} stroke={4} showLabel labelSize={13} />
-            <div className="min-w-0">
-              <div className="text-[9.5px] font-mono tracking-widest uppercase text-muted-foreground">
-                Progress
-              </div>
-              <div
-                className="text-[11px] font-mono text-muted-foreground mt-1"
-                style={{ fontFamily: "JetBrains Mono, monospace" }}
-              >
-                {done}/{total} tasks
-              </div>
-            </div>
-          </div>
           <StatCard
             label="Open Tasks"
             value={String(open)}
-            sub={`${total} total`}
+            sub={`${done}/${total} done`}
           />
           <StatCard
             label="Hours Logged"
