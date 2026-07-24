@@ -11,7 +11,7 @@ interface Props {
   onOpen?: (id: string) => void;
 }
 
-export function ProjectRail({ activeProjectId, onSelect }: Props) {
+export function ProjectRail({ activeProjectId, onSelect, onOpen }: Props) {
   const { projects, progress, loading } = useProjects("active");
   const [q, setQ] = useState("");
 
