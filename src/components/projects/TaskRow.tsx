@@ -46,9 +46,20 @@ export function TaskRow({
   onToggle,
   onPatch,
   childCounts,
+  expanded,
+  onToggleExpand,
 }: Props) {
   const done = task.status === "done";
   const gridTemplate = useMemo(() => buildRowGrid(columns), [columns]);
+  const isSub = depth > 0;
+  const indent = depth * 28;
+
+  // Subtle background layer for subtasks + vertical guide line at the parent's indent depth.
+  const baseBg = done ? "rgba(34,197,94,0.03)" : isSub ? "rgba(0,0,0,0.16)" : "transparent";
+  const guideOffset = isSub ? (depth - 1) * 28 + 14 : 0;
+  const bg = isSub
+    ? `linear-gradient(#26262C, #26262C) ${guideOffset}px 0 / 1px 100% no-repeat, ${baseBg}`
+    : baseBg;
 
   return (
     <div
@@ -57,7 +68,8 @@ export function TaskRow({
         gridTemplateColumns: gridTemplate,
         height: 40,
         borderColor: "#131418",
-        background: done ? "rgba(34,197,94,0.03)" : "transparent",
+        background: bg,
+        paddingLeft: indent,
       }}
       onClick={() => onOpen(task.id)}
     >
