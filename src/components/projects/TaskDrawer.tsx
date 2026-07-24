@@ -4,10 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Task } from "@/hooks/useTasks";
 import { DATE_RULE_LABELS, formatDateShort } from "@/lib/projects/dateRules";
 import { useRole } from "@/hooks/useRole";
+import { useIsPmMobile } from "@/hooks/useProjects";
 import { ProjectCalcTable, TABLE_LABEL, TABLE_OFFICE_ONLY } from "@/components/projects/tables";
 import { FilesSection } from "@/components/projects/FilesSection";
+import { cn } from "@/lib/utils";
 
 const db = supabase as any;
+
 
 interface Comment {
   id: string;
@@ -25,8 +28,10 @@ interface Props {
 
 export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
   const { role } = useRole();
+  const isMobile = useIsPmMobile();
   const [task, setTask] = useState<Task | null>(null);
   const [projectName, setProjectName] = useState<string>("");
+
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
   const [newComment, setNewComment] = useState("");
@@ -91,12 +96,22 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
   if (!taskId) return null;
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end" style={{ background: "rgba(0,0,0,0.55)" }}>
+    <div
+      className={cn("fixed inset-0 flex", isMobile ? "z-[60] justify-center" : "z-40 justify-end")}
+      style={{ background: "rgba(0,0,0,0.6)" }}
+      onClick={onClose}
+    >
       <div
-        className="w-full md:max-w-[620px] h-full flex flex-col shadow-2xl md:border-l"
-        style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
+        className={cn(
+          "flex flex-col shadow-2xl",
+          isMobile
+            ? "w-full h-full z-[70] animate-in slide-in-from-bottom duration-300"
+            : "w-full md:max-w-[620px] h-full md:border-l",
+        )}
+        style={{ borderColor: "#1F2224", background: isMobile ? "#080808" : "#0A0A0A" }}
         onClick={(e) => e.stopPropagation()}
       >
+
         <div
           className="flex items-center justify-between px-4 py-3 border-b"
           style={{ borderColor: "#1F2224", background: "#0F1113" }}
@@ -219,13 +234,16 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
               if (officeOnly && role !== "office") return null;
               return (
                 <Section title={TABLE_LABEL[kind] ?? "Table"}>
-                  <ProjectCalcTable
-                    kind={kind}
-                    projectId={task.project_id}
-                    taskId={task.id}
-                  />
+                  <div className={isMobile ? "-mx-[14px] px-[14px] overflow-x-auto" : undefined}>
+                    <ProjectCalcTable
+                      kind={kind}
+                      projectId={task.project_id}
+                      taskId={task.id}
+                    />
+                  </div>
                 </Section>
               );
+
             })()}
 
             {/* FILES & PHOTOS */}

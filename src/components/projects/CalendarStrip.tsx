@@ -1,9 +1,11 @@
 import { useMemo, useRef, useEffect, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { Anchor } from "lucide-react";
+import { Anchor, ChevronDown } from "lucide-react";
 import type { Task } from "@/hooks/useTasks";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useIsPmMobile } from "@/hooks/useProjects";
+
 
 const db = supabase as any;
 
@@ -57,6 +59,9 @@ export function CalendarStrip({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   const prefersReducedMotion = useRef(false);
+  const isMobile = useIsPmMobile();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
 
   useEffect(() => {
     prefersReducedMotion.current = window.matchMedia?.(
@@ -197,15 +202,54 @@ export function CalendarStrip({
 
   const onPointerCancel = () => setDrag(null);
 
+  const dragEnabled = !!onPatch && !isMobile;
+
+  if (isMobile && !mobileOpen) {
+    return (
+      <div
+        className="border-b select-none"
+        style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
+      >
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="w-full flex items-center gap-2 px-3 py-3 min-h-[44px]"
+        >
+          <span className="text-[10px] font-mono tracking-[0.9px] uppercase" style={{ color: "rgba(229,233,234,0.45)" }}>
+            Timeline
+          </span>
+          <span className="text-[10px] font-mono" style={{ color: "rgba(229,233,234,0.28)" }}>
+            {rows.length === 1 ? "1 dated task" : `${rows.length} dated tasks`}
+          </span>
+          <ChevronDown className="ml-auto h-3.5 w-3.5 text-muted-foreground/60" />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div
-      className="border-b select-none"
-      style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
+      className="border-b select-none overflow-hidden"
+      style={{
+        borderColor: "#1F2224",
+        background: "#0A0A0A",
+        maxHeight: isMobile ? 240 : undefined,
+        transition: isMobile ? "max-height 220ms ease" : undefined,
+      }}
     >
-      <div className="flex items-center justify-between px-6 pt-3 pb-2">
-        <span className="text-[10px] font-mono tracking-widest uppercase text-muted-foreground">
-          Timeline · {rows.length} scheduled
-        </span>
+      <div className={cn("flex items-center justify-between pt-3 pb-2", isMobile ? "px-3" : "px-6")}>
+        {isMobile ? (
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center gap-2 text-[10px] font-mono tracking-[0.9px] uppercase text-muted-foreground"
+          >
+            Timeline · {rows.length} scheduled
+            <ChevronDown className="h-3.5 w-3.5 rotate-180 transition-transform" />
+          </button>
+        ) : (
+          <span className="text-[10px] font-mono tracking-widest uppercase text-muted-foreground">
+            Timeline · {rows.length} scheduled
+          </span>
+        )}
         {drag && drag.moved && (
           <span className="text-[10px] font-mono tracking-widest text-[#3D89DA]">
             {drag.deltaDays === 0
@@ -213,6 +257,7 @@ export function CalendarStrip({
               : `${drag.deltaDays > 0 ? "+" : ""}${drag.deltaDays}d`}
           </span>
         )}
+
       </div>
       <div ref={scrollRef} className="overflow-x-auto pb-3">
         <div className="relative" style={{ width: totalWidth, minWidth: "100%" }}>
@@ -263,7 +308,7 @@ export function CalendarStrip({
               const left = ((s + deltaMs - range.start.getTime()) / DAY_MS) * DAY_WIDTH;
               const width = Math.max(DAY_WIDTH, ((e - s) / DAY_MS + 1) * DAY_WIDTH - 2);
               const done = t.status === "done";
-              const draggable = !!onPatch;
+              const draggable = dragEnabled;
               return (
                 <button
                   key={t.id}

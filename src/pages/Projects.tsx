@@ -9,17 +9,26 @@ import { TaskDrawer } from "@/components/projects/TaskDrawer";
 import { ColumnsPopover } from "@/components/projects/ColumnsPopover";
 import { loadColumns, saveColumns, type ColumnKey } from "@/components/projects/columns";
 import { useTasks } from "@/hooks/useTasks";
-import { useProjectDetail } from "@/hooks/useProjects";
+import { useProjectDetail, useIsPmMobile } from "@/hooks/useProjects";
 import { useProfiles } from "@/hooks/useProfiles";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { Ring } from "@/components/projects/Ring";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, List, LayoutGrid, Calendar as CalendarIcon, Table as TableIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
+import { List, LayoutGrid, Calendar as CalendarIcon, Table as TableIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
+
+function formatCompletionUpper(iso: string | null | undefined) {
+  if (!iso) return null;
+  const d = new Date(iso + (iso.length === 10 ? "T00:00:00" : ""));
+  if (isNaN(d.getTime())) return null;
+  return d
+    .toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric" })
+    .toUpperCase();
+}
 
 function ProjectsInner() {
   const { role, setRole } = useRole();
-  const isMobile = useIsMobile();
+  const isMobile = useIsPmMobile();
   const [projectId, setProjectId] = useState<string | null>(null);
-  const [mobileView, setMobileView] = useState<"list" | "detail">("list");
+  const [mobileView, setMobileView] = useState<"rail" | "detail">("rail");
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
   const [search, setSearch] = useState("");
@@ -31,7 +40,6 @@ function ProjectsInner() {
 
   const { project } = useProjectDetail(projectId);
   const { lists, tasks, refresh, toggleTaskStatus, updateTask } = useTasks(projectId);
-  // Only join profiles when the Assignee column is active.
   const assigneeOn = columns.includes("assignee");
   const profiles = useProfiles(assigneeOn);
 
@@ -60,12 +68,18 @@ function ProjectsInner() {
     );
   }, [tasks, search]);
 
-  const showRail = !isMobile || mobileView === "list";
+  const showRail = !isMobile || mobileView === "rail";
   const showDetail = !isMobile || mobileView === "detail";
+
+  const completionIso = project?.project_end ?? project?.estimated_start ?? null;
+  const completionLabel = formatCompletionUpper(completionIso);
 
   return (
     <div
-      className="flex h-[calc(100vh-48px)] min-h-0 max-w-[100vw] overflow-x-hidden"
+      className={cn(
+        "flex min-h-0 max-w-[100vw] overflow-x-hidden",
+        isMobile ? "min-h-[calc(100vh-48px)]" : "h-[calc(100vh-48px)]",
+      )}
       style={{ background: "#000" }}
     >
       {showRail && (
@@ -73,36 +87,83 @@ function ProjectsInner() {
           activeProjectId={projectId}
           onSelect={setProjectId}
           onOpen={() => isMobile && setMobileView("detail")}
+          fullWidth={isMobile}
         />
       )}
 
       {showDetail && (
       <div className="flex-1 flex flex-col min-w-0">
-        <div
-          className="flex items-center justify-between px-3 md:px-6 py-2 border-b gap-2"
-          style={{ borderColor: "#1F2224", background: "#0F1113" }}
-        >
-          <div className="flex items-center gap-2 min-w-0">
-            {isMobile && (
-              <button
-                onClick={() => setMobileView("list")}
-                className="inline-flex items-center gap-1 text-[11px] font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground shrink-0"
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-                Projects
-              </button>
+        {isMobile ? (
+          <div
+            className="sticky top-0 z-30 flex items-center gap-2 px-3 py-2 border-b backdrop-blur"
+            style={{ borderColor: "#1F2224", background: "rgba(15,17,19,0.92)" }}
+          >
+            <button
+              onClick={() => setMobileView("rail")}
+              className="p-2 -m-2 text-[11px] font-mono opacity-45 hover:opacity-80 shrink-0"
+              aria-label="Back to projects"
+            >
+              ‹
+            </button>
+            {projectId && project ? (
+              <>
+                <div className="shrink-0">
+                  <Ring pct={pct} size={34} stroke={3} showLabel labelSize={10} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div
+                    className="text-[14px] font-semibold tracking-[-0.2px] truncate text-foreground"
+                    style={{ fontFamily: "Inter, sans-serif" }}
+                  >
+                    {project.name}
+                  </div>
+                  <div
+                    className="text-[10px] font-mono tracking-[0.4px] truncate"
+                    style={{ color: "rgba(229,233,234,0.45)" }}
+                  >
+                    {pct}% ·{" "}
+                    {completionLabel
+                      ? `COMPLETION ${completionLabel}`
+                      : "NO COMPLETION DATE"}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <span className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground">
+                Select a project
+              </span>
             )}
-            <h1 className="text-[11px] md:text-[13px] font-mono uppercase tracking-widest text-muted-foreground truncate">
-              Project Management
-            </h1>
+            <div
+              className="flex items-center rounded-md border overflow-hidden shrink-0"
+              style={{ borderColor: "#1F2224" }}
+            >
+              <RoleTab active={role === "office"} onClick={() => setRole("office")}>Office</RoleTab>
+              <RoleTab active={role === "worker"} onClick={() => setRole("worker")}>Worker</RoleTab>
+            </div>
           </div>
-          <div className="flex items-center rounded-md border overflow-hidden shrink-0" style={{ borderColor: "#1F2224" }}>
-            <RoleTab active={role === "office"} onClick={() => setRole("office")}>Office</RoleTab>
-            <RoleTab active={role === "worker"} onClick={() => setRole("worker")}>Worker</RoleTab>
+        ) : (
+          <div
+            className="flex items-center justify-between px-3 md:px-6 py-2 border-b gap-2"
+            style={{ borderColor: "#1F2224", background: "#0F1113" }}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <h1 className="text-[11px] md:text-[13px] font-mono uppercase tracking-widest text-muted-foreground truncate">
+                Project Management
+              </h1>
+            </div>
+            <div className="flex items-center rounded-md border overflow-hidden shrink-0" style={{ borderColor: "#1F2224" }}>
+              <RoleTab active={role === "office"} onClick={() => setRole("office")}>Office</RoleTab>
+              <RoleTab active={role === "worker"} onClick={() => setRole("worker")}>Worker</RoleTab>
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 max-w-[100vw]">
+        <div
+          className={cn(
+            "flex-1 overflow-y-auto overflow-x-hidden min-h-0 max-w-[100vw]",
+            isMobile && "pb-[calc(88px+env(safe-area-inset-bottom))]",
+          )}
+        >
           <ProjectHeader
             projectId={projectId}
             onChanged={() => { bump(); refresh(); }}
@@ -129,11 +190,12 @@ function ProjectsInner() {
                 onSearch={setSearch}
                 columns={columns}
                 onColumnsChange={setColumns}
+                isMobile={isMobile}
               />
             </>
           )}
 
-          <div className="px-3 md:px-6 py-4 space-y-3">
+          <div className={cn("py-4 space-y-3", isMobile ? "px-3" : "px-3 md:px-6")}>
             {projectId && lists.length === 0 && (
               <div
                 className="rounded-md border p-6 text-sm text-muted-foreground text-center"
@@ -142,7 +204,7 @@ function ProjectsInner() {
                 No task lists yet.
               </div>
             )}
-            {lists.length > 0 && (
+            {!isMobile && lists.length > 0 && (
               <div
                 className="rounded-md border overflow-hidden"
                 style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
@@ -185,39 +247,50 @@ function ViewsBar({
   onSearch,
   columns,
   onColumnsChange,
+  isMobile,
 }: {
   search: string;
   onSearch: (s: string) => void;
   columns: ColumnKey[];
   onColumnsChange: (c: ColumnKey[]) => void;
+  isMobile: boolean;
 }) {
   return (
     <div
-      className="flex items-center gap-1 px-6 py-2 border-b"
-      style={{ borderColor: "#1F2224", background: "#0B0C0E" }}
+      className={cn(
+        "flex items-center gap-1 border-b",
+        isMobile ? "px-3 py-2 overflow-x-auto [&::-webkit-scrollbar]:hidden" : "px-6 py-2",
+      )}
+      style={{
+        borderColor: "#1F2224",
+        background: "#0B0C0E",
+        scrollbarWidth: isMobile ? "none" : undefined,
+      }}
     >
       <ViewTab icon={<List className="h-3.5 w-3.5" />} label="List" active />
       <ViewTab icon={<LayoutGrid className="h-3.5 w-3.5" />} label="Board" soon />
       <ViewTab icon={<CalendarIcon className="h-3.5 w-3.5" />} label="Calendar" soon />
       <ViewTab icon={<TableIcon className="h-3.5 w-3.5" />} label="Table" soon />
 
-      <div className="h-4 w-px mx-2" style={{ background: "#1F2224" }} />
+      <div className="h-4 w-px mx-2 shrink-0" style={{ background: "#1F2224" }} />
 
       <ToolButton icon={<Filter className="h-3 w-3" />} label="Filter" />
       <ToolButton icon={<ArrowUpDown className="h-3 w-3" />} label="Sort" />
       <ToolButton icon={<Group className="h-3 w-3" />} label="Group by" />
-      <ColumnsPopover columns={columns} onChange={onColumnsChange} />
+      {!isMobile && <ColumnsPopover columns={columns} onChange={onColumnsChange} />}
 
-      <div className="ml-auto relative">
-        <Search className="h-3 w-3 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <input
-          value={search}
-          onChange={(e) => onSearch(e.target.value)}
-          placeholder="Search tasks…"
-          className="h-7 pl-7 pr-2 rounded-md bg-black/40 border text-[11.5px] outline-none focus:border-primary/50 w-[220px]"
-          style={{ borderColor: "#1F2224" }}
-        />
-      </div>
+      {!isMobile && (
+        <div className="ml-auto relative">
+          <Search className="h-3 w-3 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={(e) => onSearch(e.target.value)}
+            placeholder="Search tasks…"
+            className="h-7 pl-7 pr-2 rounded-md bg-black/40 border text-[11.5px] outline-none focus:border-primary/50 w-[220px]"
+            style={{ borderColor: "#1F2224" }}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -237,10 +310,10 @@ function ViewTab({
     <button
       disabled={!active}
       className={cn(
-        "h-7 px-2.5 rounded-md inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-widest transition-colors",
+        "h-7 px-2.5 rounded-md inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-widest transition-colors shrink-0",
         active ? "text-foreground" : "text-muted-foreground/60 cursor-not-allowed",
       )}
-      style={{ background: active ? "#16161A" : "transparent" }}
+      style={{ background: active ? "#16161A" : "transparent", opacity: soon ? 0.35 : undefined }}
     >
       {icon}
       {label}
@@ -257,7 +330,7 @@ function ToolButton({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
     <button
       disabled
-      className="h-7 px-2 rounded-md inline-flex items-center gap-1.5 text-[10.5px] font-mono uppercase tracking-widest text-muted-foreground/50 cursor-not-allowed"
+      className="h-7 px-2 rounded-md inline-flex items-center gap-1.5 text-[10.5px] font-mono uppercase tracking-widest text-muted-foreground/50 cursor-not-allowed shrink-0"
     >
       {icon}
       {label}

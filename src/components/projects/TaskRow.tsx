@@ -5,9 +5,11 @@ import type { ProfileLite } from "@/hooks/useProfiles";
 import { DATE_RULE_SHORT, formatDateShort, daysUntil } from "@/lib/projects/dateRules";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsPmMobile } from "@/hooks/useProjects";
 import { buildRowGrid, COLUMN_DEFS, type ColumnKey } from "./columns";
 
 const db = supabase as any;
+
 
 interface Project {
   estimated_start: string | null;
@@ -53,6 +55,7 @@ export function TaskRow({
   const gridTemplate = useMemo(() => buildRowGrid(columns), [columns]);
   const isSub = depth > 0;
   const indent = depth * 28;
+  const isMobile = useIsPmMobile();
 
   // Subtle background layer for subtasks + vertical guide line at the parent's indent depth.
   const baseBg = done ? "rgba(34,197,94,0.03)" : isSub ? "rgba(0,0,0,0.16)" : "transparent";
@@ -60,6 +63,24 @@ export function TaskRow({
   const bg = isSub
     ? `linear-gradient(#26262C, #26262C) ${guideOffset}px 0 / 1px 100% no-repeat, ${baseBg}`
     : baseBg;
+
+  if (isMobile) {
+    return (
+      <MobileTaskRow
+        task={task}
+        depth={depth}
+        done={done}
+        indent={indent}
+        bg={bg}
+        childCounts={childCounts}
+        expanded={expanded}
+        onToggleExpand={onToggleExpand}
+        onOpen={onOpen}
+        onToggle={onToggle}
+      />
+    );
+  }
+
 
   return (
     <div
@@ -606,6 +627,165 @@ function CommentAttachmentCount({ taskId, kind }: { taskId: string; kind: "comme
     </div>
   );
 }
+
+/* ---------------- Mobile two-line row ---------------- */
+
+function MobileTaskRow({
+  task,
+  depth,
+  done,
+  indent,
+  bg,
+  childCounts,
+  expanded,
+  onToggleExpand,
+  onOpen,
+  onToggle,
+}: {
+  task: Task;
+  depth: number;
+  done: boolean;
+  indent: number;
+  bg: string;
+  childCounts?: { total: number; done: number };
+  expanded?: boolean;
+  onToggleExpand?: () => void;
+  onOpen: (id: string) => void;
+  onToggle: (task: Task) => void;
+}) {
+  const isSub = depth > 0;
+  const dayD = daysUntil(task.end_date);
+  const isDate = !!task.end_date;
+  const overdue = !done && isDate && dayD !== null && dayD < 0;
+  const soon = !done && !overdue && isDate && dayD !== null && dayD >= 0 && dayD <= 7;
+  const dateColor = !isDate ? "#4B5058" : done ? "#B0B8BF" : overdue ? "#E24B4A" : soon ? "#BA7517" : "#E5E9EA";
+  const dateOpacity = !isDate || (!overdue && !soon && !done) ? 0.45 : 1;
+  const countLabel = overdue && dayD !== null ? ` · ${-dayD}d late` : soon && dayD !== null ? (dayD === 0 ? " · today" : ` · ${dayD}d`) : "";
+  const statusLabel = done ? "DONE" : "OPEN";
+  const statusStyle: React.CSSProperties = done
+    ? { color: "#22C55E", background: "rgba(34,197,94,.12)" }
+    : { color: "#5C5C65", background: "#1D1D22" };
+  const hasKids = !!childCounts && childCounts.total > 0;
+
+  return (
+    <div
+      className="flex gap-[11px] items-start border-t cursor-pointer active:bg-white/[0.02]"
+      style={{
+        borderColor: "rgba(229,233,234,0.06)",
+        paddingLeft: 13 + indent,
+        paddingRight: 13,
+        paddingTop: 11,
+        paddingBottom: 11,
+        background: bg,
+      }}
+      onClick={() => onOpen(task.id)}
+    >
+      {/* checkbox with 44x44 tap target via negative margin */}
+      <div
+        className="shrink-0 mt-[1px] p-2 -m-2"
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle(task);
+        }}
+      >
+        <button
+          className="h-[17px] w-[17px] rounded-[5px] border flex items-center justify-center"
+          style={{
+            borderColor: done ? "#22C55E" : "rgba(229,233,234,0.30)",
+            background: done ? "#22C55E" : "transparent",
+          }}
+          aria-label={done ? "Reopen" : "Complete"}
+        >
+          {done && (
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <path d="M2 5.2 L4.2 7.4 L8 3" stroke="#0A0A0A" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </button>
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          {hasKids && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleExpand?.();
+              }}
+              className="shrink-0 p-0.5 -m-0.5 text-muted-foreground/70 transition-transform"
+              style={{ transform: expanded ? "rotate(90deg)" : "rotate(0deg)" }}
+              aria-label={expanded ? "Collapse" : "Expand"}
+            >
+              <ChevronRight className="h-3 w-3" />
+            </button>
+          )}
+          <span
+            className={cn(
+              "text-[13px] leading-[1.25] tracking-[-0.1px] truncate",
+              done ? "line-through text-muted-foreground" : "text-foreground/90",
+              isSub && "text-[12.5px]",
+            )}
+          >
+            {task.name}
+          </span>
+        </div>
+        <div className="flex items-center gap-[7px] mt-[5px] overflow-hidden">
+          <span
+            className="text-[9px] font-mono uppercase tracking-[0.7px] px-[7px] py-[4px] rounded-[5px] shrink-0"
+            style={statusStyle}
+          >
+            {statusLabel}
+          </span>
+          <span
+            className="text-[10px] font-mono shrink-0 whitespace-nowrap"
+            style={{ color: dateColor, opacity: dateOpacity }}
+          >
+            {isDate ? `${formatDateShort(task.end_date)}${countLabel}` : "—"}
+          </span>
+          <span
+            className="ml-auto text-[10px] font-mono shrink-0 truncate"
+            style={{ color: "rgba(229,233,234,0.28)" }}
+          >
+            <MobileMeta task={task} childCounts={childCounts} />
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileMeta({
+  task,
+  childCounts,
+}: {
+  task: Task;
+  childCounts?: { total: number; done: number };
+}) {
+  const [comments, setComments] = useState<number | null>(null);
+  const [files, setFiles] = useState<number | null>(null);
+  const asked = useRef(false);
+
+  useEffect(() => {
+    if (asked.current) return;
+    asked.current = true;
+    (async () => {
+      const [c, f] = await Promise.all([
+        db.from("comments").select("id", { count: "exact", head: true }).eq("task_id", task.id),
+        db.from("attachments").select("id", { count: "exact", head: true }).eq("task_id", task.id),
+      ]);
+      setComments(c?.count ?? 0);
+      setFiles(f?.count ?? 0);
+    })();
+  }, [task.id]);
+
+  const parts: string[] = [];
+  if (childCounts && childCounts.total > 0) parts.push(`${childCounts.done}/${childCounts.total}`);
+  if ((comments ?? 0) > 0) parts.push(`💬${comments}`);
+  if ((files ?? 0) > 0) parts.push(`📎${files}`);
+  if (task.calc_table) parts.push("ƒ");
+  return <>{parts.join(" · ")}</>;
+}
+
 
 // Backwards-compat export (unused after refactor). Consumers should use buildRowGrid.
 export const ROW_GRID = buildRowGrid(["name","status","start","due","comments","files"]);
