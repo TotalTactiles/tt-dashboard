@@ -272,7 +272,7 @@ export function CalendarStrip({
       <div ref={scrollRef} className="overflow-x-auto pb-3">
         <div className="relative" style={{ width: totalWidth, minWidth: "100%" }}>
           {/* Month row + day labels */}
-          <div className="relative h-9 border-b" style={{ borderColor: "#1F2224" }}>
+          <div className="relative h-9 border-b" style={{ borderColor: "#1F2224", position: isMobile ? "sticky" : "relative", top: 0, background: isMobile ? "#0A0A0A" : undefined, zIndex: isMobile ? 5 : undefined }}>
             {dayLabels.map((d, i) => (
               <div
                 key={i}
