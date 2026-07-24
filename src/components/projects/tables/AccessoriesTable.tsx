@@ -12,6 +12,7 @@ import {
   T_RED,
   T_BLUE,
 } from "./tableCommon";
+import { useLiveStock, LiveStockBadge } from "@/hooks/useLiveStock";
 
 const db = supabase as any;
 
@@ -31,6 +32,7 @@ const GRID = "110px 1fr 90px 100px 100px 90px";
 export function AccessoriesTable({ projectId }: { projectId: string }) {
   const [rows, setRows] = useState<PoolRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const live = useLiveStock();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -83,22 +85,37 @@ export function AccessoriesTable({ projectId }: { projectId: string }) {
       );
   };
 
-  const overAllocated = rows.filter((r) => r.remaining < 0);
-  const lowStock = rows.filter((r) => r.remaining >= 0 && r.remaining <= r.reorder_level);
+  // Overlay live on-hand from master sheet when available.
+  const effectiveRows = useMemo(() => {
+    return rows.map((r) => {
+      const it = live.items[r.code];
+      if (!it) return r;
+      const stock = Number(it.on_hand) || 0;
+      return {
+        ...r,
+        stock_on_hand: stock,
+        remaining: stock - Number(r.other_projects || 0) - Number(r.used_here || 0),
+      };
+    });
+  }, [rows, live.items]);
+
+  const overAllocated = effectiveRows.filter((r) => r.remaining < 0);
+  const lowStock = effectiveRows.filter((r) => r.remaining >= 0 && r.remaining <= r.reorder_level);
 
   const totals = useMemo(() => {
     let used = 0, left = 0;
-    for (const r of rows) {
+    for (const r of effectiveRows) {
       used += Number(r.used_here) || 0;
       left += Number(r.remaining) || 0;
     }
     return { used, left };
-  }, [rows]);
+  }, [effectiveRows]);
 
   if (loading) return <div className="p-6 text-[12px] text-muted-foreground">Loading…</div>;
 
   return (
     <TableShell
+      right={<LiveStockBadge status={live.status} syncedAt={live.syncedAt} />}
       hint="One record, every project. 'Other jobs' is the live draw from other active projects right now."
     >
       {overAllocated.length > 0 && (
@@ -130,11 +147,11 @@ export function AccessoriesTable({ projectId }: { projectId: string }) {
           { label: "Left", align: "right" },
         ]}
       />
-      {rows.length === 0 ? (
+      {effectiveRows.length === 0 ? (
         <EmptyState message="No accessories configured." />
       ) : (
         <>
-          {rows.map((r) => {
+          {effectiveRows.map((r) => {
             const over = r.remaining < 0;
             return (
               <div
