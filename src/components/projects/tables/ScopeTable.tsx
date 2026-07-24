@@ -82,15 +82,9 @@ export function ScopeTable({ taskId }: { taskId: string }) {
   }, [rows]);
 
   if (loading) return <div className="p-6 text-[12px] text-muted-foreground">Loading…</div>;
-  if (rows.length === 0)
-    return (
-      <TableShell title="Scope Breakdown">
-        <EmptyState message="No scope rows on this task." />
-      </TableShell>
-    );
 
   return (
-    <TableShell title="Scope Breakdown">
+    <TableShell>
       <HeaderRow
         gridTemplate={GRID}
         cols={[
@@ -100,43 +94,49 @@ export function ScopeTable({ taskId }: { taskId: string }) {
           { label: "Diff", align: "right" },
         ]}
       />
-      {rows.map((r) => {
-        const used = Number(r.used_qty ?? 0);
-        const diff = used - Number(r.sub_qty);
-        return (
-          <div
-            key={r.id}
-            className="grid items-center border-b"
-            style={{ gridTemplateColumns: GRID, height: 40, borderColor: "#131418" }}
-          >
-            <div className="px-2 min-w-0">
-              <ExtCell value={`${r.area}${r.location ? " · " + r.location : ""}`} />
-            </div>
-            <div className="px-2 flex justify-end">
-              <ExtCell value={r.sub_qty} numeric align="right" />
-            </div>
-            <div className="px-2">
-              <NumInput
-                value={r.used_qty}
-                onSave={(n) => save(r.id, n)}
-                required
-              />
-            </div>
-            <div className="px-2 flex justify-end">
-              <CalcCell value={diff} color={diff < 0 ? T_RED : undefined} />
-            </div>
-          </div>
-        );
-      })}
-      <TotalsRow
-        gridTemplate={GRID}
-        cells={[
-          <span className="text-[10.5px] font-mono uppercase tracking-widest text-muted-foreground">Totals</span>,
-          <span className="font-mono text-[12px] tabular-nums" style={{ color: "#C0A85E" }}>{formatNum(totals.qty)}</span>,
-          <span className="font-mono text-[12px] tabular-nums" style={{ color: "#E5E9EA" }}>{formatNum(totals.used)}</span>,
-          <span className="font-mono text-[12px] tabular-nums" style={{ color: totals.diff < 0 ? T_RED : "#3D89DA" }}>{formatNum(totals.diff)}</span>,
-        ]}
-      />
+      {rows.length === 0 ? (
+        <EmptyState message="No scope rows on this task." />
+      ) : (
+        <>
+          {rows.map((r) => {
+            const used = Number(r.used_qty ?? 0);
+            const diff = used - Number(r.sub_qty);
+            return (
+              <div
+                key={r.id}
+                className="grid items-center border-b"
+                style={{ gridTemplateColumns: GRID, height: 40, borderColor: "#131418" }}
+              >
+                <div className="px-2 min-w-0">
+                  <ExtCell value={`${r.area}${r.location ? " · " + r.location : ""}`} />
+                </div>
+                <div className="px-2 flex justify-end">
+                  <ExtCell value={r.sub_qty} numeric align="right" />
+                </div>
+                <div className="px-2">
+                  <NumInput
+                    value={r.used_qty}
+                    onSave={(n) => save(r.id, n)}
+                    required
+                  />
+                </div>
+                <div className="px-2 flex justify-end">
+                  <CalcCell value={diff} color={diff < 0 ? T_RED : undefined} />
+                </div>
+              </div>
+            );
+          })}
+          <TotalsRow
+            gridTemplate={GRID}
+            cells={[
+              <span className="text-[10.5px] font-mono uppercase tracking-widest text-muted-foreground">Totals</span>,
+              <span className="font-mono text-[12px] tabular-nums" style={{ color: "#C0A85E" }}>{formatNum(totals.qty)}</span>,
+              <span className="font-mono text-[12px] tabular-nums" style={{ color: "#E5E9EA" }}>{formatNum(totals.used)}</span>,
+              <span className="font-mono text-[12px] tabular-nums" style={{ color: totals.diff < 0 ? T_RED : "#3D89DA" }}>{formatNum(totals.diff)}</span>,
+            ]}
+          />
+        </>
+      )}
     </TableShell>
   );
 }

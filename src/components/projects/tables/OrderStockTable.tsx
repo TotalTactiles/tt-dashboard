@@ -66,15 +66,9 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
   }, [rows]);
 
   if (loading) return <div className="p-6 text-[12px] text-muted-foreground">Loading…</div>;
-  if (rows.length === 0)
-    return (
-      <TableShell title="Order Stock">
-        <EmptyState message="Seeded from the quote scope when the project is built." />
-      </TableShell>
-    );
 
   return (
-    <TableShell title="Order Stock">
+    <TableShell>
       <HeaderRow
         gridTemplate={GRID}
         cols={[
@@ -85,41 +79,47 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
           { label: "Short", align: "right" },
         ]}
       />
-      {rows.map((r) => {
-        const short = Math.max(0, Number(r.qty_needed) - Number(r.qty_ordered ?? 0));
-        return (
-          <div
-            key={r.id}
-            className="grid items-center border-b"
-            style={{ gridTemplateColumns: GRID, height: 40, borderColor: "#131418" }}
-          >
-            <div className="px-2"><ExtCell value={r.product_code} /></div>
-            <div className="px-2 min-w-0"><ExtCell value={r.description} /></div>
-            <div className="px-2 flex justify-end"><ExtCell value={r.qty_needed} numeric align="right" /></div>
-            <div className="px-2">
-              <NumInput
-                value={r.qty_ordered}
-                onSave={(n) => save(r.id, n)}
-                readOnly={readOnly}
-                required
-              />
-            </div>
-            <div className="px-2 flex justify-end">
-              <CalcCell value={short} color={short > 0 ? T_RED : undefined} />
-            </div>
-          </div>
-        );
-      })}
-      <TotalsRow
-        gridTemplate={GRID}
-        cells={[
-          <span className="text-[10.5px] font-mono uppercase tracking-widest text-muted-foreground">Totals</span>,
-          <span />,
-          <span className="font-mono text-[12px] tabular-nums" style={{ color: "#C0A85E" }}>{formatNum(totals.need)}</span>,
-          <span className="font-mono text-[12px] tabular-nums" style={{ color: "#E5E9EA" }}>{formatNum(totals.ord)}</span>,
-          <span className="font-mono text-[12px] tabular-nums" style={{ color: totals.sh > 0 ? T_RED : "#3D89DA" }}>{formatNum(totals.sh)}</span>,
-        ]}
-      />
+      {rows.length === 0 ? (
+        <EmptyState message="Seeded from the quote scope when the project is built." />
+      ) : (
+        <>
+          {rows.map((r) => {
+            const short = Math.max(0, Number(r.qty_needed) - Number(r.qty_ordered ?? 0));
+            return (
+              <div
+                key={r.id}
+                className="grid items-center border-b"
+                style={{ gridTemplateColumns: GRID, height: 40, borderColor: "#131418" }}
+              >
+                <div className="px-2"><ExtCell value={r.product_code} /></div>
+                <div className="px-2 min-w-0"><ExtCell value={r.description} /></div>
+                <div className="px-2 flex justify-end"><ExtCell value={r.qty_needed} numeric align="right" /></div>
+                <div className="px-2">
+                  <NumInput
+                    value={r.qty_ordered}
+                    onSave={(n) => save(r.id, n)}
+                    readOnly={readOnly}
+                    required
+                  />
+                </div>
+                <div className="px-2 flex justify-end">
+                  <CalcCell value={short} color={short > 0 ? T_RED : undefined} />
+                </div>
+              </div>
+            );
+          })}
+          <TotalsRow
+            gridTemplate={GRID}
+            cells={[
+              <span className="text-[10.5px] font-mono uppercase tracking-widest text-muted-foreground">Totals</span>,
+              <span />,
+              <span className="font-mono text-[12px] tabular-nums" style={{ color: "#C0A85E" }}>{formatNum(totals.need)}</span>,
+              <span className="font-mono text-[12px] tabular-nums" style={{ color: "#E5E9EA" }}>{formatNum(totals.ord)}</span>,
+              <span className="font-mono text-[12px] tabular-nums" style={{ color: totals.sh > 0 ? T_RED : "#3D89DA" }}>{formatNum(totals.sh)}</span>,
+            ]}
+          />
+        </>
+      )}
     </TableShell>
   );
 }
