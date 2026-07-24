@@ -30,7 +30,7 @@ export function ProjectRail({ activeProjectId, onSelect }: Props) {
 
   return (
     <aside
-      className="w-[280px] shrink-0 border-r flex flex-col"
+      className="w-full md:w-[280px] md:shrink-0 md:border-r flex flex-col min-h-0"
       style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
     >
       <div className="px-3 py-3 border-b" style={{ borderColor: "#1F2224" }}>
