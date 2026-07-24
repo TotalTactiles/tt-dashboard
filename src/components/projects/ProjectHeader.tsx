@@ -115,7 +115,7 @@ export function ProjectHeader({
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="mt-4 flex md:grid gap-3 md:grid-cols-3 lg:grid-cols-5 overflow-x-auto md:overflow-visible -mx-3 md:mx-0 px-3 md:px-0 snap-x snap-mandatory md:snap-none [&>*]:snap-start [&>*]:shrink-0 md:[&>*]:shrink [&>*]:min-w-[150px] md:[&>*]:min-w-0">
           <StatCard
             label="Est. Start"
             value={formatDateShort(project.estimated_start)}
