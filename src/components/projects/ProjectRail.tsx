@@ -71,7 +71,9 @@ export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth }: Pr
         {filtered.map((p) => {
           const active = p.id === activeProjectId;
           const pct = progress[p.id] ?? 0;
-          const completion = p.project_end ?? p.estimated_start ?? null;
+          const hasEnd = !!p.project_end;
+          const dateIso = p.project_end ?? p.estimated_start ?? null;
+          const dateLabel = hasEnd ? "Completion" : "Est. start";
           return (
             <button
               key={p.id}
@@ -94,7 +96,7 @@ export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth }: Pr
                   </span>
                 </div>
                 <div className="text-[10.5px] text-muted-foreground truncate font-mono mt-0.5">
-                  Completion · {completion ? formatDateShort(completion) : "—"}
+                  {dateIso ? `${dateLabel} · ${formatDateShort(dateIso)}` : "No dates set"}
                 </div>
               </div>
             </button>
