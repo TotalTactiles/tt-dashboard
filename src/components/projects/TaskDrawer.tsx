@@ -365,3 +365,116 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+function DateFieldEditor({
+  task,
+  field,
+  projectEstStart,
+  projectStart,
+  projectEnd,
+  onLocalUpdate,
+  onChanged,
+}: {
+  task: Task;
+  field: "start_date" | "end_date";
+  projectEstStart: string | null;
+  projectStart: string | null;
+  projectEnd: string | null;
+  onLocalUpdate: (patch: Partial<Task>) => void;
+  onChanged: () => void;
+}) {
+  const value = field === "start_date" ? task.start_date : task.end_date;
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(value ?? "");
+
+  useEffect(() => setDraft(value ?? ""), [value]);
+
+  const persist = async (patch: Partial<Task>) => {
+    onLocalUpdate(patch);
+    await db.from("tasks").update(patch).eq("id", task.id);
+    onChanged();
+  };
+
+  const commit = (v: string) => {
+    if (!v) return;
+    persist({ [field]: v, date_manual: true } as Partial<Task>);
+  };
+
+  const clearDates = () => {
+    persist({ [field]: null, date_manual: true } as Partial<Task>);
+    setOpen(false);
+  };
+
+  const resetToRule = async () => {
+    const { data } = await db.rpc("resolve_task_dates", {
+      p_rule: task.rule,
+      p_est_start: projectEstStart,
+      p_proj_start: projectStart,
+      p_proj_end: projectEnd,
+    });
+    const row = Array.isArray(data) ? data[0] : null;
+    await persist({
+      start_date: row?.start_date ?? null,
+      end_date: row?.end_date ?? null,
+      date_manual: false,
+    });
+    setOpen(false);
+  };
+
+  const canReset = task.rule !== "none";
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex items-center gap-1 font-mono text-[12.5px] hover:opacity-80"
+      >
+        {task.date_manual && value && (
+          <Anchor className="h-3 w-3 shrink-0" style={{ color: "#F59E0B" }} />
+        )}
+        <span>{value ? formatDateShort(value) : "—"}</span>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div
+            className="absolute z-50 mt-1 left-0 rounded-md border p-2 min-w-[240px] space-y-2 shadow-xl"
+            style={{ background: "#0A0A0A", borderColor: "#1F2224" }}
+          >
+            <input
+              type="date"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={() => {
+                if (draft && draft !== (value ?? "")) commit(draft);
+              }}
+              className="w-full h-9 px-2 rounded-md bg-black/40 border text-[12.5px] font-mono outline-none focus:border-primary/50"
+              style={{ borderColor: "#1F2224" }}
+            />
+            <div className="text-[10px] font-mono text-muted-foreground">
+              Rule · {DATE_RULE_SHORT[task.rule]}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={clearDates}
+                className="flex-1 h-7 rounded-md text-[10.5px] font-mono uppercase tracking-widest border hover:bg-white/[0.04]"
+                style={{ borderColor: "#1F2224", color: "#B0B8BF" }}
+              >
+                Clear
+              </button>
+              {canReset && (
+                <button
+                  onClick={resetToRule}
+                  className="flex-1 h-7 rounded-md text-[10.5px] font-mono uppercase tracking-widest text-white"
+                  style={{ background: "#3D89DA" }}
+                >
+                  Reset to rule
+                </button>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
