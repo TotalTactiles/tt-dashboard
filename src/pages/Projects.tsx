@@ -160,7 +160,7 @@ function ProjectsInner() {
 
         <div
           className={cn(
-            "flex-1 overflow-y-auto overflow-x-hidden min-h-0 max-w-[100vw]",
+            "flex-1 overflow-y-auto overflow-x-clip min-h-0 max-w-[100vw]",
             isMobile && "pb-[calc(88px+env(safe-area-inset-bottom))]",
           )}
         >
