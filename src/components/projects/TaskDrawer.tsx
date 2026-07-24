@@ -4,8 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Task } from "@/hooks/useTasks";
 import { DATE_RULE_LABELS, formatDateShort } from "@/lib/projects/dateRules";
 import { useRole } from "@/hooks/useRole";
-import { CalcTable } from "@/components/projects/calc/CalcTable";
-import { CALC_TABLE_LABEL } from "@/components/projects/calc/calcCommon";
+import { ProjectCalcTable, TABLE_LABEL, TABLE_OFFICE_ONLY } from "@/components/projects/tables";
 import { cn } from "@/lib/utils";
 
 const db = supabase as any;
@@ -34,9 +33,9 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
   const [newComment, setNewComment] = useState("");
   const [tab, setTab] = useState<Tab>("details");
 
-  useEffect(() => {
-    setTab("details");
-  }, [taskId]);
+  // Default tab preserved across taskId changes; recalculated once task loads (see effect below).
+
+
 
   useEffect(() => {
     if (!taskId) {
@@ -54,11 +53,21 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
           .eq("task_id", taskId)
           .order("created_at", { ascending: true }),
       ]);
-      setTask(t as Task | null);
+      const loaded = t as Task | null;
+      setTask(loaded);
       setComments((c as Comment[]) ?? []);
       setLoading(false);
+      // Default to the table tab when the task has one; workers never land on office-only tables.
+      if (loaded?.calc_table) {
+        const officeOnly = TABLE_OFFICE_ONLY.has(loaded.calc_table);
+        const canSeeTable = !officeOnly || role === "office";
+        setTab(canSeeTable ? "table" : "details");
+      } else {
+        setTab("details");
+      }
     })();
-  }, [taskId]);
+  }, [taskId, role]);
+
 
   const toggleStatus = async () => {
     if (!task) return;
@@ -170,23 +179,34 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
               </div>
             </div>
 
-            <div
-              className="flex items-center gap-1 px-3 py-1.5 border-b sticky top-0 z-10"
-              style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
-            >
-              <DrawerTab active={tab === "details"} onClick={() => setTab("details")}>Details</DrawerTab>
-              <DrawerTab
-                active={tab === "table"}
-                disabled={!task.calc_table}
-                onClick={() => task.calc_table && setTab("table")}
-              >
-                {task.calc_table ? CALC_TABLE_LABEL[task.calc_table] ?? "Table" : "Table"}
-              </DrawerTab>
-            </div>
+            {(() => {
+              const kind = task.calc_table;
+              const officeOnly = kind ? TABLE_OFFICE_ONLY.has(kind) : false;
+              const tableAllowed = !!kind && (!officeOnly || role === "office");
+              return (
+                <div
+                  className="flex items-center gap-1 px-3 py-1.5 border-b sticky top-0 z-10"
+                  style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
+                >
+                  {tableAllowed && kind && (
+                    <DrawerTab active={tab === "table"} onClick={() => setTab("table")}>
+                      {TABLE_LABEL[kind] ?? "Table"}
+                    </DrawerTab>
+                  )}
+                  <DrawerTab active={tab === "details"} onClick={() => setTab("details")}>
+                    Details
+                  </DrawerTab>
+                </div>
+              );
+            })()}
 
             {tab === "table" && task.calc_table && (
               <div className="px-5 py-4">
-                <CalcTable projectId={task.project_id} kind={task.calc_table} />
+                <ProjectCalcTable
+                  kind={task.calc_table}
+                  projectId={task.project_id}
+                  taskId={task.id}
+                />
               </div>
             )}
 
@@ -202,6 +222,7 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
                   <span className="text-[12px] text-muted-foreground italic">No description.</span>
                 )}
               </Field>
+
 
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Start">
