@@ -5,13 +5,26 @@ import { useRole } from "@/hooks/useRole";
 import { formatDateShort } from "@/lib/projects/dateRules";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 import { DateCascadeModal } from "./DateCascadeModal";
+import { Ring } from "./Ring";
 
 interface Props {
   projectId: string | null;
   onChanged?: () => void;
+  /** Client-derived progress percentage — takes precedence over server view. */
+  progressPct?: number;
+  totalTasks?: number;
+  doneTasks?: number;
+  openTasks?: number;
 }
 
-export function ProjectHeader({ projectId, onChanged }: Props) {
+export function ProjectHeader({
+  projectId,
+  onChanged,
+  progressPct,
+  totalTasks,
+  doneTasks,
+  openTasks,
+}: Props) {
   const { role } = useRole();
   const { project, financials, agg, refresh } = useProjectDetail(projectId);
   const [cascadeOpen, setCascadeOpen] = useState(false);
@@ -32,10 +45,14 @@ export function ProjectHeader({ projectId, onChanged }: Props) {
       ? ((financials.contract_value - financials.total_costs) / financials.contract_value) * 100
       : null;
 
+  const pct = progressPct ?? agg.progress_pct ?? 0;
+  const total = totalTasks ?? agg.total_tasks;
+  const done = doneTasks ?? agg.done_tasks;
+  const open = openTasks ?? agg.open_tasks;
+
   return (
     <div className="border-b" style={{ borderColor: "#1F2224", background: "#0F1113" }}>
       <div className="px-6 pt-5 pb-4">
-        {/* Title row */}
         <div className="flex items-start justify-between gap-6 mb-1">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3 flex-wrap">
@@ -95,7 +112,6 @@ export function ProjectHeader({ projectId, onChanged }: Props) {
           </div>
         </div>
 
-        {/* Stat cards */}
         <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <StatCard
             label="Est. Start"
@@ -112,16 +128,27 @@ export function ProjectHeader({ projectId, onChanged }: Props) {
               ) : null
             }
           />
-          <StatCard
-            label="Progress"
-            value={`${agg.progress_pct ?? 0}%`}
-            sub={`${agg.done_tasks}/${agg.total_tasks} tasks`}
-            accent="#3D89DA"
-          />
+          <div
+            className="rounded-md border px-3 py-2.5 flex items-center gap-3"
+            style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
+          >
+            <Ring pct={pct} size={56} stroke={4} showLabel labelSize={13} />
+            <div className="min-w-0">
+              <div className="text-[9.5px] font-mono tracking-widest uppercase text-muted-foreground">
+                Progress
+              </div>
+              <div
+                className="text-[11px] font-mono text-muted-foreground mt-1"
+                style={{ fontFamily: "JetBrains Mono, monospace" }}
+              >
+                {done}/{total} tasks
+              </div>
+            </div>
+          </div>
           <StatCard
             label="Open Tasks"
-            value={String(agg.open_tasks)}
-            sub={`${agg.total_tasks} total`}
+            value={String(open)}
+            sub={`${total} total`}
           />
           <StatCard
             label="Hours Logged"
