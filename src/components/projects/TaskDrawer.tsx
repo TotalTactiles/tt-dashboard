@@ -191,6 +191,7 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
             )}
 
             {tab === "details" && (
+            <>
             <div className="px-5 py-4 border-b space-y-3" style={{ borderColor: "#1F2224" }}>
               <Field label="Description">
                 {task.description ? (
