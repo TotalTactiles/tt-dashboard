@@ -164,3 +164,19 @@ export function useProjectDetail(projectId: string | null) {
 
   return { project, financials, agg, loading, refresh: load };
 }
+
+export const PM_MOBILE_BREAKPOINT = 900;
+
+export function useIsPmMobile() {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" && window.innerWidth < PM_MOBILE_BREAKPOINT,
+  );
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${PM_MOBILE_BREAKPOINT - 1}px)`);
+    const onChange = () => setIsMobile(mql.matches);
+    mql.addEventListener("change", onChange);
+    onChange();
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+  return isMobile;
+}
