@@ -251,7 +251,7 @@ export function CalendarStrip({
       <div className={cn("flex items-center justify-between pt-3 pb-2", isMobile ? "px-3" : "px-6")}>
         {isMobile ? (
           <button
-            onClick={() => setMobileOpen(false)}
+            onClick={() => setMobileCollapsedPersist(true)}
             className="flex items-center gap-2 text-[10px] font-mono tracking-[0.9px] uppercase text-muted-foreground"
           >
             Timeline · {rows.length} scheduled
