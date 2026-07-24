@@ -109,6 +109,8 @@ export function TaskRow({
           project={project}
           onPatch={onPatch}
           childCounts={childCounts}
+          expanded={expanded}
+          onToggleExpand={onToggleExpand}
         />
       ))}
 
