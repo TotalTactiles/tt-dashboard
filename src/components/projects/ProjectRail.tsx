@@ -8,6 +8,7 @@ import { formatDateShort } from "@/lib/projects/dateRules";
 interface Props {
   activeProjectId: string | null;
   onSelect: (id: string) => void;
+  onOpen?: (id: string) => void;
 }
 
 export function ProjectRail({ activeProjectId, onSelect }: Props) {
