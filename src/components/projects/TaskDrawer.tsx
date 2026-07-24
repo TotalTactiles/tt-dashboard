@@ -33,9 +33,9 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
   const [newComment, setNewComment] = useState("");
   const [tab, setTab] = useState<Tab>("details");
 
-  useEffect(() => {
-    setTab("details");
-  }, [taskId]);
+  // Default tab preserved across taskId changes; recalculated once task loads (see effect below).
+
+
 
   useEffect(() => {
     if (!taskId) {
