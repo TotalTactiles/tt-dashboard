@@ -77,7 +77,7 @@ function ProjectsInner() {
   return (
     <div
       className={cn(
-        "flex min-h-0 max-w-[100vw] overflow-x-hidden",
+        "flex min-h-0 max-w-[100vw] overflow-x-clip",
         isMobile ? "min-h-[calc(100vh-48px)]" : "h-[calc(100vh-48px)]",
       )}
       style={{ background: "#000" }}
@@ -95,8 +95,8 @@ function ProjectsInner() {
       <div className="flex-1 flex flex-col min-w-0">
         {isMobile ? (
           <div
-            className="sticky top-0 z-30 flex items-center gap-2 px-3 py-2 border-b backdrop-blur"
-            style={{ borderColor: "#1F2224", background: "rgba(15,17,19,0.92)" }}
+            className="sticky top-0 z-40 flex items-center gap-2 px-3 py-2 border-b backdrop-blur-md"
+            style={{ borderColor: "#1F2224", background: "rgba(8,8,8,0.94)" }}
           >
             <button
               onClick={() => setMobileView("rail")}
@@ -160,7 +160,7 @@ function ProjectsInner() {
 
         <div
           className={cn(
-            "flex-1 overflow-y-auto overflow-x-hidden min-h-0 max-w-[100vw]",
+            "flex-1 overflow-y-auto overflow-x-clip min-h-0 max-w-[100vw]",
             isMobile && "pb-[calc(88px+env(safe-area-inset-bottom))]",
           )}
         >

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { X, Circle, CheckCircle2, Lock } from "lucide-react";
+import { X, Circle, CheckCircle2, Lock, Anchor } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Task } from "@/hooks/useTasks";
-import { DATE_RULE_LABELS, formatDateShort } from "@/lib/projects/dateRules";
+import { DATE_RULE_LABELS, DATE_RULE_SHORT, formatDateShort } from "@/lib/projects/dateRules";
 import { useRole } from "@/hooks/useRole";
-import { useIsPmMobile } from "@/hooks/useProjects";
+import { useIsPmMobile, useProjectDetail } from "@/hooks/useProjects";
 import { ProjectCalcTable, TABLE_LABEL, TABLE_OFFICE_ONLY } from "@/components/projects/tables";
 import { FilesSection } from "@/components/projects/FilesSection";
 import { cn } from "@/lib/utils";
@@ -31,6 +31,7 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
   const isMobile = useIsPmMobile();
   const [task, setTask] = useState<Task | null>(null);
   const [projectName, setProjectName] = useState<string>("");
+  const { project } = useProjectDetail(task?.project_id ?? null);
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -199,10 +200,26 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
 
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Start">
-                    <span className="font-mono text-[12.5px]">{formatDateShort(task.start_date)}</span>
+                    <DateFieldEditor
+                      task={task}
+                      field="start_date"
+                      projectEstStart={project?.estimated_start ?? null}
+                      projectStart={project?.project_start ?? null}
+                      projectEnd={project?.project_end ?? null}
+                      onLocalUpdate={(patch) => setTask((t) => (t ? { ...t, ...patch } : t))}
+                      onChanged={onChanged}
+                    />
                   </Field>
                   <Field label="End">
-                    <span className="font-mono text-[12.5px]">{formatDateShort(task.end_date)}</span>
+                    <DateFieldEditor
+                      task={task}
+                      field="end_date"
+                      projectEstStart={project?.estimated_start ?? null}
+                      projectStart={project?.project_start ?? null}
+                      projectEnd={project?.project_end ?? null}
+                      onLocalUpdate={(patch) => setTask((t) => (t ? { ...t, ...patch } : t))}
+                      onChanged={onChanged}
+                    />
                   </Field>
                   <Field label="Rule">
                     <span className="font-mono text-[11.5px]">
@@ -344,6 +361,119 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
         {label}
       </div>
       <div>{children}</div>
+    </div>
+  );
+}
+
+function DateFieldEditor({
+  task,
+  field,
+  projectEstStart,
+  projectStart,
+  projectEnd,
+  onLocalUpdate,
+  onChanged,
+}: {
+  task: Task;
+  field: "start_date" | "end_date";
+  projectEstStart: string | null;
+  projectStart: string | null;
+  projectEnd: string | null;
+  onLocalUpdate: (patch: Partial<Task>) => void;
+  onChanged: () => void;
+}) {
+  const value = field === "start_date" ? task.start_date : task.end_date;
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(value ?? "");
+
+  useEffect(() => setDraft(value ?? ""), [value]);
+
+  const persist = async (patch: Partial<Task>) => {
+    onLocalUpdate(patch);
+    await db.from("tasks").update(patch).eq("id", task.id);
+    onChanged();
+  };
+
+  const commit = (v: string) => {
+    if (!v) return;
+    persist({ [field]: v, date_manual: true } as Partial<Task>);
+  };
+
+  const clearDates = () => {
+    persist({ [field]: null, date_manual: true } as Partial<Task>);
+    setOpen(false);
+  };
+
+  const resetToRule = async () => {
+    const { data } = await db.rpc("resolve_task_dates", {
+      p_rule: task.rule,
+      p_est_start: projectEstStart,
+      p_proj_start: projectStart,
+      p_proj_end: projectEnd,
+    });
+    const row = Array.isArray(data) ? data[0] : null;
+    await persist({
+      start_date: row?.start_date ?? null,
+      end_date: row?.end_date ?? null,
+      date_manual: false,
+    });
+    setOpen(false);
+  };
+
+  const canReset = task.rule !== "none";
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex items-center gap-1 font-mono text-[12.5px] hover:opacity-80"
+      >
+        {task.date_manual && value && (
+          <Anchor className="h-3 w-3 shrink-0" style={{ color: "#F59E0B" }} />
+        )}
+        <span>{value ? formatDateShort(value) : "—"}</span>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div
+            className="absolute z-50 mt-1 left-0 rounded-md border p-2 min-w-[240px] space-y-2 shadow-xl"
+            style={{ background: "#0A0A0A", borderColor: "#1F2224" }}
+          >
+            <input
+              type="date"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={() => {
+                if (draft && draft !== (value ?? "")) commit(draft);
+              }}
+              className="w-full h-9 px-2 rounded-md bg-black/40 border text-[12.5px] font-mono outline-none focus:border-primary/50"
+              style={{ borderColor: "#1F2224" }}
+            />
+            <div className="text-[10px] font-mono text-muted-foreground">
+              Rule · {DATE_RULE_SHORT[task.rule]}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={clearDates}
+                className="flex-1 h-7 rounded-md text-[10.5px] font-mono uppercase tracking-widest border hover:bg-white/[0.04]"
+                style={{ borderColor: "#1F2224", color: "#B0B8BF" }}
+              >
+                Clear
+              </button>
+              {canReset && (
+                <button
+                  onClick={resetToRule}
+                  className="flex-1 h-7 rounded-md text-[10.5px] font-mono uppercase tracking-widest text-white"
+                  style={{ background: "#3D89DA" }}
+                >
+                  Reset to rule
+                </button>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -60,7 +60,19 @@ export function CalendarStrip({
   const [drag, setDrag] = useState<DragState | null>(null);
   const prefersReducedMotion = useRef(false);
   const isMobile = useIsPmMobile();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileCollapsed, setMobileCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("tt.projects.timeline.collapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const setMobileCollapsedPersist = (v: boolean) => {
+    setMobileCollapsed(v);
+    try {
+      localStorage.setItem("tt.projects.timeline.collapsed", v ? "1" : "0");
+    } catch {}
+  };
 
 
   useEffect(() => {
@@ -204,23 +216,23 @@ export function CalendarStrip({
 
   const dragEnabled = !!onPatch && !isMobile;
 
-  if (isMobile && !mobileOpen) {
+  if (isMobile && mobileCollapsed) {
     return (
       <div
         className="border-b select-none"
         style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
       >
         <button
-          onClick={() => setMobileOpen(true)}
+          onClick={() => setMobileCollapsedPersist(false)}
           className="w-full flex items-center gap-2 px-3 py-3 min-h-[44px]"
         >
           <span className="text-[10px] font-mono tracking-[0.9px] uppercase" style={{ color: "rgba(229,233,234,0.45)" }}>
             Timeline
           </span>
           <span className="text-[10px] font-mono" style={{ color: "rgba(229,233,234,0.28)" }}>
-            {rows.length === 1 ? "1 dated task" : `${rows.length} dated tasks`}
+            · {rows.length} scheduled
           </span>
-          <ChevronDown className="ml-auto h-3.5 w-3.5 text-muted-foreground/60" />
+          <ChevronDown className="ml-auto h-3.5 w-3.5 text-muted-foreground/60 transition-transform" />
         </button>
       </div>
     );
@@ -232,14 +244,12 @@ export function CalendarStrip({
       style={{
         borderColor: "#1F2224",
         background: "#0A0A0A",
-        maxHeight: isMobile ? 240 : undefined,
-        transition: isMobile ? "max-height 220ms ease" : undefined,
       }}
     >
       <div className={cn("flex items-center justify-between pt-3 pb-2", isMobile ? "px-3" : "px-6")}>
         {isMobile ? (
           <button
-            onClick={() => setMobileOpen(false)}
+            onClick={() => setMobileCollapsedPersist(true)}
             className="flex items-center gap-2 text-[10px] font-mono tracking-[0.9px] uppercase text-muted-foreground"
           >
             Timeline · {rows.length} scheduled
@@ -259,10 +269,14 @@ export function CalendarStrip({
         )}
 
       </div>
-      <div ref={scrollRef} className="overflow-x-auto pb-3">
+      <div
+        ref={scrollRef}
+        className="overflow-x-auto pb-3"
+        style={isMobile ? { maxHeight: 220, minHeight: 64, overflowY: "auto" } : undefined}
+      >
         <div className="relative" style={{ width: totalWidth, minWidth: "100%" }}>
           {/* Month row + day labels */}
-          <div className="relative h-9 border-b" style={{ borderColor: "#1F2224" }}>
+          <div className="relative h-9 border-b" style={{ borderColor: "#1F2224", position: isMobile ? "sticky" : "relative", top: 0, background: isMobile ? "#0A0A0A" : undefined, zIndex: isMobile ? 5 : undefined }}>
             {dayLabels.map((d, i) => (
               <div
                 key={i}
@@ -299,7 +313,14 @@ export function CalendarStrip({
           </div>
 
           {/* Task bars */}
-          <div className="relative" style={{ height: Math.max(60, rows.length * ROW_HEIGHT + 8) }}>
+          <div
+            className="relative"
+            style={{
+              height: isMobile
+                ? Math.max(24, rows.length * ROW_HEIGHT + 8)
+                : Math.max(60, rows.length * ROW_HEIGHT + 8),
+            }}
+          >
             {rows.map((t, idx) => {
               const s = parseDay(t.start_date!);
               const e = t.end_date ? parseDay(t.end_date) : s;
