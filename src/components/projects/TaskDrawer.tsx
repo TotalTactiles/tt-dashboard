@@ -179,16 +179,6 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
               </div>
             </div>
 
-            <div
-              className="flex items-center gap-1 px-3 py-1.5 border-b sticky top-0 z-10"
-              style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
-            >
-              <DrawerTab active={tab === "details"} onClick={() => setTab("details")}>Details</DrawerTab>
-              <DrawerTab
-                active={tab === "table"}
-                disabled={!task.calc_table}
-                onClick={() => task.calc_table && setTab("table")}
-              >
             {(() => {
               const kind = task.calc_table;
               const officeOnly = kind ? TABLE_OFFICE_ONLY.has(kind) : false;
@@ -219,9 +209,20 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
                 />
               </div>
             )}
+
+            {tab === "details" && (
+            <>
+            <div className="px-5 py-4 border-b space-y-3" style={{ borderColor: "#1F2224" }}>
+              <Field label="Description">
+                {task.description ? (
+                  <p className="text-[12.5px] leading-relaxed whitespace-pre-wrap">
+                    {task.description}
+                  </p>
+                ) : (
                   <span className="text-[12px] text-muted-foreground italic">No description.</span>
                 )}
               </Field>
+
 
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Start">
