@@ -99,7 +99,6 @@ export function AccessoriesTable({ projectId }: { projectId: string }) {
 
   return (
     <TableShell
-      title="Accessories"
       hint="One record, every project. 'Other jobs' is the live draw from other active projects right now."
     >
       {overAllocated.length > 0 && (
@@ -120,21 +119,21 @@ export function AccessoriesTable({ projectId }: { projectId: string }) {
         </div>
       )}
 
+      <HeaderRow
+        gridTemplate={GRID}
+        cols={[
+          { label: "Code" },
+          { label: "Description" },
+          { label: "In stock", align: "right" },
+          { label: "Other jobs", align: "right" },
+          { label: "Used here", align: "right" },
+          { label: "Left", align: "right" },
+        ]}
+      />
       {rows.length === 0 ? (
         <EmptyState message="No accessories configured." />
       ) : (
         <>
-          <HeaderRow
-            gridTemplate={GRID}
-            cols={[
-              { label: "Code" },
-              { label: "Description" },
-              { label: "In stock", align: "right" },
-              { label: "Other jobs", align: "right" },
-              { label: "Used here", align: "right" },
-              { label: "Left", align: "right" },
-            ]}
-          />
           {rows.map((r) => {
             const over = r.remaining < 0;
             return (

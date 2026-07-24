@@ -82,7 +82,7 @@ export function InvoicesTable({ projectId }: { projectId: string }) {
 
   if (role !== "office") {
     return (
-      <TableShell title="Client Invoice">
+      <TableShell>
         <EmptyState message="Invoices are office-only." />
       </TableShell>
     );
@@ -92,14 +92,14 @@ export function InvoicesTable({ projectId }: { projectId: string }) {
 
   if (invoices.length === 0) {
     return (
-      <TableShell title="Client Invoice">
+      <TableShell>
         <EmptyState message="No invoices yet. These generate automatically on the last Monday of each month." />
       </TableShell>
     );
   }
 
   return (
-    <TableShell title="Client Invoice">
+    <TableShell>
       {invoices.map((inv) => {
         const open = openId === inv.id;
         const invLines = lines[inv.id] ?? [];

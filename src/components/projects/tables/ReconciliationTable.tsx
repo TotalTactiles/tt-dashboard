@@ -98,15 +98,9 @@ export function ReconciliationTable({ projectId }: { projectId: string }) {
   };
 
   if (loading) return <div className="p-6 text-[12px] text-muted-foreground">Loading…</div>;
-  if (rows.length === 0)
-    return (
-      <TableShell title="Reconciliation">
-        <EmptyState message="Seeded from the quote scope when the project is built." />
-      </TableShell>
-    );
 
   return (
-    <TableShell title="Reconciliation">
+    <TableShell>
       <HeaderRow
         gridTemplate={GRID}
         cols={[
@@ -118,55 +112,61 @@ export function ReconciliationTable({ projectId }: { projectId: string }) {
           { label: "Unit", align: "right" },
         ]}
       />
-      {rows.map((r) => {
-        const leftover = Number(r.planned_qty) - Number(r.used_qty ?? 0);
-        return (
-          <div
-            key={r.product_code}
-            className="grid items-center border-b"
-            style={{ gridTemplateColumns: GRID, height: 40, borderColor: "#131418" }}
-          >
-            <div className="px-2"><ExtCell value={r.product_code} /></div>
-            <div className="px-2 min-w-0"><ExtCell value={r.description} /></div>
-            <div className="px-2 flex justify-end"><ExtCell value={r.planned_qty} numeric align="right" /></div>
-            <div className="px-2">
-              <NumInput value={r.used_qty} onSave={(n) => saveUsed(r.product_code, n)} required />
+      {rows.length === 0 ? (
+        <EmptyState message="Seeded from the quote scope when the project is built." />
+      ) : (
+        <>
+          {rows.map((r) => {
+            const leftover = Number(r.planned_qty) - Number(r.used_qty ?? 0);
+            return (
+              <div
+                key={r.product_code}
+                className="grid items-center border-b"
+                style={{ gridTemplateColumns: GRID, height: 40, borderColor: "#131418" }}
+              >
+                <div className="px-2"><ExtCell value={r.product_code} /></div>
+                <div className="px-2 min-w-0"><ExtCell value={r.description} /></div>
+                <div className="px-2 flex justify-end"><ExtCell value={r.planned_qty} numeric align="right" /></div>
+                <div className="px-2">
+                  <NumInput value={r.used_qty} onSave={(n) => saveUsed(r.product_code, n)} required />
+                </div>
+                <div className="px-2 flex justify-end">
+                  <CalcCell value={leftover} color={leftover > 0 ? T_GREEN : leftover < 0 ? T_RED : undefined} />
+                </div>
+                <div className="px-2 flex justify-end"><ExtCell value={r.unit} /></div>
+              </div>
+            );
+          })}
+          <TotalsRow
+            gridTemplate={GRID}
+            cells={[
+              <span className="text-[10.5px] font-mono uppercase tracking-widest text-muted-foreground">Totals</span>,
+              <span />,
+              <span className="font-mono text-[12px] tabular-nums" style={{ color: "#C0A85E" }}>{formatNum(totals.plan)}</span>,
+              <span className="font-mono text-[12px] tabular-nums" style={{ color: "#E5E9EA" }}>{formatNum(totals.used)}</span>,
+              <span className="font-mono text-[12px] tabular-nums" style={{ color: totalLeftover > 0 ? T_GREEN : "#3D89DA" }}>{formatNum(totalLeftover)}</span>,
+              <span />,
+            ]}
+          />
+          {totalLeftover > 0 && (
+            <div
+              className="mx-3 my-3 rounded-md border p-3 flex items-center gap-3"
+              style={{ borderColor: T_GREEN, background: "rgba(34,197,94,0.06)" }}
+            >
+              <div className="flex-1 text-[11.5px]" style={{ color: "#B4E7C6" }}>
+                {formatNum(totalLeftover)} units of leftover stock ready to return to the Stock & Inventory sheet.
+                Once returned, the next project's Stock Planning sees it as on-hand and orders that much less.
+              </div>
+              <button
+                onClick={returnAll}
+                className="h-8 px-3 text-[11px] font-mono uppercase tracking-widest rounded-md"
+                style={{ background: T_GREEN, color: "#0A0A0A" }}
+              >
+                Return to stock
+              </button>
             </div>
-            <div className="px-2 flex justify-end">
-              <CalcCell value={leftover} color={leftover > 0 ? T_GREEN : leftover < 0 ? T_RED : undefined} />
-            </div>
-            <div className="px-2 flex justify-end"><ExtCell value={r.unit} /></div>
-          </div>
-        );
-      })}
-      <TotalsRow
-        gridTemplate={GRID}
-        cells={[
-          <span className="text-[10.5px] font-mono uppercase tracking-widest text-muted-foreground">Totals</span>,
-          <span />,
-          <span className="font-mono text-[12px] tabular-nums" style={{ color: "#C0A85E" }}>{formatNum(totals.plan)}</span>,
-          <span className="font-mono text-[12px] tabular-nums" style={{ color: "#E5E9EA" }}>{formatNum(totals.used)}</span>,
-          <span className="font-mono text-[12px] tabular-nums" style={{ color: totalLeftover > 0 ? T_GREEN : "#3D89DA" }}>{formatNum(totalLeftover)}</span>,
-          <span />,
-        ]}
-      />
-      {totalLeftover > 0 && (
-        <div
-          className="mx-3 my-3 rounded-md border p-3 flex items-center gap-3"
-          style={{ borderColor: T_GREEN, background: "rgba(34,197,94,0.06)" }}
-        >
-          <div className="flex-1 text-[11.5px]" style={{ color: "#B4E7C6" }}>
-            {formatNum(totalLeftover)} units of leftover stock ready to return to the Stock & Inventory sheet.
-            Once returned, the next project's Stock Planning sees it as on-hand and orders that much less.
-          </div>
-          <button
-            onClick={returnAll}
-            className="h-8 px-3 text-[11px] font-mono uppercase tracking-widest rounded-md"
-            style={{ background: T_GREEN, color: "#0A0A0A" }}
-          >
-            Return to stock
-          </button>
-        </div>
+          )}
+        </>
       )}
     </TableShell>
   );

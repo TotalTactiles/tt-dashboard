@@ -66,22 +66,22 @@ export function HoursTable({ projectId }: { projectId: string }) {
 
   return (
     <TableShell
-      title="Hours"
       hint="Hours only. Rates live in the Employee Centre and are read at invoice time."
+      showLegend={false}
     >
+      <HeaderRow
+        gridTemplate={GRID}
+        cols={[
+          { label: "Date" },
+          { label: "Worker" },
+          { label: "Hours", align: "right" },
+          { label: "Billable", align: "right" },
+        ]}
+      />
       {rows.length === 0 ? (
         <EmptyState message="No hours logged against this project yet." />
       ) : (
         <>
-          <HeaderRow
-            gridTemplate={GRID}
-            cols={[
-              { label: "Date" },
-              { label: "Worker" },
-              { label: "Hours", align: "right" },
-              { label: "Billable", align: "right" },
-            ]}
-          />
           {rows.map((r) => (
             <div
               key={r.id}
