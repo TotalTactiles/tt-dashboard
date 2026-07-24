@@ -96,7 +96,7 @@ export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth }: Pr
                   </span>
                 </div>
                 <div className="text-[10.5px] text-muted-foreground truncate font-mono mt-0.5">
-                  Completion · {completion ? formatDateShort(completion) : "—"}
+                  {dateIso ? `${dateLabel} · ${formatDateShort(dateIso)}` : "No dates set"}
                 </div>
               </div>
             </button>
