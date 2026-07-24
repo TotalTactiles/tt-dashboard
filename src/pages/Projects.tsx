@@ -77,7 +77,7 @@ function ProjectsInner() {
   return (
     <div
       className={cn(
-        "flex min-h-0 max-w-[100vw] overflow-x-hidden",
+        "flex min-h-0 max-w-[100vw] overflow-x-clip",
         isMobile ? "min-h-[calc(100vh-48px)]" : "h-[calc(100vh-48px)]",
       )}
       style={{ background: "#000" }}
