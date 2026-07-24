@@ -411,7 +411,7 @@ function ScopeBreakdown({ projectId }: { projectId: string }) {
     >
       {lines.map((l) => {
         const kids = children[l.id] ?? [];
-        const usedTotal = kids.reduce((s, c) => s + (c.used_qty ?? Number(c.sub_qty) || 0), 0);
+        const usedTotal = kids.reduce((s, c) => s + (c.used_qty ?? (Number(c.sub_qty) || 0)), 0);
         const remaining = Number(l.total_quantity) - usedTotal;
         return (
           <div key={l.id} className="border-b" style={{ borderColor: "#131418" }}>
