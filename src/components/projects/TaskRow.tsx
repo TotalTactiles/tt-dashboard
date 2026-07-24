@@ -55,6 +55,7 @@ export function TaskRow({
   const gridTemplate = useMemo(() => buildRowGrid(columns), [columns]);
   const isSub = depth > 0;
   const indent = depth * 28;
+  const isMobile = useIsPmMobile();
 
   // Subtle background layer for subtasks + vertical guide line at the parent's indent depth.
   const baseBg = done ? "rgba(34,197,94,0.03)" : isSub ? "rgba(0,0,0,0.16)" : "transparent";
@@ -62,6 +63,24 @@ export function TaskRow({
   const bg = isSub
     ? `linear-gradient(#26262C, #26262C) ${guideOffset}px 0 / 1px 100% no-repeat, ${baseBg}`
     : baseBg;
+
+  if (isMobile) {
+    return (
+      <MobileTaskRow
+        task={task}
+        depth={depth}
+        done={done}
+        indent={indent}
+        bg={bg}
+        childCounts={childCounts}
+        expanded={expanded}
+        onToggleExpand={onToggleExpand}
+        onOpen={onOpen}
+        onToggle={onToggle}
+      />
+    );
+  }
+
 
   return (
     <div
