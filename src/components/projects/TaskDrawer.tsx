@@ -26,6 +26,7 @@ interface Props {
 export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
   const { role } = useRole();
   const [task, setTask] = useState<Task | null>(null);
+  const [projectName, setProjectName] = useState<string>("");
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
   const [newComment, setNewComment] = useState("");
@@ -34,6 +35,7 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
     if (!taskId) {
       setTask(null);
       setComments([]);
+      setProjectName("");
       return;
     }
     setLoading(true);
@@ -48,6 +50,10 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
       ]);
       setTask(t as Task | null);
       setComments((c as Comment[]) ?? []);
+      if (t?.project_id) {
+        const { data: p } = await db.from("projects").select("name").eq("id", t.project_id).maybeSingle();
+        setProjectName((p as { name?: string } | null)?.name ?? "");
+      }
       setLoading(false);
     })();
   }, [taskId, role]);
