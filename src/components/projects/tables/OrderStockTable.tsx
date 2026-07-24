@@ -12,6 +12,7 @@ import {
   T_RED,
 } from "./tableCommon";
 import { useRole } from "@/hooks/useRole";
+import { useLiveStock, LiveStockBadge } from "@/hooks/useLiveStock";
 
 const db = supabase as any;
 
@@ -25,7 +26,7 @@ interface Row {
   unit: string | null;
 }
 
-const GRID = "120px 1fr 100px 100px 100px";
+const GRID = "120px 1fr 90px 90px 90px 90px 90px";
 
 export function OrderStockTable({ projectId }: { projectId: string }) {
   const { role } = useRole();
