@@ -46,6 +46,7 @@ const DealFlow = lazyWithReload(() => import("./pages/DealFlow"));
 const FinancialHealth = lazyWithReload(() => import("./pages/FinancialHealth"));
 const ManagementReport = lazyWithReload(() => import("./pages/ManagementReport"));
 const TvLayout = lazyWithReload(() => import("./components/tv/TvLayout"));
+const Projects = lazyWithReload(() => import("./pages/Projects"));
 
 const queryClient = new QueryClient();
 
@@ -81,6 +82,7 @@ const App = () => (
                   <Route path="/deals" element={<Protected><DealFlow /></Protected>} />
                   <Route path="/financial-health" element={<Protected><FinancialHealth /></Protected>} />
                   <Route path="/management-report" element={<Protected><ManagementReport /></Protected>} />
+                  <Route path="/projects" element={<Protected><Projects /></Protected>} />
                   {/* ── TV / Wallboard mode ── */}
                   <Route path="/tv" element={<Protected><TvLayout><Index /></TvLayout></Protected>} />
                   <Route path="/tv/deals" element={<Protected><TvLayout><DealFlow /></TvLayout></Protected>} />

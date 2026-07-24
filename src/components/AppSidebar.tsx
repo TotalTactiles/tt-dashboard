@@ -7,6 +7,7 @@ import {
   Target,
   BrainCircuit,
   FunctionSquare,
+  Hammer,
   Settings } from
 "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -27,6 +28,7 @@ const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Deal Flow", url: "/deals", icon: Activity },
   { title: "Financial Health", url: "/financial-health", icon: HeartPulse },
+  { title: "Projects", url: "/projects", icon: Hammer },
   { title: "Calendar", url: "/calendar", icon: CalendarDays },
   { title: "Employee Centre - connect", url: "/employees", icon: Users },
   { title: "Goals & Targets", url: "/goals", icon: Target },
