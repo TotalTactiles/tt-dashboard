@@ -5,6 +5,7 @@ import type { Task } from "@/hooks/useTasks";
 import { DATE_RULE_LABELS, formatDateShort } from "@/lib/projects/dateRules";
 import { useRole } from "@/hooks/useRole";
 import { ProjectCalcTable, TABLE_LABEL, TABLE_OFFICE_ONLY } from "@/components/projects/tables";
+import { FilesSection } from "@/components/projects/FilesSection";
 
 const db = supabase as any;
 
