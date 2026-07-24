@@ -15,7 +15,7 @@ interface Props {
 export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth }: Props) {
   const { projects, progress, loading } = useProjects("active");
   const [q, setQ] = useState("");
-  const autoSelectedRef = useState(false);
+
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
