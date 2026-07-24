@@ -82,6 +82,7 @@ function ProjectsInner() {
           {projectId && (
             <>
               <CalendarStrip
+                onPatch={updateTask}
                 key={`strip-${projectId}-${refreshTick}`}
                 tasks={filteredTasks}
                 projectStart={project?.project_start ?? null}
