@@ -26,6 +26,8 @@ interface Props {
   onToggle: (task: Task) => void;
   onPatch: (id: string, patch: Partial<Task>) => void;
   childCounts?: { total: number; done: number };
+  expanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 /** Build the grid template columns string from the ordered visible column set. */
