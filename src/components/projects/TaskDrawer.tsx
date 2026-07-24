@@ -162,83 +162,67 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
               </div>
             </div>
 
+            {/* DETAILS */}
+            <Section title="Details">
+              <div className="space-y-3">
+                <Field label="Description">
+                  {task.description ? (
+                    <p className="text-[12.5px] leading-relaxed whitespace-pre-wrap">
+                      {task.description}
+                    </p>
+                  ) : (
+                    <span className="text-[12px] text-muted-foreground italic">No description.</span>
+                  )}
+                </Field>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Start">
+                    <span className="font-mono text-[12.5px]">{formatDateShort(task.start_date)}</span>
+                  </Field>
+                  <Field label="End">
+                    <span className="font-mono text-[12.5px]">{formatDateShort(task.end_date)}</span>
+                  </Field>
+                  <Field label="Rule">
+                    <span className="font-mono text-[11.5px]">
+                      {DATE_RULE_LABELS[task.rule]}
+                      {task.date_manual && (
+                        <span className="ml-1" style={{ color: "#F59E0B" }}>
+                          · manual
+                        </span>
+                      )}
+                    </span>
+                  </Field>
+                  <Field label="Status">
+                    <span
+                      className="font-mono text-[11.5px] uppercase tracking-widest"
+                      style={{ color: task.status === "done" ? "#22C55E" : "#3D89DA" }}
+                    >
+                      {task.status}
+                    </span>
+                  </Field>
+                </div>
+              </div>
+            </Section>
+
+            {/* TABLE SECTION — only when calc_table set and role permits */}
             {(() => {
               const kind = task.calc_table;
-              const officeOnly = kind ? TABLE_OFFICE_ONLY.has(kind) : false;
-              const tableAllowed = !!kind && (!officeOnly || role === "office");
+              if (!kind) return null;
+              const officeOnly = TABLE_OFFICE_ONLY.has(kind);
+              if (officeOnly && role !== "office") return null;
               return (
-                <div
-                  className="flex items-center gap-1 px-3 py-1.5 border-b sticky top-0 z-10"
-                  style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
-                >
-                  {tableAllowed && kind && (
-                    <DrawerTab active={tab === "table"} onClick={() => setTab("table")}>
-                      {TABLE_LABEL[kind] ?? "Table"}
-                    </DrawerTab>
-                  )}
-                  <DrawerTab active={tab === "details"} onClick={() => setTab("details")}>
-                    Details
-                  </DrawerTab>
-                </div>
+                <Section title={TABLE_LABEL[kind] ?? "Table"}>
+                  <ProjectCalcTable
+                    kind={kind}
+                    projectId={task.project_id}
+                    taskId={task.id}
+                  />
+                </Section>
               );
             })()}
 
-            {tab === "table" && task.calc_table && (
-              <div className="px-5 py-4">
-                <ProjectCalcTable
-                  kind={task.calc_table}
-                  projectId={task.project_id}
-                  taskId={task.id}
-                />
-              </div>
-            )}
-
-            {tab === "details" && (
-            <>
-            <div className="px-5 py-4 border-b space-y-3" style={{ borderColor: "#1F2224" }}>
-              <Field label="Description">
-                {task.description ? (
-                  <p className="text-[12.5px] leading-relaxed whitespace-pre-wrap">
-                    {task.description}
-                  </p>
-                ) : (
-                  <span className="text-[12px] text-muted-foreground italic">No description.</span>
-                )}
-              </Field>
-
-
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Start">
-                  <span className="font-mono text-[12.5px]">{formatDateShort(task.start_date)}</span>
-                </Field>
-                <Field label="End">
-                  <span className="font-mono text-[12.5px]">{formatDateShort(task.end_date)}</span>
-                </Field>
-                <Field label="Rule">
-                  <span className="font-mono text-[11.5px]">
-                    {DATE_RULE_LABELS[task.rule]}
-                    {task.date_manual && (
-                      <span className="ml-1" style={{ color: "#F59E0B" }}>
-                        · manual
-                      </span>
-                    )}
-                  </span>
-                </Field>
-                <Field label="Status">
-                  <span
-                    className="font-mono text-[11.5px] uppercase tracking-widest"
-                    style={{ color: task.status === "done" ? "#22C55E" : "#3D89DA" }}
-                  >
-                    {task.status}
-                  </span>
-                </Field>
-              </div>
-            </div>
-
-            <div className="px-5 py-4">
-              <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">
-                Comments · {comments.length}
-              </div>
+            {/* COMMENTS */}
+            <Section title={`Comments · ${comments.length}`}>
               <div className="space-y-3 mb-3">
                 {comments.length === 0 && (
                   <div className="text-[12px] text-muted-foreground italic">No comments yet.</div>
@@ -274,9 +258,7 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addComment()}
-                  placeholder={
-                    role === "office" ? "Add a comment…" : "Reply as worker…"
-                  }
+                  placeholder={role === "office" ? "Add a comment…" : "Reply as worker…"}
                   className="flex-1 h-8 px-2 rounded-md bg-black/40 border text-[12.5px] outline-none focus:border-primary/50"
                   style={{ borderColor: "#1F2224" }}
                 />
@@ -289,12 +271,32 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
                   Send
                 </button>
               </div>
-            </div>
-            </>
-            )}
+            </Section>
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div
+      className="px-5 py-[22px] border-t first:border-t-0"
+      style={{ borderColor: "#1C1C21" }}
+    >
+      <div
+        className="uppercase mb-[9px]"
+        style={{
+          fontSize: "9.5px",
+          fontWeight: 600,
+          letterSpacing: "0.09em",
+          color: "#5C5C65",
+        }}
+      >
+        {title}
+      </div>
+      {children}
     </div>
   );
 }
@@ -310,29 +312,3 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function DrawerTab({
-  active,
-  disabled,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "h-7 px-3 rounded-md text-[10.5px] font-mono uppercase tracking-widest transition-colors",
-        active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-        disabled && "opacity-40 cursor-not-allowed hover:text-muted-foreground",
-      )}
-      style={{ background: active ? "#16161A" : "transparent" }}
-    >
-      {children}
-    </button>
-  );
-}
