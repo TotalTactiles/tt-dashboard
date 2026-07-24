@@ -216,23 +216,23 @@ export function CalendarStrip({
 
   const dragEnabled = !!onPatch && !isMobile;
 
-  if (isMobile && !mobileOpen) {
+  if (isMobile && mobileCollapsed) {
     return (
       <div
         className="border-b select-none"
         style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
       >
         <button
-          onClick={() => setMobileOpen(true)}
+          onClick={() => setMobileCollapsedPersist(false)}
           className="w-full flex items-center gap-2 px-3 py-3 min-h-[44px]"
         >
           <span className="text-[10px] font-mono tracking-[0.9px] uppercase" style={{ color: "rgba(229,233,234,0.45)" }}>
             Timeline
           </span>
           <span className="text-[10px] font-mono" style={{ color: "rgba(229,233,234,0.28)" }}>
-            {rows.length === 1 ? "1 dated task" : `${rows.length} dated tasks`}
+            · {rows.length} scheduled
           </span>
-          <ChevronDown className="ml-auto h-3.5 w-3.5 text-muted-foreground/60" />
+          <ChevronDown className="ml-auto h-3.5 w-3.5 text-muted-foreground/60 transition-transform" />
         </button>
       </div>
     );
