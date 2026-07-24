@@ -11,8 +11,9 @@ import { loadColumns, saveColumns, type ColumnKey } from "@/components/projects/
 import { useTasks } from "@/hooks/useTasks";
 import { useProjectDetail } from "@/hooks/useProjects";
 import { useProfiles } from "@/hooks/useProfiles";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { List, LayoutGrid, Calendar as CalendarIcon, Table as TableIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
+import { ChevronLeft, List, LayoutGrid, Calendar as CalendarIcon, Table as TableIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
 
 function ProjectsInner() {
   const { role, setRole } = useRole();
