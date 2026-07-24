@@ -4,8 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Task } from "@/hooks/useTasks";
 import { DATE_RULE_LABELS, formatDateShort } from "@/lib/projects/dateRules";
 import { useRole } from "@/hooks/useRole";
+import { CalcTable } from "@/components/projects/calc/CalcTable";
+import { CALC_TABLE_LABEL } from "@/components/projects/calc/calcCommon";
+import { cn } from "@/lib/utils";
 
 const db = supabase as any;
+
+type Tab = "details" | "table";
 
 interface Comment {
   id: string;
@@ -27,6 +32,11 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
   const [newComment, setNewComment] = useState("");
+  const [tab, setTab] = useState<Tab>("details");
+
+  useEffect(() => {
+    setTab("details");
+  }, [taskId]);
 
   useEffect(() => {
     if (!taskId) {
@@ -84,7 +94,7 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
   return (
     <div className="fixed inset-0 z-40 flex justify-end" style={{ background: "rgba(0,0,0,0.55)" }}>
       <div
-        className="w-full max-w-[520px] h-full flex flex-col shadow-2xl border-l"
+        className="w-full max-w-[620px] h-full flex flex-col shadow-2xl border-l"
         style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -160,6 +170,28 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
               </div>
             </div>
 
+            <div
+              className="flex items-center gap-1 px-3 py-1.5 border-b sticky top-0 z-10"
+              style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
+            >
+              <DrawerTab active={tab === "details"} onClick={() => setTab("details")}>Details</DrawerTab>
+              <DrawerTab
+                active={tab === "table"}
+                disabled={!task.calc_table}
+                onClick={() => task.calc_table && setTab("table")}
+              >
+                {task.calc_table ? CALC_TABLE_LABEL[task.calc_table] ?? "Table" : "Table"}
+              </DrawerTab>
+            </div>
+
+            {tab === "table" && task.calc_table && (
+              <div className="px-5 py-4">
+                <CalcTable projectId={task.project_id} kind={task.calc_table} />
+              </div>
+            )}
+
+            {tab === "details" && (
+            <>
             <div className="px-5 py-4 border-b space-y-3" style={{ borderColor: "#1F2224" }}>
               <Field label="Description">
                 {task.description ? (
@@ -254,6 +286,8 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
                 </button>
               </div>
             </div>
+            </>
+            )}
           </div>
         )}
       </div>
@@ -269,5 +303,32 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       </div>
       <div>{children}</div>
     </div>
+  );
+}
+
+function DrawerTab({
+  active,
+  disabled,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "h-7 px-3 rounded-md text-[10.5px] font-mono uppercase tracking-widest transition-colors",
+        active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+        disabled && "opacity-40 cursor-not-allowed hover:text-muted-foreground",
+      )}
+      style={{ background: active ? "#16161A" : "transparent" }}
+    >
+      {children}
+    </button>
   );
 }
