@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { CalendarDays, Building2, User, Phone, MapPin, FileText, Pencil } from "lucide-react";
-import { useProjectDetail } from "@/hooks/useProjects";
+import { useProjectDetail, useIsPmMobile } from "@/hooks/useProjects";
 import { useRole } from "@/hooks/useRole";
 import { formatDateShort } from "@/lib/projects/dateRules";
 import { formatMetricValue } from "@/lib/formatMetricValue";
 import { DateCascadeModal } from "./DateCascadeModal";
 import { Ring } from "./Ring";
+import { cn } from "@/lib/utils";
 
 interface Props {
   projectId: string | null;
