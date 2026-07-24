@@ -32,6 +32,7 @@ const GRID = "110px 1fr 90px 100px 100px 90px";
 export function AccessoriesTable({ projectId }: { projectId: string }) {
   const [rows, setRows] = useState<PoolRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const live = useLiveStock();
 
   const load = useCallback(async () => {
     setLoading(true);
