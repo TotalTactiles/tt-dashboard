@@ -1,9 +1,11 @@
 import { useMemo, useRef, useEffect, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { Anchor } from "lucide-react";
+import { Anchor, ChevronDown } from "lucide-react";
 import type { Task } from "@/hooks/useTasks";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useIsPmMobile } from "@/hooks/useProjects";
+
 
 const db = supabase as any;
 
