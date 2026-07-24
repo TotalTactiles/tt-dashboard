@@ -95,8 +95,8 @@ function ProjectsInner() {
       <div className="flex-1 flex flex-col min-w-0">
         {isMobile ? (
           <div
-            className="sticky top-0 z-30 flex items-center gap-2 px-3 py-2 border-b backdrop-blur"
-            style={{ borderColor: "#1F2224", background: "rgba(15,17,19,0.92)" }}
+            className="sticky top-0 z-40 flex items-center gap-2 px-3 py-2 border-b backdrop-blur-md"
+            style={{ borderColor: "#1F2224", background: "rgba(8,8,8,0.94)" }}
           >
             <button
               onClick={() => setMobileView("rail")}
