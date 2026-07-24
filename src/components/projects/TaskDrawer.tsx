@@ -32,6 +32,11 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
   const [newComment, setNewComment] = useState("");
+  const [tab, setTab] = useState<Tab>("details");
+
+  useEffect(() => {
+    setTab("details");
+  }, [taskId]);
 
   useEffect(() => {
     if (!taskId) {
