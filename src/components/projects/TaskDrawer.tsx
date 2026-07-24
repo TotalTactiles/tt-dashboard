@@ -94,8 +94,7 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
   return (
     <div className="fixed inset-0 z-40 flex justify-end" style={{ background: "rgba(0,0,0,0.55)" }}>
       <div
-        className="w-full max-w-[520px] h-full flex flex-col shadow-2xl border-l"
-        style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
+        className="w-full max-w-[620px] h-full flex flex-col shadow-2xl border-l"
         onClick={(e) => e.stopPropagation()}
       >
         <div
