@@ -124,9 +124,9 @@ function ProjectsInner() {
                     style={{ color: "rgba(229,233,234,0.45)" }}
                   >
                     {pct}% ·{" "}
-                    {completionLabel
-                      ? `COMPLETION ${completionLabel}`
-                      : "NO COMPLETION DATE"}
+                    {dateSourceValue
+                      ? `${dateSourceLabel} ${dateSourceValue}`
+                      : "NO DATES SET"}
                   </div>
                 </div>
               </>
