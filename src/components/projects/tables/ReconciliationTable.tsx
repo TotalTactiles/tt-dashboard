@@ -12,6 +12,7 @@ import {
   T_GREEN,
   T_RED,
 } from "./tableCommon";
+import { useLiveStock, LiveStockBadge } from "@/hooks/useLiveStock";
 
 const db = supabase as any;
 
