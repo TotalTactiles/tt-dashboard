@@ -286,6 +286,8 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
                 </button>
               </div>
             </div>
+            </>
+            )}
           </div>
         )}
       </div>
