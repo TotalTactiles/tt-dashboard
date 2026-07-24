@@ -58,7 +58,6 @@ export function useTasks(projectId: string | null) {
     ]);
 
     setLists((l as TaskList[]) ?? []);
-    // Office-only filtering happens here, not in components.
     const all = (t as Task[]) ?? [];
     setTasks(role === "office" ? all : all.filter((x) => !x.office_only));
     setLoading(false);
@@ -71,18 +70,26 @@ export function useTasks(projectId: string | null) {
   const toggleTaskStatus = useCallback(
     async (taskId: string, current: "open" | "done") => {
       const next = current === "open" ? "done" : "open";
-      // optimistic
       setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: next } : t)));
-      await db
-        .from("tasks")
+      // Persist in background — do NOT await before UI moves.
+      db.from("tasks")
         .update({
           status: next,
           completed_at: next === "done" ? new Date().toISOString() : null,
         })
-        .eq("id", taskId);
+        .eq("id", taskId)
+        .then(() => {});
     },
     [],
   );
 
-  return { lists, tasks, loading, refresh: load, toggleTaskStatus };
+  const updateTask = useCallback(
+    async (taskId: string, patch: Partial<Task>) => {
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...patch } : t)));
+      db.from("tasks").update(patch).eq("id", taskId).then(() => {});
+    },
+    [],
+  );
+
+  return { lists, tasks, loading, refresh: load, toggleTaskStatus, updateTask };
 }
