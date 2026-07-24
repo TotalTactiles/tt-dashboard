@@ -1,6 +1,11 @@
-import { useMemo, useRef, useEffect } from "react";
+import { useMemo, useRef, useEffect, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
+import { Anchor } from "lucide-react";
 import type { Task } from "@/hooks/useTasks";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+const db = supabase as any;
 
 interface Props {
   tasks: Task[];
@@ -8,11 +13,38 @@ interface Props {
   projectEnd: string | null;
   estStart: string | null;
   onTaskClick: (id: string) => void;
+  onPatch?: (id: string, patch: Partial<Task>) => void;
 }
 
 const DAY_MS = 86_400_000;
 const DAY_WIDTH = 26;
 const ROW_HEIGHT = 22;
+
+function toISODate(ms: number) {
+  const d = new Date(ms);
+  d.setHours(0, 0, 0, 0);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function parseDay(s: string) {
+  const d = new Date(s + (s.length === 10 ? "T00:00:00" : ""));
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+interface DragState {
+  taskId: string;
+  originStart: number;
+  originEnd: number;
+  duration: number;
+  pointerStartX: number;
+  deltaDays: number;
+  moved: boolean;
+  pointerId: number;
+}
 
 export function CalendarStrip({
   tasks,
@@ -20,8 +52,17 @@ export function CalendarStrip({
   projectEnd,
   estStart,
   onTaskClick,
+  onPatch,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const prefersReducedMotion = useRef(false);
+
+  useEffect(() => {
+    prefersReducedMotion.current = window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)",
+    ).matches ?? false;
+  }, []);
 
   const range = useMemo(() => {
     const candidates: number[] = [];
@@ -39,10 +80,9 @@ export function CalendarStrip({
       min = now - 30 * DAY_MS;
       max = now + 60 * DAY_MS;
     } else {
-      min = Math.min(...candidates) - 7 * DAY_MS;
-      max = Math.max(...candidates) + 7 * DAY_MS;
+      min = Math.min(...candidates) - 21 * DAY_MS;
+      max = Math.max(...candidates) + 21 * DAY_MS;
     }
-    // Snap to midnight
     const start = new Date(min);
     start.setHours(0, 0, 0, 0);
     const end = new Date(max);
@@ -54,7 +94,6 @@ export function CalendarStrip({
   const rows = useMemo(() => tasks.filter((t) => t.start_date), [tasks]);
   const totalWidth = range.days * DAY_WIDTH;
 
-  // Auto-scroll to today
   useEffect(() => {
     if (!scrollRef.current) return;
     const now = new Date();
@@ -85,15 +124,95 @@ export function CalendarStrip({
     return items;
   }, [range]);
 
+  const commitDrag = useCallback(
+    async (task: Task, deltaDays: number) => {
+      if (!task.start_date || deltaDays === 0) return;
+      const s = parseDay(task.start_date);
+      const e = task.end_date ? parseDay(task.end_date) : s;
+      const newStart = toISODate(s + deltaDays * DAY_MS);
+      const newEnd = toISODate(e + deltaDays * DAY_MS);
+      const patch: Partial<Task> = {
+        start_date: newStart,
+        end_date: newEnd,
+        date_manual: true,
+      };
+      // Optimistic through onPatch
+      onPatch?.(task.id, patch);
+      const { error } = await db.from("tasks").update(patch).eq("id", task.id);
+      if (error) {
+        // Snap back
+        onPatch?.(task.id, {
+          start_date: task.start_date,
+          end_date: task.end_date,
+          date_manual: task.date_manual,
+        });
+        toast.error("Couldn't reschedule task — reverted");
+      }
+    },
+    [onPatch],
+  );
+
+  const onPointerDown = (e: React.PointerEvent, task: Task) => {
+    if (!task.start_date || !onPatch) return;
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const s = parseDay(task.start_date);
+    const en = task.end_date ? parseDay(task.end_date) : s;
+    setDrag({
+      taskId: task.id,
+      originStart: s,
+      originEnd: en,
+      duration: (en - s) / DAY_MS,
+      pointerStartX: e.clientX,
+      deltaDays: 0,
+      moved: false,
+      pointerId: e.pointerId,
+    });
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!drag || e.pointerId !== drag.pointerId) return;
+    const dx = e.clientX - drag.pointerStartX;
+    const days = Math.round(dx / DAY_WIDTH);
+    if (days !== drag.deltaDays || (!drag.moved && Math.abs(dx) > 3)) {
+      setDrag({ ...drag, deltaDays: days, moved: drag.moved || Math.abs(dx) > 3 });
+    }
+    // Auto-scroll near edges
+    const el = scrollRef.current;
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      if (e.clientX > rect.right - 40) el.scrollLeft += 8;
+      else if (e.clientX < rect.left + 40) el.scrollLeft -= 8;
+    }
+  };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (!drag || e.pointerId !== drag.pointerId) return;
+    const task = rows.find((t) => t.id === drag.taskId);
+    const moved = drag.moved && drag.deltaDays !== 0;
+    if (task && moved) {
+      commitDrag(task, drag.deltaDays);
+    }
+    setDrag(null);
+  };
+
+  const onPointerCancel = () => setDrag(null);
+
   return (
     <div
-      className="border-b"
+      className="border-b select-none"
       style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
     >
       <div className="flex items-center justify-between px-6 pt-3 pb-2">
         <span className="text-[10px] font-mono tracking-widest uppercase text-muted-foreground">
           Timeline · {rows.length} scheduled
         </span>
+        {drag && drag.moved && (
+          <span className="text-[10px] font-mono tracking-widest text-[#3D89DA]">
+            {drag.deltaDays === 0
+              ? "no change"
+              : `${drag.deltaDays > 0 ? "+" : ""}${drag.deltaDays}d`}
+          </span>
+        )}
       </div>
       <div ref={scrollRef} className="overflow-x-auto pb-3">
         <div className="relative" style={{ width: totalWidth, minWidth: "100%" }}>
@@ -137,17 +256,34 @@ export function CalendarStrip({
           {/* Task bars */}
           <div className="relative" style={{ height: Math.max(60, rows.length * ROW_HEIGHT + 8) }}>
             {rows.map((t, idx) => {
-              const s = new Date(t.start_date!).getTime();
-              const e = t.end_date ? new Date(t.end_date).getTime() : s;
-              const left = ((s - range.start.getTime()) / DAY_MS) * DAY_WIDTH;
+              const s = parseDay(t.start_date!);
+              const e = t.end_date ? parseDay(t.end_date) : s;
+              const isDragging = drag?.taskId === t.id;
+              const deltaMs = isDragging ? drag!.deltaDays * DAY_MS : 0;
+              const left = ((s + deltaMs - range.start.getTime()) / DAY_MS) * DAY_WIDTH;
               const width = Math.max(DAY_WIDTH, ((e - s) / DAY_MS + 1) * DAY_WIDTH - 2);
               const done = t.status === "done";
+              const draggable = !!onPatch;
               return (
                 <button
                   key={t.id}
-                  onClick={() => onTaskClick(t.id)}
+                  onPointerDown={draggable ? (ev) => onPointerDown(ev, t) : undefined}
+                  onPointerMove={draggable ? onPointerMove : undefined}
+                  onPointerUp={draggable ? onPointerUp : undefined}
+                  onPointerCancel={draggable ? onPointerCancel : undefined}
+                  onClick={(ev) => {
+                    if (drag && drag.moved) {
+                      ev.preventDefault();
+                      ev.stopPropagation();
+                      return;
+                    }
+                    onTaskClick(t.id);
+                  }}
                   className={cn(
-                    "absolute rounded-sm text-[10.5px] font-medium truncate px-1.5 flex items-center hover:brightness-110 transition-all",
+                    "absolute rounded-sm text-[10.5px] font-medium truncate px-1.5 flex items-center gap-1 hover:brightness-110",
+                    !prefersReducedMotion.current && "transition-[left,box-shadow,transform] duration-100",
+                    draggable && "cursor-grab active:cursor-grabbing touch-none",
+                    isDragging && "z-20",
                   )}
                   title={t.name}
                   style={{
@@ -158,9 +294,16 @@ export function CalendarStrip({
                     background: done ? "#22C55E33" : "#3D89DA33",
                     color: done ? "#22C55E" : "#B4D5F4",
                     borderLeft: `2px solid ${done ? "#22C55E" : "#3D89DA"}`,
+                    boxShadow: isDragging
+                      ? "0 6px 18px rgba(0,0,0,.55), 0 0 0 1px #3D89DA"
+                      : undefined,
+                    transform: isDragging && !prefersReducedMotion.current ? "scale(1.04)" : undefined,
                   }}
                 >
-                  {t.name}
+                  {t.date_manual && (
+                    <Anchor className="h-2.5 w-2.5 shrink-0" style={{ color: "#F59E0B" }} />
+                  )}
+                  <span className="truncate">{t.name}</span>
                 </button>
               );
             })}
