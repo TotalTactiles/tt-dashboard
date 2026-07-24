@@ -313,7 +313,14 @@ export function CalendarStrip({
           </div>
 
           {/* Task bars */}
-          <div className="relative" style={{ height: Math.max(60, rows.length * ROW_HEIGHT + 8) }}>
+          <div
+            className="relative"
+            style={{
+              height: isMobile
+                ? Math.max(24, rows.length * ROW_HEIGHT + 8)
+                : Math.max(60, rows.length * ROW_HEIGHT + 8),
+            }}
+          >
             {rows.map((t, idx) => {
               const s = parseDay(t.start_date!);
               const e = t.end_date ? parseDay(t.end_date) : s;
