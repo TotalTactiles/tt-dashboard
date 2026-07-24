@@ -9,11 +9,13 @@ interface Props {
   activeProjectId: string | null;
   onSelect: (id: string) => void;
   onOpen?: (id: string) => void;
+  fullWidth?: boolean;
 }
 
-export function ProjectRail({ activeProjectId, onSelect, onOpen }: Props) {
+export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth }: Props) {
   const { projects, progress, loading } = useProjects("active");
   const [q, setQ] = useState("");
+  const autoSelectedRef = useState(false);
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -26,14 +28,20 @@ export function ProjectRail({ activeProjectId, onSelect, onOpen }: Props) {
   }, [projects, q]);
 
   useEffect(() => {
+    // On mobile (fullWidth) do NOT auto-select — user should see the list first.
+    if (fullWidth) return;
     if (!activeProjectId && filtered.length > 0) onSelect(filtered[0].id);
-  }, [activeProjectId, filtered, onSelect]);
+  }, [activeProjectId, filtered, onSelect, fullWidth]);
 
   return (
     <aside
-      className="w-full md:w-[280px] md:shrink-0 md:border-r flex flex-col min-h-0"
+      className={cn(
+        "flex flex-col min-h-0 border-r",
+        fullWidth ? "w-full" : "w-full md:w-[280px] md:shrink-0",
+      )}
       style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
     >
+
       <div className="px-3 py-3 border-b" style={{ borderColor: "#1F2224" }}>
         <div className="text-[10px] font-mono tracking-widest uppercase text-muted-foreground mb-2">
           Active Projects · {filtered.length}
