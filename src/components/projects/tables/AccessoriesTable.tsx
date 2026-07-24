@@ -147,11 +147,11 @@ export function AccessoriesTable({ projectId }: { projectId: string }) {
           { label: "Left", align: "right" },
         ]}
       />
-      {rows.length === 0 ? (
+      {effectiveRows.length === 0 ? (
         <EmptyState message="No accessories configured." />
       ) : (
         <>
-          {rows.map((r) => {
+          {effectiveRows.map((r) => {
             const over = r.remaining < 0;
             return (
               <div
