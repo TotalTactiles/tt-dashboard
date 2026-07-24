@@ -180,3 +180,47 @@ export function useIsPmMobile() {
   }, []);
   return isMobile;
 }
+
+/**
+ * Push an updated estimated_start back to the Zoho CRM deal's Closing_Date via
+ * the n8n bridge. estimated_start is a deliberate exception to "Zoho is source
+ * of truth" — after CRM seeds it at project creation, the dashboard is
+ * authoritative and pushes on edit. Returns { ok } — never throws.
+ */
+export async function syncEstStartToZoho(params: {
+  projectId: string;
+  zohoDealId: string | null;
+  estimatedStart: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const { projectId, zohoDealId, estimatedStart } = params;
+  if (!zohoDealId) return { ok: true }; // nothing to sync — pre-CRM project
+  try {
+    const res = await fetch(
+      "https://n8n.srv1437130.hstgr.cloud/webhook/dashboard-crm-date",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          project_id: projectId,
+          zoho_deal_id: zohoDealId,
+          estimated_start: estimatedStart,
+        }),
+      },
+    );
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      return { ok: false, error: `HTTP ${res.status} ${body}`.trim() };
+    }
+    const json = (await res.json().catch(() => ({}))) as {
+      ok?: boolean;
+      zoho_code?: string;
+      zoho_message?: string;
+    };
+    if (json.ok === false) {
+      return { ok: false, error: json.zoho_message ?? json.zoho_code ?? "zoho_failed" };
+    }
+    return { ok: true };
+  } catch (e: any) {
+    return { ok: false, error: e?.message ?? "network_error" };
+  }
+}
