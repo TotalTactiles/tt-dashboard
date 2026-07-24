@@ -53,11 +53,21 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
           .eq("task_id", taskId)
           .order("created_at", { ascending: true }),
       ]);
-      setTask(t as Task | null);
+      const loaded = t as Task | null;
+      setTask(loaded);
       setComments((c as Comment[]) ?? []);
       setLoading(false);
+      // Default to the table tab when the task has one; workers never land on office-only tables.
+      if (loaded?.calc_table) {
+        const officeOnly = TABLE_OFFICE_ONLY.has(loaded.calc_table);
+        const canSeeTable = !officeOnly || role === "office";
+        setTab(canSeeTable ? "table" : "details");
+      } else {
+        setTab("details");
+      }
     })();
-  }, [taskId]);
+  }, [taskId, role]);
+
 
   const toggleStatus = async () => {
     if (!task) return;
