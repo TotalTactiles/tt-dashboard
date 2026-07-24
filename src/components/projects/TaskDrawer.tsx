@@ -305,3 +305,30 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
+
+function DrawerTab({
+  active,
+  disabled,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "h-7 px-3 rounded-md text-[10.5px] font-mono uppercase tracking-widest transition-colors",
+        active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+        disabled && "opacity-40 cursor-not-allowed hover:text-muted-foreground",
+      )}
+      style={{ background: active ? "#16161A" : "transparent" }}
+    >
+      {children}
+    </button>
+  );
+}
