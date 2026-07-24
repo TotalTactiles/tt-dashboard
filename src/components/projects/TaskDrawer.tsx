@@ -228,6 +228,17 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
               );
             })()}
 
+            {/* FILES & PHOTOS */}
+            <Section title="Photos & Files">
+              <FilesSection
+                projectId={task.project_id}
+                projectName={projectName || "unknown-project"}
+                taskId={task.id}
+                taskName={task.name}
+                onCountChange={() => onChanged()}
+              />
+            </Section>
+
             {/* COMMENTS */}
             <Section title={`Comments · ${comments.length}`}>
               <div className="space-y-3 mb-3">
