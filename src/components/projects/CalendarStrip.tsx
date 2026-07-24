@@ -59,6 +59,9 @@ export function CalendarStrip({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   const prefersReducedMotion = useRef(false);
+  const isMobile = useIsPmMobile();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
 
   useEffect(() => {
     prefersReducedMotion.current = window.matchMedia?.(
