@@ -234,13 +234,16 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
               if (officeOnly && role !== "office") return null;
               return (
                 <Section title={TABLE_LABEL[kind] ?? "Table"}>
-                  <ProjectCalcTable
-                    kind={kind}
-                    projectId={task.project_id}
-                    taskId={task.id}
-                  />
+                  <div className={isMobile ? "-mx-[14px] px-[14px] overflow-x-auto" : undefined}>
+                    <ProjectCalcTable
+                      kind={kind}
+                      projectId={task.project_id}
+                      taskId={task.id}
+                    />
+                  </div>
                 </Section>
               );
+
             })()}
 
             {/* FILES & PHOTOS */}
