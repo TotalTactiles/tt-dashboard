@@ -71,7 +71,9 @@ export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth }: Pr
         {filtered.map((p) => {
           const active = p.id === activeProjectId;
           const pct = progress[p.id] ?? 0;
-          const completion = p.project_end ?? p.estimated_start ?? null;
+          const hasEnd = !!p.project_end;
+          const dateIso = p.project_end ?? p.estimated_start ?? null;
+          const dateLabel = hasEnd ? "Completion" : "Est. start";
           return (
             <button
               key={p.id}
