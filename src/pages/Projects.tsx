@@ -71,8 +71,10 @@ function ProjectsInner() {
   const showRail = !isMobile || mobileView === "rail";
   const showDetail = !isMobile || mobileView === "detail";
 
-  const completionIso = project?.project_end ?? project?.estimated_start ?? null;
-  const completionLabel = formatCompletionUpper(completionIso);
+  const hasProjectEnd = !!project?.project_end;
+  const dateSourceIso = project?.project_end ?? project?.estimated_start ?? null;
+  const dateSourceLabel = hasProjectEnd ? "COMPLETION" : "EST. START";
+  const dateSourceValue = formatCompletionUpper(dateSourceIso);
 
   return (
     <div
