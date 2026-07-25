@@ -7,12 +7,15 @@ import {
   fileExtLabel,
   listFiles,
   uploadFile,
+  uploadLargeFile,
   type OneDriveFile,
 } from "@/lib/projects/onedrive";
 
 const db = supabase as any;
 
-const MAX_BYTES = 10 * 1024 * 1024; // 10 MB client-side cap
+const MAX_BYTES = 250 * 1024 * 1024; // 250 MB client-side cap
+const SMALL_THRESHOLD = 4 * 1024 * 1024; // ≤ 4 MB → base64 path
+const WARN_BYTES = 100 * 1024 * 1024; // > 100 MB → confirm before starting
 
 interface Props {
   projectId: string;
@@ -27,6 +30,11 @@ type PendingTile = {
   file: File;
   state: "uploading" | "error";
   error?: string;
+  // Large-file only:
+  chunked?: boolean;
+  sent?: number;
+  total?: number;
+  abort?: AbortController;
 };
 
 function isDesktop() {
@@ -75,58 +83,112 @@ export function FilesSection({
     load();
   }, [load]);
 
+  const mirrorAttachment = useCallback(
+    async (up: {
+      onedrive_item_id: string;
+      onedrive_web_url: string;
+      file_name: string;
+      size_bytes: number;
+      mime_type: string;
+    }) => {
+      try {
+        const { data: prof } = await db
+          .from("profiles")
+          .select("id")
+          .eq("role", "office")
+          .limit(1);
+        const uploaded_by = (prof as Array<{ id: string }> | null)?.[0]?.id ?? null;
+        await db.from("attachments").insert({
+          task_id: taskId,
+          onedrive_item_id: up.onedrive_item_id,
+          onedrive_web_url: up.onedrive_web_url,
+          file_name: up.file_name,
+          size_bytes: up.size_bytes,
+          mime_type: up.mime_type,
+          uploaded_by,
+        });
+      } catch (mirrorErr) {
+        console.warn("attachments mirror insert failed", mirrorErr);
+      }
+    },
+    [taskId],
+  );
+
   const uploadOne = useCallback(
     async (file: File) => {
       if (file.size > MAX_BYTES) {
         toast.error(
-          `${file.name} is ${fmtMB(file.size)}. Limit is 10 MB — upload large video directly to OneDrive for now.`,
+          `${file.name} is ${fmtMB(file.size)}. Limit is 250 MB.`,
         );
         return;
       }
+      if (file.size > WARN_BYTES) {
+        const proceed = window.confirm(
+          `${file.name} is ${fmtMB(file.size)} and may take several minutes. Keep this tab open. Proceed?`,
+        );
+        if (!proceed) return;
+      }
+
       const key = `${file.name}-${file.size}-${Date.now()}-${Math.random()}`;
-      setPending((p) => [...p, { key, file, state: "uploading" }]);
-      try {
-        const up = await uploadFile({
-          projectName,
-          taskName,
-          projectId,
-          taskId,
+      const useLarge = file.size > SMALL_THRESHOLD;
+      const abort = useLarge ? new AbortController() : undefined;
+
+      setPending((p) => [
+        ...p,
+        {
+          key,
           file,
-        });
-        // Mirror to attachments — best-effort; never rolls back OneDrive.
-        try {
-          const { data: prof } = await db
-            .from("profiles")
-            .select("id")
-            .eq("role", "office")
-            .limit(1);
-          const uploaded_by = (prof as Array<{ id: string }> | null)?.[0]?.id ?? null;
-          await db.from("attachments").insert({
-            task_id: taskId,
-            onedrive_item_id: up.onedrive_item_id,
-            onedrive_web_url: up.onedrive_web_url,
-            file_name: up.file_name,
-            size_bytes: up.size_bytes,
-            mime_type: up.mime_type,
-            uploaded_by,
+          state: "uploading",
+          chunked: useLarge,
+          sent: 0,
+          total: file.size,
+          abort,
+        },
+      ]);
+
+      try {
+        let up;
+        if (useLarge) {
+          up = await uploadLargeFile({
+            projectName,
+            taskName,
+            projectId,
+            taskId,
+            file,
+            signal: abort!.signal,
+            onProgress: (sent, total) => {
+              setPending((p) =>
+                p.map((x) => (x.key === key ? { ...x, sent, total } : x)),
+              );
+            },
           });
-        } catch (mirrorErr) {
-          console.warn("attachments mirror insert failed", mirrorErr);
+        } else {
+          up = await uploadFile({
+            projectName,
+            taskName,
+            projectId,
+            taskId,
+            file,
+          });
         }
+        await mirrorAttachment(up);
         setPending((p) => p.filter((x) => x.key !== key));
         await load();
       } catch (e: any) {
+        const msg = e?.message ?? "Upload failed";
+        if (msg === "Upload cancelled") {
+          setPending((p) => p.filter((x) => x.key !== key));
+          return;
+        }
         setPending((p) =>
           p.map((x) =>
-            x.key === key
-              ? { ...x, state: "error", error: e?.message ?? "Upload failed" }
-              : x,
+            x.key === key ? { ...x, state: "error", error: msg } : x,
           ),
         );
         toast.error(`Upload failed: ${file.name}`);
       }
     },
-    [projectName, taskName, projectId, taskId, load],
+    [projectName, taskName, projectId, taskId, load, mirrorAttachment],
   );
 
   const uploadMany = useCallback(
@@ -183,6 +245,11 @@ export function FilesSection({
 
   const dismissError = (t: PendingTile) => {
     setPending((p) => p.filter((x) => x.key !== t.key));
+  };
+
+  const cancelUpload = (t: PendingTile) => {
+    t.abort?.abort();
+    // uploadOne's catch clears the row on "Upload cancelled".
   };
 
   const showEmpty =
@@ -287,6 +354,7 @@ export function FilesSection({
                 tile={t}
                 onRetry={() => retry(t)}
                 onDismiss={() => dismissError(t)}
+                onCancel={() => cancelUpload(t)}
               />
             ))}
           </div>
@@ -444,10 +512,12 @@ function ProgressRow({
   tile,
   onRetry,
   onDismiss,
+  onCancel,
 }: {
   tile: PendingTile;
   onRetry: () => void;
   onDismiss: () => void;
+  onCancel: () => void;
 }) {
   if (tile.state === "error") {
     return (
@@ -486,6 +556,12 @@ function ProgressRow({
       </div>
     );
   }
+
+  const isChunked = !!tile.chunked;
+  const total = tile.total ?? tile.file.size;
+  const sent = Math.min(tile.sent ?? 0, total);
+  const pct = total > 0 ? Math.floor((sent / total) * 100) : 0;
+
   return (
     <div
       className="flex items-center gap-2 px-2 py-1.5 rounded-md"
@@ -497,18 +573,44 @@ function ProgressRow({
           {tile.file.name}
         </div>
         <div className="mt-1 h-[3px] rounded-full overflow-hidden" style={{ background: "#1F2224" }}>
-          <div
-            className="h-full w-1/3 rounded-full"
-            style={{
-              background: "#3D89DA",
-              animation: "tt-indeterminate 1.2s ease-in-out infinite",
-            }}
-          />
+          {isChunked ? (
+            <div
+              className="h-full rounded-full transition-[width] duration-200"
+              style={{ background: "#3D89DA", width: `${pct}%` }}
+            />
+          ) : (
+            <div
+              className="h-full w-1/3 rounded-full"
+              style={{
+                background: "#3D89DA",
+                animation: "tt-indeterminate 1.2s ease-in-out infinite",
+              }}
+            />
+          )}
         </div>
+        {isChunked && (
+          <div
+            className="text-[10px] font-mono mt-0.5"
+            style={{ color: "#E6EEF3", opacity: 0.45 }}
+          >
+            {fmtMB(sent)} of {fmtMB(total)} · {pct}%
+          </div>
+        )}
       </div>
-      <div className="text-[10px] font-mono shrink-0" style={{ color: "#B0B8BF" }}>
-        {fmtMB(tile.file.size)}
-      </div>
+      {isChunked ? (
+        <button
+          onClick={onCancel}
+          className="text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 rounded-sm shrink-0"
+          style={{ border: "1px solid #1F2224", color: "#B0B8BF" }}
+          title="Cancel upload"
+        >
+          Cancel
+        </button>
+      ) : (
+        <div className="text-[10px] font-mono shrink-0" style={{ color: "#B0B8BF" }}>
+          {fmtMB(tile.file.size)}
+        </div>
+      )}
       <style>{`
         @keyframes tt-indeterminate {
           0% { transform: translateX(-100%); }
