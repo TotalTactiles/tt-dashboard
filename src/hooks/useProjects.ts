@@ -224,3 +224,71 @@ export async function syncEstStartToZoho(params: {
     return { ok: false, error: e?.message ?? "network_error" };
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Forecast snapshot (BUDGET & FORECAST section)
+//
+// Read from v_project_forecast, which already resolves original-vs-restated for
+// us and carries the pre-split original figures alongside. This data is
+// immutable once written by the n8n CRM workflow, so we fetch once and never
+// poll. Office-only — workers never see it.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ProjectForecast {
+  project_id: string;
+  zoho_deal_id: string | null;
+  effective_type: "original" | "restated";
+  effective_captured_at: string | null;
+  captured_reason: string | null;
+  contract_value: number | null;
+  labour_cost: number | null;
+  tactile_cost: number | null;
+  other_cost: number | null;
+  total_cogs: number | null;
+  gross_margin: number | null;
+  gp_percent: number | null;
+  invoice_month: string | null;
+  due_month: string | null;
+  labour_month: string | null;
+  tactile_month: string | null;
+  tactile_rem_month: string | null;
+  other_month: string | null;
+  original_contract_value: number | null;
+  original_total_cogs: number | null;
+  original_gross_margin: number | null;
+  original_captured_at: string | null;
+}
+
+export function useProjectForecast(projectId: string | null) {
+  const { role } = useRole();
+  const allowed = role === "office";
+  const [forecast, setForecast] = useState<ProjectForecast | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Gate on role in the hook, consistent with useProjectDetail. Workers get
+    // an empty result and the component renders nothing.
+    if (!allowed || !projectId) {
+      setForecast(null);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      const { data } = await db
+        .from("v_project_forecast")
+        .select("*")
+        .eq("project_id", projectId)
+        .maybeSingle();
+      if (cancelled) return;
+      setForecast((data as ProjectForecast | null) ?? null);
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, allowed]);
+
+  return { forecast, loading, allowed };
+}
