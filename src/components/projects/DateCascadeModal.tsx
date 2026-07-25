@@ -8,6 +8,7 @@ const db = supabase as any;
 interface Props {
   projectId: string;
   currentEstStart: string | null;
+  contractValue?: number | null;
   onClose: () => void;
   onApplied: () => void;
 }
