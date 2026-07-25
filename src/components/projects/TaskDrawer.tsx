@@ -270,7 +270,7 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
                 projectName={projectName || "unknown-project"}
                 taskId={task.id}
                 taskName={task.name}
-                onCountChange={() => onChanged()}
+                onCountChange={handleFilesCountChange}
               />
             </Section>
 
