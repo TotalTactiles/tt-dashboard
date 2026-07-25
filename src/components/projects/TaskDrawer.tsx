@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { X, Circle, CheckCircle2, Lock, Anchor } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Task } from "@/hooks/useTasks";
@@ -63,6 +63,7 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
       setLoading(false);
     })();
   }, [taskId, role]);
+  const handleFilesCountChange = useCallback(() => onChanged(), [onChanged]);
 
 
   const toggleStatus = async () => {
@@ -270,7 +271,7 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
                 projectName={projectName || "unknown-project"}
                 taskId={task.id}
                 taskName={task.name}
-                onCountChange={() => onChanged()}
+                onCountChange={handleFilesCountChange}
               />
             </Section>
 

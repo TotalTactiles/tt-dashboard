@@ -71,25 +71,32 @@ export function FilesSection({
   const namesOk =
     projectName.trim().length > 0 && taskName.trim().length > 0;
 
-  const load = useCallback(async () => {
-    if (!namesOk) {
-      setFiles([]);
-      setLoadError("File storage unavailable for this task");
-      return;
-    }
-    setLoadError(null);
-    try {
-      const r = await listFiles({ projectName, taskName });
-      setFiles(r);
-      onCountChangeRef.current?.(r.length);
-    } catch (e: any) {
-      setLoadError(e?.message ?? "Failed to list files");
-      setFiles([]);
-    }
-  }, [projectName, taskName, namesOk]);
+  const load = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!namesOk) {
+        setFiles([]);
+        setLoadError("File storage unavailable for this task");
+        return;
+      }
+      setLoadError(null);
+      try {
+        const r = await listFiles({ projectName, taskName, signal });
+        if (signal?.aborted) return;
+        setFiles(r);
+        onCountChangeRef.current?.(r.length);
+      } catch (e: any) {
+        if (signal?.aborted || e?.name === "AbortError") return;
+        setLoadError(e?.message ?? "Failed to list files");
+        setFiles([]);
+      }
+    },
+    [projectName, taskName, namesOk],
+  );
 
   useEffect(() => {
-    load();
+    const ctrl = new AbortController();
+    load(ctrl.signal);
+    return () => ctrl.abort();
   }, [load]);
 
   const mirrorAttachment = useCallback(
@@ -274,7 +281,7 @@ export function FilesSection({
           <Cloud className="h-3 w-3" /> OneDrive
         </div>
         <button
-          onClick={load}
+          onClick={() => load()}
           disabled={!namesOk}
           className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground inline-flex items-center gap-1 disabled:opacity-40"
           title="Refresh"

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { RoleProvider, useRole } from "@/hooks/useRole";
 import { ProjectRail } from "@/components/projects/ProjectRail";
@@ -49,7 +49,20 @@ function ProjectsInner() {
     [isMobile, columns],
   );
 
-  const bump = () => setRefreshTick((t) => t + 1);
+  const bump = useCallback(() => setRefreshTick((t) => t + 1), []);
+  const handleChanged = useCallback(() => {
+    bump();
+    refresh();
+  }, [bump, refresh]);
+  const handleRailOpen = useCallback(() => {
+    if (isMobile) setMobileView("detail");
+  }, [isMobile]);
+  const handleTaskOpen = useCallback((id: string) => setOpenTaskId(id), []);
+  const handleDrawerClose = useCallback(() => setOpenTaskId(null), []);
+  const handleToggle = useCallback(
+    (t: typeof tasks[number]) => toggleTaskStatus(t.id, t.status),
+    [toggleTaskStatus],
+  );
 
   const { pct, total, done, open } = useMemo(() => {
     const countable = tasks.filter((t) => !t.office_only);
@@ -88,7 +101,7 @@ function ProjectsInner() {
         <ProjectRail
           activeProjectId={projectId}
           onSelect={setProjectId}
-          onOpen={() => isMobile && setMobileView("detail")}
+          onOpen={handleRailOpen}
           fullWidth={isMobile}
         />
       )}
@@ -168,7 +181,7 @@ function ProjectsInner() {
         >
           <ProjectHeader
             projectId={projectId}
-            onChanged={() => { bump(); refresh(); }}
+            onChanged={handleChanged}
             progressPct={pct}
             totalTasks={total}
             doneTasks={done}
@@ -184,7 +197,7 @@ function ProjectsInner() {
                 projectStart={project?.project_start ?? null}
                 projectEnd={project?.project_end ?? null}
                 estStart={project?.estimated_start ?? null}
-                onTaskClick={setOpenTaskId}
+                onTaskClick={handleTaskOpen}
               />
 
               <ViewsBar
@@ -222,8 +235,8 @@ function ProjectsInner() {
                 columns={effectiveColumns}
                 profiles={profiles}
                 project={project}
-                onOpen={setOpenTaskId}
-                onToggle={(t) => toggleTaskStatus(t.id, t.status)}
+                onOpen={handleTaskOpen}
+                onToggle={handleToggle}
                 onPatch={updateTask}
               />
             ))}
@@ -236,8 +249,8 @@ function ProjectsInner() {
       {openTaskId && (
         <TaskDrawer
           taskId={openTaskId}
-          onClose={() => setOpenTaskId(null)}
-          onChanged={() => { refresh(); bump(); }}
+          onClose={handleDrawerClose}
+          onChanged={handleChanged}
         />
       )}
     </div>
