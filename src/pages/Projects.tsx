@@ -181,7 +181,7 @@ function ProjectsInner() {
         >
           <ProjectHeader
             projectId={projectId}
-            onChanged={() => { bump(); refresh(); }}
+            onChanged={handleChanged}
             progressPct={pct}
             totalTasks={total}
             doneTasks={done}
