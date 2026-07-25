@@ -235,8 +235,8 @@ function ProjectsInner() {
                 columns={effectiveColumns}
                 profiles={profiles}
                 project={project}
-                onOpen={setOpenTaskId}
-                onToggle={(t) => toggleTaskStatus(t.id, t.status)}
+                onOpen={handleTaskOpen}
+                onToggle={handleToggle}
                 onPatch={updateTask}
               />
             ))}
