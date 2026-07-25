@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, X, Plus, Cloud, RefreshCw } from "lucide-react";
+import { Loader2, X, Plus, Cloud, RefreshCw, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   deleteFile,
-  fileGlyph,
+  fileExtLabel,
   listFiles,
   uploadFile,
   type OneDriveFile,
 } from "@/lib/projects/onedrive";
 
 const db = supabase as any;
+
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB client-side cap
 
 interface Props {
   projectId: string;
@@ -27,6 +29,15 @@ type PendingTile = {
   error?: string;
 };
 
+function isDesktop() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(min-width: 768px)").matches;
+}
+
+function fmtMB(bytes: number) {
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function FilesSection({
   projectId,
   projectName,
@@ -40,7 +51,15 @@ export function FilesSection({
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const namesOk =
+    projectName.trim().length > 0 && taskName.trim().length > 0;
+
   const load = useCallback(async () => {
+    if (!namesOk) {
+      setFiles([]);
+      setLoadError("File storage unavailable for this task");
+      return;
+    }
     setLoadError(null);
     try {
       const r = await listFiles({ projectName, taskName });
@@ -50,7 +69,7 @@ export function FilesSection({
       setLoadError(e?.message ?? "Failed to list files");
       setFiles([]);
     }
-  }, [projectName, taskName, onCountChange]);
+  }, [projectName, taskName, onCountChange, namesOk]);
 
   useEffect(() => {
     load();
@@ -58,6 +77,12 @@ export function FilesSection({
 
   const uploadOne = useCallback(
     async (file: File) => {
+      if (file.size > MAX_BYTES) {
+        toast.error(
+          `${file.name} is ${fmtMB(file.size)}. Limit is 10 MB — upload large video directly to OneDrive for now.`,
+        );
+        return;
+      }
       const key = `${file.name}-${file.size}-${Date.now()}-${Math.random()}`;
       setPending((p) => [...p, { key, file, state: "uploading" }]);
       try {
@@ -68,7 +93,7 @@ export function FilesSection({
           taskId,
           file,
         });
-        // Best-effort attachments row insert — non-blocking on failure.
+        // Mirror to attachments — best-effort; never rolls back OneDrive.
         try {
           const { data: prof } = await db
             .from("profiles")
@@ -85,8 +110,8 @@ export function FilesSection({
             mime_type: up.mime_type,
             uploaded_by,
           });
-        } catch {
-          /* ignore — the file is safe in OneDrive */
+        } catch (mirrorErr) {
+          console.warn("attachments mirror insert failed", mirrorErr);
         }
         setPending((p) => p.filter((x) => x.key !== key));
         await load();
@@ -106,8 +131,8 @@ export function FilesSection({
 
   const uploadMany = useCallback(
     async (list: File[]) => {
+      // Sequential — n8n is single-instance and payloads are large.
       for (const f of list) {
-        // sequential, each appears as it completes
         // eslint-disable-next-line no-await-in-loop
         await uploadOne(f);
       }
@@ -122,6 +147,7 @@ export function FilesSection({
   };
 
   const onDrop = (e: React.DragEvent) => {
+    if (!isDesktop()) return;
     e.preventDefault();
     setDragging(false);
     const list = Array.from(e.dataTransfer.files ?? []);
@@ -129,6 +155,7 @@ export function FilesSection({
   };
 
   const onDelete = async (f: OneDriveFile) => {
+    if (!window.confirm(`Delete ${f.file_name}?`)) return;
     const prev = files ?? [];
     setFiles(prev.filter((x) => x.onedrive_item_id !== f.onedrive_item_id));
     onCountChange?.(Math.max(0, prev.length - 1));
@@ -139,13 +166,13 @@ export function FilesSection({
           .from("attachments")
           .delete()
           .eq("onedrive_item_id", f.onedrive_item_id);
-      } catch {
-        /* ignore */
+      } catch (mirrorErr) {
+        console.warn("attachments mirror delete failed", mirrorErr);
       }
     } catch (e: any) {
       setFiles(prev);
       onCountChange?.(prev.length);
-      toast.error(`Couldn't delete ${f.file_name}`);
+      toast.error(`Couldn't delete ${f.file_name}: ${e?.message ?? ""}`);
     }
   };
 
@@ -153,6 +180,13 @@ export function FilesSection({
     setPending((p) => p.filter((x) => x.key !== t.key));
     uploadOne(t.file);
   };
+
+  const dismissError = (t: PendingTile) => {
+    setPending((p) => p.filter((x) => x.key !== t.key));
+  };
+
+  const showEmpty =
+    (files?.length ?? 0) === 0 && pending.length === 0 && !loadError;
 
   return (
     <div>
@@ -165,7 +199,8 @@ export function FilesSection({
         </div>
         <button
           onClick={load}
-          className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+          disabled={!namesOk}
+          className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground inline-flex items-center gap-1 disabled:opacity-40"
           title="Refresh"
         >
           <RefreshCw className="h-3 w-3" /> Refresh
@@ -174,6 +209,7 @@ export function FilesSection({
 
       <div
         onDragOver={(e) => {
+          if (!isDesktop() || !namesOk) return;
           e.preventDefault();
           setDragging(true);
         }}
@@ -186,44 +222,73 @@ export function FilesSection({
         }}
       >
         {loadError && (
-          <div className="text-[12px] text-muted-foreground italic px-1 py-2">
-            Couldn't reach OneDrive. Files are safe; try reopening.
+          <div
+            className="text-[11px] font-mono italic px-1 py-2"
+            style={{ color: namesOk ? "#B0B8BF" : "#E24B4A" }}
+          >
+            {namesOk
+              ? "Couldn't reach OneDrive. Files are safe; try Refresh."
+              : "File storage unavailable for this task."}
           </div>
         )}
 
         {files === null && !loadError ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
             {[0, 1, 2].map((i) => (
               <div
                 key={i}
-                className="w-[66px] h-[66px] rounded-[7px] animate-pulse"
+                className="aspect-square rounded-[9px] animate-pulse"
                 style={{ background: "#12151780" }}
               />
             ))}
           </div>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            {(files ?? []).map((f) => (
-              <FileTile key={f.onedrive_item_id} file={f} onDelete={() => onDelete(f)} />
-            ))}
-            {pending.map((t) => (
-              <PendingTileView key={t.key} tile={t} onRetry={() => retry(t)} />
-            ))}
+          <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+            {/* Add tile — always first */}
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="w-[66px] h-[66px] rounded-[7px] flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
-              style={{ border: "1px dashed #2A2E32", background: "#0F1113" }}
+              disabled={!namesOk}
+              className="aspect-square rounded-[9px] flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+              style={{
+                border: "1px dashed rgba(61,137,218,0.4)",
+                background: "#0F1113",
+              }}
               title="Upload files"
             >
-              <Plus className="h-5 w-5" />
+              <Plus className="h-5 w-5" style={{ color: "#3D89DA" }} />
             </button>
+
+            {(files ?? []).map((f) => (
+              <FileTile
+                key={f.onedrive_item_id}
+                file={f}
+                onDelete={() => onDelete(f)}
+              />
+            ))}
           </div>
         )}
 
-        {(files?.length ?? 0) === 0 && pending.length === 0 && !loadError && (
-          <div className="text-[11px] text-muted-foreground italic mt-2 px-1">
-            Drag files here or click + to upload to OneDrive
+        {showEmpty && (
+          <div
+            className="text-[11px] font-mono mt-2 px-1"
+            style={{ opacity: 0.28 }}
+          >
+            No files yet
+          </div>
+        )}
+
+        {/* Per-file progress rows */}
+        {pending.length > 0 && (
+          <div className="mt-3 space-y-1.5">
+            {pending.map((t) => (
+              <ProgressRow
+                key={t.key}
+                tile={t}
+                onRetry={() => retry(t)}
+                onDismiss={() => dismissError(t)}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -240,6 +305,7 @@ export function FilesSection({
         ref={inputRef}
         type="file"
         multiple
+        accept="image/*,video/*,.pdf,.dwg,.dxf"
         className="hidden"
         onChange={onFilePicked}
       />
@@ -247,25 +313,51 @@ export function FilesSection({
   );
 }
 
-function FileTile({ file, onDelete }: { file: OneDriveFile; onDelete: () => void }) {
-  const isImage = file.is_image && file.thumbnail;
+function FileTile({
+  file,
+  onDelete,
+}: {
+  file: OneDriveFile;
+  onDelete: () => void;
+}) {
+  const isImage = file.is_image && !!file.thumbnail;
+  const longPressTimer = useRef<number | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const startLongPress = () => {
+    if (isDesktop()) return;
+    if (longPressTimer.current) window.clearTimeout(longPressTimer.current);
+    longPressTimer.current = window.setTimeout(() => setMenuOpen(true), 500);
+  };
+  const cancelLongPress = () => {
+    if (longPressTimer.current) window.clearTimeout(longPressTimer.current);
+    longPressTimer.current = null;
+  };
+
   return (
     <div
-      className="relative group w-[66px] h-[66px] rounded-[7px] overflow-hidden"
+      className="relative group aspect-square rounded-[9px] overflow-hidden"
       style={{
-        background: isImage ? `center/cover no-repeat url(${file.thumbnail})` : "#12151780",
+        background: isImage
+          ? `center/cover no-repeat url(${file.thumbnail})`
+          : "#12151780",
         border: "1px solid #1F2224",
       }}
       title={file.file_name}
+      onTouchStart={startLongPress}
+      onTouchEnd={cancelLongPress}
+      onTouchMove={cancelLongPress}
     >
       <a
-        href={file.web_url}
+        href={file.onedrive_web_url}
         target="_blank"
-        rel="noreferrer"
-        className="absolute inset-0 flex items-center justify-center"
+        rel="noopener noreferrer"
+        className="absolute inset-0 flex items-center justify-center p-1"
       >
-        {!isImage && <GlyphView mime={file.mime_type} name={file.file_name} />}
+        {!isImage && <GlyphView name={file.file_name} />}
       </a>
+
+      {/* Cloud badge */}
       <div
         className="absolute inset-x-0 bottom-0 h-3 flex items-center justify-center pointer-events-none"
         style={{
@@ -274,75 +366,155 @@ function FileTile({ file, onDelete }: { file: OneDriveFile; onDelete: () => void
       >
         <Cloud className="h-2 w-2" style={{ color: "#3D89DA" }} />
       </div>
+
+      {/* Hover menu (desktop) */}
       <button
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          onDelete();
+          setMenuOpen((o) => !o);
         }}
-        className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+        className="hidden md:flex absolute top-0.5 right-0.5 w-5 h-5 rounded-full items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
         style={{ background: "rgba(0,0,0,0.75)", color: "#fff" }}
-        title="Delete"
+        title="More"
       >
-        <X className="h-2.5 w-2.5" />
+        <MoreHorizontal className="h-3 w-3" />
       </button>
+
+      {menuOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setMenuOpen(false);
+            }}
+          />
+          <div
+            className="absolute z-50 top-6 right-1 rounded-md border shadow-xl"
+            style={{ background: "#0A0A0A", borderColor: "#1F2224" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                setMenuOpen(false);
+                onDelete();
+              }}
+              className="px-2.5 py-1 text-[10.5px] font-mono uppercase tracking-widest hover:bg-white/[0.06] flex items-center gap-1"
+              style={{ color: "#E24B4A" }}
+            >
+              <X className="h-3 w-3" /> Delete
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-function GlyphView({ mime, name }: { mime: string; name: string }) {
-  const g = fileGlyph(mime, name);
+function GlyphView({ name }: { name: string }) {
+  const ext = fileExtLabel(name);
   return (
-    <div className="flex flex-col items-center justify-center text-center leading-tight">
+    <div className="flex flex-col items-center justify-center text-center leading-tight w-full">
       <div
-        className="text-[9px] font-mono uppercase tracking-widest"
-        style={{ color: "#B0B8BF" }}
-      >
-        {g.hint}
-      </div>
-      <div
-        className="text-[10px] font-mono"
+        className="text-[11px] font-mono font-semibold uppercase tracking-wider"
         style={{ color: "#E6EEF3" }}
       >
-        {g.label}
+        {ext}
+      </div>
+      <div
+        className="text-[9px] font-mono mt-0.5 w-full px-1"
+        style={{
+          color: "#B0B8BF",
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+        }}
+      >
+        {name}
       </div>
     </div>
   );
 }
 
-function PendingTileView({
+function ProgressRow({
   tile,
   onRetry,
+  onDismiss,
 }: {
   tile: PendingTile;
   onRetry: () => void;
+  onDismiss: () => void;
 }) {
   if (tile.state === "error") {
     return (
-      <button
-        onClick={onRetry}
-        className="w-[66px] h-[66px] rounded-[7px] flex flex-col items-center justify-center text-center px-1"
-        style={{
-          background: "#EF444422",
-          border: "1px solid #EF4444",
-          color: "#EF4444",
-        }}
-        title={`Retry ${tile.file.name}`}
+      <div
+        className="flex items-center gap-2 px-2 py-1.5 rounded-md"
+        style={{ background: "#E24B4A14", border: "1px solid #E24B4A55" }}
       >
-        <span className="text-[9px] font-mono uppercase tracking-widest">Retry</span>
-        <span className="text-[8.5px] font-mono truncate w-[58px]">
-          {tile.file.name}
-        </span>
-      </button>
+        <div className="min-w-0 flex-1">
+          <div
+            className="text-[11px] font-mono truncate"
+            style={{ color: "#E24B4A" }}
+          >
+            {tile.file.name}
+          </div>
+          <div
+            className="text-[10px] font-mono truncate"
+            style={{ color: "#E24B4A" }}
+          >
+            {tile.error ?? "Upload failed"}
+          </div>
+        </div>
+        <button
+          onClick={onRetry}
+          className="text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 rounded-sm"
+          style={{ background: "#3D89DA", color: "#fff" }}
+        >
+          Retry
+        </button>
+        <button
+          onClick={onDismiss}
+          className="text-muted-foreground hover:text-foreground"
+          title="Dismiss"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      </div>
     );
   }
   return (
     <div
-      className="w-[66px] h-[66px] rounded-[7px] flex items-center justify-center"
+      className="flex items-center gap-2 px-2 py-1.5 rounded-md"
       style={{ background: "#12151780", border: "1px solid #1F2224" }}
-      title={`Uploading ${tile.file.name}`}
     >
-      <Loader2 className="h-4 w-4 animate-spin" style={{ color: "#3D89DA" }} />
+      <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" style={{ color: "#3D89DA" }} />
+      <div className="min-w-0 flex-1">
+        <div className="text-[11px] font-mono truncate" style={{ color: "#E6EEF3" }}>
+          {tile.file.name}
+        </div>
+        <div className="mt-1 h-[3px] rounded-full overflow-hidden" style={{ background: "#1F2224" }}>
+          <div
+            className="h-full w-1/3 rounded-full"
+            style={{
+              background: "#3D89DA",
+              animation: "tt-indeterminate 1.2s ease-in-out infinite",
+            }}
+          />
+        </div>
+      </div>
+      <div className="text-[10px] font-mono shrink-0" style={{ color: "#B0B8BF" }}>
+        {fmtMB(tile.file.size)}
+      </div>
+      <style>{`
+        @keyframes tt-indeterminate {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(300%); }
+        }
+      `}</style>
     </div>
   );
 }
