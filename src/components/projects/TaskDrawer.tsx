@@ -6,6 +6,7 @@ import { DATE_RULE_LABELS, DATE_RULE_SHORT, formatDateShort } from "@/lib/projec
 import { useRole } from "@/hooks/useRole";
 import { useIsPmMobile, useProjectDetail } from "@/hooks/useProjects";
 import { ProjectCalcTable, TABLE_LABEL, TABLE_OFFICE_ONLY } from "@/components/projects/tables";
+import { ForecastSnapshot } from "@/components/projects/tables/ForecastSnapshot";
 import { FilesSection } from "@/components/projects/FilesSection";
 import { cn } from "@/lib/utils";
 
@@ -244,10 +245,22 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
               </div>
             </Section>
 
-            {/* TABLE SECTION — only when calc_table set and role permits */}
+            {/* TABLE SECTION — only when calc_table set and role permits.
+                forecast_snapshot is a read-only view rendered by ForecastSnapshot
+                rather than the generic ProjectCalcTable dispatcher. */}
             {(() => {
               const kind = task.calc_table;
               if (!kind) return null;
+
+              if (kind === "forecast_snapshot") {
+                if (role !== "office") return null;
+                return (
+                  <Section title="Budget & Forecast">
+                    <ForecastSnapshot projectId={task.project_id} />
+                  </Section>
+                );
+              }
+
               const officeOnly = TABLE_OFFICE_ONLY.has(kind);
               if (officeOnly && role !== "office") return null;
               return (
