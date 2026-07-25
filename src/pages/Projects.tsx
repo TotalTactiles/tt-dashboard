@@ -101,7 +101,7 @@ function ProjectsInner() {
         <ProjectRail
           activeProjectId={projectId}
           onSelect={setProjectId}
-          onOpen={() => isMobile && setMobileView("detail")}
+          onOpen={handleRailOpen}
           fullWidth={isMobile}
         />
       )}
