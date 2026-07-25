@@ -520,6 +520,100 @@ export type Database = {
           },
         ]
       }
+      project_forecast_snapshots: {
+        Row: {
+          captured_at: string
+          captured_reason: string
+          contract_value: number | null
+          due_month: string | null
+          gp_percent: number | null
+          gross_margin: number | null
+          id: string
+          invoice_month: string | null
+          labour_cost: number | null
+          labour_month: string | null
+          note: string | null
+          other_cost: number | null
+          other_month: string | null
+          project_id: string
+          snapshot_type: string
+          source_row: Json | null
+          tactile_cost: number | null
+          tactile_month: string | null
+          tactile_rem_month: string | null
+          total_cogs: number | null
+          zoho_deal_id: string | null
+        }
+        Insert: {
+          captured_at?: string
+          captured_reason: string
+          contract_value?: number | null
+          due_month?: string | null
+          gp_percent?: number | null
+          gross_margin?: number | null
+          id?: string
+          invoice_month?: string | null
+          labour_cost?: number | null
+          labour_month?: string | null
+          note?: string | null
+          other_cost?: number | null
+          other_month?: string | null
+          project_id: string
+          snapshot_type: string
+          source_row?: Json | null
+          tactile_cost?: number | null
+          tactile_month?: string | null
+          tactile_rem_month?: string | null
+          total_cogs?: number | null
+          zoho_deal_id?: string | null
+        }
+        Update: {
+          captured_at?: string
+          captured_reason?: string
+          contract_value?: number | null
+          due_month?: string | null
+          gp_percent?: number | null
+          gross_margin?: number | null
+          id?: string
+          invoice_month?: string | null
+          labour_cost?: number | null
+          labour_month?: string | null
+          note?: string | null
+          other_cost?: number | null
+          other_month?: string | null
+          project_id?: string
+          snapshot_type?: string
+          source_row?: Json | null
+          tactile_cost?: number | null
+          tactile_month?: string | null
+          tactile_rem_month?: string | null
+          total_cogs?: number | null
+          zoho_deal_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_forecast_snapshots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_forecast_snapshots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_accessory_pool"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_forecast_snapshots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_progress"
+            referencedColumns: ["project_id"]
+          },
+        ]
+      }
       project_templates: {
         Row: {
           active: boolean
@@ -1272,6 +1366,55 @@ export type Database = {
           },
           {
             foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_progress"
+            referencedColumns: ["project_id"]
+          },
+        ]
+      }
+      v_project_forecast: {
+        Row: {
+          captured_reason: string | null
+          contract_value: number | null
+          due_month: string | null
+          effective_captured_at: string | null
+          effective_type: string | null
+          gp_percent: number | null
+          gross_margin: number | null
+          invoice_month: string | null
+          labour_cost: number | null
+          labour_month: string | null
+          original_captured_at: string | null
+          original_contract_value: number | null
+          original_gross_margin: number | null
+          original_total_cogs: number | null
+          other_cost: number | null
+          other_month: string | null
+          project_id: string | null
+          tactile_cost: number | null
+          tactile_month: string | null
+          tactile_rem_month: string | null
+          total_cogs: number | null
+          zoho_deal_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_forecast_snapshots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_forecast_snapshots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_accessory_pool"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_forecast_snapshots_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "v_project_progress"
