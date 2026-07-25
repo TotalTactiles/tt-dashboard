@@ -451,8 +451,10 @@ function StatCard({ label, value, sub, icon, action, accent, mobile }: StatProps
 function EstStartCard({
   project,
   canEdit,
+  locked,
   unsync,
   onEdit,
+  onLocked,
   onRetry,
   mobile,
 }: {
@@ -463,8 +465,10 @@ function EstStartCard({
     zoho_deal_id: string | null;
   };
   canEdit: boolean;
+  locked?: boolean;
   unsync: UnsyncEntry | null;
   onEdit: () => void;
+  onLocked?: () => void;
   onRetry: () => void;
   mobile?: boolean;
 }) {
@@ -474,15 +478,16 @@ function EstStartCard({
     : undefined;
 
   const label = "Est. Start";
+  const interactive = canEdit || locked;
   const editableStyle: React.CSSProperties = canEdit
-    ? {
-        cursor: "pointer",
-        transition: "border-color 120ms ease",
-      }
-    : {};
+    ? { cursor: "pointer", transition: "border-color 120ms ease" }
+    : locked
+      ? { cursor: "not-allowed" }
+      : {};
 
   const handleClick = () => {
     if (canEdit) onEdit();
+    else if (locked) onLocked?.();
   };
 
   const handleKey = (e: React.KeyboardEvent) => {
