@@ -49,7 +49,20 @@ function ProjectsInner() {
     [isMobile, columns],
   );
 
-  const bump = () => setRefreshTick((t) => t + 1);
+  const bump = useCallback(() => setRefreshTick((t) => t + 1), []);
+  const handleChanged = useCallback(() => {
+    bump();
+    refresh();
+  }, [bump, refresh]);
+  const handleRailOpen = useCallback(() => {
+    if (isMobile) setMobileView("detail");
+  }, [isMobile]);
+  const handleTaskOpen = useCallback((id: string) => setOpenTaskId(id), []);
+  const handleDrawerClose = useCallback(() => setOpenTaskId(null), []);
+  const handleToggle = useCallback(
+    (t: typeof tasks[number]) => toggleTaskStatus(t.id, t.status),
+    [toggleTaskStatus],
+  );
 
   const { pct, total, done, open } = useMemo(() => {
     const countable = tasks.filter((t) => !t.office_only);
