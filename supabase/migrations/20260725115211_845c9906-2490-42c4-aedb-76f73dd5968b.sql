@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS projects_name_unique_ci ON projects (lower(trim(name)));
