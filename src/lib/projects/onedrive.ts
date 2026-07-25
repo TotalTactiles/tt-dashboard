@@ -58,30 +58,57 @@ function readAsBase64(file: File): Promise<string> {
   });
 }
 
-async function callWebhook(path: string, body: unknown): Promise<any> {
-  let res: Response;
-  try {
-    res = await fetch(`${BASE}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+// Module-level in-flight registry. If two callers fire the same webhook with
+// the same signature before the first resolves, they share the promise instead
+// of hitting the network twice. Bounds damage from any future render loop.
+const inflight = new Map<string, Promise<any>>();
+
+async function callWebhook(
+  path: string,
+  body: unknown,
+  opts?: { dedupeKey?: string; signal?: AbortSignal },
+): Promise<any> {
+  const key = opts?.dedupeKey;
+  if (key) {
+    const existing = inflight.get(key);
+    if (existing) return existing;
+  }
+
+  const run = (async () => {
+    let res: Response;
+    try {
+      res = await fetch(`${BASE}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: opts?.signal,
+      });
+    } catch (e: any) {
+      if (e?.name === "AbortError") throw e;
+      throw new Error(e?.message ?? "Network error");
+    }
+    let data: any = null;
+    try {
+      data = await res.json();
+    } catch {
+      /* fall through */
+    }
+    if (!res.ok) {
+      const msg = data?.FATAL || data?.error || `Request failed (${res.status})`;
+      throw new Error(msg);
+    }
+    if (data?.FATAL) throw new Error(String(data.FATAL));
+    if (data?.ok !== true) throw new Error("Server did not confirm success");
+    return data;
+  })();
+
+  if (key) {
+    inflight.set(key, run);
+    run.finally(() => {
+      if (inflight.get(key) === run) inflight.delete(key);
     });
-  } catch (e: any) {
-    throw new Error(e?.message ?? "Network error");
   }
-  let data: any = null;
-  try {
-    data = await res.json();
-  } catch {
-    /* fall through */
-  }
-  if (!res.ok) {
-    const msg = data?.FATAL || data?.error || `Request failed (${res.status})`;
-    throw new Error(msg);
-  }
-  if (data?.FATAL) throw new Error(String(data.FATAL));
-  if (data?.ok !== true) throw new Error("Server did not confirm success");
-  return data;
+  return run;
 }
 
 export async function uploadFile(args: {
