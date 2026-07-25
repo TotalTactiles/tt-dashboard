@@ -218,13 +218,17 @@ export function DateCascadeModal({ projectId, currentEstStart, contractValue, on
             >
             {(() => {
               const total = preview.length;
-              const changing = preview.filter((r) => !r.skipped).length;
+              const changing = preview.filter(
+                (r) => !r.skipped && (r.old_start !== r.new_start || r.old_end !== r.new_end),
+              ).length;
               const label =
                 total === 0
                   ? "Preview"
-                  : changing === total
-                    ? `Preview · ${total} tasks change`
-                    : `Preview · ${changing} of ${total} tasks change`;
+                  : changing === 0
+                    ? "Preview · No dates change"
+                    : changing === total
+                      ? `Preview · ${total} tasks change`
+                      : `Preview · ${changing} of ${total} tasks change`;
               return label;
             })()}
             </div>
