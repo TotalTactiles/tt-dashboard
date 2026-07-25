@@ -197,7 +197,7 @@ function ProjectsInner() {
                 projectStart={project?.project_start ?? null}
                 projectEnd={project?.project_end ?? null}
                 estStart={project?.estimated_start ?? null}
-                onTaskClick={setOpenTaskId}
+                onTaskClick={handleTaskOpen}
               />
 
               <ViewsBar
