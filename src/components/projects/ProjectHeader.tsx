@@ -73,7 +73,8 @@ export function ProjectHeader({
   const done = doneTasks ?? agg.done_tasks;
   const open = openTasks ?? agg.open_tasks;
 
-  const canEdit = role === "office";
+  const isCompleted = project.status === "completed";
+  const canEdit = role === "office" && !isCompleted;
   const unsync = unsyncMap.get(project.id) ?? null;
 
   const pushZoho = async (estimatedStart: string) => {
@@ -119,8 +120,10 @@ export function ProjectHeader({
   const estStartCardProps = {
     project,
     canEdit,
+    locked: role === "office" && isCompleted,
     unsync,
     onEdit: () => setCascadeOpen(true),
+    onLocked: () => toast("Locked — deal completed"),
     onRetry: retryZoho,
   };
 
@@ -321,6 +324,7 @@ export function ProjectHeader({
         <DateCascadeModal
           projectId={projectId}
           currentEstStart={project.estimated_start}
+          contractValue={financials?.contract_value ?? null}
           onClose={() => setCascadeOpen(false)}
           onApplied={() => {
             setCascadeOpen(false);
@@ -447,8 +451,10 @@ function StatCard({ label, value, sub, icon, action, accent, mobile }: StatProps
 function EstStartCard({
   project,
   canEdit,
+  locked,
   unsync,
   onEdit,
+  onLocked,
   onRetry,
   mobile,
 }: {
@@ -459,8 +465,10 @@ function EstStartCard({
     zoho_deal_id: string | null;
   };
   canEdit: boolean;
+  locked?: boolean;
   unsync: UnsyncEntry | null;
   onEdit: () => void;
+  onLocked?: () => void;
   onRetry: () => void;
   mobile?: boolean;
 }) {
@@ -470,15 +478,16 @@ function EstStartCard({
     : undefined;
 
   const label = "Est. Start";
+  const interactive = canEdit || locked;
   const editableStyle: React.CSSProperties = canEdit
-    ? {
-        cursor: "pointer",
-        transition: "border-color 120ms ease",
-      }
-    : {};
+    ? { cursor: "pointer", transition: "border-color 120ms ease" }
+    : locked
+      ? { cursor: "not-allowed" }
+      : {};
 
   const handleClick = () => {
     if (canEdit) onEdit();
+    else if (locked) onLocked?.();
   };
 
   const handleKey = (e: React.KeyboardEvent) => {
@@ -512,9 +521,10 @@ function EstStartCard({
   if (mobile) {
     return (
       <div
-        role={canEdit ? "button" : undefined}
+        role={interactive ? "button" : undefined}
         tabIndex={canEdit ? 0 : undefined}
-        aria-label={canEdit ? "Edit estimated start" : undefined}
+        aria-label={canEdit ? "Edit estimated start" : locked ? "Locked — deal completed" : undefined}
+        title={locked ? "Locked — deal completed" : undefined}
         onClick={handleClick}
         onKeyDown={handleKey}
         className={`snap-start flex-none min-w-[104px] max-w-[132px] rounded-[10px] border relative ${
@@ -567,9 +577,10 @@ function EstStartCard({
 
   return (
     <div
-      role={canEdit ? "button" : undefined}
+      role={interactive ? "button" : undefined}
       tabIndex={canEdit ? 0 : undefined}
-      aria-label={canEdit ? "Edit estimated start" : undefined}
+      aria-label={canEdit ? "Edit estimated start" : locked ? "Locked — deal completed" : undefined}
+      title={locked ? "Locked — deal completed" : undefined}
       onClick={handleClick}
       onKeyDown={handleKey}
       className={`rounded-md border px-3 py-2.5 relative ${

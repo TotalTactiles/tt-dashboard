@@ -8,6 +8,7 @@ const db = supabase as any;
 interface Props {
   projectId: string;
   currentEstStart: string | null;
+  contractValue?: number | null;
   onClose: () => void;
   onApplied: () => void;
 }
@@ -22,7 +23,7 @@ interface Preview {
   skipped: boolean;
 }
 
-export function DateCascadeModal({ projectId, currentEstStart, onClose, onApplied }: Props) {
+export function DateCascadeModal({ projectId, currentEstStart, contractValue, onClose, onApplied }: Props) {
   const [newStart, setNewStart] = useState(currentEstStart ?? "");
   const [preview, setPreview] = useState<Preview[]>([]);
   const [loading, setLoading] = useState(false);
@@ -126,6 +127,45 @@ export function DateCascadeModal({ projectId, currentEstStart, onClose, onApplie
               </div>
             </div>
           </div>
+
+          {(() => {
+            if (!currentEstStart || !newStart) return null;
+            const cur = new Date(currentEstStart);
+            const nxt = new Date(newStart);
+            if (isNaN(cur.getTime()) || isNaN(nxt.getTime())) return null;
+            if (cur.getFullYear() === nxt.getFullYear() && cur.getMonth() === nxt.getMonth()) {
+              return null;
+            }
+            const fmtMonth = (d: Date) =>
+              d.toLocaleString("en-US", { month: "short", year: "numeric" }).toUpperCase();
+            const oldM = fmtMonth(cur);
+            const newM = fmtMonth(nxt);
+            const amount =
+              contractValue != null
+                ? `$${contractValue.toLocaleString("en-AU", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}`
+                : null;
+            return (
+              <div
+                className="rounded-md border p-3"
+                style={{ borderColor: "#BA7517", background: "rgba(186,117,23,0.08)" }}
+              >
+                <div
+                  className="text-[10px] font-mono uppercase tracking-widest mb-1"
+                  style={{ color: "#BA7517" }}
+                >
+                  Forecast revenue will move
+                </div>
+                <div className="text-[12px]" style={{ color: "#E6EEF3" }}>
+                  {amount
+                    ? `${amount} moves from ${oldM} to ${newM}`
+                    : `Forecast revenue for this project will move from ${oldM} to ${newM}`}
+                </div>
+              </div>
+            );
+          })()}
 
           <div
             className="rounded-md border overflow-hidden"
