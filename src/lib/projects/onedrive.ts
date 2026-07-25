@@ -6,6 +6,9 @@
 //      no `ok` key. Treat only `ok === true` as success; surface FATAL as error.
 //   2. The list endpoint returns `web_url`; upload returns `onedrive_web_url`.
 //      Normalise both to `onedrive_web_url` here so components never care.
+//   3. Small files (≤ 4 MB) go via /onedrive-upload as base64. Large files use
+//      /onedrive-create-session to get a pre-authenticated Graph upload URL and
+//      PUT raw Blob slices directly to Microsoft — bypassing the n8n VPS.
 
 const BASE = "https://n8n.srv1437130.hstgr.cloud/webhook";
 
@@ -27,6 +30,18 @@ export interface UploadedFile {
   size_bytes: number;
   mime_type: string;
   chunked?: boolean;
+}
+
+interface UploadSession {
+  ok: true;
+  upload_url: string;
+  expires: string;
+  chunk_size: number;
+  file_name: string;
+  mime_type: string;
+  path: string;
+  project_id: string;
+  task_id: string;
 }
 
 function readAsBase64(file: File): Promise<string> {
@@ -93,6 +108,131 @@ export async function uploadFile(args: {
     size_bytes: data.size_bytes,
     mime_type: data.mime_type,
     chunked: !!data.chunked,
+  };
+}
+
+async function createUploadSession(args: {
+  projectName: string;
+  taskName: string;
+  projectId: string;
+  taskId: string;
+  file: File;
+}): Promise<UploadSession> {
+  const data = await callWebhook("/onedrive-create-session", {
+    project_name: args.projectName,
+    task_name: args.taskName,
+    file_name: args.file.name,
+    mime_type: args.file.type || "application/octet-stream",
+    project_id: args.projectId,
+    task_id: args.taskId,
+  });
+  return data as UploadSession;
+}
+
+// Large-file path: PUT raw Blob slices to a pre-authenticated Microsoft URL.
+// Never send Authorization (URL is pre-signed) and never set Content-Type
+// (that breaks Graph range uploads). Never base64 the slice — the whole point
+// of this path is streaming the raw bytes without VPS memory pressure.
+export async function uploadLargeFile(args: {
+  projectName: string;
+  taskName: string;
+  projectId: string;
+  taskId: string;
+  file: File;
+  onProgress?: (bytesSent: number, totalBytes: number) => void;
+  signal?: AbortSignal;
+}): Promise<UploadedFile> {
+  const session = await createUploadSession({
+    projectName: args.projectName,
+    taskName: args.taskName,
+    projectId: args.projectId,
+    taskId: args.taskId,
+    file: args.file,
+  });
+
+  const total = args.file.size;
+  // Graph requires chunks to be multiples of 320 KiB; the session dictates this.
+  const CHUNK = session.chunk_size;
+  let offset = 0;
+  let finalItem: any = null;
+
+  while (offset < total) {
+    if (args.signal?.aborted) throw new Error("Upload cancelled");
+
+    const end = Math.min(offset + CHUNK, total) - 1;
+    const slice = args.file.slice(offset, end + 1);
+
+    let attempt = 0;
+    let putRes: Response | null = null;
+    let lastErr: any = null;
+
+    while (attempt < 3) {
+      try {
+        putRes = await fetch(session.upload_url, {
+          method: "PUT",
+          headers: {
+            "Content-Range": `bytes ${offset}-${end}/${total}`,
+          },
+          body: slice,
+          signal: args.signal,
+        });
+        if (putRes.status === 404) {
+          throw new Error("Upload session expired — please retry");
+        }
+        // Retry on 5xx / 429
+        if (putRes.status >= 500 || putRes.status === 429) {
+          throw new Error(`Chunk failed (${putRes.status})`);
+        }
+        break;
+      } catch (e: any) {
+        if (args.signal?.aborted) throw new Error("Upload cancelled");
+        if (String(e?.message ?? "").includes("session expired")) throw e;
+        lastErr = e;
+        attempt += 1;
+        if (attempt >= 3) throw new Error(lastErr?.message ?? "Chunk upload failed");
+        await new Promise((r) => setTimeout(r, [1000, 2000, 4000][attempt - 1]));
+      }
+    }
+
+    if (!putRes) throw new Error(lastErr?.message ?? "Chunk upload failed");
+
+    if (putRes.status === 200 || putRes.status === 201) {
+      // Final chunk — response is the DriveItem
+      finalItem = await putRes.json().catch(() => null);
+      offset = total;
+      args.onProgress?.(total, total);
+      break;
+    }
+
+    // 202 Accepted — parse nextExpectedRanges to compute next offset (allows
+    // a partially-failed chunk to resume at the right byte).
+    let nextOffset = end + 1;
+    try {
+      const body = await putRes.json();
+      const ranges: string[] = body?.nextExpectedRanges ?? [];
+      if (ranges.length > 0) {
+        const first = ranges[0].split("-")[0];
+        const parsed = parseInt(first, 10);
+        if (!Number.isNaN(parsed)) nextOffset = parsed;
+      }
+    } catch {
+      /* fall through to sequential */
+    }
+    offset = nextOffset;
+    args.onProgress?.(offset, total);
+  }
+
+  if (!finalItem || !finalItem.id) {
+    throw new Error("Upload completed but server did not return a file");
+  }
+
+  return {
+    onedrive_item_id: finalItem.id,
+    onedrive_web_url: finalItem.webUrl,
+    file_name: finalItem.name ?? args.file.name,
+    size_bytes: finalItem.size ?? total,
+    mime_type: args.file.type || "application/octet-stream",
+    chunked: true,
   };
 }
 
