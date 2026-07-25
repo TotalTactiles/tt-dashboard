@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { RoleProvider, useRole } from "@/hooks/useRole";
 import { ProjectRail } from "@/components/projects/ProjectRail";
