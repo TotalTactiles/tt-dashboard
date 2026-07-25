@@ -120,8 +120,10 @@ export function ProjectHeader({
   const estStartCardProps = {
     project,
     canEdit,
+    locked: role === "office" && isCompleted,
     unsync,
     onEdit: () => setCascadeOpen(true),
+    onLocked: () => toast("Locked — deal completed"),
     onRetry: retryZoho,
   };
 
