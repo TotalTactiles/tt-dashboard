@@ -1,12 +1,18 @@
 // OneDrive integration via n8n webhooks.
-// The dashboard NEVER talks to OneDrive directly — only these four endpoints.
+// The dashboard NEVER talks to OneDrive directly — only these endpoints.
+//
+// Contract quirks handled at this boundary:
+//   1. Failures do NOT return { ok: false } — they return { FATAL: "..." } with
+//      no `ok` key. Treat only `ok === true` as success; surface FATAL as error.
+//   2. The list endpoint returns `web_url`; upload returns `onedrive_web_url`.
+//      Normalise both to `onedrive_web_url` here so components never care.
 
 const BASE = "https://n8n.srv1437130.hstgr.cloud/webhook";
 
 export interface OneDriveFile {
   onedrive_item_id: string;
   file_name: string;
-  web_url: string;
+  onedrive_web_url: string;
   size_bytes: number;
   is_image: boolean;
   mime_type: string;
@@ -20,6 +26,7 @@ export interface UploadedFile {
   file_name: string;
   size_bytes: number;
   mime_type: string;
+  chunked?: boolean;
 }
 
 function readAsBase64(file: File): Promise<string> {
@@ -27,12 +34,39 @@ function readAsBase64(file: File): Promise<string> {
     const r = new FileReader();
     r.onload = () => {
       const s = String(r.result ?? "");
+      // Strip `data:<mime>;base64,` prefix — webhook needs the raw payload only.
       const i = s.indexOf(",");
       resolve(i >= 0 ? s.slice(i + 1) : s);
     };
     r.onerror = () => reject(r.error);
     r.readAsDataURL(file);
   });
+}
+
+async function callWebhook(path: string, body: unknown): Promise<any> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch (e: any) {
+    throw new Error(e?.message ?? "Network error");
+  }
+  let data: any = null;
+  try {
+    data = await res.json();
+  } catch {
+    /* fall through */
+  }
+  if (!res.ok) {
+    const msg = data?.FATAL || data?.error || `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+  if (data?.FATAL) throw new Error(String(data.FATAL));
+  if (data?.ok !== true) throw new Error("Server did not confirm success");
+  return data;
 }
 
 export async function uploadFile(args: {
@@ -43,28 +77,22 @@ export async function uploadFile(args: {
   file: File;
 }): Promise<UploadedFile> {
   const file_base64 = await readAsBase64(args.file);
-  const res = await fetch(`${BASE}/onedrive-upload`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      project_name: args.projectName,
-      task_name: args.taskName,
-      file_name: args.file.name,
-      file_base64,
-      mime_type: args.file.type || "application/octet-stream",
-      project_id: args.projectId,
-      task_id: args.taskId,
-    }),
+  const data = await callWebhook("/onedrive-upload", {
+    project_name: args.projectName,
+    task_name: args.taskName,
+    file_name: args.file.name,
+    file_base64,
+    mime_type: args.file.type || "application/octet-stream",
+    project_id: args.projectId,
+    task_id: args.taskId,
   });
-  if (!res.ok) throw new Error(`Upload failed (${res.status})`);
-  const data = await res.json();
-  if (!data?.ok) throw new Error("Upload rejected by server");
   return {
     onedrive_item_id: data.onedrive_item_id,
     onedrive_web_url: data.onedrive_web_url,
     file_name: data.file_name,
     size_bytes: data.size_bytes,
     mime_type: data.mime_type,
+    chunked: !!data.chunked,
   };
 }
 
@@ -72,37 +100,32 @@ export async function listFiles(args: {
   projectName: string;
   taskName: string;
 }): Promise<OneDriveFile[]> {
-  const res = await fetch(`${BASE}/onedrive-list`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      project_name: args.projectName,
-      task_name: args.taskName,
-    }),
+  const data = await callWebhook("/onedrive-list", {
+    project_name: args.projectName,
+    task_name: args.taskName,
   });
-  if (!res.ok) throw new Error(`List failed (${res.status})`);
-  const data = await res.json();
-  if (!data?.ok) throw new Error("List rejected by server");
-  return (data.files ?? []) as OneDriveFile[];
+  const raw = (data.files ?? []) as Array<Record<string, any>>;
+  // Normalise `web_url` → `onedrive_web_url` at the client boundary.
+  return raw.map((f) => ({
+    onedrive_item_id: f.onedrive_item_id,
+    file_name: f.file_name,
+    onedrive_web_url: f.onedrive_web_url ?? f.web_url ?? "",
+    size_bytes: f.size_bytes ?? 0,
+    is_image: !!f.is_image,
+    mime_type: f.mime_type ?? "application/octet-stream",
+    thumbnail: f.thumbnail ?? null,
+    modified: f.modified ?? "",
+  }));
 }
 
 export async function deleteFile(onedriveItemId: string): Promise<void> {
-  const res = await fetch(`${BASE}/onedrive-delete`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ onedrive_item_id: onedriveItemId }),
+  const data = await callWebhook("/onedrive-delete", {
+    onedrive_item_id: onedriveItemId,
   });
-  if (!res.ok) throw new Error(`Delete failed (${res.status})`);
-  const data = await res.json();
-  if (!data?.ok || !data?.deleted) throw new Error("Delete rejected by server");
+  if (!data.deleted) throw new Error("Delete rejected by server");
 }
 
-export function fileGlyph(mime: string, name: string): { label: string; hint: string } {
+export function fileExtLabel(name: string): string {
   const ext = (name.split(".").pop() ?? "").toLowerCase();
-  if (mime.startsWith("video/")) return { label: `.${ext || "mp4"}`, hint: "video" };
-  if (mime === "application/pdf" || ext === "pdf") return { label: ".pdf", hint: "pdf" };
-  if (ext === "dwg" || ext === "dxf") return { label: `.${ext}`, hint: "cad" };
-  if (ext === "docx" || ext === "doc") return { label: `.${ext}`, hint: "doc" };
-  if (ext === "xlsx" || ext === "xls") return { label: `.${ext}`, hint: "sheet" };
-  return { label: `.${ext || "file"}`, hint: "file" };
+  return ext ? ext.toUpperCase() : "FILE";
 }
