@@ -23,7 +23,37 @@ interface Preview {
   skipped: boolean;
 }
 
-export function DateCascadeModal({ projectId, currentEstStart, contractValue, onClose, onApplied }: Props) {
+function DatePairCell({
+  oldValue,
+  newValue,
+  skipped,
+}: {
+  oldValue: string | null;
+  newValue: string | null;
+  skipped: boolean;
+}) {
+  if (skipped) {
+    return (
+      <div
+        className="text-[11px] font-mono"
+        style={{ color: "rgba(229,233,234,0.45)" }}
+      >
+        {formatDateShort(oldValue)}
+      </div>
+    );
+  }
+  return (
+    <div className="text-[11px] font-mono flex items-center gap-1.5">
+      <span style={{ color: "rgba(229,233,234,0.45)" }}>
+        {formatDateShort(oldValue)}
+      </span>
+      <span style={{ color: "rgba(229,233,234,0.28)" }}>→</span>
+      <span className="font-medium" style={{ color: "#BA7517" }}>
+        {formatDateShort(newValue)}
+      </span>
+    </div>
+  );
+}
   const [newStart, setNewStart] = useState(currentEstStart ?? "");
   const [preview, setPreview] = useState<Preview[]>([]);
   const [loading, setLoading] = useState(false);
