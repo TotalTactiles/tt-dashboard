@@ -249,8 +249,8 @@ function ProjectsInner() {
       {openTaskId && (
         <TaskDrawer
           taskId={openTaskId}
-          onClose={() => setOpenTaskId(null)}
-          onChanged={() => { refresh(); bump(); }}
+          onClose={handleDrawerClose}
+          onChanged={handleChanged}
         />
       )}
     </div>
