@@ -59,6 +59,15 @@ export function FilesSection({
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Keep the latest onCountChange in a ref so callers can pass an inline
+  // function without forcing `load` to change identity and re-running the
+  // load effect on every parent render (which would refetch OneDrive in a
+  // loop and trigger the parent's onChanged -> refresh -> re-render cycle).
+  const onCountChangeRef = useRef(onCountChange);
+  useEffect(() => {
+    onCountChangeRef.current = onCountChange;
+  }, [onCountChange]);
+
   const namesOk =
     projectName.trim().length > 0 && taskName.trim().length > 0;
 
@@ -72,12 +81,12 @@ export function FilesSection({
     try {
       const r = await listFiles({ projectName, taskName });
       setFiles(r);
-      onCountChange?.(r.length);
+      onCountChangeRef.current?.(r.length);
     } catch (e: any) {
       setLoadError(e?.message ?? "Failed to list files");
       setFiles([]);
     }
-  }, [projectName, taskName, onCountChange, namesOk]);
+  }, [projectName, taskName, namesOk]);
 
   useEffect(() => {
     load();
@@ -220,7 +229,7 @@ export function FilesSection({
     if (!window.confirm(`Delete ${f.file_name}?`)) return;
     const prev = files ?? [];
     setFiles(prev.filter((x) => x.onedrive_item_id !== f.onedrive_item_id));
-    onCountChange?.(Math.max(0, prev.length - 1));
+    onCountChangeRef.current?.(Math.max(0, prev.length - 1));
     try {
       await deleteFile(f.onedrive_item_id);
       try {
@@ -233,7 +242,7 @@ export function FilesSection({
       }
     } catch (e: any) {
       setFiles(prev);
-      onCountChange?.(prev.length);
+      onCountChangeRef.current?.(prev.length);
       toast.error(`Couldn't delete ${f.file_name}: ${e?.message ?? ""}`);
     }
   };
