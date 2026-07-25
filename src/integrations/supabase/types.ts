@@ -96,6 +96,13 @@ export type Database = {
             foreignKeyName: "accessory_usage_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "v_project_labour_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "accessory_usage_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "v_project_progress"
             referencedColumns: ["project_id"]
           },
@@ -425,6 +432,13 @@ export type Database = {
             foreignKeyName: "invoices_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "v_project_labour_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "v_project_progress"
             referencedColumns: ["project_id"]
           },
@@ -509,6 +523,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: true
             referencedRelation: "v_accessory_pool"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_financials_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "v_project_labour_actual"
             referencedColumns: ["project_id"]
           },
           {
@@ -603,6 +624,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "v_accessory_pool"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_forecast_snapshots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_labour_actual"
             referencedColumns: ["project_id"]
           },
           {
@@ -817,6 +845,13 @@ export type Database = {
             foreignKeyName: "scope_lines_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "v_project_labour_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "scope_lines_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "v_project_progress"
             referencedColumns: ["project_id"]
           },
@@ -883,6 +918,13 @@ export type Database = {
             foreignKeyName: "stock_orders_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "v_project_labour_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "stock_orders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "v_project_progress"
             referencedColumns: ["project_id"]
           },
@@ -923,6 +965,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "v_accessory_pool"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "stock_planning_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_labour_actual"
             referencedColumns: ["project_id"]
           },
           {
@@ -987,6 +1036,13 @@ export type Database = {
             foreignKeyName: "stock_reconciliation_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "v_project_labour_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "stock_reconciliation_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "v_project_progress"
             referencedColumns: ["project_id"]
           },
@@ -1024,6 +1080,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "v_accessory_pool"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "task_lists_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_labour_actual"
             referencedColumns: ["project_id"]
           },
           {
@@ -1147,6 +1210,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "v_accessory_pool"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_labour_actual"
             referencedColumns: ["project_id"]
           },
           {
@@ -1304,6 +1374,13 @@ export type Database = {
             foreignKeyName: "time_entries_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "v_project_labour_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "time_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "v_project_progress"
             referencedColumns: ["project_id"]
           },
@@ -1368,6 +1445,13 @@ export type Database = {
             foreignKeyName: "tasks_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "v_project_labour_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "v_project_progress"
             referencedColumns: ["project_id"]
           },
@@ -1417,6 +1501,13 @@ export type Database = {
             foreignKeyName: "project_forecast_snapshots_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "v_project_labour_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "project_forecast_snapshots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "v_project_progress"
             referencedColumns: ["project_id"]
           },
@@ -1447,10 +1538,29 @@ export type Database = {
             foreignKeyName: "time_entries_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "v_project_labour_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "time_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "v_project_progress"
             referencedColumns: ["project_id"]
           },
         ]
+      }
+      v_project_labour_actual: {
+        Row: {
+          actual_cost: number | null
+          entry_count: number | null
+          hours_without_rate: number | null
+          last_entry_date: string | null
+          project_id: string | null
+          total_hours: number | null
+          zoho_deal_id: string | null
+        }
+        Relationships: []
       }
       v_project_progress: {
         Row: {
@@ -1505,6 +1615,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "v_accessory_pool"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "stock_reconciliation_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_labour_actual"
             referencedColumns: ["project_id"]
           },
           {
