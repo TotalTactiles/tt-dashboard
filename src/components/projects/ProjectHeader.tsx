@@ -73,7 +73,8 @@ export function ProjectHeader({
   const done = doneTasks ?? agg.done_tasks;
   const open = openTasks ?? agg.open_tasks;
 
-  const canEdit = role === "office";
+  const isCompleted = project.status === "completed";
+  const canEdit = role === "office" && !isCompleted;
   const unsync = unsyncMap.get(project.id) ?? null;
 
   const pushZoho = async (estimatedStart: string) => {
