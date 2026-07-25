@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { X, Circle, CheckCircle2, Lock, Anchor } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Task } from "@/hooks/useTasks";
