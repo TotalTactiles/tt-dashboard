@@ -281,7 +281,7 @@ export function FilesSection({
           <Cloud className="h-3 w-3" /> OneDrive
         </div>
         <button
-          onClick={load}
+          onClick={() => load()}
           disabled={!namesOk}
           className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground inline-flex items-center gap-1 disabled:opacity-40"
           title="Refresh"
