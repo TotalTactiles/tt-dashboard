@@ -266,11 +266,19 @@ export async function uploadLargeFile(args: {
 export async function listFiles(args: {
   projectName: string;
   taskName: string;
+  signal?: AbortSignal;
 }): Promise<OneDriveFile[]> {
-  const data = await callWebhook("/onedrive-list", {
-    project_name: args.projectName,
-    task_name: args.taskName,
-  });
+  const data = await callWebhook(
+    "/onedrive-list",
+    {
+      project_name: args.projectName,
+      task_name: args.taskName,
+    },
+    {
+      dedupeKey: `list::${args.projectName}::${args.taskName}`,
+      signal: args.signal,
+    },
+  );
   const raw = (data.files ?? []) as Array<Record<string, any>>;
   // Normalise `web_url` → `onedrive_web_url` at the client boundary.
   return raw.map((f) => ({
@@ -286,9 +294,11 @@ export async function listFiles(args: {
 }
 
 export async function deleteFile(onedriveItemId: string): Promise<void> {
-  const data = await callWebhook("/onedrive-delete", {
-    onedrive_item_id: onedriveItemId,
-  });
+  const data = await callWebhook(
+    "/onedrive-delete",
+    { onedrive_item_id: onedriveItemId },
+    { dedupeKey: `delete::${onedriveItemId}` },
+  );
   if (!data.deleted) throw new Error("Delete rejected by server");
 }
 
