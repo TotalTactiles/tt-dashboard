@@ -121,9 +121,17 @@ export function DateCascadeModal({ projectId, currentEstStart, contractValue, on
               </label>
               <div
                 className="mt-1 text-[13px] font-mono"
-                style={{ color: delta && delta !== 0 ? "#F59E0B" : "#B0B8BF" }}
+                style={{
+                  color: delta === null || delta === 0 ? "rgba(229,233,234,0.45)" : "#BA7517",
+                }}
               >
-                {delta === null ? "—" : delta === 0 ? "no change" : `${delta > 0 ? "+" : ""}${delta} days`}
+                {delta === null
+                  ? "—"
+                  : delta === 0
+                    ? "no change"
+                    : delta > 0
+                      ? `+${delta} days later`
+                      : `${Math.abs(delta)} days earlier`}
               </div>
             </div>
           </div>
