@@ -229,7 +229,7 @@ export function FilesSection({
     if (!window.confirm(`Delete ${f.file_name}?`)) return;
     const prev = files ?? [];
     setFiles(prev.filter((x) => x.onedrive_item_id !== f.onedrive_item_id));
-    onCountChange?.(Math.max(0, prev.length - 1));
+    onCountChangeRef.current?.(Math.max(0, prev.length - 1));
     try {
       await deleteFile(f.onedrive_item_id);
       try {
@@ -242,7 +242,7 @@ export function FilesSection({
       }
     } catch (e: any) {
       setFiles(prev);
-      onCountChange?.(prev.length);
+      onCountChangeRef.current?.(prev.length);
       toast.error(`Couldn't delete ${f.file_name}: ${e?.message ?? ""}`);
     }
   };
