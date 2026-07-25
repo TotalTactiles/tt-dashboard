@@ -577,9 +577,10 @@ function EstStartCard({
 
   return (
     <div
-      role={canEdit ? "button" : undefined}
+      role={interactive ? "button" : undefined}
       tabIndex={canEdit ? 0 : undefined}
-      aria-label={canEdit ? "Edit estimated start" : undefined}
+      aria-label={canEdit ? "Edit estimated start" : locked ? "Locked — deal completed" : undefined}
+      title={locked ? "Locked — deal completed" : undefined}
       onClick={handleClick}
       onKeyDown={handleKey}
       className={`rounded-md border px-3 py-2.5 relative ${
