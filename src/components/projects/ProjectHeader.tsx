@@ -52,6 +52,18 @@ export function ProjectHeader({
   const [, setUnsyncTick] = useState(0);
   const bumpUnsync = () => setUnsyncTick((t) => t + 1);
 
+  // Refresh hours stat card when HoursTable dispatches pm-hours-changed.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { projectId?: string } | undefined;
+      if (!detail?.projectId || detail.projectId === projectId) {
+        refresh();
+      }
+    };
+    window.addEventListener("pm-hours-changed", handler);
+    return () => window.removeEventListener("pm-hours-changed", handler);
+  }, [projectId, refresh]);
+
   if (!projectId || !project) {
     return (
       <div
