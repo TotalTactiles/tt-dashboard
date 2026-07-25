@@ -32,7 +32,8 @@ function DatePairCell({
   newValue: string | null;
   skipped: boolean;
 }) {
-  if (skipped) {
+  const unchanged = skipped || oldValue === newValue;
+  if (unchanged) {
     return (
       <div
         className="text-[11px] font-mono"
