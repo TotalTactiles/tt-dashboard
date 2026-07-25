@@ -1,24 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Users, Clock, DollarSign, TrendingUp, ChevronDown, Pencil, Check as CheckIcon, Plus, RefreshCw } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Users, Clock, DollarSign, TrendingUp, ChevronDown, PlugZap } from "lucide-react";
 import { toast } from "sonner";
-import { useDashboardData } from "@/contexts/DashboardDataContext";
-
-const ZOHO_LABOUR_SYNC_WEBHOOK = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-employee-sync";
-// Upwork sync is not live yet. Leave empty until the Upwork workflow has its own
-// webhook trigger; when ready, paste its production webhook URL here and it will
-// be included in the sync automatically. Empty = skipped.
-const UPWORK_SYNC_WEBHOOK = "";
+import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useRole } from "@/hooks/useRole";
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -29,1166 +21,669 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  BarChart,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
 
-// ============= MOCK DATA =============
-const USD_TO_AUD = 1.55;
-const ZOHO_RATE_AUD = 40;
+// ─────────────────────────────────────────────────────────────────────────────
+// Employee Centre — office-only. Rates live in employee_rates. Hours live in
+// time_entries (logged via Project Management). No Zoho Projects, no Upwork
+// data path yet. Rates are read at invoice time by v_project_labour_actual.
+// ─────────────────────────────────────────────────────────────────────────────
 
-type WorkerType = string; // free-form to allow custom types
-const DEFAULT_TYPES = ["casual_labour", "digital_freelancer", "subcontractor"];
+const db = supabase as any;
 
-const MOCK_UPWORK_DATA = {
-  source: "Upwork",
-  syncTimestamp: new Date().toISOString(),
-  usdToAudRate: USD_TO_AUD,
-  summary: {
-    activeWorkers: 3,
-    totalContractors: 3,
-    totalHours: 88,
-    totalCostUSD: 2014,
-    totalCostAUD: 2014 * USD_TO_AUD,
-    avgRateUSD: 22.33,
-  },
-  workers: [
-    { workerId: "u1", name: "Israr", role: "Digital Automation / n8n Dev", type: "Hourly", workerType: "digital_freelancer", rateUSD: 25, status: "active", startDate: "2026-01-10", totalBilledUSD: 900, totalBilledAUD: 900 * USD_TO_AUD, hoursWorked: 36 },
-    { workerId: "u2", name: "Haider", role: "Digital Automation / n8n Dev", type: "Hourly", workerType: "digital_freelancer", rateUSD: 22, status: "active", startDate: "2026-02-01", totalBilledUSD: 704, totalBilledAUD: 704 * USD_TO_AUD, hoursWorked: 32 },
-    { workerId: "u3", name: "Muhammed", role: "Digital / Web Contractor", type: "Hourly", workerType: "digital_freelancer", rateUSD: 20, status: "active", startDate: "2026-03-01", totalBilledUSD: 400, totalBilledAUD: 400 * USD_TO_AUD, hoursWorked: 20 },
-  ],
-  timesheets: [
-    { date: "2026-05-20", workerName: "Israr", hours: 6, payoutUSD: 150, payoutAUD: 150 * USD_TO_AUD, month: "2026-05", source: "Upwork", projectName: "" },
-    { date: "2026-05-18", workerName: "Haider", hours: 5, payoutUSD: 110, payoutAUD: 110 * USD_TO_AUD, month: "2026-05", source: "Upwork", projectName: "" },
-    { date: "2026-05-15", workerName: "Muhammed", hours: 4, payoutUSD: 80, payoutAUD: 80 * USD_TO_AUD, month: "2026-05", source: "Upwork", projectName: "" },
-    { date: "2026-04-28", workerName: "Israr", hours: 8, payoutUSD: 200, payoutAUD: 200 * USD_TO_AUD, month: "2026-04", source: "Upwork", projectName: "" },
-    { date: "2026-04-20", workerName: "Haider", hours: 7, payoutUSD: 154, payoutAUD: 154 * USD_TO_AUD, month: "2026-04", source: "Upwork", projectName: "" },
-    { date: "2026-04-15", workerName: "Muhammed", hours: 5, payoutUSD: 100, payoutAUD: 100 * USD_TO_AUD, month: "2026-04", source: "Upwork", projectName: "" },
-    { date: "2026-03-25", workerName: "Israr", hours: 10, payoutUSD: 250, payoutAUD: 250 * USD_TO_AUD, month: "2026-03", source: "Upwork", projectName: "" },
-    { date: "2026-03-20", workerName: "Haider", hours: 8, payoutUSD: 176, payoutAUD: 176 * USD_TO_AUD, month: "2026-03", source: "Upwork", projectName: "" },
-  ],
-  monthlyData: [
-    { month: "2026-03", totalHours: 18, totalCostUSD: 426, totalCostAUD: 426 * USD_TO_AUD },
-    { month: "2026-04", totalHours: 20, totalCostUSD: 454, totalCostAUD: 454 * USD_TO_AUD },
-    { month: "2026-05", totalHours: 15, totalCostUSD: 340, totalCostAUD: 340 * USD_TO_AUD },
-  ],
-};
+const RATE_MAX = 500;
+const AMBER = "#BA7517";
+const ERROR = "#E24B4A";
+const INTERACTIVE = "#3D89DA";
 
-const MOCK_ZOHO_DATA = {
-  source: "Zoho Projects",
-  syncTimestamp: new Date().toISOString(),
-  rateAUD: ZOHO_RATE_AUD,
-  summary: {
-    activeWorkers: 2,
-    totalWorkers: 2,
-    totalHours: 200,
-    totalCostAUD: 8000,
-  },
-  workers: [
-    { workerId: "z1", name: "Asad Afzaal", role: "Site Installation", type: "Hourly", workerType: "casual_labour", rateAUD: ZOHO_RATE_AUD, status: "active", startDate: "2025-08-01", totalBilledAUD: 4800, hoursWorked: 120, projects: ["Dalmeny PS", "BESIX Watpac St George S2"] },
-    { workerId: "z2", name: "Abdul", role: "Site Installation", type: "Hourly", workerType: "casual_labour", rateAUD: ZOHO_RATE_AUD, status: "active", startDate: "2025-10-15", totalBilledAUD: 3200, hoursWorked: 80, projects: ["Dalmeny PS"] },
-  ],
-  timesheets: [
-    { date: "2026-05-22", workerName: "Asad Afzaal", hours: 8, costAUD: 320, month: "2026-05", source: "Zoho Projects", projectName: "Dalmeny PS", rateAUD: ZOHO_RATE_AUD },
-    { date: "2026-05-21", workerName: "Abdul", hours: 8, costAUD: 320, month: "2026-05", source: "Zoho Projects", projectName: "Dalmeny PS", rateAUD: ZOHO_RATE_AUD },
-    { date: "2026-05-15", workerName: "Asad Afzaal", hours: 7.5, costAUD: 300, month: "2026-05", source: "Zoho Projects", projectName: "BESIX Watpac St George S2", rateAUD: ZOHO_RATE_AUD },
-    { date: "2026-04-28", workerName: "Asad Afzaal", hours: 8, costAUD: 320, month: "2026-04", source: "Zoho Projects", projectName: "Dalmeny PS", rateAUD: ZOHO_RATE_AUD },
-    { date: "2026-04-22", workerName: "Abdul", hours: 8, costAUD: 320, month: "2026-04", source: "Zoho Projects", projectName: "Dalmeny PS", rateAUD: ZOHO_RATE_AUD },
-    { date: "2026-04-18", workerName: "Asad Afzaal", hours: 7, costAUD: 280, month: "2026-04", source: "Zoho Projects", projectName: "BESIX Watpac St George S2", rateAUD: ZOHO_RATE_AUD },
-    { date: "2026-04-10", workerName: "Abdul", hours: 6, costAUD: 240, month: "2026-04", source: "Zoho Projects", projectName: "Dalmeny PS", rateAUD: ZOHO_RATE_AUD },
-    { date: "2026-03-28", workerName: "Asad Afzaal", hours: 8, costAUD: 320, month: "2026-03", source: "Zoho Projects", projectName: "BESIX Watpac St George S2", rateAUD: ZOHO_RATE_AUD },
-    { date: "2026-03-22", workerName: "Abdul", hours: 7, costAUD: 280, month: "2026-03", source: "Zoho Projects", projectName: "Dalmeny PS", rateAUD: ZOHO_RATE_AUD },
-    { date: "2026-03-15", workerName: "Asad Afzaal", hours: 8, costAUD: 320, month: "2026-03", source: "Zoho Projects", projectName: "Dalmeny PS", rateAUD: ZOHO_RATE_AUD },
-  ],
-  monthlyData: [
-    { month: "2026-03", totalHours: 23, totalCostAUD: 920 },
-    { month: "2026-04", totalHours: 29, totalCostAUD: 1160 },
-    { month: "2026-05", totalHours: 23.5, totalCostAUD: 940 },
-  ],
-  projects: [
-    { projectName: "Dalmeny PS", totalHours: 45, totalCostAUD: 1800, workers: ["Asad Afzaal", "Abdul"] },
-    { projectName: "BESIX Watpac St George S2", totalHours: 30.5, totalCostAUD: 1220, workers: ["Asad Afzaal"] },
-  ],
-};
+const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-// ============= UTILS =============
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const fmtMonthShort = (ym: string) => { const [y, m] = ym.split("-"); return `${MONTH_NAMES[parseInt(m, 10) - 1]} ${y.slice(2)}`; };
-const fmtMonthLong = (ym: string) => { const [y, m] = ym.split("-"); return `${MONTH_NAMES[parseInt(m, 10) - 1]} ${y}`; };
-const fmtDate = (iso: string) => { const d = new Date(iso); return `${String(d.getDate()).padStart(2, "0")} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`; };
-const fmtSync = (iso: string) => { const d = new Date(iso); return `${String(d.getDate()).padStart(2, "0")} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
-const fmtAUD = (n: number) => `$${Math.round(n).toLocaleString("en-AU")}`;
-const fmtMoney2 = (n: number) => `$${n.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+// "2026-06-14" or ISO → { key: "2026-06", label: "Jun 2026" }
+function monthKeyFromDate(d: string): { key: string; label: string } | null {
+  if (!d) return null;
+  const m = d.match(/^(\d{4})-(\d{2})/);
+  if (!m) return null;
+  const y = m[1];
+  const mi = parseInt(m[2], 10) - 1;
+  if (mi < 0 || mi > 11) return null;
+  return { key: `${y}-${m[2]}`, label: `${MONTH_ABBR[mi]} ${y}` };
+}
+function monthLabelFromKey(k: string): string {
+  const m = k.match(/^(\d{4})-(\d{2})$/);
+  if (!m) return k;
+  const mi = parseInt(m[2], 10) - 1;
+  if (mi < 0 || mi > 11) return k;
+  return `${MONTH_ABBR[mi]} ${m[1]}`;
+}
+function fmtDate(d: string): string {
+  if (!d) return "";
+  const [y, mo, da] = d.split("-");
+  const mi = parseInt(mo, 10) - 1;
+  if (isNaN(mi) || mi < 0 || mi > 11) return d;
+  return `${da} ${MONTH_ABBR[mi]} ${y}`;
+}
+function fmtAUD(n: number): string {
+  return `$${n.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
-const statusPill = (status: string) => {
-  const base = "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider";
-  if (status === "active") return <span className={`${base} bg-chart-green/15 text-chart-green`}>active</span>;
-  if (status === "paused") return <span className={`${base} bg-chart-orange/15 text-chart-orange`}>paused</span>;
-  return <span className={`${base} bg-muted text-muted-foreground`}>ended</span>;
-};
+interface Profile {
+  id: string;
+  full_name: string;
+  role: string;
+  active: boolean;
+}
+interface Rate {
+  user_id: string;
+  hourly_rate: number;
+}
+interface Entry {
+  id: string;
+  project_id: string;
+  user_id: string;
+  work_date: string;
+  hours: number;
+  note: string | null;
+  billable: boolean;
+}
+interface ProjectRow {
+  id: string;
+  name: string;
+}
 
-const sourcePill = (source: string) => {
-  const base = "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider";
-  if (source === "Upwork") return <span className={`${base} bg-chart-green/15 text-chart-green`}>Upwork</span>;
-  return <span className={`${base} bg-chart-blue/15 text-chart-blue`}>Zoho</span>;
-};
-
-const typeLabel = (t: WorkerType) => {
-  if (t === "casual_labour") return "Casual Labour";
-  if (t === "subcontractor") return "Subcontractor";
-  if (t === "digital_freelancer") return "Digital";
-  return t;
-};
-const typePill = (t: WorkerType) => {
-  const base = "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider";
-  if (t === "casual_labour") return <span className={`${base} bg-chart-orange/15 text-chart-orange`}>Casual Labour</span>;
-  if (t === "subcontractor") return <span className={`${base} bg-chart-purple/15 text-chart-purple`}>Subcontractor</span>;
-  if (t === "digital_freelancer") return <span className={`${base} bg-chart-blue/15 text-chart-blue`}>Digital</span>;
-  return <span className={`${base} bg-muted text-foreground`}>{t}</span>;
-};
-
-const DONUT_COLORS = ["#22c55e", "#60a5fa", "#a78bfa", "#f59e0b", "#ef4444", "#14b8a6"];
-
-// ============= LOCAL STORAGE KEYS =============
-const LS_DISPLAY = "tt_worker_display_config";
-const LS_TYPES = "tt_worker_types";
-
-type WorkerDisplayConfig = Record<string, { displayName: string; role: string; workerType: string }>;
-
-// ============= KPI CARD =============
-interface KPIProps {
+// ============= STAT CARD =============
+const StatCard = ({
+  label,
+  value,
+  sub,
+  icon: Icon,
+}: {
   label: string;
   value: string;
-  sub: string;
-  Icon: React.ComponentType<{ className?: string }>;
-  active: boolean;
-  onClick: () => void;
-}
-const KPI = ({ label, value, sub, Icon, active, onClick }: KPIProps) => (
-  <Card
-    onClick={onClick}
-    className={`p-4 cursor-pointer transition-all hover:border-chart-green/40 ${active ? "border-chart-green ring-1 ring-chart-green/30" : ""}`}
-  >
-    <div className="flex items-start justify-between mb-2">
-      <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{label}</p>
-      <Icon className="h-4 w-4 text-chart-green" />
+  sub?: string;
+  icon: React.ElementType;
+}) => (
+  <Card className="p-5">
+    <div className="flex items-start justify-between mb-3">
+      <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">{label}</span>
+      <Icon className="h-4 w-4 text-muted-foreground/70" />
     </div>
-    <p className="text-fluid-xl font-semibold tabular-nums">{value}</p>
-    <p className="text-[11px] text-muted-foreground font-mono mt-1">{sub}</p>
-    <p className="text-[10px] text-muted-foreground/60 font-mono mt-2 flex items-center gap-1">
-      <ChevronDown className={`h-3 w-3 transition-transform ${active ? "rotate-180" : ""}`} />
-      {active ? "Hide details" : "Click for details"}
-    </p>
+    <div className="text-3xl font-semibold tabular-nums leading-none">{value}</div>
+    {sub ? <div className="text-[11px] font-mono text-muted-foreground mt-2">{sub}</div> : null}
   </Card>
 );
 
-// ============= COMPONENT =============
+// ============= RATE INPUT =============
+function RateInput({
+  userId,
+  initial,
+  onSaved,
+}: {
+  userId: string;
+  initial: number | null;
+  onSaved: (rate: number) => void;
+}) {
+  const [raw, setRaw] = useState<string>(initial != null ? initial.toFixed(2) : "");
+  const [err, setErr] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const initialRef = useRef<number | null>(initial);
+
+  useEffect(() => {
+    initialRef.current = initial;
+    setRaw(initial != null ? initial.toFixed(2) : "");
+  }, [initial]);
+
+  const commit = useCallback(async () => {
+    const trimmed = raw.trim();
+    if (trimmed === "") {
+      setErr(null);
+      setRaw(initialRef.current != null ? initialRef.current.toFixed(2) : "");
+      return;
+    }
+    const n = Number(trimmed);
+    if (!isFinite(n)) {
+      setErr("Not a number");
+      return;
+    }
+    if (n <= 0) {
+      setErr("Rate must be greater than 0");
+      return;
+    }
+    if (n > RATE_MAX) {
+      setErr(`Rate must be ≤ $${RATE_MAX}`);
+      return;
+    }
+    setErr(null);
+    if (initialRef.current != null && Math.abs(n - initialRef.current) < 0.005) return;
+    setSaving(true);
+    // Optimistic: bubble up first, roll back on failure.
+    const prev = initialRef.current;
+    initialRef.current = n;
+    onSaved(n);
+    const { error } = await db
+      .from("employee_rates")
+      .upsert(
+        { user_id: userId, hourly_rate: n, effective_from: new Date().toISOString().slice(0, 10) },
+        { onConflict: "user_id" },
+      );
+    setSaving(false);
+    if (error) {
+      initialRef.current = prev;
+      onSaved(prev ?? 0);
+      setRaw(prev != null ? prev.toFixed(2) : "");
+      toast.error("Could not save rate — please try again");
+    } else {
+      setRaw(n.toFixed(2));
+    }
+  }, [raw, userId, onSaved]);
+
+  return (
+    <div className="flex flex-col items-end">
+      <div className="flex items-center gap-1">
+        <span className="text-muted-foreground text-xs">$</span>
+        <Input
+          value={raw}
+          onChange={(e) => {
+            setRaw(e.target.value);
+            if (err) setErr(null);
+          }}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.currentTarget.blur();
+            }
+            if (e.key === "Escape") {
+              setRaw(initialRef.current != null ? initialRef.current.toFixed(2) : "");
+              setErr(null);
+              e.currentTarget.blur();
+            }
+          }}
+          inputMode="decimal"
+          disabled={saving}
+          className="h-8 w-24 text-right font-mono tabular-nums"
+          placeholder="—"
+        />
+      </div>
+      {err ? (
+        <span className="text-[10px] font-mono mt-1" style={{ color: ERROR }}>
+          {err}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+// ============= PAGE =============
 const EmployeeTracking = () => {
-  const { syncNow, liveData } = useDashboardData() as any;
+  const { role } = useRole();
+  const officeOnly = role === "office";
 
-  const upworkLive = !!liveData?.upwork;
-  const zohoLive = !!liveData?.zohoLabour;
-  const liveMode = upworkLive || zohoLive;
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [rates, setRates] = useState<Record<string, number>>({});
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const [projects, setProjects] = useState<Record<string, ProjectRow>>({});
+  const [loading, setLoading] = useState(true);
 
-  const EMPTY_SOURCE = {
-    source: "",
-    syncTimestamp: null as string | null,
-    summary: { activeWorkers: 0, totalWorkers: 0, totalContractors: 0, totalHours: 0, totalCostAUD: 0, totalCostUSD: 0, avgRateUSD: 0 },
-    workers: [] as any[],
-    timesheets: [] as any[],
-    monthlyData: [] as any[],
-    projects: [] as any[],
-    workerSummary: [] as any[],
-  };
-
-  const upwork: any = liveMode ? (upworkLive ? liveData.upwork : EMPTY_SOURCE) : MOCK_UPWORK_DATA;
-  const zoho: any = liveMode ? (zohoLive ? liveData.zohoLabour : EMPTY_SOURCE) : MOCK_ZOHO_DATA;
-  const isMockData = !liveMode;
-
-  const [expandedCard, setExpandedCard] = useState<null | "workers" | "hours" | "spend" | "rate">(null);
+  // Filters
   const [monthFilter, setMonthFilter] = useState<string>("all");
-  const [sourceFilter, setSourceFilter] = useState<string>("All Sources");
-  const [chartSource, setChartSource] = useState<"all" | "upwork" | "zoho">("all");
-  const [bankOpen, setBankOpen] = useState(false);
-  const [syncing, setSyncing] = useState(false);
+  const [selectedWorkers, setSelectedWorkers] = useState<string[]>([]);
+  const [workerFilterOpen, setWorkerFilterOpen] = useState(false);
 
-  const handleSync = async () => {
-    setSyncing(true);
-    toast.info("Pulling fresh hours from Zoho Projects — this can take up to a minute.");
-    try {
-      const calls: Promise<unknown>[] = [
-        fetch(ZOHO_LABOUR_SYNC_WEBHOOK, { method: "POST" }),
-      ];
-      if (UPWORK_SYNC_WEBHOOK) {
-        calls.push(fetch(UPWORK_SYNC_WEBHOOK, { method: "POST" }).catch(() => null));
-      }
-      await Promise.all(calls);
-      await syncNow("google_sheets");
-      toast.success("Employee data synced");
-    } catch {
-      try { await syncNow("google_sheets"); } catch {}
-      toast.error("Sync hit an issue — showing latest cached data");
-    } finally {
-      setSyncing(false);
+  const refresh = useCallback(async () => {
+    if (!officeOnly) {
+      setLoading(false);
+      return;
     }
-  };
+    setLoading(true);
+    const [{ data: p }, { data: r }, { data: t }, { data: pj }] = await Promise.all([
+      db.from("profiles").select("id, full_name, role, active").order("full_name", { ascending: true }),
+      db.from("employee_rates").select("user_id, hourly_rate"),
+      db
+        .from("time_entries")
+        .select("id, project_id, user_id, work_date, hours, note, billable")
+        .order("work_date", { ascending: false })
+        .limit(1000),
+      db.from("projects").select("id, name"),
+    ]);
+    setProfiles((p as Profile[]) ?? []);
+    const rmap: Record<string, number> = {};
+    for (const row of (r as Rate[]) ?? []) rmap[row.user_id] = Number(row.hourly_rate);
+    setRates(rmap);
+    setEntries((t as Entry[]) ?? []);
+    const pmap: Record<string, ProjectRow> = {};
+    for (const row of (pj as ProjectRow[]) ?? []) pmap[row.id] = row;
+    setProjects(pmap);
+    setLoading(false);
+  }, [officeOnly]);
 
-  // ===== Worker display config (localStorage) =====
-  const rawSourceWorkers = useMemo(() => {
-    const up = (upwork?.workers ?? []).map((w) => ({ sourceId: w.name, role: w.role, workerType: w.workerType }));
-    const zh = (zoho?.workers ?? []).map((w) => ({ sourceId: w.name, role: w.role, workerType: w.workerType }));
-    return [...up, ...zh];
-  }, [upwork, zoho]);
-
-  const buildDefaultConfig = (): WorkerDisplayConfig => {
-    const cfg: WorkerDisplayConfig = {};
-    rawSourceWorkers.forEach((w) => {
-      cfg[w.sourceId] = { displayName: w.sourceId, role: w.role, workerType: w.workerType };
-    });
-    return cfg;
-  };
-
-  const [displayConfig, setDisplayConfig] = useState<WorkerDisplayConfig>(() => {
-    try {
-      const raw = localStorage.getItem(LS_DISPLAY);
-      if (raw) return JSON.parse(raw);
-    } catch { /* noop */ }
-    return {};
-  });
-
-  // Ensure config has entry for every source worker (merge defaults without overwriting user edits)
   useEffect(() => {
-    setDisplayConfig((prev) => {
-      let changed = false;
-      const next = { ...prev };
-      rawSourceWorkers.forEach((w) => {
-        if (!next[w.sourceId]) {
-          next[w.sourceId] = { displayName: w.sourceId, role: w.role, workerType: w.workerType };
-          changed = true;
-        }
-      });
-      return changed ? next : prev;
-    });
-  }, [rawSourceWorkers]);
+    refresh();
+  }, [refresh]);
 
-  // Debounced persistence
-  const saveTimer = useRef<number | null>(null);
-  useEffect(() => {
-    if (saveTimer.current) window.clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(() => {
-      try { localStorage.setItem(LS_DISPLAY, JSON.stringify(displayConfig)); } catch { /* noop */ }
-    }, 500);
-    return () => { if (saveTimer.current) window.clearTimeout(saveTimer.current); };
-  }, [displayConfig]);
+  const handleRateSaved = useCallback((userId: string, rate: number) => {
+    setRates((prev) => ({ ...prev, [userId]: rate }));
+  }, []);
 
-  const [customTypes, setCustomTypes] = useState<string[]>(() => {
-    try {
-      const raw = localStorage.getItem(LS_TYPES);
-      if (raw) return JSON.parse(raw);
-    } catch { /* noop */ }
-    return [];
-  });
-  useEffect(() => {
-    try { localStorage.setItem(LS_TYPES, JSON.stringify(customTypes)); } catch { /* noop */ }
-  }, [customTypes]);
+  // Merge profile lookup
+  const profileById = useMemo(() => {
+    const m: Record<string, Profile> = {};
+    for (const p of profiles) m[p.id] = p;
+    return m;
+  }, [profiles]);
 
-  const allTypeOptions = useMemo(() => {
-    const set = new Set<string>([...DEFAULT_TYPES, ...customTypes]);
-    return Array.from(set);
-  }, [customTypes]);
+  // Months present in the data
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of entries) {
+      const mk = monthKeyFromDate(e.work_date);
+      if (mk) set.add(mk.key);
+    }
+    return Array.from(set).sort().reverse();
+  }, [entries]);
 
-  // Helpers to resolve display values from sourceId
-  const displayOf = (sourceId: string) => displayConfig[sourceId]?.displayName ?? sourceId;
-  const roleOf = (sourceId: string, fallback: string) => displayConfig[sourceId]?.role ?? fallback;
-  const typeOf = (sourceId: string, fallback: string) => displayConfig[sourceId]?.workerType ?? fallback;
-
-  // Edit mode
-  const [editMode, setEditMode] = useState(false);
-  const [confirmReset, setConfirmReset] = useState(false);
-  const [addingRoleFor, setAddingRoleFor] = useState<string | null>(null);
-  const [addingTypeFor, setAddingTypeFor] = useState<string | null>(null);
-  const [newRoleDraft, setNewRoleDraft] = useState("");
-  const [newTypeDraft, setNewTypeDraft] = useState("");
-
-  const updateField = (sourceId: string, field: "displayName" | "role" | "workerType", value: string) => {
-    setDisplayConfig((prev) => ({
-      ...prev,
-      [sourceId]: {
-        displayName: prev[sourceId]?.displayName ?? sourceId,
-        role: prev[sourceId]?.role ?? "",
-        workerType: prev[sourceId]?.workerType ?? "casual_labour",
-        ...prev[sourceId],
-        [field]: value,
-      },
-    }));
-  };
-
-  const resetAllDisplay = () => {
-    setDisplayConfig(buildDefaultConfig());
-    setConfirmReset(false);
-  };
-
-  // Merged workers
-  const allWorkers = useMemo(() => {
-    const up = (upwork?.workers ?? []).map((w) => ({
-      id: w.workerId,
-      sourceId: w.name,
-      sourceRole: w.role,
-      sourceType: w.workerType,
-      source: "Upwork" as const,
-      rateAUDequiv: w.rateUSD * USD_TO_AUD,
-      rateUSD: w.rateUSD,
-      currency: "USD",
-      hoursWorked: w.hoursWorked,
-      totalBilledAUD: w.totalBilledAUD,
-      status: w.status,
-    }));
-    const zh = (zoho?.workers ?? []).map((w) => ({
-      id: w.workerId,
-      sourceId: w.name,
-      sourceRole: w.role,
-      sourceType: w.workerType,
-      source: "Zoho Projects" as const,
-      rateAUDequiv: w.rateAUD,
-      rateUSD: 0,
-      currency: "AUD",
-      hoursWorked: w.hoursWorked,
-      totalBilledAUD: w.totalBilledAUD,
-      status: w.status,
-    }));
-    return [...up, ...zh].sort((a, b) => b.totalBilledAUD - a.totalBilledAUD);
-  }, [upwork, zoho]);
-
-  // Merged timesheets (normalised) — keep workerName as sourceId
-  const allTimesheets = useMemo(() => {
-    const up = (upwork?.timesheets ?? []).map((t) => ({
-      date: t.date,
-      workerName: t.workerName,
-      source: "Upwork" as const,
-      projectName: t.projectName || "—",
-      hours: t.hours,
-      costAUD: t.payoutAUD,
-      month: t.month,
-    }));
-    const zh = (zoho?.timesheets ?? []).map((t) => ({
-      date: t.date,
-      workerName: t.workerName,
-      source: "Zoho Projects" as const,
-      projectName: t.projectName,
-      hours: t.hours,
-      costAUD: t.costAUD,
-      month: t.month,
-    }));
-    return [...up, ...zh];
-  }, [upwork, zoho]);
-
-  // Monthly chart
-  const mergedMonthly = useMemo(() => {
-    const map = new Map<string, { month: string; totalHours: number; totalCostAUD: number }>();
-    const add = (arr: { month: string; totalHours: number; totalCostAUD: number }[]) => {
-      arr.forEach((m) => {
-        const cur = map.get(m.month) ?? { month: m.month, totalHours: 0, totalCostAUD: 0 };
-        cur.totalHours += m.totalHours;
-        cur.totalCostAUD += m.totalCostAUD;
-        map.set(m.month, cur);
-      });
-    };
-    if (chartSource === "all" || chartSource === "upwork") add(upwork?.monthlyData ?? []);
-    if (chartSource === "all" || chartSource === "zoho") add(zoho?.monthlyData ?? []);
-    return Array.from(map.values())
-      .sort((a, b) => (a.month < b.month ? -1 : 1))
-      .map((m) => ({ ...m, label: fmtMonthShort(m.month) }));
-  }, [upwork, zoho, chartSource]);
-
-  // KPI calculations
-  const upworkHours = upwork?.summary.totalHours ?? 0;
-  const zohoHours = zoho?.summary.totalHours ?? 0;
-  const totalHours = upworkHours + zohoHours;
-  const upworkAUD = upwork?.summary.totalCostAUD ?? 0;
-  const zohoAUD = zoho?.summary.totalCostAUD ?? 0;
-  const totalAUD = upworkAUD + zohoAUD;
-  const upActive = upwork?.summary.activeWorkers ?? 0;
-  const zoActive = zoho?.summary.activeWorkers ?? 0;
-  const activeTotal = upActive + zoActive;
-  const avgRateAUD = totalHours > 0 ? totalAUD / totalHours : 0;
-  const upworkAvgUSD = upwork?.summary.avgRateUSD ?? 0;
-
-  // Filter: month list
-  const uniqueMonths = useMemo(
-    () => Array.from(new Set(allTimesheets.map((t) => t.month))).sort(),
-    [allTimesheets],
-  );
-
-  // === Multi-select worker filter ===
-  const allWorkerSourceIds = useMemo(() => allWorkers.map((w) => w.sourceId), [allWorkers]);
-  const [selectedWorkers, setSelectedWorkers] = useState<string[]>([]); // empty = all
-  const workerFilterLabel = (() => {
-    const n = selectedWorkers.length;
-    if (n === 0 || n === allWorkerSourceIds.length) return "All Workers";
-    if (n === 1) return displayOf(selectedWorkers[0]);
-    return `${n} Workers`;
-  })();
-  const toggleWorker = (id: string) => {
-    setSelectedWorkers((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
-  };
-
-  const filteredTimesheets = useMemo(() => {
+  // Filtered entries (by month + worker)
+  const filteredEntries = useMemo(() => {
     const activeSet = selectedWorkers.length === 0 ? null : new Set(selectedWorkers);
-    return allTimesheets
-      .filter((t) => (activeSet ? activeSet.has(t.workerName) : true))
-      .filter((t) => (monthFilter === "all" ? true : t.month === monthFilter))
-      .filter((t) => (sourceFilter === "All Sources" ? true : t.source === sourceFilter))
-      .sort((a, b) => (a.date < b.date ? 1 : -1));
-  }, [allTimesheets, selectedWorkers, monthFilter, sourceFilter]);
+    return entries.filter((e) => {
+      if (activeSet && !activeSet.has(e.user_id)) return false;
+      if (monthFilter !== "all") {
+        const mk = monthKeyFromDate(e.work_date);
+        if (!mk || mk.key !== monthFilter) return false;
+      }
+      return true;
+    });
+  }, [entries, monthFilter, selectedWorkers]);
 
-  const filteredTotals = useMemo(
-    () => filteredTimesheets.reduce((acc, t) => ({ hours: acc.hours + t.hours, aud: acc.aud + t.costAUD }), { hours: 0, aud: 0 }),
-    [filteredTimesheets],
+  // KPIs — computed off filtered set
+  const kpis = useMemo(() => {
+    const workerIds = new Set<string>();
+    let totalHours = 0;
+    let pricedHours = 0;
+    let unpricedHours = 0;
+    let spend = 0;
+    for (const e of filteredEntries) {
+      workerIds.add(e.user_id);
+      const h = Number(e.hours) || 0;
+      totalHours += h;
+      const rate = rates[e.user_id];
+      if (rate != null) {
+        pricedHours += h;
+        spend += h * rate;
+      } else {
+        unpricedHours += h;
+      }
+    }
+    const avgRate = pricedHours > 0 ? spend / pricedHours : 0;
+    return {
+      activeWorkers: workerIds.size,
+      totalHours,
+      pricedHours,
+      unpricedHours,
+      spend,
+      avgRate,
+    };
+  }, [filteredEntries, rates]);
+
+  // Monthly chart data — bar hours, line cost
+  const monthlyChart = useMemo(() => {
+    const byMonth = new Map<string, { key: string; label: string; hours: number; cost: number }>();
+    for (const e of filteredEntries) {
+      const mk = monthKeyFromDate(e.work_date);
+      if (!mk) continue;
+      const cur = byMonth.get(mk.key) ?? { key: mk.key, label: mk.label, hours: 0, cost: 0 };
+      const h = Number(e.hours) || 0;
+      cur.hours += h;
+      const rate = rates[e.user_id];
+      if (rate != null) cur.cost += h * rate;
+      byMonth.set(mk.key, cur);
+    }
+    return Array.from(byMonth.values()).sort((a, b) => (a.key < b.key ? -1 : 1));
+  }, [filteredEntries, rates]);
+
+  // Workers missing a rate
+  const workersMissingRate = useMemo(
+    () => profiles.filter((p) => p.active !== false && rates[p.id] == null),
+    [profiles, rates],
   );
 
-  // === Hours-by-worker with time period & avg mode ===
-  const [hoursPeriod, setHoursPeriod] = useState<"daily" | "weekly" | "monthly">("monthly");
-  const [hoursMode, setHoursMode] = useState<"total" | "avg">("total");
+  const toggleWorker = useCallback((id: string) => {
+    setSelectedWorkers((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }, []);
 
-  const periodFilteredTimesheets = useMemo(() => {
-    const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10);
-    if (hoursPeriod === "daily") {
-      return allTimesheets.filter((t) => t.date === todayStr);
-    }
-    if (hoursPeriod === "weekly") {
-      // ISO week: Monday as start
-      const day = now.getDay() || 7; // Sun=0 -> 7
-      const monday = new Date(now);
-      monday.setDate(now.getDate() - (day - 1));
-      monday.setHours(0, 0, 0, 0);
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
-      sunday.setHours(23, 59, 59, 999);
-      return allTimesheets.filter((t) => {
-        const d = new Date(t.date);
-        return d >= monday && d <= sunday;
-      });
-    }
-    // monthly
-    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    return allTimesheets.filter((t) => t.month === ym);
-  }, [allTimesheets, hoursPeriod]);
-
-  const hoursByWorker = useMemo(() => {
-    const totals = new Map<string, { hours: number; days: Set<string> }>();
-    periodFilteredTimesheets.forEach((t) => {
-      const cur = totals.get(t.workerName) ?? { hours: 0, days: new Set<string>() };
-      cur.hours += t.hours;
-      cur.days.add(t.date);
-      totals.set(t.workerName, cur);
-    });
-    // Include all known workers (zero rows shown only if non-empty period?). Only show those with hours > 0.
-    const arr = Array.from(totals.entries()).map(([sourceId, v]) => {
-      const value = hoursMode === "avg" ? (v.days.size > 0 ? v.hours / v.days.size : 0) : v.hours;
-      return { name: displayOf(sourceId), value };
-    });
-    return arr.sort((a, b) => b.value - a.value);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periodFilteredTimesheets, hoursMode, displayConfig]);
-
-  const hoursChartTitle = (() => {
-    const base =
-      hoursPeriod === "daily" ? "Hours by Worker — Today"
-      : hoursPeriod === "weekly" ? "Hours by Worker — This Week"
-      : "Hours by Worker — This Month";
-    return hoursMode === "avg" ? `${base} (Avg per day)` : base;
+  const workerFilterLabel = (() => {
+    if (selectedWorkers.length === 0) return "All Workers";
+    if (selectedWorkers.length === 1) return profileById[selectedWorkers[0]]?.full_name ?? "1 worker";
+    return `${selectedWorkers.length} workers`;
   })();
 
-  // Spend-by-worker
-  const spendByWorker = useMemo(() => {
-    const items = allWorkers.map((w) => ({ name: displayOf(w.sourceId), source: w.source, value: w.totalBilledAUD }));
-    const sum = items.reduce((s, i) => s + i.value, 0) || 1;
-    return items.map((i) => ({ ...i, pct: (i.value / sum) * 100 })).sort((a, b) => b.value - a.value);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allWorkers, displayConfig]);
-
-  const hasData = allWorkers.length > 0;
-
-  if (!hasData) {
+  if (!officeOnly) {
     return (
       <DashboardLayout>
-        <div className="mb-4 md:mb-6">
-          <h1 className="text-fluid-2xl font-semibold">Employee Tracking</h1>
+        <div className="p-8 text-center text-sm text-muted-foreground font-mono">
+          Employee Centre is office-only.
         </div>
-        <Card className="p-12 flex flex-col items-center justify-center text-center">
-          <Users className="h-10 w-10 text-muted-foreground/40 mb-3" />
-          <p className="text-sm font-mono text-muted-foreground mb-1">No data yet</p>
-          <p className="text-xs text-muted-foreground max-w-md">
-            Sync runs every 6 hours. Check that the Upwork and Zoho Projects workflows are active in n8n.
-          </p>
-        </Card>
       </DashboardLayout>
     );
   }
 
-  const toggle = (k: typeof expandedCard) => setExpandedCard((c) => (c === k ? null : k));
-
-  // Existing roles (deduped, for dropdown)
-  const allRoleOptions = useMemo(() => {
-    const set = new Set<string>();
-    allWorkers.forEach((w) => {
-      const r = roleOf(w.sourceId, w.sourceRole);
-      if (r) set.add(r);
-    });
-    return Array.from(set);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allWorkers, displayConfig]);
-
-  // Active-filter trigger style helper
-  const activeTriggerCls = (active: boolean) =>
-    `w-[170px] h-8 text-xs ${active ? "border-chart-green ring-1 ring-chart-green/30" : ""}`;
-
   return (
     <DashboardLayout>
-      {/* Header */}
-      <div className="mb-4 md:mb-6 flex items-start justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-fluid-2xl font-semibold">Employee Tracking</h1>
-          <p className="text-fluid-xs text-muted-foreground font-mono">Digital freelancers & casual labour · combined view</p>
+      <div className="space-y-6 p-4 md:p-6">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-semibold">Employee Centre</h1>
+            <p className="text-xs font-mono text-muted-foreground mt-1">
+              Rates &amp; timesheets · Hours logged in Project Management, costed at Employee Centre rates
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground">
+            <PlugZap className="h-3.5 w-3.5" />
+            Upwork sync — not connected yet
+          </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {upworkLive && upwork?.syncTimestamp ? (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-mono bg-chart-green/15 text-chart-green">
-              Upwork · Last synced: {fmtSync(upwork.syncTimestamp)}
-            </span>
-          ) : (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-mono bg-muted text-muted-foreground">
-              Upwork · Not connected
-            </span>
-          )}
-          {zohoLive && zoho?.syncTimestamp ? (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-mono bg-chart-blue/15 text-chart-blue">
-              Zoho Projects · Last synced: {fmtSync(zoho.syncTimestamp)}
-            </span>
-          ) : (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-mono bg-muted text-muted-foreground">
-              Zoho Projects · Not connected
-            </span>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSync}
-            disabled={syncing}
-            className="h-8 px-2.5 text-xs font-mono gap-1.5"
+
+        {/* Missing rate banner */}
+        {workersMissingRate.length > 0 ? (
+          <div
+            className="text-xs font-mono px-3 py-2 rounded-md border"
+            style={{ color: AMBER, borderColor: AMBER + "55", background: AMBER + "10" }}
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
-            {syncing ? "Syncing…" : "Sync"}
-          </Button>
+            {workersMissingRate.length} worker{workersMissingRate.length === 1 ? "" : "s"} without a rate — their
+            logged hours cannot be costed
+          </div>
+        ) : null}
+
+        {/* KPI cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard label="ACTIVE WORKERS" value={String(kpis.activeWorkers)} icon={Users} />
+          <StatCard
+            label="TOTAL HOURS LOGGED"
+            value={kpis.totalHours.toFixed(1)}
+            sub={
+              kpis.unpricedHours > 0
+                ? `${kpis.unpricedHours.toFixed(1)} hrs unpriced`
+                : undefined
+            }
+            icon={Clock}
+          />
+          <StatCard
+            label="TOTAL SPEND (AUD)"
+            value={fmtAUD(kpis.spend)}
+            sub={
+              kpis.unpricedHours > 0
+                ? `excludes ${kpis.unpricedHours.toFixed(1)} hrs with no rate set`
+                : undefined
+            }
+            icon={DollarSign}
+          />
+          <StatCard
+            label="AVG HOURLY RATE"
+            value={kpis.avgRate > 0 ? fmtAUD(kpis.avgRate) : "—"}
+            sub="AUD/hr · weighted across priced hours"
+            icon={TrendingUp}
+          />
         </div>
-      </div>
 
-      {isMockData ? (
-        <div className="mb-4 px-3 py-2 rounded-md border border-chart-orange/40 bg-chart-orange/10 text-[11px] font-mono text-chart-orange">
-          Showing sample data — live Upwork & Zoho Projects sync not yet connected.
-        </div>
-      ) : (!upworkLive || !zohoLive) ? (
-        <div className="mb-4 px-3 py-2 rounded-md border border-border bg-muted/30 text-[11px] font-mono text-muted-foreground">
-          Live · {zohoLive ? "Zoho Projects connected" : "Zoho Projects sync pending"}. {upworkLive ? "Upwork connected" : "Upwork sync pending"}.
-        </div>
-      ) : null}
-
-      {/* KPI cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4 mb-4">
-        <KPI
-          label="Active Workers"
-          value={String(activeTotal)}
-          sub={`${upActive} Upwork · ${zoActive} Zoho Projects`}
-          Icon={Users}
-          active={expandedCard === "workers"}
-          onClick={() => toggle("workers")}
-        />
-        <KPI
-          label="Total Hours Logged"
-          value={`${totalHours.toFixed(1)} hrs`}
-          sub={`${upworkHours.toFixed(1)} hrs Upwork · ${zohoHours.toFixed(1)} hrs Zoho`}
-          Icon={Clock}
-          active={expandedCard === "hours"}
-          onClick={() => toggle("hours")}
-        />
-        <KPI
-          label="Total Spend (AUD)"
-          value={fmtAUD(totalAUD)}
-          sub={`Upwork AUD ${fmtAUD(upworkAUD)} · Zoho AUD ${fmtAUD(zohoAUD)}`}
-          Icon={DollarSign}
-          active={expandedCard === "spend"}
-          onClick={() => toggle("spend")}
-        />
-        <KPI
-          label="Avg Hourly Rate"
-          value={`${fmtMoney2(avgRateAUD)} AUD/hr`}
-          sub={`Upwork avg $${upworkAvgUSD.toFixed(2)} USD/hr · Zoho $${ZOHO_RATE_AUD} AUD/hr flat`}
-          Icon={TrendingUp}
-          active={expandedCard === "rate"}
-          onClick={() => toggle("rate")}
-        />
-      </div>
-
-      {/* Expanded panel */}
-      {expandedCard && (
-        <Card className="p-4 mb-4 md:mb-6 animate-in fade-in slide-in-from-top-2 duration-200">
-          {expandedCard === "workers" && (
-            <>
-              <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-                <h3 className="text-sm font-semibold">Contractors</h3>
-                <Button
-                  size="sm"
-                  variant={editMode ? "default" : "outline"}
-                  className={`h-7 text-[11px] px-2.5 ${editMode ? "bg-chart-green text-background hover:bg-chart-green/90" : ""}`}
-                  onClick={() => setEditMode((e) => !e)}
-                >
-                  {editMode ? (
-                    <><CheckIcon className="h-3 w-3 mr-1" />Done</>
-                  ) : (
-                    <><Pencil className="h-3 w-3 mr-1" />Edit</>
-                  )}
-                </Button>
-              </div>
-
-              {editMode && (
-                <div className="mb-3 px-3 py-2 rounded-md border border-chart-orange/40 bg-chart-orange/10 text-[11px] font-mono text-chart-orange">
-                  Editing display names only — backend data is not affected.
-                </div>
-              )}
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="text-left text-[10px] font-mono uppercase tracking-wider text-muted-foreground border-b border-border">
-                      <th className="py-2 pr-2">Name</th>
-                      <th className="py-2 pr-2">Source</th>
-                      <th className="py-2 pr-2">Role</th>
-                      <th className="py-2 pr-2">Type</th>
-                      <th className="py-2 pr-2 text-right">Rate</th>
-                      <th className="py-2 pr-2 text-right">Total Hours</th>
-                      <th className="py-2 pr-2 text-right">Total Billed AUD</th>
-                      <th className="py-2 pr-2">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {allWorkers.map((w) => {
-                      const rate = w.source === "Upwork"
-                        ? `$${(w.rateUSD ?? 0).toFixed(2)} USD/hr`
-                        : `$${(w.rateAUDequiv ?? 0).toFixed(2)} AUD/hr`;
-                      const curRole = roleOf(w.sourceId, w.sourceRole);
-                      const curType = typeOf(w.sourceId, w.sourceType);
-                      return (
-                        <tr key={w.id} className="border-b border-border/50">
-                          {/* Name */}
-                          <td className="py-2 pr-2 font-medium">
-                            {editMode ? (
-                              <Input
-                                value={displayOf(w.sourceId)}
-                                placeholder={w.sourceId}
-                                onChange={(e) => updateField(w.sourceId, "displayName", e.target.value)}
-                                className="h-7 text-xs"
-                              />
-                            ) : (
-                              displayOf(w.sourceId)
-                            )}
-                          </td>
-                          <td className="py-2 pr-2">{sourcePill(w.source)}</td>
-                          {/* Role */}
-                          <td className="py-2 pr-2 text-muted-foreground min-w-[160px]">
-                            {editMode ? (
-                              addingRoleFor === w.sourceId ? (
-                                <div className="flex gap-1">
-                                  <Input
-                                    autoFocus
-                                    value={newRoleDraft}
-                                    placeholder="New role"
-                                    onChange={(e) => setNewRoleDraft(e.target.value)}
-                                    className="h-7 text-xs"
-                                  />
-                                  <Button
-                                    size="sm"
-                                    className="h-7 px-2"
-                                    onClick={() => {
-                                      if (newRoleDraft.trim()) updateField(w.sourceId, "role", newRoleDraft.trim());
-                                      setAddingRoleFor(null);
-                                      setNewRoleDraft("");
-                                    }}
-                                  >OK</Button>
-                                </div>
-                              ) : (
-                                <Select
-                                  value={curRole}
-                                  onValueChange={(v) => {
-                                    if (v === "__add__") {
-                                      setAddingRoleFor(w.sourceId);
-                                      setNewRoleDraft("");
-                                    } else {
-                                      updateField(w.sourceId, "role", v);
-                                    }
-                                  }}
-                                >
-                                  <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                                  <SelectContent>
-                                    {allRoleOptions.map((r) => (
-                                      <SelectItem key={r} value={r}>{r}</SelectItem>
-                                    ))}
-                                    <SelectItem value="__add__">
-                                      <span className="flex items-center gap-1"><Plus className="h-3 w-3" />Add new role</span>
-                                    </SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              )
-                            ) : (
-                              curRole
-                            )}
-                          </td>
-                          {/* Type */}
-                          <td className="py-2 pr-2 min-w-[160px]">
-                            {editMode ? (
-                              addingTypeFor === w.sourceId ? (
-                                <div className="flex gap-1">
-                                  <Input
-                                    autoFocus
-                                    value={newTypeDraft}
-                                    placeholder="New type"
-                                    onChange={(e) => setNewTypeDraft(e.target.value)}
-                                    className="h-7 text-xs"
-                                  />
-                                  <Button
-                                    size="sm"
-                                    className="h-7 px-2"
-                                    onClick={() => {
-                                      const v = newTypeDraft.trim();
-                                      if (v) {
-                                        if (!allTypeOptions.includes(v)) setCustomTypes((p) => [...p, v]);
-                                        updateField(w.sourceId, "workerType", v);
-                                      }
-                                      setAddingTypeFor(null);
-                                      setNewTypeDraft("");
-                                    }}
-                                  >OK</Button>
-                                </div>
-                              ) : (
-                                <Select
-                                  value={curType}
-                                  onValueChange={(v) => {
-                                    if (v === "__add__") {
-                                      setAddingTypeFor(w.sourceId);
-                                      setNewTypeDraft("");
-                                    } else {
-                                      updateField(w.sourceId, "workerType", v);
-                                    }
-                                  }}
-                                >
-                                  <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                                  <SelectContent>
-                                    {allTypeOptions.map((t) => (
-                                      <SelectItem key={t} value={t}>{typeLabel(t)}</SelectItem>
-                                    ))}
-                                    <SelectItem value="__add__">
-                                      <span className="flex items-center gap-1"><Plus className="h-3 w-3" />Add new type</span>
-                                    </SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              )
-                            ) : (
-                              typePill(curType)
-                            )}
-                          </td>
-                          <td className="py-2 pr-2 text-right tabular-nums">{rate}</td>
-                          <td className="py-2 pr-2 text-right tabular-nums">{(w.hoursWorked ?? 0).toFixed(1)}</td>
-                          <td className="py-2 pr-2 text-right tabular-nums">{fmtAUD(w.totalBilledAUD)}</td>
-                          <td className="py-2 pr-2">{statusPill(w.status)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex items-center justify-between mt-3">
-                <Popover open={confirmReset} onOpenChange={setConfirmReset}>
-                  <PopoverTrigger asChild>
-                    <button className="text-[11px] font-mono text-muted-foreground hover:text-foreground underline underline-offset-2">
-                      Reset to defaults
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent side="top" className="w-64 text-xs">
-                    <p className="mb-2">Reset all display names to original? This cannot be undone.</p>
-                    <div className="flex justify-end gap-2">
-                      <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => setConfirmReset(false)}>Cancel</Button>
-                      <Button size="sm" className="h-7 text-[11px]" onClick={resetAllDisplay}>Reset</Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                <button
-                  onClick={() => setExpandedCard(null)}
-                  className="text-[11px] font-mono text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  ▲ Collapse
-                </button>
-              </div>
-            </>
-          )}
-
-          {expandedCard === "hours" && (
-            <>
-              <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-                <h3 className="text-sm font-semibold">{hoursChartTitle}</h3>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="flex items-center gap-1">
-                    {(["daily", "weekly", "monthly"] as const).map((p) => (
-                      <Button
-                        key={p}
-                        size="sm"
-                        variant={hoursPeriod === p ? "default" : "outline"}
-                        className="h-7 text-[11px] px-2.5 capitalize"
-                        onClick={() => setHoursPeriod(p)}
-                      >
-                        {p}
-                      </Button>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {(["total", "avg"] as const).map((m) => (
-                      <Button
-                        key={m}
-                        size="sm"
-                        variant={hoursMode === m ? "default" : "outline"}
-                        className="h-7 text-[11px] px-2.5"
-                        onClick={() => setHoursMode(m)}
-                      >
-                        {m === "total" ? "Total Hours" : "Avg Hours"}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              {hoursByWorker.length === 0 ? (
-                <div className="py-10 text-center text-sm text-muted-foreground font-mono">
-                  No hours logged for this period.
-                </div>
-              ) : (
-                <div style={{ height: Math.max(180, hoursByWorker.length * 40) }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={hoursByWorker} layout="vertical" margin={{ top: 5, right: 60, left: 20, bottom: 5 }}>
-                      <CartesianGrid stroke="hsl(var(--border))" strokeOpacity={0.4} horizontal={false} />
-                      <XAxis type="number" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                      <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} width={100} />
-                      <Tooltip
-                        contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12 }}
-                        formatter={(v: number) => [
-                          hoursMode === "avg" ? `${v.toFixed(1)} avg hrs/day` : `${v.toFixed(1)} hrs`,
-                          hoursMode === "avg" ? "Avg/day" : "Hours",
-                        ]}
-                      />
-                      <Bar
-                        dataKey="value"
-                        fill="#22c55e"
-                        radius={[0, 4, 4, 0]}
-                        label={{
-                          position: "right",
-                          fontSize: 11,
-                          fill: "hsl(var(--muted-foreground))",
-                          formatter: (v: number) => hoursMode === "avg" ? `${v.toFixed(1)} avg hrs/day` : `${v.toFixed(1)} hrs`,
-                        }}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </>
-          )}
-
-          {expandedCard === "spend" && (
-            <>
-              <h3 className="text-sm font-semibold mb-3">Spend by Worker</h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-center">
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={spendByWorker} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90} paddingAngle={2}>
-                        {spendByWorker.map((_, i) => <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />)}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12 }}
-                        formatter={(v: number, _n, item: { payload: { name: string; pct: number } }) => [`${fmtAUD(v)} (${item.payload.pct.toFixed(1)}%)`, item.payload.name]}
-                      />
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="text-left text-[10px] font-mono uppercase tracking-wider text-muted-foreground border-b border-border">
-                      <th className="py-2 pr-2">Worker</th>
-                      <th className="py-2 pr-2">Source</th>
-                      <th className="py-2 pr-2 text-right">Total AUD</th>
-                      <th className="py-2 pr-2 text-right">% of Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {spendByWorker.map((s, i) => (
-                      <tr key={i} className="border-b border-border/50">
-                        <td className="py-2 pr-2 font-medium">{s.name}</td>
-                        <td className="py-2 pr-2">{sourcePill(s.source)}</td>
-                        <td className="py-2 pr-2 text-right tabular-nums">{fmtAUD(s.value)}</td>
-                        <td className="py-2 pr-2 text-right tabular-nums">{s.pct.toFixed(1)}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-
-          {expandedCard === "rate" && (
-            <>
-              <h3 className="text-sm font-semibold mb-3">Worker Rates</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="text-left text-[10px] font-mono uppercase tracking-wider text-muted-foreground border-b border-border">
-                      <th className="py-2 pr-2">Worker</th>
-                      <th className="py-2 pr-2">Source</th>
-                      <th className="py-2 pr-2 text-right">Rate (AUD/hr)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {allWorkers.map((w) => (
-                      <tr key={w.id} className="border-b border-border/50">
-                        <td className="py-2 pr-2 font-medium">{displayOf(w.sourceId)}</td>
-                        <td className="py-2 pr-2">{sourcePill(w.source)}</td>
-                        <td className="py-2 pr-2 text-right tabular-nums">
-                          <span className="text-foreground">{fmtMoney2(w.rateAUDequiv)}</span>
-                          {w.source === "Upwork" && (
-                            <span className="text-muted-foreground ml-2 text-[11px]">(USD {fmtMoney2(w.rateUSD)})</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <p className="mt-2 text-[11px] text-muted-foreground font-mono">
-                  Upwork rates converted at 1 USD = {USD_TO_AUD} AUD
-                </p>
-              </div>
-            </>
-          )}
-
-          {expandedCard !== "workers" && (
-            <div className="flex justify-end mt-3">
-              <button
-                onClick={() => setExpandedCard(null)}
-                className="text-[11px] font-mono text-muted-foreground hover:text-foreground transition-colors"
-              >
-                ▲ Collapse
-              </button>
+        {/* Monthly chart */}
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold">Monthly hours &amp; spend</h3>
+            <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
+              Bars: hours · Line: cost (AUD)
+            </span>
+          </div>
+          {monthlyChart.length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted-foreground font-mono">
+              No hours logged for this period.
+            </div>
+          ) : (
+            <div style={{ height: 280 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={monthlyChart} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                  <CartesianGrid stroke="hsl(var(--border))" strokeOpacity={0.4} vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  />
+                  <YAxis
+                    yAxisId="left"
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    label={{ value: "Hours", angle: -90, position: "insideLeft", fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    tickFormatter={(v: number) => `$${Math.round(v / 1000)}k`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "hsl(var(--popover))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 6,
+                      fontSize: 12,
+                    }}
+                    formatter={(v: number, name: string) =>
+                      name === "Cost (AUD)" ? [fmtAUD(v), name] : [v.toFixed(1), name]
+                    }
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar yAxisId="left" dataKey="hours" name="Hours" fill={INTERACTIVE} radius={[3, 3, 0, 0]} />
+                  <Line
+                    yAxisId="right"
+                    dataKey="cost"
+                    name="Cost (AUD)"
+                    stroke={AMBER}
+                    strokeWidth={2}
+                    dot={{ r: 3, fill: AMBER }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
             </div>
           )}
         </Card>
-      )}
 
-      {/* Monthly chart (full width) */}
-      <Card className="p-4 mb-4 md:mb-6">
-        <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-          <h2 className="text-sm font-semibold">Monthly Hours & Spend</h2>
-          <div className="flex items-center gap-1">
-            {([
-              ["all", "All Sources"],
-              ["upwork", "Upwork only"],
-              ["zoho", "Zoho only"],
-            ] as const).map(([k, l]) => (
-              <Button
-                key={k}
-                size="sm"
-                variant={chartSource === k ? "default" : "outline"}
-                className="h-7 text-[11px] px-2.5"
-                onClick={() => setChartSource(k)}
-              >
-                {l}
-              </Button>
-            ))}
+        {/* Worker rates */}
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold">Worker rates</h3>
+            <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
+              {profiles.length} profile{profiles.length === 1 ? "" : "s"}
+            </span>
           </div>
-        </div>
-        <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={mergedMonthly} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
-              <CartesianGrid stroke="hsl(var(--border))" strokeOpacity={0.6} vertical={false} />
-              <XAxis dataKey="label" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-              <YAxis
-                yAxisId="hours"
-                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                label={{ value: "Hours", angle: -90, position: "insideLeft", style: { fontSize: 10, fill: "hsl(var(--muted-foreground))" } }}
-              />
-              <YAxis
-                yAxisId="cost"
-                orientation="right"
-                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`}
-              />
-              <Tooltip
-                contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12 }}
-                formatter={(value: number, name: string) => {
-                  if (name === "Hours") return [`${value.toFixed(1)} hrs`, "Hours"];
-                  if (name === "Cost (AUD)") return [fmtAUD(value), "Cost (AUD)"];
-                  return [value, name];
-                }}
-              />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar yAxisId="hours" dataKey="totalHours" name="Hours" fill="#22c55e" radius={[4, 4, 0, 0]} />
-              <Line yAxisId="cost" type="monotone" dataKey="totalCostAUD" name="Cost (AUD)" stroke="#60a5fa" strokeWidth={2} dot={{ r: 3 }} />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-      </Card>
-
-      {/* Timesheet log */}
-      <Card className="p-4 mb-3">
-        <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-          <h2 className="text-sm font-semibold">Timesheet Log</h2>
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Workers multi-select */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <button
-                  className={`flex items-center justify-between gap-2 px-3 rounded-md border bg-background text-xs ${
-                    selectedWorkers.length > 0 && selectedWorkers.length < allWorkerSourceIds.length
-                      ? "border-chart-green ring-1 ring-chart-green/30"
-                      : "border-input"
-                  } w-[170px] h-8`}
-                >
-                  <span className="truncate">{workerFilterLabel}</span>
-                  <ChevronDown className="h-3.5 w-3.5 opacity-60" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent align="start" className="w-56 p-2">
-                <div className="flex items-center justify-between mb-2 px-1">
-                  <button
-                    className="text-[11px] font-mono text-muted-foreground hover:text-foreground"
-                    onClick={() => setSelectedWorkers([])}
-                  >
-                    Clear (All)
-                  </button>
-                  <button
-                    className="text-[11px] font-mono text-muted-foreground hover:text-foreground"
-                    onClick={() => setSelectedWorkers([...allWorkerSourceIds])}
-                  >
-                    Select all
-                  </button>
-                </div>
-                <div className="max-h-64 overflow-y-auto flex flex-col gap-1">
-                  {allWorkerSourceIds.map((sid) => {
-                    const checked = selectedWorkers.includes(sid);
+          {loading ? (
+            <div className="py-8 text-center text-sm text-muted-foreground font-mono">Loading…</div>
+          ) : profiles.length === 0 ? (
+            <div className="py-8 text-center text-sm text-muted-foreground font-mono">No profiles yet.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground border-b">
+                    <th className="text-left py-2 pr-3">Worker</th>
+                    <th className="text-left py-2 pr-3">Role</th>
+                    <th className="text-right py-2 pr-3">Hourly rate (AUD)</th>
+                    <th className="text-left py-2 pl-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {profiles.map((p) => {
+                    const rate = rates[p.id];
                     return (
-                      <label key={sid} className="flex items-center gap-2 px-1 py-1 text-xs cursor-pointer hover:bg-muted/40 rounded">
-                        <Checkbox checked={checked} onCheckedChange={() => toggleWorker(sid)} />
-                        <span>{displayOf(sid)}</span>
-                      </label>
+                      <tr key={p.id} className="border-b last:border-0">
+                        <td className="py-2 pr-3">{p.full_name}</td>
+                        <td className="py-2 pr-3 text-muted-foreground capitalize">{p.role}</td>
+                        <td className="py-2 pr-3">
+                          <div className="flex justify-end">
+                            <RateInput
+                              userId={p.id}
+                              initial={rate ?? null}
+                              onSaved={(v) => handleRateSaved(p.id, v)}
+                            />
+                          </div>
+                        </td>
+                        <td className="py-2 pl-3">
+                          {rate == null ? (
+                            <span
+                              className="text-[10px] font-mono px-2 py-0.5 rounded"
+                              style={{ color: AMBER, background: AMBER + "18", border: `1px solid ${AMBER}55` }}
+                            >
+                              NO RATE
+                            </span>
+                          ) : null}
+                        </td>
+                      </tr>
                     );
                   })}
-                </div>
-              </PopoverContent>
-            </Popover>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
 
-            {/* Source */}
-            <Select value={sourceFilter} onValueChange={setSourceFilter}>
-              <SelectTrigger className={activeTriggerCls(sourceFilter !== "All Sources")}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All Sources">All Sources</SelectItem>
-                <SelectItem value="Upwork">Upwork</SelectItem>
-                <SelectItem value="Zoho Projects">Zoho Projects</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Month */}
-            <Select value={monthFilter} onValueChange={setMonthFilter}>
-              <SelectTrigger className={activeTriggerCls(monthFilter !== "all")}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Months</SelectItem>
-                {uniqueMonths.map((m) => (
-                  <SelectItem key={m} value={m}>{fmtMonthLong(m)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {/* Timesheet log */}
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+            <h3 className="text-sm font-semibold">Timesheet log</h3>
+            <div className="flex items-center gap-2">
+              {/* Worker multi-select */}
+              <Popover open={workerFilterOpen} onOpenChange={setWorkerFilterOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 text-xs font-mono">
+                    {workerFilterLabel}
+                    <ChevronDown className="ml-1 h-3.5 w-3.5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-56 p-2">
+                  <div className="max-h-64 overflow-y-auto space-y-1">
+                    {profiles.map((p) => (
+                      <label
+                        key={p.id}
+                        className="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/50 px-2 py-1 rounded"
+                      >
+                        <Checkbox
+                          checked={selectedWorkers.includes(p.id)}
+                          onCheckedChange={() => toggleWorker(p.id)}
+                        />
+                        <span>{p.full_name}</span>
+                      </label>
+                    ))}
+                    {selectedWorkers.length > 0 ? (
+                      <button
+                        onClick={() => setSelectedWorkers([])}
+                        className="text-[11px] font-mono text-muted-foreground hover:text-foreground mt-1 w-full text-left px-2 py-1"
+                      >
+                        Clear
+                      </button>
+                    ) : null}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              {/* Month filter */}
+              <Select value={monthFilter} onValueChange={setMonthFilter}>
+                <SelectTrigger className="h-8 text-xs font-mono w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All months</SelectItem>
+                  {availableMonths.map((mk) => (
+                    <SelectItem key={mk} value={mk}>
+                      {monthLabelFromKey(mk)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </div>
 
-        {filteredTimesheets.length === 0 ? (
-          <div className="py-10 text-center text-sm text-muted-foreground font-mono">
-            No timesheet entries for this filter.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="text-left text-[10px] font-mono uppercase tracking-wider text-muted-foreground border-b border-border">
-                  <th className="py-2 pr-2">Date</th>
-                  <th className="py-2 pr-2">Worker</th>
-                  <th className="py-2 pr-2">Source</th>
-                  <th className="py-2 pr-2">Project</th>
-                  <th className="py-2 pr-2 text-right">Hours</th>
-                  <th className="py-2 pr-2 text-right">Cost AUD</th>
-                  <th className="py-2 pr-2">Month</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTimesheets.map((t, i) => (
-                  <tr key={i} className="border-b border-border/50">
-                    <td className="py-2 pr-2 tabular-nums">{fmtDate(t.date)}</td>
-                    <td className="py-2 pr-2">{displayOf(t.workerName)}</td>
-                    <td className="py-2 pr-2">{sourcePill(t.source)}</td>
-                    <td className="py-2 pr-2 text-muted-foreground">{t.projectName}</td>
-                    <td className="py-2 pr-2 text-right tabular-nums">{(t.hours ?? 0).toFixed(1)}</td>
-                    <td className="py-2 pr-2 text-right tabular-nums">{fmtMoney2(t.costAUD)}</td>
-                    <td className="py-2 pr-2 text-muted-foreground">{fmtMonthLong(t.month)}</td>
+          {loading ? (
+            <div className="py-8 text-center text-sm text-muted-foreground font-mono">Loading…</div>
+          ) : filteredEntries.length === 0 ? (
+            <div className="py-8 text-center text-sm text-muted-foreground font-mono">
+              No time entries logged{monthFilter !== "all" ? " for this month" : ""}.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground border-b">
+                    <th className="text-left py-2 pr-3">Date</th>
+                    <th className="text-left py-2 pr-3">Worker</th>
+                    <th className="text-left py-2 pr-3">Project</th>
+                    <th className="text-right py-2 pr-3">Hours</th>
+                    <th className="text-right py-2 pr-3">Cost (AUD)</th>
+                    <th className="text-left py-2 pl-3">Note</th>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-border font-semibold">
-                  <td className="py-2 pr-2">TOTAL</td>
-                  <td className="py-2 pr-2" />
-                  <td className="py-2 pr-2" />
-                  <td className="py-2 pr-2" />
-                  <td className="py-2 pr-2 text-right tabular-nums">{filteredTotals.hours.toFixed(1)}</td>
-                  <td className="py-2 pr-2 text-right tabular-nums">{fmtMoney2(filteredTotals.aud)}</td>
-                  <td className="py-2 pr-2" />
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        )}
-      </Card>
-
-      {/* Bank reconciliation placeholder */}
-      <Card className="p-4 mb-3 bg-muted/30 border-dashed">
-        <button
-          onClick={() => setBankOpen((o) => !o)}
-          className="w-full flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <span className="flex items-center gap-2">
-            <ChevronDown className={`h-3 w-3 transition-transform ${bankOpen ? "rotate-180" : "-rotate-90"}`} />
-            Bank Reconciliation (coming soon)
-          </span>
-        </button>
-        {bankOpen && (
-          <div className="mt-3 text-xs text-muted-foreground font-mono">
-            Bank transaction data will be connected here to reconcile actual payments against logged hours. This section will activate automatically once the bank sync is configured.
-          </div>
-        )}
-      </Card>
-
-      <p className="text-[11px] text-muted-foreground font-mono text-center">
-        Labour data: Zoho Projects (casual workers, AUD $40/hr) · Digital contractors: Upwork (USD converted to AUD at 1.55) · Syncs every 6 hours · Bank transaction reconciliation coming soon
-      </p>
+                </thead>
+                <tbody>
+                  {filteredEntries.map((e) => {
+                    const worker = profileById[e.user_id];
+                    const project = projects[e.project_id];
+                    const rate = rates[e.user_id];
+                    const h = Number(e.hours) || 0;
+                    return (
+                      <tr key={e.id} className="border-b last:border-0">
+                        <td className="py-2 pr-3 font-mono tabular-nums text-xs">{fmtDate(e.work_date)}</td>
+                        <td className="py-2 pr-3">{worker?.full_name ?? "—"}</td>
+                        <td className="py-2 pr-3">
+                          {project ? (
+                            <Link
+                              to={`/projects?p=${encodeURIComponent(project.id)}`}
+                              className="hover:underline"
+                              style={{ color: INTERACTIVE }}
+                            >
+                              {project.name}
+                            </Link>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="py-2 pr-3 text-right font-mono tabular-nums">{h.toFixed(1)}</td>
+                        <td className="py-2 pr-3 text-right font-mono tabular-nums">
+                          {rate != null ? (
+                            fmtAUD(h * rate)
+                          ) : (
+                            <span className="inline-flex items-center gap-1">
+                              <span className="text-muted-foreground">—</span>
+                              <span
+                                className="text-[10px] font-mono px-1.5 py-0.5 rounded"
+                                style={{ color: AMBER, background: AMBER + "18", border: `1px solid ${AMBER}55` }}
+                              >
+                                NO RATE
+                              </span>
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 pl-3 text-xs text-muted-foreground">{e.note ?? ""}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t font-mono text-xs">
+                    <td colSpan={3} className="py-2 pr-3 text-right text-muted-foreground uppercase tracking-widest">
+                      Totals
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular-nums">{kpis.totalHours.toFixed(1)}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums">{fmtAUD(kpis.spend)}</td>
+                    <td className="py-2 pl-3">
+                      {kpis.unpricedHours > 0 ? (
+                        <span style={{ color: AMBER }}>
+                          {kpis.unpricedHours.toFixed(1)} hrs unpriced
+                        </span>
+                      ) : null}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+          <p className="text-[10px] font-mono text-muted-foreground/70 mt-4">
+            Hours logged in Project Management, costed at Employee Centre rates. Read by the revenue engine via{" "}
+            <span className="font-mono">v_project_labour_actual</span>.
+          </p>
+        </Card>
+      </div>
     </DashboardLayout>
   );
 };
