@@ -63,6 +63,7 @@ export function TaskDrawer({ taskId, onClose, onChanged }: Props) {
       setLoading(false);
     })();
   }, [taskId, role]);
+  const handleFilesCountChange = useCallback(() => onChanged(), [onChanged]);
 
 
   const toggleStatus = async () => {
