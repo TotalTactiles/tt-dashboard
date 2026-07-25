@@ -23,7 +23,7 @@ interface Preview {
   skipped: boolean;
 }
 
-export function DateCascadeModal({ projectId, currentEstStart, onClose, onApplied }: Props) {
+export function DateCascadeModal({ projectId, currentEstStart, contractValue, onClose, onApplied }: Props) {
   const [newStart, setNewStart] = useState(currentEstStart ?? "");
   const [preview, setPreview] = useState<Preview[]>([]);
   const [loading, setLoading] = useState(false);
