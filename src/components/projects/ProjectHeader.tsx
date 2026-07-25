@@ -324,6 +324,7 @@ export function ProjectHeader({
         <DateCascadeModal
           projectId={projectId}
           currentEstStart={project.estimated_start}
+          contractValue={financials?.contract_value ?? null}
           onClose={() => setCascadeOpen(false)}
           onApplied={() => {
             setCascadeOpen(false);
