@@ -521,9 +521,10 @@ function EstStartCard({
   if (mobile) {
     return (
       <div
-        role={canEdit ? "button" : undefined}
+        role={interactive ? "button" : undefined}
         tabIndex={canEdit ? 0 : undefined}
-        aria-label={canEdit ? "Edit estimated start" : undefined}
+        aria-label={canEdit ? "Edit estimated start" : locked ? "Locked — deal completed" : undefined}
+        title={locked ? "Locked — deal completed" : undefined}
         onClick={handleClick}
         onKeyDown={handleKey}
         className={`snap-start flex-none min-w-[104px] max-w-[132px] rounded-[10px] border relative ${
