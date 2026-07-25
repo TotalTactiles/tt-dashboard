@@ -23,6 +23,38 @@ interface Preview {
   skipped: boolean;
 }
 
+function DatePairCell({
+  oldValue,
+  newValue,
+  skipped,
+}: {
+  oldValue: string | null;
+  newValue: string | null;
+  skipped: boolean;
+}) {
+  if (skipped) {
+    return (
+      <div
+        className="text-[11px] font-mono"
+        style={{ color: "rgba(229,233,234,0.45)" }}
+      >
+        {formatDateShort(oldValue)}
+      </div>
+    );
+  }
+  return (
+    <div className="text-[11px] font-mono flex items-center gap-1.5">
+      <span style={{ color: "rgba(229,233,234,0.45)" }}>
+        {formatDateShort(oldValue)}
+      </span>
+      <span style={{ color: "rgba(229,233,234,0.28)" }}>→</span>
+      <span className="font-medium" style={{ color: "#BA7517" }}>
+        {formatDateShort(newValue)}
+      </span>
+    </div>
+  );
+}
+
 export function DateCascadeModal({ projectId, currentEstStart, contractValue, onClose, onApplied }: Props) {
   const [newStart, setNewStart] = useState(currentEstStart ?? "");
   const [preview, setPreview] = useState<Preview[]>([]);
@@ -121,9 +153,17 @@ export function DateCascadeModal({ projectId, currentEstStart, contractValue, on
               </label>
               <div
                 className="mt-1 text-[13px] font-mono"
-                style={{ color: delta && delta !== 0 ? "#F59E0B" : "#B0B8BF" }}
+                style={{
+                  color: delta === null || delta === 0 ? "rgba(229,233,234,0.45)" : "#BA7517",
+                }}
               >
-                {delta === null ? "—" : delta === 0 ? "no change" : `${delta > 0 ? "+" : ""}${delta} days`}
+                {delta === null
+                  ? "—"
+                  : delta === 0
+                    ? "no change"
+                    : delta > 0
+                      ? `+${delta} days later`
+                      : `${Math.abs(delta)} days earlier`}
               </div>
             </div>
           </div>
@@ -175,7 +215,17 @@ export function DateCascadeModal({ projectId, currentEstStart, contractValue, on
               className="px-3 py-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground border-b"
               style={{ borderColor: "#1F2224", background: "#0F1113" }}
             >
-              Preview · {preview.length} tasks
+            {(() => {
+              const total = preview.length;
+              const changing = preview.filter((r) => !r.skipped).length;
+              const label =
+                total === 0
+                  ? "Preview"
+                  : changing === total
+                    ? `Preview · ${total} tasks change`
+                    : `Preview · ${changing} of ${total} tasks change`;
+              return label;
+            })()}
             </div>
             <div className="max-h-[320px] overflow-y-auto">
               {loading && (
@@ -188,15 +238,46 @@ export function DateCascadeModal({ projectId, currentEstStart, contractValue, on
                   No rule-based tasks to shift.
                 </div>
               )}
+              {!loading && preview.length > 0 && (
+                <div
+                  className="grid grid-cols-[1fr_minmax(120px,auto)_minmax(120px,auto)] gap-3 px-3 py-1.5 border-t"
+                  style={{ borderColor: "#1F2224", background: "#0B0D0E" }}
+                >
+                  <div />
+                  <div
+                    className="font-mono uppercase"
+                    style={{
+                      fontSize: "9px",
+                      letterSpacing: "0.9px",
+                      color: "rgba(229,233,234,0.28)",
+                    }}
+                  >
+                    Start
+                  </div>
+                  <div
+                    className="font-mono uppercase"
+                    style={{
+                      fontSize: "9px",
+                      letterSpacing: "0.9px",
+                      color: "rgba(229,233,234,0.28)",
+                    }}
+                  >
+                    End
+                  </div>
+                </div>
+              )}
               {preview.map((r) => (
                 <div
                   key={r.task_id}
-                  className="grid grid-cols-[1fr_auto_auto] gap-3 px-3 py-2 border-t items-center"
-                  style={{ borderColor: "#1F2224" }}
+                  className="grid grid-cols-[1fr_minmax(120px,auto)_minmax(120px,auto)] gap-3 px-3 py-2 border-t items-center"
+                  style={{
+                    borderColor: "#1F2224",
+                    opacity: r.skipped ? 0.45 : 1,
+                  }}
                 >
                   <div
                     className="text-[12px] font-medium truncate"
-                    style={{ color: r.skipped ? "#6B7280" : "#E6EEF3" }}
+                    style={{ color: "#E6EEF3" }}
                   >
                     {r.task_name}
                     {r.skipped && (
@@ -205,15 +286,16 @@ export function DateCascadeModal({ projectId, currentEstStart, contractValue, on
                       </span>
                     )}
                   </div>
-                  <div className="text-[11px] font-mono text-muted-foreground">
-                    {formatDateShort(r.old_start)} → {formatDateShort(r.old_end)}
-                  </div>
-                  <div
-                    className="text-[11px] font-mono"
-                    style={{ color: r.skipped ? "#6B7280" : "#3D89DA" }}
-                  >
-                    {formatDateShort(r.new_start)} → {formatDateShort(r.new_end)}
-                  </div>
+                  <DatePairCell
+                    oldValue={r.old_start}
+                    newValue={r.new_start}
+                    skipped={r.skipped}
+                  />
+                  <DatePairCell
+                    oldValue={r.old_end}
+                    newValue={r.new_end}
+                    skipped={r.skipped}
+                  />
                 </div>
               ))}
             </div>
@@ -232,7 +314,7 @@ export function DateCascadeModal({ projectId, currentEstStart, contractValue, on
           </button>
           <button
             onClick={apply}
-            disabled={!newStart || applying || loading}
+            disabled={!newStart || applying || loading || delta === 0}
             className="h-8 px-4 text-[12px] font-mono rounded-md text-white disabled:opacity-50"
             style={{ background: "#3D89DA" }}
           >
