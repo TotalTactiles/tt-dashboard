@@ -7,13 +7,19 @@ import { CalendarStrip } from "@/components/projects/CalendarStrip";
 import { TaskListSection, TaskListColumnHeader } from "@/components/projects/TaskList";
 import { TaskDrawer } from "@/components/projects/TaskDrawer";
 import { ColumnsPopover } from "@/components/projects/ColumnsPopover";
+import { CompleteProjectModal } from "@/components/projects/CompleteProjectModal";
+import { SplitProjectModal } from "@/components/projects/SplitProjectModal";
 import { loadColumns, saveColumns, type ColumnKey } from "@/components/projects/columns";
 import { useTasks } from "@/hooks/useTasks";
-import { useProjectDetail, useIsPmMobile } from "@/hooks/useProjects";
+import {
+  useProjectDetail,
+  useIsPmMobile,
+  useCanManageProjectLifecycle,
+} from "@/hooks/useProjects";
 import { useProfiles } from "@/hooks/useProfiles";
 import { Ring } from "@/components/projects/Ring";
 import { cn } from "@/lib/utils";
-import { List, LayoutGrid, Calendar as CalendarIcon, Table as TableIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
+import { CheckCircle2, Info, List, LayoutGrid, Calendar as CalendarIcon, Table as TableIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
 
 function formatCompletionUpper(iso: string | null | undefined) {
   if (!iso) return null;

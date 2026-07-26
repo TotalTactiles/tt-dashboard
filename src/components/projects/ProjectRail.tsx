@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Search, Circle } from "lucide-react";
+import { Loader2, Search, Circle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useProjects } from "@/hooks/useProjects";
+import { useProjects, type ProjectStatusFilter } from "@/hooks/useProjects";
 import { Ring } from "./Ring";
 import { formatDateShort } from "@/lib/projects/dateRules";
 
@@ -12,12 +12,16 @@ interface Props {
   fullWidth?: boolean;
 }
 
+type Tab = "active" | "completed" | "templates";
+
 export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth }: Props) {
-  const { projects, progress, loading } = useProjects("active");
+  const [tab, setTab] = useState<Tab>("active");
+  const filter: ProjectStatusFilter = tab === "completed" ? "completed" : "active";
+  const { projects, progress, loading } = useProjects(filter);
   const [q, setQ] = useState("");
 
-
   const filtered = useMemo(() => {
+    if (tab === "templates") return [];
     const needle = q.trim().toLowerCase();
     if (!needle) return projects;
     return projects.filter((p) =>
@@ -25,13 +29,14 @@ export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth }: Pr
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(needle)),
     );
-  }, [projects, q]);
+  }, [projects, q, tab]);
 
   useEffect(() => {
     // On mobile (fullWidth) do NOT auto-select — user should see the list first.
     if (fullWidth) return;
+    if (tab !== "active") return;
     if (!activeProjectId && filtered.length > 0) onSelect(filtered[0].id);
-  }, [activeProjectId, filtered, onSelect, fullWidth]);
+  }, [activeProjectId, filtered, onSelect, fullWidth, tab]);
 
   return (
     <aside
@@ -41,10 +46,25 @@ export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth }: Pr
       )}
       style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
     >
+      <div className="px-2 pt-2 border-b" style={{ borderColor: "#1F2224" }}>
+        <div className="flex items-center gap-1">
+          <RailTab active={tab === "active"} onClick={() => setTab("active")}>
+            Active
+          </RailTab>
+          <RailTab active={tab === "completed"} onClick={() => setTab("completed")}>
+            Completed
+          </RailTab>
+          <RailTab active={tab === "templates"} onClick={() => setTab("templates")} soon>
+            Templates
+          </RailTab>
+        </div>
+      </div>
 
       <div className="px-3 py-3 border-b" style={{ borderColor: "#1F2224" }}>
         <div className="text-[10px] font-mono tracking-widest uppercase text-muted-foreground mb-2">
-          Active Projects · {filtered.length}
+          {tab === "completed" ? "Completed Projects" : tab === "templates" ? "Templates" : "Active Projects"}
+          {" · "}
+          {filtered.length}
         </div>
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/70" />
@@ -59,21 +79,29 @@ export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth }: Pr
       </div>
 
       <div className="flex-1 overflow-y-auto py-1">
-        {loading && (
+        {tab === "templates" && (
+          <div className="p-4 text-xs text-muted-foreground">Templates coming soon.</div>
+        )}
+        {tab !== "templates" && loading && (
           <div className="p-4 flex items-center gap-2 text-xs text-muted-foreground">
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
             Loading…
           </div>
         )}
-        {!loading && filtered.length === 0 && (
-          <div className="p-4 text-xs text-muted-foreground">No projects.</div>
+        {tab !== "templates" && !loading && filtered.length === 0 && (
+          <div className="p-4 text-xs text-muted-foreground">
+            {tab === "completed" ? "No completed projects yet." : "No projects."}
+          </div>
         )}
-        {filtered.map((p) => {
+        {tab !== "templates" && filtered.map((p) => {
           const active = p.id === activeProjectId;
-          const pct = progress[p.id] ?? 0;
+          const isCompleted = !!p.completed_at;
+          const pct = isCompleted ? 100 : (progress[p.id] ?? 0);
           const hasEnd = !!p.project_end;
-          const dateIso = p.project_end ?? p.estimated_start ?? null;
-          const dateLabel = hasEnd ? "Completion" : "Est. start";
+          const dateIso = isCompleted
+            ? p.completed_at
+            : (p.project_end ?? p.estimated_start ?? null);
+          const dateLabel = isCompleted ? "Completed" : hasEnd ? "Completion" : "Est. start";
           return (
             <button
               key={p.id}
@@ -87,13 +115,25 @@ export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth }: Pr
               <Ring pct={pct} size={36} stroke={3} showLabel labelSize={10} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <Circle
-                    className="h-2 w-2 shrink-0"
-                    style={{ color: "#22C55E", fill: "#22C55E" }}
-                  />
+                  {isCompleted ? (
+                    <CheckCircle2 className="h-3 w-3 shrink-0" style={{ color: "#22C55E" }} />
+                  ) : (
+                    <Circle
+                      className="h-2 w-2 shrink-0"
+                      style={{ color: "#22C55E", fill: "#22C55E" }}
+                    />
+                  )}
                   <span className="text-[12.5px] font-semibold text-foreground/90 truncate">
                     {p.name}
                   </span>
+                  {isCompleted && (
+                    <span
+                      className="ml-auto text-[8.5px] font-mono uppercase tracking-widest px-1.5 py-0.5 rounded-sm shrink-0"
+                      style={{ background: "rgba(34,197,94,0.12)", color: "#22C55E" }}
+                    >
+                      Completed
+                    </span>
+                  )}
                 </div>
                 <div className="text-[10.5px] text-muted-foreground truncate font-mono mt-0.5">
                   {dateIso ? `${dateLabel} · ${formatDateShort(dateIso)}` : "No dates set"}
@@ -104,5 +144,36 @@ export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth }: Pr
         })}
       </div>
     </aside>
+  );
+}
+
+function RailTab({
+  active,
+  onClick,
+  children,
+  soon,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  soon?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "px-2.5 h-7 text-[10px] font-mono uppercase tracking-widest transition-colors rounded-md",
+        active ? "text-foreground" : "text-muted-foreground/70 hover:text-foreground",
+      )}
+      style={{
+        background: active ? "#16161A" : "transparent",
+        opacity: soon ? 0.55 : undefined,
+      }}
+    >
+      {children}
+      {soon && (
+        <span className="ml-1 text-[8px] normal-case tracking-normal opacity-70">soon</span>
+      )}
+    </button>
   );
 }
