@@ -60,6 +60,7 @@ function ProjectsInner() {
   );
 
   const bump = useCallback(() => setRefreshTick((t) => t + 1), []);
+  const bumpRail = useCallback(() => setRailRefreshTick((t) => t + 1), []);
   const handleChanged = useCallback(() => {
     bump();
     refresh();
@@ -73,6 +74,15 @@ function ProjectsInner() {
     (t: typeof tasks[number]) => toggleTaskStatus(t.id, t.status),
     [toggleTaskStatus],
   );
+  const openCompleteModal = useCallback(() => setCompleteOpen(true), []);
+  const closeCompleteModal = useCallback(() => setCompleteOpen(false), []);
+  const openSplitModal = useCallback(() => setSplitOpen(true), []);
+  const closeSplitModal = useCallback(() => setSplitOpen(false), []);
+  const handleCompleted = useCallback(() => {
+    // Refresh project detail + rail so the completed banner and rail chip show.
+    refreshProject();
+    bumpRail();
+  }, [refreshProject, bumpRail]);
 
   const { pct, total, done, open } = useMemo(() => {
     const countable = tasks.filter((t) => !t.office_only);
