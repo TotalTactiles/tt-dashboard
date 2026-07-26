@@ -92,6 +92,7 @@ export function ForecastSnapshot({ projectId }: Props) {
 
   const restated = forecast.effective_type === "restated";
   const capturedAt = fmtDay(forecast.effective_captured_at);
+  const note = forecast.note?.trim();
 
   return (
     <div className="space-y-4">
@@ -122,6 +123,17 @@ export function ForecastSnapshot({ projectId }: Props) {
         )}
       </div>
 
+      {/* Snapshot note — surfaced when the workflow could not resolve a full
+          cost breakdown (e.g. no REVENUE row) so it doesn't read as a bug. */}
+      {note && (
+        <div
+          className="font-mono leading-relaxed"
+          style={{ fontSize: "10px", color: NEG_45 }}
+        >
+          {note}
+        </div>
+      )}
+
       {/* Financial rows */}
       <div>
         <FinRow
@@ -143,12 +155,14 @@ export function ForecastSnapshot({ projectId }: Props) {
           value={fmtCurrency(forecast.gross_margin)}
           positive
           rawPositive={numGt0(forecast.gross_margin)}
+          rawNegative={numLt0(forecast.gross_margin)}
         />
         <FinRow
           label="GP %"
           value={fmtPercent(forecast.gp_percent)}
           positive
           rawPositive={numGt0(forecast.gp_percent)}
+          rawNegative={numLt0(forecast.gp_percent)}
         />
       </div>
 
