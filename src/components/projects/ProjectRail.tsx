@@ -10,15 +10,22 @@ interface Props {
   onSelect: (id: string) => void;
   onOpen?: (id: string) => void;
   fullWidth?: boolean;
+  /** Bump to force a re-fetch (e.g. after a project completes). */
+  refreshTick?: number;
 }
 
 type Tab = "active" | "completed" | "templates";
 
-export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth }: Props) {
+export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth, refreshTick }: Props) {
   const [tab, setTab] = useState<Tab>("active");
   const filter: ProjectStatusFilter = tab === "completed" ? "completed" : "active";
-  const { projects, progress, loading } = useProjects(filter);
+  const { projects, progress, loading, refresh } = useProjects(filter);
   const [q, setQ] = useState("");
+
+  useEffect(() => {
+    if (refreshTick === undefined) return;
+    refresh();
+  }, [refreshTick, refresh]);
 
   const filtered = useMemo(() => {
     if (tab === "templates") return [];
