@@ -134,10 +134,10 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
   }, [projectId]);
 
   const remove = useCallback(async (id: string) => {
-    editedCost.current.delete(id);
     setRows((prev) => prev.filter((r) => r.id !== id));
     await db.from("stock_orders").delete().eq("id", id);
   }, []);
+
 
   const totals = useMemo(() => {
     let need = 0, ord = 0, lineCost = 0;
