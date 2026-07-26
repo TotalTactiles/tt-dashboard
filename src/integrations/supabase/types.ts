@@ -672,6 +672,8 @@ export type Database = {
       projects: {
         Row: {
           client_name: string | null
+          completed_at: string | null
+          completion_notes: string | null
           contact_name: string | null
           contact_phone: string | null
           created_at: string
@@ -692,6 +694,8 @@ export type Database = {
         }
         Insert: {
           client_name?: string | null
+          completed_at?: string | null
+          completion_notes?: string | null
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string
@@ -712,6 +716,8 @@ export type Database = {
         }
         Update: {
           client_name?: string | null
+          completed_at?: string | null
+          completion_notes?: string | null
           contact_name?: string | null
           contact_phone?: string | null
           created_at?: string
