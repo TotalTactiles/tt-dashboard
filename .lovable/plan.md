@@ -1,30 +1,22 @@
-## Plan: Unify source colours across the calendar tab
+## Root cause (verified)
 
-### Current state
-- Calendar grid and filter chips already use `SOURCE_THEME` from `src/components/calendar/eventColors.ts` (Google red `#EA4335`, Zoho parent blue `#1A56DB`, Zoho subtask light blue `#60A5FA`).
-- **Upcoming Projects** card already uses `SOURCE_THEME.zohoParent.accent` — no purple.
-- **Upcoming Events** card (`EventTimeline.tsx`) currently paints each row's left border from a local `TYPE_COLORS` map, so Milestone events show purple/lavender `#7F77DD`. The source badge is already red/blue but uses approximate HSL values instead of `SOURCE_THEME`.
-- `CalendarCard.tsx` uses a purple CSS-variable pulse-dot (`bg-chart-purple`) for non-Google sources, which makes Zoho events appear purple there too.
+`stock_planning` has 6 columns: `id, project_id, line_label, amount, source, cost_bucket`. There is no `created_at` column, so the query `.order("created_at", { ascending: true })` returns a PostgREST error and `data` is `null` — the component falls through to `rows = []` and renders `EmptyState`. Nothing is being filtered; the query is failing.
 
-### Changes
+## Fix
 
-1. **`src/components/calendar/EventTimeline.tsx`**
-   - Import `getEventTheme` and `SOURCE_THEME` from `./eventColors`.
-   - Change the row's left border from `getTypeColor(ev.type)` to the event's source theme (`theme.border`).
-   - Drive the "Google"/"Zoho" source badge background and text directly from `SOURCE_THEME`/ `getEventTheme` so colours match the grid exactly.
-   - Keep the event-type `Badge` untouched (Milestone/type badge colours keep their meaning).
+In `src/components/projects/tables/StockPlanningTable.tsx`, replace the `created_at` ordering with an ordering the table actually supports, and keep the client-side bucket sort as a pure reorder (no filtering).
 
-2. **`src/components/calendar/CalendarCard.tsx`**
-   - Replace the static `bg-chart-purple` pulse-dot with a source-aware colour derived from `getEventTheme` so Zoho rows are blue, Google rows are red, and Strategic rows stay amber.
+- Order the query by `id` ascending — deterministic and stable, and acts as "creation order" for uuidv4-ish inserts as well as any order the sheet-seeded rows already have.
+- Keep the bucket ranking: `tactile` → 0, `other` → 1, everything else (including `NULL`) → 2.
+- Preserve `NULL` bucket rows explicitly: `bucketRank(null)` returns 2, so those rows sort last but are never dropped.
+- Sort using the index-tagged pattern already in place (`map` → `sort` → `map`), which is a pure reorder — every input row appears in the output.
+- `EmptyState` continues to render only when `rows.length === 0`, which now happens only when the query genuinely returns zero rows.
 
-3. **`src/components/calendar/UpcomingProjectsPanel.tsx`**
-   - Verify it continues to use `SOURCE_THEME.zohoParent.accent` for the left border and the "Zoho" badge. No functional change; confirm no purple/lavender remains.
+No other changes: no schema, no other files, no renamed keys, callback props stay wrapped, live stock routing untouched (this table doesn't use it).
 
-### Out of scope
-- `DeadlineTracker`, `EventModal`, and `EventDensityChart` local `TYPE_COLORS` maps are used for *type* badges/chart bars, not source accents. They will keep their current colours because the requirement explicitly says "Milestone/type badges keep their meaning."
-- `CalendarFilters` `PRESET_COLORS` swatch and `KeepNotesPanel` colour picker are for user-chosen custom labels, not source accents.
-- Data fetching, project links, and layout structure remain unchanged.
+## Verify
 
-### Verification
-- `npx tsc --noEmit` passes.
-- Browser screenshot of `/calendar` shows Upcoming Projects (blue), Upcoming Events (Google red / Zoho blue source borders + badges), and CalendarCard pulse-dot matching source colours; no purple/lavender source accents remain.
+- A project with existing planning rows renders every row, including any with `cost_bucket = NULL`.
+- Order is Tactile block, then Other block, then NULL block; within each block, rows keep the order the query returned.
+- A project with zero planning rows still shows the empty state.
+- No console error from PostgREST about an unknown `created_at` column.
