@@ -133,7 +133,11 @@ export function AccessoriesTable({ projectId }: { projectId: string }) {
       const reorder = it?.threshold != null ? Number(it.threshold) || 0 : 0;
       const u = usageByCode.get(code) ?? { total: 0, here: 0 };
       const other = u.total - u.here;
-      const remaining = stock == null ? null : stock - u.total;
+      // remaining = live on_hand (reflects posted movements) + net pending
+      // delta (negative for usage, cleared once posted). Prevents the double-
+      // count that would occur if we subtracted total_usage again.
+      const pendingDelta = pending.net[code.toUpperCase()] ?? 0;
+      const remaining = stock == null ? null : stock + pendingDelta;
       list.push({
         code,
         description: it?.description ?? "",
@@ -146,7 +150,7 @@ export function AccessoriesTable({ projectId }: { projectId: string }) {
     }
     list.sort((a, b) => a.code.localeCompare(b.code));
     return list;
-  }, [usage, live.items, liveUnavailable, projectId]);
+  }, [usage, live.items, liveUnavailable, projectId, pending.net]);
 
   const overAllocated = rows.filter((r) => r.remaining != null && r.remaining < 0);
   const lowStock = rows.filter(
