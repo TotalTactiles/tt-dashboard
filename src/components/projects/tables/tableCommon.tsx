@@ -75,9 +75,12 @@ export function Legend() {
 export function HeaderRow({
   cols,
   gridTemplate,
+  stickyFirstCol,
 }: {
   cols: { label: string; align?: "left" | "right" | "center" }[];
   gridTemplate: string;
+  /** Freeze the first column at the left edge when the row overflows horizontally. */
+  stickyFirstCol?: boolean;
 }) {
   return (
     <div
@@ -89,18 +92,26 @@ export function HeaderRow({
         height: 30,
       }}
     >
-      {cols.map((c, i) => (
-        <div
-          key={i}
-          className="flex items-center px-2"
-          style={{
-            justifyContent:
-              c.align === "right" ? "flex-end" : c.align === "center" ? "center" : "flex-start",
-          }}
-        >
-          {c.label}
-        </div>
-      ))}
+      {cols.map((c, i) => {
+        const sticky = stickyFirstCol && i === 0;
+        return (
+          <div
+            key={i}
+            className="flex items-center px-2"
+            style={{
+              justifyContent:
+                c.align === "right" ? "flex-end" : c.align === "center" ? "center" : "flex-start",
+              position: sticky ? "sticky" : undefined,
+              left: sticky ? 0 : undefined,
+              zIndex: sticky ? 2 : undefined,
+              background: sticky ? "#0F1113" : undefined,
+              boxShadow: sticky ? "1px 0 0 #1F2224" : undefined,
+            }}
+          >
+            {c.label}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -108,9 +119,11 @@ export function HeaderRow({
 export function TotalsRow({
   cells,
   gridTemplate,
+  stickyFirstCol,
 }: {
   cells: ReactNode[];
   gridTemplate: string;
+  stickyFirstCol?: boolean;
 }) {
   return (
     <div
@@ -122,11 +135,25 @@ export function TotalsRow({
         background: T_TOTAL_BG,
       }}
     >
-      {cells.map((c, i) => (
-        <div key={i} className="px-2 flex items-center" style={{ justifyContent: i === 0 ? "flex-start" : "flex-end" }}>
-          {c}
-        </div>
-      ))}
+      {cells.map((c, i) => {
+        const sticky = stickyFirstCol && i === 0;
+        return (
+          <div
+            key={i}
+            className="px-2 flex items-center"
+            style={{
+              justifyContent: i === 0 ? "flex-start" : "flex-end",
+              position: sticky ? "sticky" : undefined,
+              left: sticky ? 0 : undefined,
+              zIndex: sticky ? 2 : undefined,
+              background: sticky ? T_TOTAL_BG : undefined,
+              boxShadow: sticky ? "1px 0 0 #1F2224" : undefined,
+            }}
+          >
+            {c}
+          </div>
+        );
+      })}
     </div>
   );
 }
