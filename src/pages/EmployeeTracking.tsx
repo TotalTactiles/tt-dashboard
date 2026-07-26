@@ -228,6 +228,180 @@ function RateInput({
   );
 }
 
+// ============= ADD WORKER DIALOG =============
+function AddWorkerDialog({
+  open,
+  onOpenChange,
+  existingNames,
+  onAdded,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  existingNames: string[];
+  onAdded: (profile: Profile, rate: number | null) => void;
+}) {
+  const [name, setName] = useState("");
+  const [rate, setRate] = useState("");
+  const [nameErr, setNameErr] = useState<string | null>(null);
+  const [rateErr, setRateErr] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setName("");
+      setRate("");
+      setNameErr(null);
+      setRateErr(null);
+      setSaving(false);
+    }
+  }, [open]);
+
+  const existingLower = useMemo(
+    () => new Set(existingNames.map((n) => n.trim().toLowerCase())),
+    [existingNames],
+  );
+
+  const submit = useCallback(async () => {
+    const trimmed = name.trim();
+    let ok = true;
+    if (!trimmed) {
+      setNameErr("Name is required");
+      ok = false;
+    } else if (existingLower.has(trimmed.toLowerCase())) {
+      setNameErr("A worker with this name already exists");
+      ok = false;
+    } else {
+      setNameErr(null);
+    }
+    let rateNum: number | null = null;
+    const rateTrim = rate.trim();
+    if (rateTrim !== "") {
+      const n = Number(rateTrim);
+      if (!isFinite(n)) {
+        setRateErr("Not a number");
+        ok = false;
+      } else if (n <= 0) {
+        setRateErr("Rate must be greater than 0");
+        ok = false;
+      } else if (n > RATE_MAX) {
+        setRateErr(`Rate must be ≤ $${RATE_MAX}`);
+        ok = false;
+      } else {
+        setRateErr(null);
+        rateNum = n;
+      }
+    } else {
+      setRateErr(null);
+    }
+    if (!ok) return;
+
+    setSaving(true);
+    const initials = trimmed
+      .split(/\s+/)
+      .map((w) => w[0] ?? "")
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || null;
+    const { data: prof, error: profErr } = await db
+      .from("profiles")
+      .insert({ full_name: trimmed, role: "worker", active: true, initials })
+      .select("id, full_name, role, active")
+      .single();
+    if (profErr || !prof) {
+      setSaving(false);
+      toast.error(profErr?.message ?? "Could not add worker");
+      return;
+    }
+    let rateSaved = true;
+    if (rateNum != null) {
+      const { error: rErr } = await db.from("employee_rates").insert({
+        user_id: prof.id,
+        hourly_rate: rateNum,
+        effective_from: new Date().toISOString().slice(0, 10),
+      });
+      if (rErr) rateSaved = false;
+    }
+    setSaving(false);
+    onAdded(prof as Profile, rateSaved ? rateNum : null);
+    onOpenChange(false);
+    if (rateNum != null && !rateSaved) {
+      toast.warning("Worker added, rate not saved — set it in the table", {
+        style: { color: AMBER },
+      });
+    } else {
+      toast.success(`${trimmed} added`);
+    }
+  }, [name, rate, existingLower, onAdded, onOpenChange]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add worker</DialogTitle>
+          <DialogDescription className="text-xs">
+            New workers start active and appear immediately in Confirm Labour.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="new-worker-name" className="text-xs font-mono uppercase tracking-widest">
+              Name
+            </Label>
+            <Input
+              id="new-worker-name"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (nameErr) setNameErr(null);
+              }}
+              placeholder="Full name"
+              autoFocus
+            />
+            {nameErr ? (
+              <div className="text-[11px] font-mono" style={{ color: ERROR }}>
+                {nameErr}
+              </div>
+            ) : null}
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="new-worker-rate" className="text-xs font-mono uppercase tracking-widest">
+              Hourly rate (AUD) — optional
+            </Label>
+            <Input
+              id="new-worker-rate"
+              value={rate}
+              onChange={(e) => {
+                setRate(e.target.value);
+                if (rateErr) setRateErr(null);
+              }}
+              inputMode="decimal"
+              placeholder="e.g. 45.00"
+            />
+            {rateErr ? (
+              <div className="text-[11px] font-mono" style={{ color: ERROR }}>
+                {rateErr}
+              </div>
+            ) : null}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            onClick={submit}
+            disabled={saving}
+            className="text-white"
+            style={{ background: INTERACTIVE }}
+          >
+            {saving ? "Adding…" : "Add worker"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ============= PAGE =============
 const EmployeeTracking = () => {
   const { role } = useRole();
