@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 const INTERACTIVE = "#3D89DA";
 const WARNING = "#BA7517";
 const POSITIVE = "#22C55E";
+const NEGATIVE = "#E24B4A";
 const NEG_28 = "rgba(230,238,243,0.28)";
 const NEG_45 = "rgba(230,238,243,0.45)";
 
