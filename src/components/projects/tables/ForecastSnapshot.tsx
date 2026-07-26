@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 const INTERACTIVE = "#3D89DA";
 const WARNING = "#BA7517";
 const POSITIVE = "#22C55E";
+const NEGATIVE = "#E24B4A";
 const NEG_28 = "rgba(230,238,243,0.28)";
 const NEG_45 = "rgba(230,238,243,0.45)";
 
@@ -91,6 +92,7 @@ export function ForecastSnapshot({ projectId }: Props) {
 
   const restated = forecast.effective_type === "restated";
   const capturedAt = fmtDay(forecast.effective_captured_at);
+  const note = forecast.note?.trim();
 
   return (
     <div className="space-y-4">
@@ -121,6 +123,17 @@ export function ForecastSnapshot({ projectId }: Props) {
         )}
       </div>
 
+      {/* Snapshot note — surfaced when the workflow could not resolve a full
+          cost breakdown (e.g. no REVENUE row) so it doesn't read as a bug. */}
+      {note && (
+        <div
+          className="font-mono leading-relaxed"
+          style={{ fontSize: "10px", color: NEG_45 }}
+        >
+          {note}
+        </div>
+      )}
+
       {/* Financial rows */}
       <div>
         <FinRow
@@ -142,12 +155,14 @@ export function ForecastSnapshot({ projectId }: Props) {
           value={fmtCurrency(forecast.gross_margin)}
           positive
           rawPositive={numGt0(forecast.gross_margin)}
+          rawNegative={numLt0(forecast.gross_margin)}
         />
         <FinRow
           label="GP %"
           value={fmtPercent(forecast.gp_percent)}
           positive
           rawPositive={numGt0(forecast.gp_percent)}
+          rawNegative={numLt0(forecast.gp_percent)}
         />
       </div>
 
@@ -226,6 +241,12 @@ function numGt0(n: number | null | undefined): boolean {
   return Number.isFinite(num) && num > 0;
 }
 
+function numLt0(n: number | null | undefined): boolean {
+  if (n === null || n === undefined) return false;
+  const num = Number(n);
+  return Number.isFinite(num) && num < 0;
+}
+
 function Divider() {
   return <div className="my-1.5" style={{ borderTop: "1px solid #1F2224" }} />;
 }
@@ -235,14 +256,18 @@ function FinRow({
   value,
   positive,
   rawPositive,
+  rawNegative,
 }: {
   label: string;
   value: string | null;
   positive?: boolean;
   rawPositive?: boolean;
+  rawNegative?: boolean;
 }) {
   const isNull = value === null;
   const green = positive && rawPositive && !isNull;
+  const red = rawNegative && !isNull;
+  const color = isNull ? NEG_28 : red ? NEGATIVE : green ? POSITIVE : "#E6EEF3";
   return (
     <div className="flex items-center justify-between py-1">
       <span
@@ -257,10 +282,7 @@ function FinRow({
       </span>
       <span
         className={cn("font-mono text-right")}
-        style={{
-          fontSize: "12.5px",
-          color: isNull ? NEG_28 : green ? POSITIVE : "#E6EEF3",
-        }}
+        style={{ fontSize: "12.5px", color }}
       >
         {value ?? "—"}
       </span>
