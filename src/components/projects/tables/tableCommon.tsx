@@ -375,6 +375,98 @@ export function TextInput({
   );
 }
 
+/* ---------------- select ---------------- */
+
+export function SelectCell({
+  value,
+  onChange,
+  options,
+  readOnly,
+  required,
+  invalid,
+  placeholder = "—",
+}: {
+  value: string | null | undefined;
+  onChange: (v: string | null) => void;
+  options: { value: string; label: string }[];
+  readOnly?: boolean;
+  required?: boolean;
+  invalid?: boolean;
+  placeholder?: string;
+}) {
+  if (readOnly) {
+    const lbl = options.find((o) => o.value === value)?.label;
+    return (
+      <span className="text-[12.5px]" style={{ color: lbl ? "#E5E9EA" : "#4B5058" }}>
+        {lbl ?? "—"}
+      </span>
+    );
+  }
+  const empty = value == null || value === "";
+  const showGold = required && empty;
+  const borderColor = invalid ? T_RED : showGold ? T_GOLD : T_INPUT_BORDER;
+  const bg = invalid ? "rgba(226,75,74,0.06)" : showGold ? T_GOLD_FILL : "rgba(0,0,0,0.35)";
+  return (
+    <select
+      value={value ?? ""}
+      onChange={(e) => onChange(e.target.value === "" ? null : e.target.value)}
+      className="w-full h-7 px-2 rounded-sm text-[12.5px] outline-none focus:shadow-[0_0_0_2px_rgba(61,137,218,0.35)] focus:border-[#3D89DA]"
+      style={{
+        background: bg,
+        border: `1px solid ${borderColor}`,
+        color: empty ? "#4B5058" : "#E5E9EA",
+      }}
+    >
+      <option value="" style={{ color: "#4B5058", background: "#0A0A0A" }}>{placeholder}</option>
+      {options.map((o) => (
+        <option key={o.value} value={o.value} style={{ color: "#E5E9EA", background: "#0A0A0A" }}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+export function DateCell({
+  value,
+  onSave,
+  readOnly,
+  required,
+  invalid,
+}: {
+  value: string | null | undefined;
+  onSave: (v: string | null) => void;
+  readOnly?: boolean;
+  required?: boolean;
+  invalid?: boolean;
+}) {
+  if (readOnly) {
+    return (
+      <span className="text-[12px] font-mono" style={{ color: value ? "#E5E9EA" : "#4B5058" }}>
+        {value ?? "—"}
+      </span>
+    );
+  }
+  const empty = value == null || value === "";
+  const showGold = required && empty;
+  const borderColor = invalid ? T_RED : showGold ? T_GOLD : T_INPUT_BORDER;
+  const bg = invalid ? "rgba(226,75,74,0.06)" : showGold ? T_GOLD_FILL : "rgba(0,0,0,0.35)";
+  return (
+    <input
+      type="date"
+      value={value ?? ""}
+      onChange={(e) => onSave(e.target.value === "" ? null : e.target.value)}
+      className="w-full h-7 px-2 rounded-sm font-mono text-[12px] outline-none focus:shadow-[0_0_0_2px_rgba(61,137,218,0.35)] focus:border-[#3D89DA]"
+      style={{
+        background: bg,
+        border: `1px solid ${borderColor}`,
+        color: empty ? "#4B5058" : "#E5E9EA",
+        colorScheme: "dark",
+      }}
+    />
+  );
+}
+
 /* ---------------- utils ---------------- */
 
 export function formatNum(n: number) {
