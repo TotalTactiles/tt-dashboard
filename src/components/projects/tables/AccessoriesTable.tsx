@@ -55,7 +55,8 @@ export function AccessoriesTable({ projectId }: { projectId: string }) {
     load();
   }, [load]);
 
-  // Realtime — cross-project pool updates.
+  // Realtime — cross-project pool updates. Also refresh pending deltas since
+  // every accessory_usage write posts a compensating stock_movements row.
   useEffect(() => {
     const channel = supabase
       .channel(`accessory_usage_pool_${projectId}`)
@@ -64,13 +65,14 @@ export function AccessoriesTable({ projectId }: { projectId: string }) {
         { event: "*", schema: "public", table: "accessory_usage" },
         () => {
           load();
+          pending.reload();
         },
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [projectId, load]);
+  }, [projectId, load, pending.reload]);
 
   const save = useCallback(
     async (code: string, used_here: number | null) => {
