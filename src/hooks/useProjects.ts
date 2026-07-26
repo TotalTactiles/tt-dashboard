@@ -20,6 +20,8 @@ export interface Project {
   template_id: string | null;
   status: "active" | "awaiting_signoff" | "completed" | "cancelled";
   onedrive_folder_id: string | null;
+  completed_at: string | null;
+  completion_notes: string | null;
 }
 
 export interface ProjectFinancials {
