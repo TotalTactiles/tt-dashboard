@@ -190,6 +190,16 @@ export function useIsPmMobile() {
 }
 
 /**
+ * Office-only capability gate for project lifecycle actions (Complete, Split).
+ * Workers never see these controls. Kept in the hook layer per the same rule
+ * office-only content follows elsewhere (financials, forecast).
+ */
+export function useCanManageProjectLifecycle() {
+  const { role } = useRole();
+  return role === "office";
+}
+
+/**
  * Push an updated estimated_start back to the Zoho CRM deal's Closing_Date via
  * the n8n bridge. estimated_start is a deliberate exception to "Zoho is source
  * of truth" — after CRM seeds it at project creation, the dashboard is
