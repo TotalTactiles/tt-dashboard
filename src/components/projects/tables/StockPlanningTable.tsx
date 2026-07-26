@@ -51,7 +51,7 @@ export function StockPlanningTable({ projectId }: { projectId: string }) {
       .from("stock_planning")
       .select("*")
       .eq("project_id", projectId)
-      .order("created_at", { ascending: true });
+      .order("id", { ascending: true });
     // Tactile is the primary cost line — always render it above Other.
     // Within a bucket, creation order (already applied by the query) wins.
     const bucketRank = (b: string | null) => (b === "tactile" ? 0 : b === "other" ? 1 : 2);
