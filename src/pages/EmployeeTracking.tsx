@@ -359,15 +359,55 @@ const EmployeeTracking = () => {
     return Array.from(byMonth.values()).sort((a, b) => (a.key < b.key ? -1 : 1));
   }, [filteredEntries, rates]);
 
-  // Workers missing a rate
+  // Worker sets — scoped to role=worker. Archived workers keep resolving via
+  // profileById for historical entries, but never appear in the picker or the
+  // no-rate banner.
+  const workers = useMemo(
+    () => profiles.filter((p) => (p.role ?? "").toLowerCase() === "worker"),
+    [profiles],
+  );
+  const activeWorkers = useMemo(() => workers.filter((w) => w.active !== false), [workers]);
+  const archivedWorkers = useMemo(() => workers.filter((w) => w.active === false), [workers]);
+  const visibleWorkers = useMemo(
+    () => (showArchived ? [...activeWorkers, ...archivedWorkers] : activeWorkers),
+    [activeWorkers, archivedWorkers, showArchived],
+  );
+
+  // Workers missing a rate — active workers only.
   const workersMissingRate = useMemo(
-    () => profiles.filter((p) => p.active !== false && rates[p.id] == null),
-    [profiles, rates],
+    () => activeWorkers.filter((p) => rates[p.id] == null),
+    [activeWorkers, rates],
   );
 
   const toggleWorker = useCallback((id: string) => {
     setSelectedWorkers((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }, []);
+
+  const setActive = useCallback(
+    async (id: string, active: boolean) => {
+      // Optimistic update, rollback on failure.
+      setProfiles((prev) => prev.map((p) => (p.id === id ? { ...p, active } : p)));
+      const { error } = await db.from("profiles").update({ active }).eq("id", id);
+      if (error) {
+        setProfiles((prev) => prev.map((p) => (p.id === id ? { ...p, active: !active } : p)));
+        toast.error(active ? "Could not restore worker" : "Could not archive worker");
+      } else {
+        toast.success(active ? "Worker restored" : "Worker archived");
+      }
+    },
+    [],
+  );
+
+  const handleWorkerAdded = useCallback(
+    (profile: Profile, rate: number | null) => {
+      setProfiles((prev) => [...prev, profile].sort((a, b) => a.full_name.localeCompare(b.full_name)));
+      if (rate != null) {
+        setRates((prev) => ({ ...prev, [profile.id]: rate }));
+      }
+    },
+    [],
+  );
+
 
   const workerFilterLabel = (() => {
     if (selectedWorkers.length === 0) return "All Workers";
