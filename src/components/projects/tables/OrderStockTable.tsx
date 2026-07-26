@@ -91,7 +91,14 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
 
   const patch = useCallback(async (id: string, p: Partial<Row>) => {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...p } : r)));
-    await db.from("stock_orders").update(p).eq("id", id);
+    const { error } = await db.from("stock_orders").update(p).eq("id", id);
+    if (error) {
+      // Surface errors instead of swallowing them silently — the original
+      // symptom (qty_ordered reverting on reload) was invisible because the
+      // failed update returned nothing observable to the UI.
+      // eslint-disable-next-line no-console
+      console.error("[OrderStockTable] update failed", { id, patch: p, error });
+    }
   }, []);
 
   const onProductCode = useCallback(
