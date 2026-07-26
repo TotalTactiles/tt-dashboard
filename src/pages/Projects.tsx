@@ -33,10 +33,14 @@ function formatCompletionUpper(iso: string | null | undefined) {
 function ProjectsInner() {
   const { role, setRole } = useRole();
   const isMobile = useIsPmMobile();
+  const canManageLifecycle = useCanManageProjectLifecycle();
   const [projectId, setProjectId] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<"rail" | "detail">("rail");
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [railRefreshTick, setRailRefreshTick] = useState(0);
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [splitOpen, setSplitOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [columns, setColumns] = useState<ColumnKey[]>(() => loadColumns());
 
@@ -44,7 +48,7 @@ function ProjectsInner() {
     saveColumns(columns);
   }, [columns]);
 
-  const { project } = useProjectDetail(projectId);
+  const { project, financials, refresh: refreshProject } = useProjectDetail(projectId);
   const { lists, tasks, refresh, toggleTaskStatus, updateTask } = useTasks(projectId);
   const assigneeOn = columns.includes("assignee");
   const profiles = useProfiles(assigneeOn);
