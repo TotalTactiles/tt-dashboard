@@ -545,34 +545,67 @@ const EmployeeTracking = () => {
 
         {/* Worker rates */}
         <Card className="p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold">Worker rates</h3>
-            <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
-              {profiles.length} profile{profiles.length === 1 ? "" : "s"}
-            </span>
+          <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
+              <h3 className="text-sm font-semibold">Worker rates</h3>
+              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
+                {activeWorkers.length} WORKER{activeWorkers.length === 1 ? "" : "S"}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              {archivedWorkers.length > 0 ? (
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="show-archived"
+                    checked={showArchived}
+                    onCheckedChange={setShowArchived}
+                  />
+                  <Label
+                    htmlFor="show-archived"
+                    className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground cursor-pointer"
+                  >
+                    Archived ({archivedWorkers.length})
+                  </Label>
+                </div>
+              ) : null}
+              <Button
+                size="sm"
+                className="h-8 text-xs font-mono text-white"
+                style={{ background: INTERACTIVE }}
+                onClick={() => setAddOpen(true)}
+              >
+                <Plus className="h-3.5 w-3.5 mr-1" /> ADD WORKER
+              </Button>
+            </div>
           </div>
           {loading ? (
             <div className="py-8 text-center text-sm text-muted-foreground font-mono">Loading…</div>
-          ) : profiles.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground font-mono">No profiles yet.</div>
+          ) : visibleWorkers.length === 0 ? (
+            <div className="py-8 text-center text-sm text-muted-foreground font-mono">
+              No workers yet. Add one to get started.
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground border-b">
                     <th className="text-left py-2 pr-3">Worker</th>
-                    <th className="text-left py-2 pr-3">Role</th>
                     <th className="text-right py-2 pr-3">Hourly rate (AUD)</th>
                     <th className="text-left py-2 pl-3">Status</th>
+                    <th className="w-8" />
                   </tr>
                 </thead>
                 <tbody>
-                  {profiles.map((p) => {
+                  {visibleWorkers.map((p) => {
                     const rate = rates[p.id];
+                    const archived = p.active === false;
                     return (
-                      <tr key={p.id} className="border-b last:border-0">
+                      <tr
+                        key={p.id}
+                        className="border-b last:border-0 group"
+                        style={{ opacity: archived ? 0.45 : 1 }}
+                      >
                         <td className="py-2 pr-3">{p.full_name}</td>
-                        <td className="py-2 pr-3 text-muted-foreground capitalize">{p.role}</td>
                         <td className="py-2 pr-3">
                           <div className="flex justify-end">
                             <RateInput
@@ -583,7 +616,14 @@ const EmployeeTracking = () => {
                           </div>
                         </td>
                         <td className="py-2 pl-3">
-                          {rate == null ? (
+                          {archived ? (
+                            <span
+                              className="text-[10px] font-mono px-2 py-0.5 rounded"
+                              style={{ color: "hsl(var(--muted-foreground))", background: "hsl(var(--muted))", border: `1px solid hsl(var(--border))` }}
+                            >
+                              ARCHIVED
+                            </span>
+                          ) : rate == null ? (
                             <span
                               className="text-[10px] font-mono px-2 py-0.5 rounded"
                               style={{ color: AMBER, background: AMBER + "18", border: `1px solid ${AMBER}55` }}
@@ -591,6 +631,44 @@ const EmployeeTracking = () => {
                               NO RATE
                             </span>
                           ) : null}
+                        </td>
+                        <td className="py-2 pl-1 text-right">
+                          {archived ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-[11px] font-mono"
+                              onClick={() => setActive(p.id, true)}
+                            >
+                              Restore
+                            </Button>
+                          ) : (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                                  aria-label="Worker actions"
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onSelect={(e) => {
+                                    e.preventDefault();
+                                    const ok = window.confirm(
+                                      `Archive ${p.full_name}? Their logged hours stay in reporting, but they will no longer appear when logging new hours.`,
+                                    );
+                                    if (ok) setActive(p.id, false);
+                                  }}
+                                >
+                                  Archive worker
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </td>
                       </tr>
                     );
@@ -600,6 +678,14 @@ const EmployeeTracking = () => {
             </div>
           )}
         </Card>
+
+        <AddWorkerDialog
+          open={addOpen}
+          onOpenChange={setAddOpen}
+          existingNames={activeWorkers.map((w) => w.full_name)}
+          onAdded={handleWorkerAdded}
+        />
+
 
         {/* Timesheet log */}
         <Card className="p-5">
