@@ -7,6 +7,7 @@ export interface ProfileLite {
   initials: string | null;
   colour: string | null;
   role: string | null;
+  active?: boolean;
 }
 
 const db = supabase as any;
