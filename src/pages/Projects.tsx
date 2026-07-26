@@ -7,13 +7,19 @@ import { CalendarStrip } from "@/components/projects/CalendarStrip";
 import { TaskListSection, TaskListColumnHeader } from "@/components/projects/TaskList";
 import { TaskDrawer } from "@/components/projects/TaskDrawer";
 import { ColumnsPopover } from "@/components/projects/ColumnsPopover";
+import { CompleteProjectModal } from "@/components/projects/CompleteProjectModal";
+import { SplitProjectModal } from "@/components/projects/SplitProjectModal";
 import { loadColumns, saveColumns, type ColumnKey } from "@/components/projects/columns";
 import { useTasks } from "@/hooks/useTasks";
-import { useProjectDetail, useIsPmMobile } from "@/hooks/useProjects";
+import {
+  useProjectDetail,
+  useIsPmMobile,
+  useCanManageProjectLifecycle,
+} from "@/hooks/useProjects";
 import { useProfiles } from "@/hooks/useProfiles";
 import { Ring } from "@/components/projects/Ring";
 import { cn } from "@/lib/utils";
-import { List, LayoutGrid, Calendar as CalendarIcon, Table as TableIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
+import { CheckCircle2, List, LayoutGrid, Calendar as CalendarIcon, Table as TableIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
 
 function formatCompletionUpper(iso: string | null | undefined) {
   if (!iso) return null;
@@ -27,10 +33,14 @@ function formatCompletionUpper(iso: string | null | undefined) {
 function ProjectsInner() {
   const { role, setRole } = useRole();
   const isMobile = useIsPmMobile();
+  const canManageLifecycle = useCanManageProjectLifecycle();
   const [projectId, setProjectId] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<"rail" | "detail">("rail");
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [railRefreshTick, setRailRefreshTick] = useState(0);
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [splitOpen, setSplitOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [columns, setColumns] = useState<ColumnKey[]>(() => loadColumns());
 
@@ -38,7 +48,7 @@ function ProjectsInner() {
     saveColumns(columns);
   }, [columns]);
 
-  const { project } = useProjectDetail(projectId);
+  const { project, financials, refresh: refreshProject } = useProjectDetail(projectId);
   const { lists, tasks, refresh, toggleTaskStatus, updateTask } = useTasks(projectId);
   const assigneeOn = columns.includes("assignee");
   const profiles = useProfiles(assigneeOn);
@@ -50,6 +60,7 @@ function ProjectsInner() {
   );
 
   const bump = useCallback(() => setRefreshTick((t) => t + 1), []);
+  const bumpRail = useCallback(() => setRailRefreshTick((t) => t + 1), []);
   const handleChanged = useCallback(() => {
     bump();
     refresh();
@@ -63,6 +74,15 @@ function ProjectsInner() {
     (t: typeof tasks[number]) => toggleTaskStatus(t.id, t.status),
     [toggleTaskStatus],
   );
+  const openCompleteModal = useCallback(() => setCompleteOpen(true), []);
+  const closeCompleteModal = useCallback(() => setCompleteOpen(false), []);
+  const openSplitModal = useCallback(() => setSplitOpen(true), []);
+  const closeSplitModal = useCallback(() => setSplitOpen(false), []);
+  const handleCompleted = useCallback(() => {
+    // Refresh project detail + rail so the completed banner and rail chip show.
+    refreshProject();
+    bumpRail();
+  }, [refreshProject, bumpRail]);
 
   const { pct, total, done, open } = useMemo(() => {
     const countable = tasks.filter((t) => !t.office_only);
@@ -103,6 +123,7 @@ function ProjectsInner() {
           onSelect={setProjectId}
           onOpen={handleRailOpen}
           fullWidth={isMobile}
+          refreshTick={railRefreshTick}
         />
       )}
 
@@ -179,6 +200,24 @@ function ProjectsInner() {
             isMobile && "pb-[calc(88px+env(safe-area-inset-bottom))]",
           )}
         >
+          {project?.completed_at && (
+            <div
+              className="flex items-start gap-2.5 px-3 md:px-6 py-2.5 border-b"
+              style={{
+                borderColor: "rgba(34,197,94,0.25)",
+                background: "rgba(34,197,94,0.06)",
+                color: "#22C55E",
+              }}
+            >
+              <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <div className="text-[11.5px] font-mono leading-snug">
+                <span className="uppercase tracking-widest">Completed</span>
+                {" · "}
+                This project is complete. Its financial row is frozen.
+              </div>
+            </div>
+          )}
+
           <ProjectHeader
             projectId={projectId}
             onChanged={handleChanged}
@@ -241,9 +280,38 @@ function ProjectsInner() {
               />
             ))}
           </div>
+
+          {projectId && project && canManageLifecycle && (
+            <LifecycleActionBar
+              completedAt={project.completed_at}
+              openTasks={open}
+              totalTasks={total}
+              isMobile={isMobile}
+              onSplit={openSplitModal}
+              onComplete={openCompleteModal}
+            />
+          )}
         </div>
       </div>
       )}
+
+      {completeOpen && projectId && project && canManageLifecycle && (
+        <CompleteProjectModal
+          project={{ id: project.id, name: project.name, zoho_deal_id: project.zoho_deal_id }}
+          originalContractValue={financials?.contract_value ?? null}
+          onClose={closeCompleteModal}
+          onCompleted={handleCompleted}
+        />
+      )}
+
+      {splitOpen && projectId && project && canManageLifecycle && !project.completed_at && (
+        <SplitProjectModal
+          project={{ id: project.id, name: project.name, zoho_deal_id: project.zoho_deal_id }}
+          contractValue={financials?.contract_value ?? null}
+          onClose={closeSplitModal}
+        />
+      )}
+
 
 
       {openTaskId && (
@@ -256,6 +324,100 @@ function ProjectsInner() {
     </div>
   );
 }
+
+function LifecycleActionBar({
+  completedAt,
+  openTasks,
+  totalTasks,
+  isMobile,
+  onSplit,
+  onComplete,
+}: {
+  completedAt: string | null;
+  openTasks: number;
+  totalTasks: number;
+  isMobile: boolean;
+  onSplit: () => void;
+  onComplete: () => void;
+}) {
+  // If the project is completed, replace the whole bar with a COMPLETED chip.
+  if (completedAt) {
+    const d = new Date(completedAt + (completedAt.length === 10 ? "T00:00:00" : ""));
+    const label = isNaN(d.getTime())
+      ? completedAt
+      : d.toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
+    return (
+      <div
+        className={cn(
+          "sticky bottom-0 z-30 border-t backdrop-blur-md flex items-center justify-end gap-2",
+          isMobile ? "px-3 py-2.5" : "px-3 md:px-6 py-3",
+        )}
+        style={{ borderColor: "#1F2224", background: "rgba(10,10,10,0.94)" }}
+      >
+        <div
+          className="inline-flex items-center gap-2 rounded-md border px-2.5 py-1"
+          style={{
+            borderColor: "rgba(34,197,94,0.3)",
+            background: "rgba(34,197,94,0.08)",
+            color: "#22C55E",
+          }}
+        >
+          <CheckCircle2 className="h-3 w-3" />
+          <span className="text-[10.5px] font-mono uppercase tracking-widest">
+            Completed {label}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  const allDone = totalTasks > 0 && openTasks === 0;
+  const gateNote = allDone
+    ? "All tasks complete."
+    : `${openTasks} of ${totalTasks} tasks remaining — complete all tasks to close this project`;
+
+  return (
+    <div
+      className={cn(
+        "sticky bottom-0 z-30 border-t backdrop-blur-md",
+        isMobile ? "px-3 py-2.5" : "px-3 md:px-6 py-3",
+      )}
+      style={{ borderColor: "#1F2224", background: "rgba(10,10,10,0.94)" }}
+    >
+      <div className="flex items-center justify-end gap-2">
+        <button
+          onClick={onSplit}
+          className="h-8 px-3 rounded-md text-[11px] font-mono uppercase tracking-widest transition-colors"
+          style={{
+            border: "1px solid #3D89DA",
+            color: "#3D89DA",
+            background: "transparent",
+          }}
+        >
+          Split Project
+        </button>
+        <button
+          onClick={onComplete}
+          disabled={!allDone}
+          className="h-8 px-3 rounded-md text-[11px] font-mono uppercase tracking-widest text-white disabled:cursor-not-allowed"
+          style={{
+            background: allDone ? "#3D89DA" : "#1D1D22",
+            opacity: allDone ? 1 : 0.55,
+          }}
+        >
+          Complete Project
+        </button>
+      </div>
+      <div
+        className="mt-1 text-right text-[10px] font-mono"
+        style={{ opacity: allDone ? 0.7 : 0.45, color: allDone ? "#22C55E" : undefined }}
+      >
+        {gateNote}
+      </div>
+    </div>
+  );
+}
+
 
 function ViewsBar({
   search,

@@ -20,6 +20,8 @@ export interface Project {
   template_id: string | null;
   status: "active" | "awaiting_signoff" | "completed" | "cancelled";
   onedrive_folder_id: string | null;
+  completed_at: string | null;
+  completion_notes: string | null;
 }
 
 export interface ProjectFinancials {
@@ -40,7 +42,9 @@ export interface ProjectAggregates {
 
 const db = supabase as any;
 
-export function useProjects(statusFilter: "active" | "all" = "active") {
+export type ProjectStatusFilter = "active" | "completed" | "all";
+
+export function useProjects(statusFilter: ProjectStatusFilter = "active") {
   const [projects, setProjects] = useState<Project[]>([]);
   const [progress, setProgress] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -48,7 +52,11 @@ export function useProjects(statusFilter: "active" | "all" = "active") {
   const refresh = useCallback(async () => {
     setLoading(true);
     let q = db.from("projects").select("*").order("created_at", { ascending: false });
-    if (statusFilter === "active") q = q.eq("status", "active");
+    if (statusFilter === "active") {
+      q = q.eq("status", "active").is("completed_at", null);
+    } else if (statusFilter === "completed") {
+      q = q.not("completed_at", "is", null);
+    }
     const { data } = await q;
     setProjects((data as Project[]) ?? []);
 
@@ -179,6 +187,16 @@ export function useIsPmMobile() {
     return () => mql.removeEventListener("change", onChange);
   }, []);
   return isMobile;
+}
+
+/**
+ * Office-only capability gate for project lifecycle actions (Complete, Split).
+ * Workers never see these controls. Kept in the hook layer per the same rule
+ * office-only content follows elsewhere (financials, forecast).
+ */
+export function useCanManageProjectLifecycle() {
+  const { role } = useRole();
+  return role === "office";
 }
 
 /**
