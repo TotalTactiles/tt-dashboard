@@ -241,6 +241,12 @@ function numGt0(n: number | null | undefined): boolean {
   return Number.isFinite(num) && num > 0;
 }
 
+function numLt0(n: number | null | undefined): boolean {
+  if (n === null || n === undefined) return false;
+  const num = Number(n);
+  return Number.isFinite(num) && num < 0;
+}
+
 function Divider() {
   return <div className="my-1.5" style={{ borderTop: "1px solid #1F2224" }} />;
 }
@@ -250,14 +256,18 @@ function FinRow({
   value,
   positive,
   rawPositive,
+  rawNegative,
 }: {
   label: string;
   value: string | null;
   positive?: boolean;
   rawPositive?: boolean;
+  rawNegative?: boolean;
 }) {
   const isNull = value === null;
   const green = positive && rawPositive && !isNull;
+  const red = rawNegative && !isNull;
+  const color = isNull ? NEG_28 : red ? NEGATIVE : green ? POSITIVE : "#E6EEF3";
   return (
     <div className="flex items-center justify-between py-1">
       <span
@@ -272,10 +282,7 @@ function FinRow({
       </span>
       <span
         className={cn("font-mono text-right")}
-        style={{
-          fontSize: "12.5px",
-          color: isNull ? NEG_28 : green ? POSITIVE : "#E6EEF3",
-        }}
+        style={{ fontSize: "12.5px", color }}
       >
         {value ?? "—"}
       </span>
