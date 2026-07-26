@@ -200,6 +200,24 @@ function ProjectsInner() {
             isMobile && "pb-[calc(88px+env(safe-area-inset-bottom))]",
           )}
         >
+          {project?.completed_at && (
+            <div
+              className="flex items-start gap-2.5 px-3 md:px-6 py-2.5 border-b"
+              style={{
+                borderColor: "rgba(34,197,94,0.25)",
+                background: "rgba(34,197,94,0.06)",
+                color: "#22C55E",
+              }}
+            >
+              <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <div className="text-[11.5px] font-mono leading-snug">
+                <span className="uppercase tracking-widest">Completed</span>
+                {" · "}
+                This project is complete. Its financial row is frozen.
+              </div>
+            </div>
+          )}
+
           <ProjectHeader
             projectId={projectId}
             onChanged={handleChanged}
@@ -262,9 +280,38 @@ function ProjectsInner() {
               />
             ))}
           </div>
+
+          {projectId && project && canManageLifecycle && (
+            <LifecycleActionBar
+              completedAt={project.completed_at}
+              openTasks={open}
+              totalTasks={total}
+              isMobile={isMobile}
+              onSplit={openSplitModal}
+              onComplete={openCompleteModal}
+            />
+          )}
         </div>
       </div>
       )}
+
+      {completeOpen && projectId && project && canManageLifecycle && (
+        <CompleteProjectModal
+          project={{ id: project.id, name: project.name, zoho_deal_id: project.zoho_deal_id }}
+          originalContractValue={financials?.contract_value ?? null}
+          onClose={closeCompleteModal}
+          onCompleted={handleCompleted}
+        />
+      )}
+
+      {splitOpen && projectId && project && canManageLifecycle && !project.completed_at && (
+        <SplitProjectModal
+          project={{ id: project.id, name: project.name, zoho_deal_id: project.zoho_deal_id }}
+          contractValue={financials?.contract_value ?? null}
+          onClose={closeSplitModal}
+        />
+      )}
+
 
 
       {openTaskId && (
