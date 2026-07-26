@@ -375,6 +375,10 @@ export type Database = {
           created_at: string
           gst: number
           id: string
+          invoice_date: string | null
+          invoice_number: string | null
+          paid_date: string | null
+          part_number: number | null
           period_end: string
           period_start: string
           project_id: string
@@ -389,6 +393,10 @@ export type Database = {
           created_at?: string
           gst?: number
           id?: string
+          invoice_date?: string | null
+          invoice_number?: string | null
+          paid_date?: string | null
+          part_number?: number | null
           period_end: string
           period_start: string
           project_id: string
@@ -403,6 +411,10 @@ export type Database = {
           created_at?: string
           gst?: number
           id?: string
+          invoice_date?: string | null
+          invoice_number?: string | null
+          paid_date?: string | null
+          part_number?: number | null
           period_end?: string
           period_start?: string
           project_id?: string
@@ -1499,6 +1511,48 @@ export type Database = {
           used_here: number | null
         }
         Relationships: []
+      }
+      v_actual_invoices: {
+        Row: {
+          amount: number | null
+          invoice_date: string | null
+          invoice_number: string | null
+          paid_date: string | null
+          part_number: number | null
+          project_id: string | null
+          status: string | null
+          zoho_deal_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_accessory_pool"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_labour_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_progress"
+            referencedColumns: ["project_id"]
+          },
+        ]
       }
       v_calendar_tasks: {
         Row: {
