@@ -14,6 +14,7 @@ import {
   T_AMBER,
 } from "./tableCommon";
 import { useLiveStock, LiveStockBadge, type LiveStockItem } from "@/hooks/useLiveStock";
+import { usePendingStockDeltas } from "@/hooks/usePendingStockDeltas";
 
 const db = supabase as any;
 
