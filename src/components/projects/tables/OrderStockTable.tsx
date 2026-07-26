@@ -85,16 +85,19 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
     async (id: string, code: string | null) => {
       const trimmed = (code ?? "").trim();
       const patchObj: Partial<Row> = { product_code: trimmed };
-      // Pre-fill unit_cost from the sheet only if the user hasn't touched it.
-      if (trimmed && !editedCost.current.has(id)) {
+      const current = rows.find((r) => r.id === id);
+      // Pre-fill from the sheet only when the DB value is null. A row that
+      // already carries a value must survive product-code re-entry and any
+      // future remount — the manual price is the source of truth.
+      if (trimmed && current) {
         const it = live.items[trimmed];
-        if (it?.cost_per_unit != null) {
+        if (current.unit_cost == null && it?.cost_per_unit != null) {
           patchObj.unit_cost = Number(it.cost_per_unit);
         }
-        if (!rows.find((r) => r.id === id)?.description && it?.description) {
+        if (current.description == null && it?.description) {
           patchObj.description = it.description;
         }
-        if (!rows.find((r) => r.id === id)?.unit && it?.unit) {
+        if (current.unit == null && it?.unit) {
           patchObj.unit = it.unit;
         }
       }
@@ -105,11 +108,11 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
 
   const onUnitCost = useCallback(
     async (id: string, n: number | null) => {
-      editedCost.current.add(id);
       await patch(id, { unit_cost: n });
     },
     [patch],
   );
+
 
   const add = useCallback(async () => {
     const { data } = await db
