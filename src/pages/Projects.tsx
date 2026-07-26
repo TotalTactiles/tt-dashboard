@@ -325,6 +325,100 @@ function ProjectsInner() {
   );
 }
 
+function LifecycleActionBar({
+  completedAt,
+  openTasks,
+  totalTasks,
+  isMobile,
+  onSplit,
+  onComplete,
+}: {
+  completedAt: string | null;
+  openTasks: number;
+  totalTasks: number;
+  isMobile: boolean;
+  onSplit: () => void;
+  onComplete: () => void;
+}) {
+  // If the project is completed, replace the whole bar with a COMPLETED chip.
+  if (completedAt) {
+    const d = new Date(completedAt + (completedAt.length === 10 ? "T00:00:00" : ""));
+    const label = isNaN(d.getTime())
+      ? completedAt
+      : d.toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
+    return (
+      <div
+        className={cn(
+          "sticky bottom-0 z-30 border-t backdrop-blur-md flex items-center justify-end gap-2",
+          isMobile ? "px-3 py-2.5" : "px-3 md:px-6 py-3",
+        )}
+        style={{ borderColor: "#1F2224", background: "rgba(10,10,10,0.94)" }}
+      >
+        <div
+          className="inline-flex items-center gap-2 rounded-md border px-2.5 py-1"
+          style={{
+            borderColor: "rgba(34,197,94,0.3)",
+            background: "rgba(34,197,94,0.08)",
+            color: "#22C55E",
+          }}
+        >
+          <CheckCircle2 className="h-3 w-3" />
+          <span className="text-[10.5px] font-mono uppercase tracking-widest">
+            Completed {label}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  const allDone = totalTasks > 0 && openTasks === 0;
+  const gateNote = allDone
+    ? "All tasks complete."
+    : `${openTasks} of ${totalTasks} tasks remaining — complete all tasks to close this project`;
+
+  return (
+    <div
+      className={cn(
+        "sticky bottom-0 z-30 border-t backdrop-blur-md",
+        isMobile ? "px-3 py-2.5" : "px-3 md:px-6 py-3",
+      )}
+      style={{ borderColor: "#1F2224", background: "rgba(10,10,10,0.94)" }}
+    >
+      <div className="flex items-center justify-end gap-2">
+        <button
+          onClick={onSplit}
+          className="h-8 px-3 rounded-md text-[11px] font-mono uppercase tracking-widest transition-colors"
+          style={{
+            border: "1px solid #3D89DA",
+            color: "#3D89DA",
+            background: "transparent",
+          }}
+        >
+          Split Project
+        </button>
+        <button
+          onClick={onComplete}
+          disabled={!allDone}
+          className="h-8 px-3 rounded-md text-[11px] font-mono uppercase tracking-widest text-white disabled:cursor-not-allowed"
+          style={{
+            background: allDone ? "#3D89DA" : "#1D1D22",
+            opacity: allDone ? 1 : 0.55,
+          }}
+        >
+          Complete Project
+        </button>
+      </div>
+      <div
+        className="mt-1 text-right text-[10px] font-mono"
+        style={{ opacity: allDone ? 0.7 : 0.45, color: allDone ? "#22C55E" : undefined }}
+      >
+        {gateNote}
+      </div>
+    </div>
+  );
+}
+
+
 function ViewsBar({
   search,
   onSearch,
