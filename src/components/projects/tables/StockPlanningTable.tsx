@@ -51,8 +51,18 @@ export function StockPlanningTable({ projectId }: { projectId: string }) {
       .from("stock_planning")
       .select("*")
       .eq("project_id", projectId)
-      .order("line_label", { ascending: true });
-    setRows((data as Row[]) ?? []);
+      .order("created_at", { ascending: true });
+    // Tactile is the primary cost line — always render it above Other.
+    // Within a bucket, creation order (already applied by the query) wins.
+    const bucketRank = (b: string | null) => (b === "tactile" ? 0 : b === "other" ? 1 : 2);
+    const sorted = ((data as Row[]) ?? [])
+      .map((r, i) => ({ r, i }))
+      .sort((a, b) => {
+        const d = bucketRank(a.r.cost_bucket) - bucketRank(b.r.cost_bucket);
+        return d !== 0 ? d : a.i - b.i;
+      })
+      .map((x) => x.r);
+    setRows(sorted);
     setLoading(false);
   }, [projectId]);
 

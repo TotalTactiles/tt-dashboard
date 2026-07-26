@@ -14,7 +14,7 @@ import {
   EmptyState,
   formatNum,
   formatMoney,
-  T_RED,
+  T_GOLD,
   T_AMBER,
   T_BLUE,
 } from "./tableCommon";
@@ -53,6 +53,19 @@ function categoryToChip(cat: string | null | undefined): { label: string; unknow
   return { label: "UNKNOWN CODE", unknown: true, excluded: false };
 }
 
+/** Gold read-only money cell — value sourced from the master sheet. */
+function GoldMoneyCell({ value }: { value: number | null | undefined }) {
+  const missing = value == null || !isFinite(Number(value));
+  return (
+    <div
+      className="font-mono text-[12px] tabular-nums"
+      style={{ color: missing ? T_AMBER : T_GOLD, textAlign: "right", width: "100%" }}
+    >
+      {missing ? "—" : formatMoney(Number(value))}
+    </div>
+  );
+}
+
 export function OrderStockTable({ projectId }: { projectId: string }) {
   const { role } = useRole();
   const readOnly = role !== "office";
@@ -86,14 +99,10 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
       const trimmed = (code ?? "").trim();
       const patchObj: Partial<Row> = { product_code: trimmed };
       const current = rows.find((r) => r.id === id);
-      // Pre-fill from the sheet only when the DB value is null. A row that
-      // already carries a value must survive product-code re-entry and any
-      // future remount — the manual price is the source of truth.
+      // Pre-fill description/unit from the sheet only when the DB value is
+      // null. unit_cost is snapshotted separately by the effect below.
       if (trimmed && current) {
         const it = live.items[trimmed];
-        if (current.unit_cost == null && it?.cost_per_unit != null) {
-          patchObj.unit_cost = Number(it.cost_per_unit);
-        }
         if (current.description == null && it?.description) {
           patchObj.description = it.description;
         }
@@ -106,12 +115,26 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
     [live.items, rows, patch],
   );
 
-  const onUnitCost = useCallback(
-    async (id: string, n: number | null) => {
-      await patch(id, { unit_cost: n });
-    },
-    [patch],
-  );
+  /**
+   * Snapshot unit_cost from the master sheet whenever it resolves and differs
+   * from what is stored. This is a record of the price at the time of ordering
+   * — never a user input. Skipped when live is not ready or the code is
+   * unknown, so we don't wipe historical costs during a transient outage.
+   */
+  useEffect(() => {
+    if (live.status !== "live") return;
+    for (const r of rows) {
+      if (!r.product_code) continue;
+      const it = live.items[r.product_code];
+      const catalogueCost = it?.cost_per_unit;
+      if (catalogueCost == null) continue;
+      const next = Number(catalogueCost);
+      if (!isFinite(next)) continue;
+      if (r.unit_cost == null || Number(r.unit_cost) !== next) {
+        patch(r.id, { unit_cost: next });
+      }
+    }
+  }, [rows, live.items, live.status, patch]);
 
 
   const add = useCallback(async () => {
@@ -143,9 +166,9 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
     let need = 0, ord = 0, lineCost = 0;
     for (const r of rows) {
       need += Number(r.qty_needed) || 0;
-      ord += Number(r.qty_ordered ?? 0);
-      const uc = Number(r.unit_cost ?? 0);
-      const qo = Number(r.qty_ordered ?? 0);
+      ord += Number(r.qty_ordered) || 0;
+      const uc = Number(r.unit_cost) || 0;
+      const qo = Number(r.qty_ordered) || 0;
       lineCost += uc * qo;
     }
     return { need, ord, lineCost };
@@ -156,11 +179,13 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
       rows.filter((r) => {
         const chip = categoryToChip(live.items[r.product_code]?.category);
         if (chip.excluded) return false; // accessories excluded from cost
+        // Unit cost is derived from the sheet and qty needed from scope —
+        // neither can be "missing" in the way an unentered value can. A line
+        // is incomplete only when the user has not supplied the three fields
+        // that are their own to enter.
         return (
           r.qty_ordered == null ||
           !Number(r.qty_ordered) ||
-          r.unit_cost == null ||
-          !Number(r.unit_cost) ||
           !r.source ||
           !r.ordered_at
         );
@@ -177,7 +202,7 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
           className="text-[10.5px] font-mono uppercase tracking-widest px-3 py-1.5 rounded-sm border"
           style={{ color: T_AMBER, borderColor: T_AMBER, background: "rgba(186,117,23,0.06)" }}
         >
-          {incomplete} order line{incomplete === 1 ? "" : "s"} incomplete — qty, unit cost, source and order date are all required before actual costs reach the forecast
+          {incomplete} order line{incomplete === 1 ? "" : "s"} incomplete — qty ordered, source and order date are all required before actual costs reach the forecast
         </div>
       )}
       <TableShell
@@ -200,7 +225,7 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
               China 30% / 70% split · Local invoice + 1 month · John invoice month
             </div>
             <div className="opacity-45 font-mono text-[10px]">
-              Planned is the estimate. Ordered is what was committed and paid — this drives cashflow.
+              Unit cost is read from the master Stock & Inventory sheet and snapshotted here at time of order. Change prices in the sheet, not here.
             </div>
           </div>
         }
@@ -227,13 +252,18 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
             {rows.map((r) => {
               const item = live.items[r.product_code];
               const chip = categoryToChip(item?.category);
-              const uc = Number(r.unit_cost ?? 0);
-              const qo = Number(r.qty_ordered ?? 0);
+              const liveCost = item?.cost_per_unit;
+              // Prefer the snapshotted DB value; fall back to live sheet
+              // while the snapshot effect is settling. Both are gold — the
+              // number always originates in the sheet.
+              const displayCost =
+                r.unit_cost != null ? Number(r.unit_cost) : liveCost != null ? Number(liveCost) : null;
+              const uc = Number(r.unit_cost) || 0;
+              const qo = Number(r.qty_ordered) || 0;
               const lineCost = uc * qo;
 
               const excluded = chip.excluded;
               const qtyInvalid = !readOnly && !excluded && (r.qty_ordered == null || !Number(r.qty_ordered));
-              const costInvalid = !readOnly && !excluded && (r.unit_cost == null || !Number(r.unit_cost));
               const sourceInvalid = !readOnly && !excluded && !r.source;
               const dateInvalid = !readOnly && !excluded && !r.ordered_at;
 
@@ -276,12 +306,8 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
                       />
                     )}
                   </div>
-                  <div className="px-2">
-                    <NumInput
-                      value={r.qty_needed}
-                      onSave={(n) => patch(r.id, { qty_needed: n ?? 0 })}
-                      readOnly={readOnly}
-                    />
+                  <div className="px-2 flex justify-end">
+                    <CalcCell value={Number(r.qty_needed) || 0} formatter={formatNum} />
                   </div>
                   <div className="px-2">
                     <NumInput
@@ -293,17 +319,11 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
                     />
                   </div>
                   <div className="px-2">
-                    <NumInput
-                      value={r.unit_cost}
-                      onSave={(n) => onUnitCost(r.id, n)}
-                      readOnly={readOnly}
-                      required={!excluded}
-                      invalid={costInvalid}
-                    />
+                    <GoldMoneyCell value={displayCost} />
                   </div>
                   <div className="px-2 flex justify-end">
                     <CalcCell
-                      value={r.qty_ordered != null && r.unit_cost != null ? lineCost : null}
+                      value={r.qty_ordered != null && displayCost != null ? lineCost : null}
                       formatter={formatMoney}
                       color={T_BLUE}
                     />
@@ -356,7 +376,7 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
               cells={[
                 <span className="text-[10.5px] font-mono uppercase tracking-widest text-muted-foreground">Totals</span>,
                 <span />,
-                <span className="font-mono text-[12px] tabular-nums" style={{ color: "#C0A85E" }}>{formatNum(totals.need)}</span>,
+                <span className="font-mono text-[12px] tabular-nums" style={{ color: T_BLUE }}>{formatNum(totals.need)}</span>,
                 <span className="font-mono text-[12px] tabular-nums" style={{ color: "#E5E9EA" }}>{formatNum(totals.ord)}</span>,
                 <span />,
                 <span className="font-mono text-[12.5px] tabular-nums" style={{ color: T_BLUE }}>{formatMoney(totals.lineCost)}</span>,
