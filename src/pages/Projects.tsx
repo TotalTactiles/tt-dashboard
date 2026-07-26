@@ -9,6 +9,7 @@ import { TaskDrawer } from "@/components/projects/TaskDrawer";
 import { ColumnsPopover } from "@/components/projects/ColumnsPopover";
 import { CompleteProjectModal } from "@/components/projects/CompleteProjectModal";
 import { SplitProjectModal } from "@/components/projects/SplitProjectModal";
+import { VariationModal } from "@/components/projects/VariationModal";
 import { loadColumns, saveColumns, type ColumnKey } from "@/components/projects/columns";
 import { useTasks } from "@/hooks/useTasks";
 import {
@@ -41,6 +42,7 @@ function ProjectsInner() {
   const [railRefreshTick, setRailRefreshTick] = useState(0);
   const [completeOpen, setCompleteOpen] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
+  const [variationOpen, setVariationOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [columns, setColumns] = useState<ColumnKey[]>(() => loadColumns());
 
@@ -78,6 +80,8 @@ function ProjectsInner() {
   const closeCompleteModal = useCallback(() => setCompleteOpen(false), []);
   const openSplitModal = useCallback(() => setSplitOpen(true), []);
   const closeSplitModal = useCallback(() => setSplitOpen(false), []);
+  const openVariationModal = useCallback(() => setVariationOpen(true), []);
+  const closeVariationModal = useCallback(() => setVariationOpen(false), []);
   const handleCompleted = useCallback(() => {
     // Refresh project detail + rail so the completed banner and rail chip show.
     refreshProject();
@@ -283,12 +287,14 @@ function ProjectsInner() {
 
           {projectId && project && canManageLifecycle && (
             <LifecycleActionBar
+              projectName={project.name}
               completedAt={project.completed_at}
               openTasks={open}
               totalTasks={total}
               isMobile={isMobile}
               onSplit={openSplitModal}
               onComplete={openCompleteModal}
+              onVariation={openVariationModal}
             />
           )}
         </div>
@@ -304,11 +310,18 @@ function ProjectsInner() {
         />
       )}
 
-      {splitOpen && projectId && project && canManageLifecycle && !project.completed_at && (
+      {splitOpen && projectId && project && canManageLifecycle && (
         <SplitProjectModal
           project={{ id: project.id, name: project.name, zoho_deal_id: project.zoho_deal_id }}
           contractValue={financials?.contract_value ?? null}
           onClose={closeSplitModal}
+        />
+      )}
+
+      {variationOpen && projectId && project && canManageLifecycle && (
+        <VariationModal
+          project={{ id: project.id, name: project.name, zoho_deal_id: project.zoho_deal_id }}
+          onClose={closeVariationModal}
         />
       )}
 
@@ -326,55 +339,47 @@ function ProjectsInner() {
 }
 
 function LifecycleActionBar({
+  projectName,
   completedAt,
   openTasks,
   totalTasks,
   isMobile,
   onSplit,
   onComplete,
+  onVariation,
 }: {
+  projectName: string;
   completedAt: string | null;
   openTasks: number;
   totalTasks: number;
   isMobile: boolean;
   onSplit: () => void;
   onComplete: () => void;
+  onVariation: () => void;
 }) {
-  // If the project is completed, replace the whole bar with a COMPLETED chip.
-  if (completedAt) {
+  // A project whose name ends with - S{n} or - V{n} is a stage or variation:
+  // Complete may be pressed with trailing tasks open, otherwise its revenue
+  // row would never freeze. Matches the regex used by the n8n workflows.
+  const isStageOrVariation = /[\u2013\u2014-]\s*[SV]\d+\s*$/i.test(projectName);
+  const isCompleted = !!completedAt;
+  const allDone = totalTasks > 0 && openTasks === 0;
+  const canComplete = isStageOrVariation ? true : allDone;
+
+  const completeNote = isCompleted
+    ? null
+    : isStageOrVariation
+      ? "Stage may be completed with tasks outstanding."
+      : allDone
+        ? "All tasks complete."
+        : `${openTasks} of ${totalTasks} tasks remaining — complete all tasks to close this project`;
+
+  const completedLabel = (() => {
+    if (!completedAt) return null;
     const d = new Date(completedAt + (completedAt.length === 10 ? "T00:00:00" : ""));
-    const label = isNaN(d.getTime())
+    return isNaN(d.getTime())
       ? completedAt
       : d.toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
-    return (
-      <div
-        className={cn(
-          "sticky bottom-0 z-30 border-t backdrop-blur-md flex items-center justify-end gap-2",
-          isMobile ? "px-3 py-2.5" : "px-3 md:px-6 py-3",
-        )}
-        style={{ borderColor: "#1F2224", background: "rgba(10,10,10,0.94)" }}
-      >
-        <div
-          className="inline-flex items-center gap-2 rounded-md border px-2.5 py-1"
-          style={{
-            borderColor: "rgba(34,197,94,0.3)",
-            background: "rgba(34,197,94,0.08)",
-            color: "#22C55E",
-          }}
-        >
-          <CheckCircle2 className="h-3 w-3" />
-          <span className="text-[10.5px] font-mono uppercase tracking-widest">
-            Completed {label}
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  const allDone = totalTasks > 0 && openTasks === 0;
-  const gateNote = allDone
-    ? "All tasks complete."
-    : `${openTasks} of ${totalTasks} tasks remaining — complete all tasks to close this project`;
+  })();
 
   return (
     <div
@@ -384,7 +389,33 @@ function LifecycleActionBar({
       )}
       style={{ borderColor: "#1F2224", background: "rgba(10,10,10,0.94)" }}
     >
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex items-center justify-end gap-2 flex-wrap">
+        {isCompleted && (
+          <div
+            className="inline-flex items-center gap-2 rounded-md border px-2.5 py-1 mr-auto"
+            style={{
+              borderColor: "rgba(34,197,94,0.3)",
+              background: "rgba(34,197,94,0.08)",
+              color: "#22C55E",
+            }}
+          >
+            <CheckCircle2 className="h-3 w-3" />
+            <span className="text-[10.5px] font-mono uppercase tracking-widest">
+              Completed {completedLabel}
+            </span>
+          </div>
+        )}
+        <button
+          onClick={onVariation}
+          className="h-8 px-3 rounded-md text-[11px] font-mono uppercase tracking-widest transition-colors"
+          style={{
+            border: "1px solid #3D89DA",
+            color: "#3D89DA",
+            background: "transparent",
+          }}
+        >
+          Variation
+        </button>
         <button
           onClick={onSplit}
           className="h-8 px-3 rounded-md text-[11px] font-mono uppercase tracking-widest transition-colors"
@@ -396,24 +427,31 @@ function LifecycleActionBar({
         >
           Split Project
         </button>
-        <button
-          onClick={onComplete}
-          disabled={!allDone}
-          className="h-8 px-3 rounded-md text-[11px] font-mono uppercase tracking-widest text-white disabled:cursor-not-allowed"
+        {!isCompleted && (
+          <button
+            onClick={onComplete}
+            disabled={!canComplete}
+            className="h-8 px-3 rounded-md text-[11px] font-mono uppercase tracking-widest text-white disabled:cursor-not-allowed"
+            style={{
+              background: canComplete ? "#3D89DA" : "#1D1D22",
+              opacity: canComplete ? 1 : 0.55,
+            }}
+          >
+            Complete Project
+          </button>
+        )}
+      </div>
+      {completeNote && (
+        <div
+          className="mt-1 text-right text-[10px] font-mono"
           style={{
-            background: allDone ? "#3D89DA" : "#1D1D22",
-            opacity: allDone ? 1 : 0.55,
+            opacity: canComplete ? 0.7 : 0.45,
+            color: canComplete && !isStageOrVariation ? "#22C55E" : undefined,
           }}
         >
-          Complete Project
-        </button>
-      </div>
-      <div
-        className="mt-1 text-right text-[10px] font-mono"
-        style={{ opacity: allDone ? 0.7 : 0.45, color: allDone ? "#22C55E" : undefined }}
-      >
-        {gateNote}
-      </div>
+          {completeNote}
+        </div>
+      )}
     </div>
   );
 }

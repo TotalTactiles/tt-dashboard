@@ -55,7 +55,12 @@ export function useProjects(statusFilter: ProjectStatusFilter = "active") {
     if (statusFilter === "active") {
       q = q.eq("status", "active").is("completed_at", null);
     } else if (statusFilter === "completed") {
-      q = q.not("completed_at", "is", null);
+      // "Recently Completed" — last 7 days only. Older completions live in Zoho.
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 7);
+      q = q
+        .not("completed_at", "is", null)
+        .gte("completed_at", cutoff.toISOString().slice(0, 10));
     }
     const { data } = await q;
     setProjects((data as Project[]) ?? []);

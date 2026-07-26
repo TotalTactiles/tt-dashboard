@@ -811,6 +811,7 @@ export type Database = {
           task_name: string | null
           total_quantity: number
           unit: string
+          unit_rate: number | null
         }
         Insert: {
           id?: string
@@ -821,6 +822,7 @@ export type Database = {
           task_name?: string | null
           total_quantity?: number
           unit?: string
+          unit_rate?: number | null
         }
         Update: {
           id?: string
@@ -831,6 +833,7 @@ export type Database = {
           task_name?: string | null
           total_quantity?: number
           unit?: string
+          unit_rate?: number | null
         }
         Relationships: [
           {
