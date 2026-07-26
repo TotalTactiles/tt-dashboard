@@ -244,6 +244,10 @@ const EmployeeTracking = () => {
   const [selectedWorkers, setSelectedWorkers] = useState<string[]>([]);
   const [workerFilterOpen, setWorkerFilterOpen] = useState(false);
 
+  // Worker management
+  const [showArchived, setShowArchived] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+
   const refresh = useCallback(async () => {
     if (!officeOnly) {
       setLoading(false);
