@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Plus, MoreHorizontal } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   TableShell,
@@ -36,7 +37,9 @@ interface Row {
   source: string | null;
 }
 
-const GRID = "130px 1fr 78px 78px 88px 100px 90px 110px 120px 32px";
+// 12 cols: Code, Description, Qty needed, On hand, Shortfall, Qty ordered,
+// Unit cost, Line cost, Unit, Source, Ordered, actions.
+const GRID = "130px 1fr 78px 78px 82px 82px 88px 100px 76px 100px 110px 40px";
 
 const SOURCE_OPTIONS = [
   { value: "china", label: "China" },
@@ -66,13 +69,31 @@ function GoldMoneyCell({ value }: { value: number | null | undefined }) {
   );
 }
 
+/** Gold read-only quantity cell — from the master sheet's current on-hand. */
+function GoldQtyCell({ value }: { value: number | null | undefined }) {
+  const missing = value == null || !isFinite(Number(value));
+  return (
+    <div
+      className="font-mono text-[12px] tabular-nums"
+      style={{ color: missing ? "rgba(230,238,243,0.28)" : T_GOLD, textAlign: "right", width: "100%" }}
+    >
+      {missing ? "—" : formatNum(Number(value))}
+    </div>
+  );
+}
+
 export function OrderStockTable({ projectId }: { projectId: string }) {
   const { role } = useRole();
   const readOnly = role !== "office";
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [menuFor, setMenuFor] = useState<string | null>(null);
   const live = useLiveStock();
 
+  // stock-live health drives the catalogue lock. While it is unavailable we
+  // fall open — locking on incomplete data would silently strand rows in a
+  // wrong mode. The amber "on-hand unavailable" badge already explains why.
+  const stockLiveOK = live.status === "live" || live.status === "cached";
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -93,9 +114,6 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...p } : r)));
     const { error } = await db.from("stock_orders").update(p).eq("id", id);
     if (error) {
-      // Surface errors instead of swallowing them silently — the original
-      // symptom (qty_ordered reverting on reload) was invisible because the
-      // failed update returned nothing observable to the UI.
       // eslint-disable-next-line no-console
       console.error("[OrderStockTable] update failed", { id, patch: p, error });
     }
@@ -105,9 +123,14 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
     async (id: string, code: string | null) => {
       const trimmed = (code ?? "").trim();
       const patchObj: Partial<Row> = { product_code: trimmed };
-      const current = rows.find((r) => r.id === id);
-      // Pre-fill description/unit from the sheet only when the DB value is
-      // null. unit_cost is snapshotted separately by the effect below.
+      // Read the current row via functional setState to avoid depending on
+      // `rows` (which would rebuild this callback on every keystroke elsewhere
+      // and defeat TextInput's debounce identity).
+      let current: Row | undefined;
+      setRows((cur) => {
+        current = cur.find((r) => r.id === id);
+        return cur;
+      });
       if (trimmed && current) {
         const it = live.items[trimmed];
         if (current.description == null && it?.description) {
@@ -119,7 +142,7 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
       }
       await patch(id, patchObj);
     },
-    [live.items, rows, patch],
+    [live.items, patch],
   );
 
   /**
@@ -143,7 +166,6 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
     }
   }, [rows, live.items, live.status, patch]);
 
-
   const add = useCallback(async () => {
     const { data } = await db
       .from("stock_orders")
@@ -164,10 +186,48 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
   }, [projectId]);
 
   const remove = useCallback(async (id: string) => {
-    setRows((prev) => prev.filter((r) => r.id !== id));
-    await db.from("stock_orders").delete().eq("id", id);
+    let prev: Row[] = [];
+    setRows((cur) => {
+      prev = cur;
+      return cur.filter((r) => r.id !== id);
+    });
+    const { error } = await db.from("stock_orders").delete().eq("id", id);
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.error("[OrderStockTable] delete failed", { id, error });
+      setRows(prev);
+      toast.error("Failed to delete line");
+    }
   }, []);
 
+  const confirmDelete = useCallback(
+    (r: Row) => {
+      setMenuFor(null);
+      const label = r.product_code?.trim() ? r.product_code : "this line";
+      if (!window.confirm(`Delete ${label}?`)) return;
+      remove(r.id);
+    },
+    [remove],
+  );
+
+  // Long-press handling for mobile — a single timer shared across rows.
+  const longPressTimer = useRef<number | null>(null);
+  const cancelLongPress = useCallback(() => {
+    if (longPressTimer.current) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+  const startLongPress = useCallback(
+    (r: Row) => {
+      cancelLongPress();
+      longPressTimer.current = window.setTimeout(() => {
+        confirmDelete(r);
+      }, 550);
+    },
+    [cancelLongPress, confirmDelete],
+  );
+  useEffect(() => () => cancelLongPress(), [cancelLongPress]);
 
   const totals = useMemo(() => {
     let need = 0, ord = 0, lineCost = 0;
@@ -185,11 +245,7 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
     () =>
       rows.filter((r) => {
         const chip = categoryToChip(live.items[r.product_code]?.category);
-        if (chip.excluded) return false; // accessories excluded from cost
-        // Unit cost is derived from the sheet and qty needed from scope —
-        // neither can be "missing" in the way an unentered value can. A line
-        // is incomplete only when the user has not supplied the three fields
-        // that are their own to enter.
+        if (chip.excluded) return false;
         return (
           r.qty_ordered == null ||
           !Number(r.qty_ordered) ||
@@ -234,11 +290,14 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
             <div className="opacity-45 font-mono text-[10px]">
               Unit cost is read from the master Stock & Inventory sheet and snapshotted here at time of order. Change prices in the sheet, not here.
             </div>
+            <div className="opacity-45 font-mono text-[10px]">
+              On hand is company-wide live stock. Other open projects may be drawing on the same items.
+            </div>
           </div>
         }
       >
         <div className="overflow-x-auto">
-          <div style={{ minWidth: 1024 }}>
+          <div style={{ minWidth: 1180 }}>
             <HeaderRow
               gridTemplate={GRID}
               stickyFirstCol
@@ -246,6 +305,8 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
                 { label: "Code" },
                 { label: "Description" },
                 { label: "Qty needed", align: "right" },
+                { label: "On hand", align: "right" },
+                { label: "Shortfall", align: "right" },
                 { label: "Qty ordered", align: "right" },
                 { label: "Unit cost", align: "right" },
                 { label: "Line cost", align: "right" },
@@ -263,9 +324,6 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
                   const item = live.items[r.product_code];
                   const chip = categoryToChip(item?.category);
                   const liveCost = item?.cost_per_unit;
-                  // Prefer the snapshotted DB value; fall back to live sheet
-                  // while the snapshot effect is settling. Both are gold — the
-                  // number always originates in the sheet.
                   const displayCost =
                     r.unit_cost != null ? Number(r.unit_cost) : liveCost != null ? Number(liveCost) : null;
                   const uc = Number(r.unit_cost) || 0;
@@ -277,11 +335,30 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
                   const sourceInvalid = !readOnly && !excluded && !r.source;
                   const dateInvalid = !readOnly && !excluded && !r.ordered_at;
 
+                  // Catalogue lock: only when stock-live is healthy AND the
+                  // code resolves in the sheet. Custom / unresolved / unknown
+                  // codes stay dark editable; a blank new row stays editable
+                  // until a valid code is entered.
+                  const isCatalogue = stockLiveOK && !!item;
+                  const codeLocked = isCatalogue;
+                  const descLocked = isCatalogue;
+                  const liveDescription = item?.description ?? null;
+
+                  // On hand / shortfall — only meaningful when live is healthy
+                  // and the code is known to the sheet.
+                  const onHand = stockLiveOK && item ? Number(item.on_hand) : null;
+                  const qtyNeeded = Number(r.qty_needed) || 0;
+                  const shortfall = onHand != null ? Math.max(0, qtyNeeded - onHand) : null;
+
                   return (
                     <div
                       key={r.id}
                       className="grid items-center border-b group"
                       style={{ gridTemplateColumns: GRID, minHeight: 40, borderColor: "#131418" }}
+                      onTouchStart={() => startLongPress(r)}
+                      onTouchEnd={cancelLongPress}
+                      onTouchMove={cancelLongPress}
+                      onTouchCancel={cancelLongPress}
                     >
                       <div
                         className="px-2 min-w-0"
@@ -294,7 +371,7 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
                         }}
                       >
                         <div className="flex flex-col gap-0.5">
-                          {readOnly ? (
+                          {readOnly || codeLocked ? (
                             <ExtCell value={r.product_code} />
                           ) : (
                             <TextInput
@@ -315,8 +392,8 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
                         </div>
                       </div>
                       <div className="px-2 min-w-0">
-                        {readOnly ? (
-                          <ExtCell value={r.description} />
+                        {readOnly || descLocked ? (
+                          <ExtCell value={descLocked ? liveDescription ?? r.description : r.description} />
                         ) : (
                           <TextInput
                             value={r.description}
@@ -326,7 +403,29 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
                         )}
                       </div>
                       <div className="px-2 flex justify-end">
-                        <CalcCell value={Number(r.qty_needed) || 0} formatter={formatNum} />
+                        <CalcCell value={qtyNeeded} formatter={formatNum} />
+                      </div>
+                      <div className="px-2">
+                        <GoldQtyCell value={onHand} />
+                      </div>
+                      <div className="px-2 flex justify-end">
+                        {shortfall == null ? (
+                          <div
+                            className="font-mono text-[12px] tabular-nums"
+                            style={{ color: "rgba(230,238,243,0.28)", textAlign: "right", width: "100%" }}
+                          >
+                            —
+                          </div>
+                        ) : shortfall === 0 ? (
+                          <div
+                            className="font-mono text-[12px] tabular-nums"
+                            style={{ color: "rgba(230,238,243,0.45)", textAlign: "right", width: "100%" }}
+                          >
+                            —
+                          </div>
+                        ) : (
+                          <CalcCell value={shortfall} formatter={formatNum} color={T_BLUE} />
+                        )}
                       </div>
                       <div className="px-2">
                         <NumInput
@@ -377,14 +476,38 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
                           invalid={dateInvalid}
                         />
                       </div>
-                      <div className="flex items-center justify-center">
+                      <div className="flex items-center justify-center relative">
                         {!readOnly && (
-                          <button
-                            onClick={() => remove(r.id)}
-                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-[#E24B4A]"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
+                          <>
+                            <button
+                              aria-label="Row actions"
+                              onClick={() => setMenuFor((cur) => (cur === r.id ? null : r.id))}
+                              className="md:opacity-0 md:group-hover:opacity-100 opacity-60 text-muted-foreground hover:text-foreground"
+                            >
+                              <MoreHorizontal className="h-3.5 w-3.5" />
+                            </button>
+                            {menuFor === r.id && (
+                              <>
+                                {/* Click-away overlay */}
+                                <div
+                                  className="fixed inset-0 z-40"
+                                  onClick={() => setMenuFor(null)}
+                                />
+                                <div
+                                  className="absolute right-0 top-full mt-1 z-50 rounded-sm border shadow-lg"
+                                  style={{ background: "#0A0A0A", borderColor: "#1F2224" }}
+                                >
+                                  <button
+                                    onClick={() => confirmDelete(r)}
+                                    className="block w-full text-left px-3 py-1.5 text-[11px] font-mono uppercase tracking-widest whitespace-nowrap hover:bg-white/5"
+                                    style={{ color: "#E24B4A" }}
+                                  >
+                                    Delete line
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -397,6 +520,8 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
                     <span className="text-[10.5px] font-mono uppercase tracking-widest text-muted-foreground">Totals</span>,
                     <span />,
                     <span className="font-mono text-[12px] tabular-nums" style={{ color: T_BLUE }}>{formatNum(totals.need)}</span>,
+                    <span />,
+                    <span />,
                     <span className="font-mono text-[12px] tabular-nums" style={{ color: "#E5E9EA" }}>{formatNum(totals.ord)}</span>,
                     <span />,
                     <span className="font-mono text-[12.5px] tabular-nums" style={{ color: T_BLUE }}>{formatMoney(totals.lineCost)}</span>,
