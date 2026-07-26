@@ -19,7 +19,7 @@ import {
 import { useProfiles } from "@/hooks/useProfiles";
 import { Ring } from "@/components/projects/Ring";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Info, List, LayoutGrid, Calendar as CalendarIcon, Table as TableIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
+import { CheckCircle2, List, LayoutGrid, Calendar as CalendarIcon, Table as TableIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
 
 function formatCompletionUpper(iso: string | null | undefined) {
   if (!iso) return null;
