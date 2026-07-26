@@ -123,6 +123,7 @@ function ProjectsInner() {
           onSelect={setProjectId}
           onOpen={handleRailOpen}
           fullWidth={isMobile}
+          refreshTick={railRefreshTick}
         />
       )}
 
