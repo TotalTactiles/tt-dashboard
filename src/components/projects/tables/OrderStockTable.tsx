@@ -237,164 +237,179 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
           </div>
         }
       >
-        <HeaderRow
-          gridTemplate={GRID}
-          cols={[
-            { label: "Code" },
-            { label: "Description" },
-            { label: "Qty needed", align: "right" },
-            { label: "Qty ordered", align: "right" },
-            { label: "Unit cost", align: "right" },
-            { label: "Line cost", align: "right" },
-            { label: "Unit" },
-            { label: "Source" },
-            { label: "Ordered" },
-            { label: "" },
-          ]}
-        />
-        {rows.length === 0 ? (
-          <EmptyState message="Seeded from the quote scope when the project is built." />
-        ) : (
-          <>
-            {rows.map((r) => {
-              const item = live.items[r.product_code];
-              const chip = categoryToChip(item?.category);
-              const liveCost = item?.cost_per_unit;
-              // Prefer the snapshotted DB value; fall back to live sheet
-              // while the snapshot effect is settling. Both are gold — the
-              // number always originates in the sheet.
-              const displayCost =
-                r.unit_cost != null ? Number(r.unit_cost) : liveCost != null ? Number(liveCost) : null;
-              const uc = Number(r.unit_cost) || 0;
-              const qo = Number(r.qty_ordered) || 0;
-              const lineCost = uc * qo;
-
-              const excluded = chip.excluded;
-              const qtyInvalid = !readOnly && !excluded && (r.qty_ordered == null || !Number(r.qty_ordered));
-              const sourceInvalid = !readOnly && !excluded && !r.source;
-              const dateInvalid = !readOnly && !excluded && !r.ordered_at;
-
-              return (
-                <div
-                  key={r.id}
-                  className="grid items-center border-b group"
-                  style={{ gridTemplateColumns: GRID, minHeight: 40, borderColor: "#131418" }}
-                >
-                  <div className="px-2 min-w-0">
-                    <div className="flex flex-col gap-0.5">
-                      {readOnly ? (
-                        <ExtCell value={r.product_code} />
-                      ) : (
-                        <TextInput
-                          value={r.product_code}
-                          onSave={(v) => onProductCode(r.id, v)}
-                          required
-                          placeholder="Code"
-                        />
-                      )}
-                      {r.product_code ? (
-                        <span
-                          className="text-[9px] font-mono uppercase tracking-widest"
-                          style={{ color: chip.unknown ? T_AMBER : "#E5E9EA", opacity: chip.unknown ? 1 : 0.45 }}
-                        >
-                          {chip.label}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="px-2 min-w-0">
-                    {readOnly ? (
-                      <ExtCell value={r.description} />
-                    ) : (
-                      <TextInput
-                        value={r.description}
-                        onSave={(v) => patch(r.id, { description: v })}
-                        placeholder="Description"
-                      />
-                    )}
-                  </div>
-                  <div className="px-2 flex justify-end">
-                    <CalcCell value={Number(r.qty_needed) || 0} formatter={formatNum} />
-                  </div>
-                  <div className="px-2">
-                    <NumInput
-                      value={r.qty_ordered}
-                      onSave={(n) => patch(r.id, { qty_ordered: n })}
-                      readOnly={readOnly}
-                      required={!excluded}
-                      invalid={qtyInvalid}
-                    />
-                  </div>
-                  <div className="px-2">
-                    <GoldMoneyCell value={displayCost} />
-                  </div>
-                  <div className="px-2 flex justify-end">
-                    <CalcCell
-                      value={r.qty_ordered != null && displayCost != null ? lineCost : null}
-                      formatter={formatMoney}
-                      color={T_BLUE}
-                    />
-                  </div>
-                  <div className="px-2 min-w-0">
-                    {readOnly ? (
-                      <ExtCell value={r.unit} />
-                    ) : (
-                      <TextInput
-                        value={r.unit}
-                        onSave={(v) => patch(r.id, { unit: v })}
-                        placeholder="ea"
-                      />
-                    )}
-                  </div>
-                  <div className="px-2">
-                    <SelectCell
-                      value={r.source}
-                      onChange={(v) => patch(r.id, { source: v })}
-                      options={SOURCE_OPTIONS}
-                      readOnly={readOnly}
-                      required={!excluded}
-                      invalid={sourceInvalid}
-                    />
-                  </div>
-                  <div className="px-2">
-                    <DateCell
-                      value={r.ordered_at}
-                      onSave={(v) => patch(r.id, { ordered_at: v })}
-                      readOnly={readOnly}
-                      required={!excluded}
-                      invalid={dateInvalid}
-                    />
-                  </div>
-                  <div className="flex items-center justify-center">
-                    {!readOnly && (
-                      <button
-                        onClick={() => remove(r.id)}
-                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-[#E24B4A]"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-            <TotalsRow
+        <div className="overflow-x-auto">
+          <div style={{ minWidth: 1024 }}>
+            <HeaderRow
               gridTemplate={GRID}
-              cells={[
-                <span className="text-[10.5px] font-mono uppercase tracking-widest text-muted-foreground">Totals</span>,
-                <span />,
-                <span className="font-mono text-[12px] tabular-nums" style={{ color: T_BLUE }}>{formatNum(totals.need)}</span>,
-                <span className="font-mono text-[12px] tabular-nums" style={{ color: "#E5E9EA" }}>{formatNum(totals.ord)}</span>,
-                <span />,
-                <span className="font-mono text-[12.5px] tabular-nums" style={{ color: T_BLUE }}>{formatMoney(totals.lineCost)}</span>,
-                <span />,
-                <span />,
-                <span />,
-                <span />,
+              stickyFirstCol
+              cols={[
+                { label: "Code" },
+                { label: "Description" },
+                { label: "Qty needed", align: "right" },
+                { label: "Qty ordered", align: "right" },
+                { label: "Unit cost", align: "right" },
+                { label: "Line cost", align: "right" },
+                { label: "Unit" },
+                { label: "Source" },
+                { label: "Ordered" },
+                { label: "" },
               ]}
             />
-          </>
-        )}
+            {rows.length === 0 ? (
+              <EmptyState message="Seeded from the quote scope when the project is built." />
+            ) : (
+              <>
+                {rows.map((r) => {
+                  const item = live.items[r.product_code];
+                  const chip = categoryToChip(item?.category);
+                  const liveCost = item?.cost_per_unit;
+                  // Prefer the snapshotted DB value; fall back to live sheet
+                  // while the snapshot effect is settling. Both are gold — the
+                  // number always originates in the sheet.
+                  const displayCost =
+                    r.unit_cost != null ? Number(r.unit_cost) : liveCost != null ? Number(liveCost) : null;
+                  const uc = Number(r.unit_cost) || 0;
+                  const qo = Number(r.qty_ordered) || 0;
+                  const lineCost = uc * qo;
+
+                  const excluded = chip.excluded;
+                  const qtyInvalid = !readOnly && !excluded && (r.qty_ordered == null || !Number(r.qty_ordered));
+                  const sourceInvalid = !readOnly && !excluded && !r.source;
+                  const dateInvalid = !readOnly && !excluded && !r.ordered_at;
+
+                  return (
+                    <div
+                      key={r.id}
+                      className="grid items-center border-b group"
+                      style={{ gridTemplateColumns: GRID, minHeight: 40, borderColor: "#131418" }}
+                    >
+                      <div
+                        className="px-2 min-w-0"
+                        style={{
+                          position: "sticky",
+                          left: 0,
+                          zIndex: 1,
+                          background: "#0A0A0A",
+                          boxShadow: "1px 0 0 #131418",
+                        }}
+                      >
+                        <div className="flex flex-col gap-0.5">
+                          {readOnly ? (
+                            <ExtCell value={r.product_code} />
+                          ) : (
+                            <TextInput
+                              value={r.product_code}
+                              onSave={(v) => onProductCode(r.id, v)}
+                              required
+                              placeholder="Code"
+                            />
+                          )}
+                          {r.product_code ? (
+                            <span
+                              className="text-[9px] font-mono uppercase tracking-widest"
+                              style={{ color: chip.unknown ? T_AMBER : "#E5E9EA", opacity: chip.unknown ? 1 : 0.45 }}
+                            >
+                              {chip.label}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="px-2 min-w-0">
+                        {readOnly ? (
+                          <ExtCell value={r.description} />
+                        ) : (
+                          <TextInput
+                            value={r.description}
+                            onSave={(v) => patch(r.id, { description: v })}
+                            placeholder="Description"
+                          />
+                        )}
+                      </div>
+                      <div className="px-2 flex justify-end">
+                        <CalcCell value={Number(r.qty_needed) || 0} formatter={formatNum} />
+                      </div>
+                      <div className="px-2">
+                        <NumInput
+                          value={r.qty_ordered}
+                          onSave={(n) => patch(r.id, { qty_ordered: n })}
+                          readOnly={readOnly}
+                          required={!excluded}
+                          invalid={qtyInvalid}
+                        />
+                      </div>
+                      <div className="px-2">
+                        <GoldMoneyCell value={displayCost} />
+                      </div>
+                      <div className="px-2 flex justify-end">
+                        <CalcCell
+                          value={r.qty_ordered != null && displayCost != null ? lineCost : null}
+                          formatter={formatMoney}
+                          color={T_BLUE}
+                        />
+                      </div>
+                      <div className="px-2 min-w-0">
+                        {readOnly ? (
+                          <ExtCell value={r.unit} />
+                        ) : (
+                          <TextInput
+                            value={r.unit}
+                            onSave={(v) => patch(r.id, { unit: v })}
+                            placeholder="ea"
+                          />
+                        )}
+                      </div>
+                      <div className="px-2">
+                        <SelectCell
+                          value={r.source}
+                          onChange={(v) => patch(r.id, { source: v })}
+                          options={SOURCE_OPTIONS}
+                          readOnly={readOnly}
+                          required={!excluded}
+                          invalid={sourceInvalid}
+                        />
+                      </div>
+                      <div className="px-2">
+                        <DateCell
+                          value={r.ordered_at}
+                          onSave={(v) => patch(r.id, { ordered_at: v })}
+                          readOnly={readOnly}
+                          required={!excluded}
+                          invalid={dateInvalid}
+                        />
+                      </div>
+                      <div className="flex items-center justify-center">
+                        {!readOnly && (
+                          <button
+                            onClick={() => remove(r.id)}
+                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-[#E24B4A]"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+                <TotalsRow
+                  gridTemplate={GRID}
+                  stickyFirstCol
+                  cells={[
+                    <span className="text-[10.5px] font-mono uppercase tracking-widest text-muted-foreground">Totals</span>,
+                    <span />,
+                    <span className="font-mono text-[12px] tabular-nums" style={{ color: T_BLUE }}>{formatNum(totals.need)}</span>,
+                    <span className="font-mono text-[12px] tabular-nums" style={{ color: "#E5E9EA" }}>{formatNum(totals.ord)}</span>,
+                    <span />,
+                    <span className="font-mono text-[12.5px] tabular-nums" style={{ color: T_BLUE }}>{formatMoney(totals.lineCost)}</span>,
+                    <span />,
+                    <span />,
+                    <span />,
+                    <span />,
+                  ]}
+                />
+              </>
+            )}
+          </div>
+        </div>
       </TableShell>
     </div>
   );
