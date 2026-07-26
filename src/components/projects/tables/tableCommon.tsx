@@ -219,6 +219,30 @@ export function NumInput({
   const [local, setLocal] = useState<string>(value == null ? "" : String(value));
   const timer = useRef<number | null>(null);
   const lastSaved = useRef<string>(local);
+  // Latest local + onSave held in a ref so the unmount flush can commit the
+  // pending edit without re-registering the cleanup on every render. This is
+  // the fix for a class of "typed but never saved" bugs: when the parent
+  // re-renders in a way that unmounts this input before the 600 ms debounce
+  // fires (drawer close, task switch, tab change, mobile keyboard dismiss,
+  // or any parent state change that changes the row identity), the timer
+  // was being cleared with no save. Now the pending value is flushed
+  // synchronously in cleanup.
+  const flushRef = useRef<() => void>(() => {});
+  flushRef.current = () => {
+    if (!timer.current) return;
+    window.clearTimeout(timer.current);
+    timer.current = null;
+    if (local === "") {
+      lastSaved.current = "";
+      onSave(null);
+    } else {
+      const n = Number(local);
+      if (!isNaN(n)) {
+        lastSaved.current = String(n);
+        onSave(n);
+      }
+    }
+  };
 
   // Sync when external value changes and user isn't mid-edit for a different value
   useEffect(() => {
@@ -230,7 +254,7 @@ export function NumInput({
   }, [value]);
 
   useEffect(() => () => {
-    if (timer.current) window.clearTimeout(timer.current);
+    flushRef.current();
   }, []);
 
   if (readOnly) {
