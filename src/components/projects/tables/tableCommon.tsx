@@ -75,9 +75,12 @@ export function Legend() {
 export function HeaderRow({
   cols,
   gridTemplate,
+  stickyFirstCol,
 }: {
   cols: { label: string; align?: "left" | "right" | "center" }[];
   gridTemplate: string;
+  /** Freeze the first column at the left edge when the row overflows horizontally. */
+  stickyFirstCol?: boolean;
 }) {
   return (
     <div
@@ -89,18 +92,26 @@ export function HeaderRow({
         height: 30,
       }}
     >
-      {cols.map((c, i) => (
-        <div
-          key={i}
-          className="flex items-center px-2"
-          style={{
-            justifyContent:
-              c.align === "right" ? "flex-end" : c.align === "center" ? "center" : "flex-start",
-          }}
-        >
-          {c.label}
-        </div>
-      ))}
+      {cols.map((c, i) => {
+        const sticky = stickyFirstCol && i === 0;
+        return (
+          <div
+            key={i}
+            className="flex items-center px-2"
+            style={{
+              justifyContent:
+                c.align === "right" ? "flex-end" : c.align === "center" ? "center" : "flex-start",
+              position: sticky ? "sticky" : undefined,
+              left: sticky ? 0 : undefined,
+              zIndex: sticky ? 2 : undefined,
+              background: sticky ? "#0F1113" : undefined,
+              boxShadow: sticky ? "1px 0 0 #1F2224" : undefined,
+            }}
+          >
+            {c.label}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -108,9 +119,11 @@ export function HeaderRow({
 export function TotalsRow({
   cells,
   gridTemplate,
+  stickyFirstCol,
 }: {
   cells: ReactNode[];
   gridTemplate: string;
+  stickyFirstCol?: boolean;
 }) {
   return (
     <div
@@ -122,11 +135,25 @@ export function TotalsRow({
         background: T_TOTAL_BG,
       }}
     >
-      {cells.map((c, i) => (
-        <div key={i} className="px-2 flex items-center" style={{ justifyContent: i === 0 ? "flex-start" : "flex-end" }}>
-          {c}
-        </div>
-      ))}
+      {cells.map((c, i) => {
+        const sticky = stickyFirstCol && i === 0;
+        return (
+          <div
+            key={i}
+            className="px-2 flex items-center"
+            style={{
+              justifyContent: i === 0 ? "flex-start" : "flex-end",
+              position: sticky ? "sticky" : undefined,
+              left: sticky ? 0 : undefined,
+              zIndex: sticky ? 2 : undefined,
+              background: sticky ? T_TOTAL_BG : undefined,
+              boxShadow: sticky ? "1px 0 0 #1F2224" : undefined,
+            }}
+          >
+            {c}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -219,6 +246,30 @@ export function NumInput({
   const [local, setLocal] = useState<string>(value == null ? "" : String(value));
   const timer = useRef<number | null>(null);
   const lastSaved = useRef<string>(local);
+  // Latest local + onSave held in a ref so the unmount flush can commit the
+  // pending edit without re-registering the cleanup on every render. This is
+  // the fix for a class of "typed but never saved" bugs: when the parent
+  // re-renders in a way that unmounts this input before the 600 ms debounce
+  // fires (drawer close, task switch, tab change, mobile keyboard dismiss,
+  // or any parent state change that changes the row identity), the timer
+  // was being cleared with no save. Now the pending value is flushed
+  // synchronously in cleanup.
+  const flushRef = useRef<() => void>(() => {});
+  flushRef.current = () => {
+    if (!timer.current) return;
+    window.clearTimeout(timer.current);
+    timer.current = null;
+    if (local === "") {
+      lastSaved.current = "";
+      onSave(null);
+    } else {
+      const n = Number(local);
+      if (!isNaN(n)) {
+        lastSaved.current = String(n);
+        onSave(n);
+      }
+    }
+  };
 
   // Sync when external value changes and user isn't mid-edit for a different value
   useEffect(() => {
@@ -230,7 +281,7 @@ export function NumInput({
   }, [value]);
 
   useEffect(() => () => {
-    if (timer.current) window.clearTimeout(timer.current);
+    flushRef.current();
   }, []);
 
   if (readOnly) {
@@ -317,6 +368,15 @@ export function TextInput({
   const [local, setLocal] = useState<string>(value ?? "");
   const timer = useRef<number | null>(null);
   const lastSaved = useRef<string>(local);
+  // Flush pending edit on unmount — see NumInput for the rationale.
+  const flushRef = useRef<() => void>(() => {});
+  flushRef.current = () => {
+    if (!timer.current) return;
+    window.clearTimeout(timer.current);
+    timer.current = null;
+    lastSaved.current = local;
+    onSave(local === "" ? null : local);
+  };
 
   useEffect(() => {
     const asStr = value ?? "";
@@ -327,7 +387,7 @@ export function TextInput({
   }, [value]);
 
   useEffect(() => () => {
-    if (timer.current) window.clearTimeout(timer.current);
+    flushRef.current();
   }, []);
 
   if (readOnly) {
