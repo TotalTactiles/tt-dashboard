@@ -871,6 +871,77 @@ export type Database = {
           },
         ]
       }
+      stock_movements: {
+        Row: {
+          created_at: string
+          delta: number
+          id: string
+          note: string | null
+          post_error: string | null
+          posted_at: string | null
+          product_code: string
+          project_id: string | null
+          reason: string
+          source_id: string | null
+          source_table: string | null
+        }
+        Insert: {
+          created_at?: string
+          delta: number
+          id?: string
+          note?: string | null
+          post_error?: string | null
+          posted_at?: string | null
+          product_code: string
+          project_id?: string | null
+          reason: string
+          source_id?: string | null
+          source_table?: string | null
+        }
+        Update: {
+          created_at?: string
+          delta?: number
+          id?: string
+          note?: string | null
+          post_error?: string | null
+          posted_at?: string | null
+          product_code?: string
+          project_id?: string | null
+          reason?: string
+          source_id?: string | null
+          source_table?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_movements_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_accessory_pool"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "stock_movements_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_labour_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "stock_movements_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_progress"
+            referencedColumns: ["project_id"]
+          },
+        ]
+      }
       stock_orders: {
         Row: {
           description: string | null
@@ -1456,6 +1527,15 @@ export type Database = {
             referencedColumns: ["project_id"]
           },
         ]
+      }
+      v_pending_stock_movements: {
+        Row: {
+          movement_count: number | null
+          movement_ids: string[] | null
+          net_delta: number | null
+          product_code: string | null
+        }
+        Relationships: []
       }
       v_project_forecast: {
         Row: {
