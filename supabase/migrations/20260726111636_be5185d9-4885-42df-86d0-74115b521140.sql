@@ -1,0 +1,1 @@
+ALTER TABLE public.scope_lines ADD COLUMN IF NOT EXISTS unit_rate numeric;
