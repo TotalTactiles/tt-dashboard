@@ -111,6 +111,64 @@ async function callWebhook(
   return run;
 }
 
+/**
+ * Generic n8n webhook POST with the same in-flight dedup + AbortSignal handling
+ * as callWebhook, but WITHOUT the { ok: true } assertion. Some endpoints
+ * (complete-project, split-project) return richer envelopes where { ok:false }
+ * is a meaningful non-fatal state we need to surface to the caller. Throws only
+ * on network failures, non-2xx HTTP, and { FATAL: ... } payloads.
+ */
+export async function postN8nWebhook<T = any>(
+  path: string,
+  body: unknown,
+  opts?: { dedupeKey?: string; signal?: AbortSignal },
+): Promise<{ status: number; data: T }> {
+  const key = opts?.dedupeKey;
+  if (key) {
+    const existing = inflight.get(key);
+    if (existing) return existing;
+  }
+
+  const run = (async () => {
+    let res: Response;
+    try {
+      res = await fetch(`${BASE}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: opts?.signal,
+      });
+    } catch (e: any) {
+      if (e?.name === "AbortError") throw e;
+      throw new Error(e?.message ?? "Network error");
+    }
+    let data: any = null;
+    try {
+      data = await res.json();
+    } catch {
+      /* fall through */
+    }
+    if (res.status === 400) {
+      // Validation error — return so caller can render errors[] inline.
+      return { status: 400, data };
+    }
+    if (!res.ok) {
+      const msg = data?.FATAL || data?.error || `Request failed (${res.status})`;
+      throw new Error(msg);
+    }
+    if (data?.FATAL) throw new Error(String(data.FATAL));
+    return { status: res.status, data };
+  })();
+
+  if (key) {
+    inflight.set(key, run as any);
+    (run as Promise<any>).finally(() => {
+      if (inflight.get(key) === (run as any)) inflight.delete(key);
+    });
+  }
+  return run;
+}
+
 export async function uploadFile(args: {
   projectName: string;
   taskName: string;
