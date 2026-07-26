@@ -946,29 +946,38 @@ export type Database = {
         Row: {
           description: string | null
           id: string
+          ordered_at: string | null
           product_code: string
           project_id: string
           qty_needed: number
           qty_ordered: number | null
+          source: string | null
           unit: string | null
+          unit_cost: number | null
         }
         Insert: {
           description?: string | null
           id?: string
+          ordered_at?: string | null
           product_code: string
           project_id: string
           qty_needed?: number
           qty_ordered?: number | null
+          source?: string | null
           unit?: string | null
+          unit_cost?: number | null
         }
         Update: {
           description?: string | null
           id?: string
+          ordered_at?: string | null
           product_code?: string
           project_id?: string
           qty_needed?: number
           qty_ordered?: number | null
+          source?: string | null
           unit?: string | null
+          unit_cost?: number | null
         }
         Relationships: [
           {
@@ -1004,6 +1013,7 @@ export type Database = {
       stock_planning: {
         Row: {
           amount: number | null
+          cost_bucket: string | null
           id: string
           line_label: string
           project_id: string
@@ -1011,6 +1021,7 @@ export type Database = {
         }
         Insert: {
           amount?: number | null
+          cost_bucket?: string | null
           id?: string
           line_label: string
           project_id: string
@@ -1018,6 +1029,7 @@ export type Database = {
         }
         Update: {
           amount?: number | null
+          cost_bucket?: string | null
           id?: string
           line_label?: string
           project_id?: string
