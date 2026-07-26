@@ -9,6 +9,7 @@ import { TaskDrawer } from "@/components/projects/TaskDrawer";
 import { ColumnsPopover } from "@/components/projects/ColumnsPopover";
 import { CompleteProjectModal } from "@/components/projects/CompleteProjectModal";
 import { SplitProjectModal } from "@/components/projects/SplitProjectModal";
+import { VariationModal } from "@/components/projects/VariationModal";
 import { loadColumns, saveColumns, type ColumnKey } from "@/components/projects/columns";
 import { useTasks } from "@/hooks/useTasks";
 import {
@@ -41,6 +42,7 @@ function ProjectsInner() {
   const [railRefreshTick, setRailRefreshTick] = useState(0);
   const [completeOpen, setCompleteOpen] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
+  const [variationOpen, setVariationOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [columns, setColumns] = useState<ColumnKey[]>(() => loadColumns());
 
@@ -78,6 +80,8 @@ function ProjectsInner() {
   const closeCompleteModal = useCallback(() => setCompleteOpen(false), []);
   const openSplitModal = useCallback(() => setSplitOpen(true), []);
   const closeSplitModal = useCallback(() => setSplitOpen(false), []);
+  const openVariationModal = useCallback(() => setVariationOpen(true), []);
+  const closeVariationModal = useCallback(() => setVariationOpen(false), []);
   const handleCompleted = useCallback(() => {
     // Refresh project detail + rail so the completed banner and rail chip show.
     refreshProject();
@@ -283,12 +287,14 @@ function ProjectsInner() {
 
           {projectId && project && canManageLifecycle && (
             <LifecycleActionBar
+              projectName={project.name}
               completedAt={project.completed_at}
               openTasks={open}
               totalTasks={total}
               isMobile={isMobile}
               onSplit={openSplitModal}
               onComplete={openCompleteModal}
+              onVariation={openVariationModal}
             />
           )}
         </div>
@@ -304,11 +310,18 @@ function ProjectsInner() {
         />
       )}
 
-      {splitOpen && projectId && project && canManageLifecycle && !project.completed_at && (
+      {splitOpen && projectId && project && canManageLifecycle && (
         <SplitProjectModal
           project={{ id: project.id, name: project.name, zoho_deal_id: project.zoho_deal_id }}
           contractValue={financials?.contract_value ?? null}
           onClose={closeSplitModal}
+        />
+      )}
+
+      {variationOpen && projectId && project && canManageLifecycle && (
+        <VariationModal
+          project={{ id: project.id, name: project.name, zoho_deal_id: project.zoho_deal_id }}
+          onClose={closeVariationModal}
         />
       )}
 

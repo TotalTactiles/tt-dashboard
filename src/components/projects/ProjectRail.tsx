@@ -59,7 +59,7 @@ export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth, refr
             Active
           </RailTab>
           <RailTab active={tab === "completed"} onClick={() => setTab("completed")}>
-            Completed
+            Recently Completed
           </RailTab>
           <RailTab active={tab === "templates"} onClick={() => setTab("templates")} soon>
             Templates
@@ -69,7 +69,7 @@ export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth, refr
 
       <div className="px-3 py-3 border-b" style={{ borderColor: "#1F2224" }}>
         <div className="text-[10px] font-mono tracking-widest uppercase text-muted-foreground mb-2">
-          {tab === "completed" ? "Completed Projects" : tab === "templates" ? "Templates" : "Active Projects"}
+          {tab === "completed" ? "Recently Completed" : tab === "templates" ? "Templates" : "Active Projects"}
           {" · "}
           {filtered.length}
         </div>
@@ -97,7 +97,7 @@ export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth, refr
         )}
         {tab !== "templates" && !loading && filtered.length === 0 && (
           <div className="p-4 text-xs text-muted-foreground">
-            {tab === "completed" ? "No completed projects yet." : "No projects."}
+            {tab === "completed" ? "No projects completed in the last 7 days." : "No projects."}
           </div>
         )}
         {tab !== "templates" && filtered.map((p) => {
