@@ -59,9 +59,7 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const live = useLiveStock();
-  // Track which rows the user has manually touched on unit_cost so we don't
-  // overwrite them when the sheet refreshes.
-  const editedCost = useRef<Set<string>>(new Set());
+
 
   const load = useCallback(async () => {
     setLoading(true);
