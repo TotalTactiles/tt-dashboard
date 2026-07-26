@@ -50,13 +50,13 @@ function fmtShort(iso: string) {
 }
 
 function sortProfiles(profiles: ProfileLite[]) {
+  // Only active workers appear in the picker. Historical entries for archived
+  // workers still resolve their name via the full profiles map (byId).
   const isWorker = (p: ProfileLite) => (p.role ?? "").toLowerCase() === "worker";
-  return [...profiles].sort((a, b) => {
-    const aw = isWorker(a) ? 0 : 1;
-    const bw = isWorker(b) ? 0 : 1;
-    if (aw !== bw) return aw - bw;
-    return (a.full_name ?? "").localeCompare(b.full_name ?? "");
-  });
+  const isActive = (p: ProfileLite) => p.active !== false;
+  return profiles
+    .filter((p) => isWorker(p) && isActive(p))
+    .sort((a, b) => (a.full_name ?? "").localeCompare(b.full_name ?? ""));
 }
 
 interface Draft {
