@@ -341,6 +341,15 @@ export function TextInput({
   const [local, setLocal] = useState<string>(value ?? "");
   const timer = useRef<number | null>(null);
   const lastSaved = useRef<string>(local);
+  // Flush pending edit on unmount — see NumInput for the rationale.
+  const flushRef = useRef<() => void>(() => {});
+  flushRef.current = () => {
+    if (!timer.current) return;
+    window.clearTimeout(timer.current);
+    timer.current = null;
+    lastSaved.current = local;
+    onSave(local === "" ? null : local);
+  };
 
   useEffect(() => {
     const asStr = value ?? "";
@@ -351,7 +360,7 @@ export function TextInput({
   }, [value]);
 
   useEffect(() => () => {
-    if (timer.current) window.clearTimeout(timer.current);
+    flushRef.current();
   }, []);
 
   if (readOnly) {
