@@ -257,6 +257,10 @@ export interface ProjectForecast {
   original_total_cogs: number | null;
   original_gross_margin: number | null;
   original_captured_at: string | null;
+  // Not exposed by v_project_forecast; fetched from project_forecast_snapshots
+  // for the same effective row (restated first, else latest original) so the
+  // workflow's explanation for a headline-only snapshot surfaces in the UI.
+  note: string | null;
 }
 
 export function useProjectForecast(projectId: string | null) {
@@ -282,7 +286,27 @@ export function useProjectForecast(projectId: string | null) {
         .eq("project_id", projectId)
         .maybeSingle();
       if (cancelled) return;
-      setForecast((data as ProjectForecast | null) ?? null);
+      if (!data) {
+        setForecast(null);
+        setLoading(false);
+        return;
+      }
+      // Second read to surface `note` from the effective snapshot. Mirrors the
+      // view's ordering: a restated snapshot wins over the original; within
+      // a type the newest captured_at wins.
+      const { data: snap } = await db
+        .from("project_forecast_snapshots")
+        .select("note, snapshot_type, captured_at")
+        .eq("project_id", projectId)
+        .order("captured_at", { ascending: false });
+      let note: string | null = null;
+      if (Array.isArray(snap) && snap.length) {
+        const restated = (snap as any[]).find((s) => s.snapshot_type === "restated");
+        const original = (snap as any[]).find((s) => s.snapshot_type === "original");
+        note = ((restated ?? original)?.note as string | null) ?? null;
+      }
+      if (cancelled) return;
+      setForecast({ ...(data as any), note } as ProjectForecast);
       setLoading(false);
     })();
     return () => {
