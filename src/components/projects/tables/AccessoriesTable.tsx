@@ -40,6 +40,7 @@ export function AccessoriesTable({ projectId }: { projectId: string }) {
   const [usage, setUsage] = useState<UsageRow[]>([]);
   const [loading, setLoading] = useState(true);
   const live = useLiveStock();
+  const pending = usePendingStockDeltas();
   const liveUnavailable = live.status === "error";
 
   const load = useCallback(async () => {
