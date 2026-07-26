@@ -7,6 +7,7 @@ export interface ProfileLite {
   initials: string | null;
   colour: string | null;
   role: string | null;
+  active?: boolean;
 }
 
 const db = supabase as any;
@@ -18,7 +19,7 @@ async function loadOnce() {
   if (cache) return cache;
   const { data } = await db
     .from("profiles")
-    .select("id, full_name, initials, colour, role")
+    .select("id, full_name, initials, colour, role, active")
     .order("full_name", { ascending: true });
   cache = (data as ProfileLite[]) ?? [];
   subs.forEach((fn) => fn(cache!));
