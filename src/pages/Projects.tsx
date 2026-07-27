@@ -10,6 +10,7 @@ import { ColumnsPopover } from "@/components/projects/ColumnsPopover";
 import { CompleteProjectModal } from "@/components/projects/CompleteProjectModal";
 import { SplitProjectModal } from "@/components/projects/SplitProjectModal";
 import { VariationModal } from "@/components/projects/VariationModal";
+import { BoardView, CalendarMonthView, TableView } from "@/components/projects/AltViews";
 import { loadColumns, saveColumns, type ColumnKey } from "@/components/projects/columns";
 import { useTasks } from "@/hooks/useTasks";
 import {
@@ -21,6 +22,8 @@ import { useProfiles } from "@/hooks/useProfiles";
 import { Ring } from "@/components/projects/Ring";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, List, LayoutGrid, Calendar as CalendarIcon, Table as TableIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
+
+type ViewMode = "list" | "board" | "calendar" | "table";
 
 function formatCompletionUpper(iso: string | null | undefined) {
   if (!iso) return null;
@@ -44,6 +47,7 @@ function ProjectsInner() {
   const [splitOpen, setSplitOpen] = useState(false);
   const [variationOpen, setVariationOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [view, setView] = useState<ViewMode>("list");
   const [columns, setColumns] = useState<ColumnKey[]>(() => loadColumns());
 
   useEffect(() => {
@@ -249,6 +253,8 @@ function ProjectsInner() {
                 columns={columns}
                 onColumnsChange={setColumns}
                 isMobile={isMobile}
+                view={view}
+                onViewChange={setView}
               />
             </>
           )}
@@ -262,41 +268,69 @@ function ProjectsInner() {
                 No task lists yet.
               </div>
             )}
-            {!isMobile && lists.length > 0 && (
-              <div
-                className="rounded-md border overflow-hidden"
-                style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
-              >
-                <TaskListColumnHeader columns={effectiveColumns} />
-              </div>
-            )}
-            {lists.map((l) => (
-              <TaskListSection
-                key={l.id}
-                list={l}
-                tasks={filteredTasks}
-                columns={effectiveColumns}
-                profiles={profiles}
-                project={project}
-                onOpen={handleTaskOpen}
-                onToggle={handleToggle}
-                onPatch={updateTask}
-              />
-            ))}
-          </div>
 
-          {projectId && project && canManageLifecycle && (
-            <LifecycleActionBar
-              projectName={project.name}
-              completedAt={project.completed_at}
-              openTasks={open}
-              totalTasks={total}
-              isMobile={isMobile}
-              onSplit={openSplitModal}
-              onComplete={openCompleteModal}
-              onVariation={openVariationModal}
-            />
-          )}
+            {projectId && lists.length > 0 && view === "list" && (
+              <>
+                {!isMobile && (
+                  <div
+                    className="rounded-md border overflow-hidden"
+                    style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
+                  >
+                    <TaskListColumnHeader columns={effectiveColumns} />
+                  </div>
+                )}
+                {lists.map((l) => (
+                  <TaskListSection
+                    key={l.id}
+                    list={l}
+                    tasks={filteredTasks}
+                    columns={effectiveColumns}
+                    profiles={profiles}
+                    project={project}
+                    onOpen={handleTaskOpen}
+                    onToggle={handleToggle}
+                    onPatch={updateTask}
+                  />
+                ))}
+              </>
+            )}
+
+            {projectId && lists.length > 0 && view === "board" && (
+              <BoardView
+                lists={lists}
+                tasks={filteredTasks}
+                profiles={profiles}
+                onOpen={handleTaskOpen}
+              />
+            )}
+
+            {projectId && lists.length > 0 && view === "calendar" && (
+              <CalendarMonthView tasks={filteredTasks} onOpen={handleTaskOpen} />
+            )}
+
+            {projectId && lists.length > 0 && view === "table" && (
+              <TableView
+                lists={lists}
+                tasks={filteredTasks}
+                profiles={profiles}
+                columns={effectiveColumns}
+                onOpen={handleTaskOpen}
+              />
+            )}
+
+            {projectId && project && canManageLifecycle && (
+              <LifecycleActionBar
+                projectName={project.name}
+                completedAt={project.completed_at}
+                openTasks={open}
+                totalTasks={total}
+                isMobile={isMobile}
+                onSplit={openSplitModal}
+                onComplete={openCompleteModal}
+                onVariation={openVariationModal}
+              />
+            )}
+          </div>
         </div>
       </div>
       )}
@@ -384,10 +418,10 @@ function LifecycleActionBar({
   return (
     <div
       className={cn(
-        "sticky bottom-0 z-30 border-t backdrop-blur-md",
-        isMobile ? "px-3 py-2.5" : "px-3 md:px-6 py-3",
+        "mt-2 rounded-md border",
+        isMobile ? "px-3 py-2.5" : "px-4 py-3",
       )}
-      style={{ borderColor: "#1F2224", background: "rgba(10,10,10,0.94)" }}
+      style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
     >
       <div className="flex items-center justify-end gap-2 flex-wrap">
         {isCompleted && (
@@ -463,12 +497,16 @@ function ViewsBar({
   columns,
   onColumnsChange,
   isMobile,
+  view,
+  onViewChange,
 }: {
   search: string;
   onSearch: (s: string) => void;
   columns: ColumnKey[];
   onColumnsChange: (c: ColumnKey[]) => void;
   isMobile: boolean;
+  view: ViewMode;
+  onViewChange: (v: ViewMode) => void;
 }) {
   return (
     <div
@@ -482,10 +520,10 @@ function ViewsBar({
         scrollbarWidth: isMobile ? "none" : undefined,
       }}
     >
-      <ViewTab icon={<List className="h-3.5 w-3.5" />} label="List" active />
-      <ViewTab icon={<LayoutGrid className="h-3.5 w-3.5" />} label="Board" soon />
-      <ViewTab icon={<CalendarIcon className="h-3.5 w-3.5" />} label="Calendar" soon />
-      <ViewTab icon={<TableIcon className="h-3.5 w-3.5" />} label="Table" soon />
+      <ViewTab icon={<List className="h-3.5 w-3.5" />} label="List" active={view === "list"} onClick={() => onViewChange("list")} />
+      <ViewTab icon={<LayoutGrid className="h-3.5 w-3.5" />} label="Board" active={view === "board"} onClick={() => onViewChange("board")} />
+      <ViewTab icon={<CalendarIcon className="h-3.5 w-3.5" />} label="Calendar" active={view === "calendar"} onClick={() => onViewChange("calendar")} />
+      <ViewTab icon={<TableIcon className="h-3.5 w-3.5" />} label="Table" active={view === "table"} onClick={() => onViewChange("table")} />
 
       <div className="h-4 w-px mx-2 shrink-0" style={{ background: "#1F2224" }} />
 
@@ -515,18 +553,22 @@ function ViewTab({
   label,
   active,
   soon,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   active?: boolean;
   soon?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <button
-      disabled={!active}
+      onClick={onClick}
+      disabled={soon}
       className={cn(
         "h-7 px-2.5 rounded-md inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-widest transition-colors shrink-0",
-        active ? "text-foreground" : "text-muted-foreground/60 cursor-not-allowed",
+        active ? "text-foreground" : "text-muted-foreground/70 hover:text-foreground",
+        soon && "cursor-not-allowed",
       )}
       style={{ background: active ? "#16161A" : "transparent", opacity: soon ? 0.35 : undefined }}
     >

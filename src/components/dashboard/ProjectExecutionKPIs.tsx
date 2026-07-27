@@ -862,7 +862,7 @@ function TaskCompletionCard({ completed, total, index }: { completed: number; to
           {hasData ? `${completed} of ${total} tasks done` : "No tasks found"}
         </p>
         <p className="font-mono text-muted-foreground" style={sublineStyle}>
-          {hasData ? `${remaining} remaining` : "Awaiting Zoho Projects sync"}
+          {hasData ? `${remaining} remaining` : "No tasks found"}
         </p>
       </div>
 
@@ -896,7 +896,7 @@ function LabourEfficiencyCard({ data, index }: { data: ProjectKPIData["kpis"]["l
   const hoursValue = !hasEstimate ? "—" : `${burnPct.toFixed(burnPct > 0 && burnPct < 10 ? 1 : 0)}%`;
   const hoursDetail = hasLogged ? `${fmtH(logged)} of ${fmtH(estimated)} logged` : "No hours logged yet";
   const hoursSub = !hasEstimate
-    ? "Set task durations in Zoho Projects"
+    ? "Log hours on the Confirm Labour task"
     : hasLogged ? `${fmtH(remaining)} to go` : `${fmtH(estimated)} estimated`;
 
   // ----- Efficiency view : est ÷ actual ratio, only meaningful once tasks complete -----
@@ -1187,16 +1187,6 @@ function ProjectsTable({
             </button>
           </div>
 
-          {/* Zoho Projects link */}
-          <a
-            href={ZOHO_PROJECTS_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-mono rounded-md border border-border text-muted-foreground hover:text-foreground hover:border-accent transition-colors"
-          >
-            View in Zoho Projects
-            <ExternalLink className="w-3 h-3" />
-          </a>
         </div>
       </div>
 
