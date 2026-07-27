@@ -47,6 +47,7 @@ function ProjectsInner() {
   const [splitOpen, setSplitOpen] = useState(false);
   const [variationOpen, setVariationOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [view, setView] = useState<ViewMode>("list");
   const [columns, setColumns] = useState<ColumnKey[]>(() => loadColumns());
 
   useEffect(() => {
