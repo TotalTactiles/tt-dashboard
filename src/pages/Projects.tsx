@@ -10,7 +10,7 @@ import { ColumnsPopover } from "@/components/projects/ColumnsPopover";
 import { CompleteProjectModal } from "@/components/projects/CompleteProjectModal";
 import { SplitProjectModal } from "@/components/projects/SplitProjectModal";
 import { VariationModal } from "@/components/projects/VariationModal";
-import { BoardView, CalendarMonthView, TableView } from "@/components/projects/AltViews";
+import { BoardView, CalendarMonthView } from "@/components/projects/AltViews";
 import { loadColumns, saveColumns, type ColumnKey } from "@/components/projects/columns";
 import { useTasks } from "@/hooks/useTasks";
 import {
@@ -21,9 +21,9 @@ import {
 import { useProfiles } from "@/hooks/useProfiles";
 import { Ring } from "@/components/projects/Ring";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, List, LayoutGrid, Calendar as CalendarIcon, Table as TableIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
+import { CheckCircle2, List, LayoutGrid, Calendar as CalendarIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
 
-type ViewMode = "list" | "board" | "calendar" | "table";
+type ViewMode = "list" | "board" | "calendar";
 
 function formatCompletionUpper(iso: string | null | undefined) {
   if (!iso) return null;
@@ -308,15 +308,7 @@ function ProjectsInner() {
               <CalendarMonthView tasks={filteredTasks} onOpen={handleTaskOpen} />
             )}
 
-            {projectId && lists.length > 0 && view === "table" && (
-              <TableView
-                lists={lists}
-                tasks={filteredTasks}
-                profiles={profiles}
-                columns={effectiveColumns}
-                onOpen={handleTaskOpen}
-              />
-            )}
+            {/* Table view removed. */}
 
             {projectId && project && canManageLifecycle && (
               <LifecycleActionBar
@@ -415,12 +407,86 @@ function LifecycleActionBar({
       : d.toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
   })();
 
+  // Mobile: three equal-width buttons in a grid at 44px min height, with the
+  // Completed pill and helper text stacked above/below. Desktop: unchanged
+  // right-aligned single-row layout.
+  const outlineBtn: React.CSSProperties = {
+    border: "1px solid #3D89DA",
+    color: "#3D89DA",
+    background: "transparent",
+  };
+  const completeStyle: React.CSSProperties = {
+    background: canComplete ? "#3D89DA" : "#1D1D22",
+    opacity: canComplete ? 1 : 0.55,
+  };
+
+  if (isMobile) {
+    return (
+      <div
+        className="mt-2 rounded-md border px-3 py-2.5 space-y-2"
+        style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
+      >
+        {isCompleted && (
+          <div
+            className="inline-flex items-center gap-2 rounded-md border px-2.5 py-1"
+            style={{
+              borderColor: "rgba(34,197,94,0.3)",
+              background: "rgba(34,197,94,0.08)",
+              color: "#22C55E",
+            }}
+          >
+            <CheckCircle2 className="h-3 w-3" />
+            <span className="text-[10.5px] font-mono uppercase tracking-widest">
+              Completed {completedLabel}
+            </span>
+          </div>
+        )}
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            onClick={onVariation}
+            className="min-h-[44px] rounded-md text-[11px] font-mono uppercase tracking-widest px-2"
+            style={outlineBtn}
+          >
+            Variation
+          </button>
+          <button
+            onClick={onSplit}
+            className="min-h-[44px] rounded-md text-[11px] font-mono uppercase tracking-widest px-2"
+            style={outlineBtn}
+          >
+            Split
+          </button>
+          {!isCompleted ? (
+            <button
+              onClick={onComplete}
+              disabled={!canComplete}
+              className="min-h-[44px] rounded-md text-[11px] font-mono uppercase tracking-widest text-white disabled:cursor-not-allowed px-2"
+              style={completeStyle}
+            >
+              Complete
+            </button>
+          ) : (
+            <span />
+          )}
+        </div>
+        {completeNote && (
+          <div
+            className="text-[10px] font-mono leading-snug"
+            style={{
+              opacity: canComplete ? 0.75 : 0.5,
+              color: canComplete && !isStageOrVariation ? "#22C55E" : undefined,
+            }}
+          >
+            {completeNote}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
-      className={cn(
-        "mt-2 rounded-md border",
-        isMobile ? "px-3 py-2.5" : "px-4 py-3",
-      )}
+      className="mt-2 rounded-md border px-4 py-3"
       style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
     >
       <div className="flex items-center justify-end gap-2 flex-wrap">
@@ -442,22 +508,14 @@ function LifecycleActionBar({
         <button
           onClick={onVariation}
           className="h-8 px-3 rounded-md text-[11px] font-mono uppercase tracking-widest transition-colors"
-          style={{
-            border: "1px solid #3D89DA",
-            color: "#3D89DA",
-            background: "transparent",
-          }}
+          style={outlineBtn}
         >
           Variation
         </button>
         <button
           onClick={onSplit}
           className="h-8 px-3 rounded-md text-[11px] font-mono uppercase tracking-widest transition-colors"
-          style={{
-            border: "1px solid #3D89DA",
-            color: "#3D89DA",
-            background: "transparent",
-          }}
+          style={outlineBtn}
         >
           Split Project
         </button>
@@ -466,10 +524,7 @@ function LifecycleActionBar({
             onClick={onComplete}
             disabled={!canComplete}
             className="h-8 px-3 rounded-md text-[11px] font-mono uppercase tracking-widest text-white disabled:cursor-not-allowed"
-            style={{
-              background: canComplete ? "#3D89DA" : "#1D1D22",
-              opacity: canComplete ? 1 : 0.55,
-            }}
+            style={completeStyle}
           >
             Complete Project
           </button>
@@ -523,7 +578,7 @@ function ViewsBar({
       <ViewTab icon={<List className="h-3.5 w-3.5" />} label="List" active={view === "list"} onClick={() => onViewChange("list")} />
       <ViewTab icon={<LayoutGrid className="h-3.5 w-3.5" />} label="Board" active={view === "board"} onClick={() => onViewChange("board")} />
       <ViewTab icon={<CalendarIcon className="h-3.5 w-3.5" />} label="Calendar" active={view === "calendar"} onClick={() => onViewChange("calendar")} />
-      <ViewTab icon={<TableIcon className="h-3.5 w-3.5" />} label="Table" active={view === "table"} onClick={() => onViewChange("table")} />
+      
 
       <div className="h-4 w-px mx-2 shrink-0" style={{ background: "#1F2224" }} />
 
