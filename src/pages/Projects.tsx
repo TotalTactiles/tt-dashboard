@@ -497,12 +497,16 @@ function ViewsBar({
   columns,
   onColumnsChange,
   isMobile,
+  view,
+  onViewChange,
 }: {
   search: string;
   onSearch: (s: string) => void;
   columns: ColumnKey[];
   onColumnsChange: (c: ColumnKey[]) => void;
   isMobile: boolean;
+  view: ViewMode;
+  onViewChange: (v: ViewMode) => void;
 }) {
   return (
     <div
@@ -516,10 +520,10 @@ function ViewsBar({
         scrollbarWidth: isMobile ? "none" : undefined,
       }}
     >
-      <ViewTab icon={<List className="h-3.5 w-3.5" />} label="List" active />
-      <ViewTab icon={<LayoutGrid className="h-3.5 w-3.5" />} label="Board" soon />
-      <ViewTab icon={<CalendarIcon className="h-3.5 w-3.5" />} label="Calendar" soon />
-      <ViewTab icon={<TableIcon className="h-3.5 w-3.5" />} label="Table" soon />
+      <ViewTab icon={<List className="h-3.5 w-3.5" />} label="List" active={view === "list"} onClick={() => onViewChange("list")} />
+      <ViewTab icon={<LayoutGrid className="h-3.5 w-3.5" />} label="Board" active={view === "board"} onClick={() => onViewChange("board")} />
+      <ViewTab icon={<CalendarIcon className="h-3.5 w-3.5" />} label="Calendar" active={view === "calendar"} onClick={() => onViewChange("calendar")} />
+      <ViewTab icon={<TableIcon className="h-3.5 w-3.5" />} label="Table" active={view === "table"} onClick={() => onViewChange("table")} />
 
       <div className="h-4 w-px mx-2 shrink-0" style={{ background: "#1F2224" }} />
 
