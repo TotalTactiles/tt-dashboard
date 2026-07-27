@@ -896,7 +896,7 @@ function LabourEfficiencyCard({ data, index }: { data: ProjectKPIData["kpis"]["l
   const hoursValue = !hasEstimate ? "—" : `${burnPct.toFixed(burnPct > 0 && burnPct < 10 ? 1 : 0)}%`;
   const hoursDetail = hasLogged ? `${fmtH(logged)} of ${fmtH(estimated)} logged` : "No hours logged yet";
   const hoursSub = !hasEstimate
-    ? "Set task durations in Zoho Projects"
+    ? "Log hours on the Confirm Labour task"
     : hasLogged ? `${fmtH(remaining)} to go` : `${fmtH(estimated)} estimated`;
 
   // ----- Efficiency view : est ÷ actual ratio, only meaningful once tasks complete -----
