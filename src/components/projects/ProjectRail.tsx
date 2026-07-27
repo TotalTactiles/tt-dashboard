@@ -167,27 +167,40 @@ function RailTab({
   onClick,
   children,
   soon,
+  count,
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
   soon?: boolean;
+  count?: number;
 }) {
   return (
     <button
       onClick={onClick}
+      disabled={soon}
       className={cn(
-        "px-2.5 h-7 text-[10px] font-mono uppercase tracking-widest transition-colors rounded-md",
-        active ? "text-foreground" : "text-muted-foreground/70 hover:text-foreground",
+        "relative flex-1 min-w-0 h-8 inline-flex items-center justify-center gap-1 text-[10px] font-mono uppercase whitespace-nowrap transition-colors",
+        active ? "text-foreground" : "text-foreground hover:text-foreground",
       )}
       style={{
-        background: active ? "#16161A" : "transparent",
-        opacity: soon ? 0.55 : undefined,
+        letterSpacing: "0.8px",
+        opacity: soon ? 0.28 : active ? 1 : 0.45,
+        cursor: soon ? "not-allowed" : "pointer",
       }}
     >
-      {children}
+      <span className="truncate">{children}</span>
+      {typeof count === "number" && count > 0 && (
+        <span className="opacity-70">· {count}</span>
+      )}
       {soon && (
-        <span className="ml-1 text-[8px] normal-case tracking-normal opacity-70">soon</span>
+        <sup className="text-[7.5px] normal-case tracking-normal opacity-80 ml-0.5">soon</sup>
+      )}
+      {active && (
+        <span
+          className="absolute left-2 right-2 -bottom-px h-[2px] rounded-full"
+          style={{ background: "#3D89DA" }}
+        />
       )}
     </button>
   );
