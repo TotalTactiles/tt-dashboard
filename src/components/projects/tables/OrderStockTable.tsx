@@ -10,7 +10,6 @@ import {
   CalcCell,
   NumInput,
   TextInput,
-  SelectCell,
   DateCell,
   EmptyState,
   formatNum,
@@ -18,6 +17,7 @@ import {
   T_GOLD,
   T_AMBER,
   T_BLUE,
+  T_GREEN,
 } from "./tableCommon";
 import { useRole } from "@/hooks/useRole";
 import { useLiveStock, LiveStockBadge } from "@/hooks/useLiveStock";
@@ -35,28 +35,43 @@ interface Row {
   unit_cost: number | null;
   ordered_at: string | null;
   source: string | null;
+  deposit_date: string | null;
+  remainder_date: string | null;
+}
+
+interface PlanningRow {
+  cost_bucket: string | null;
+  source: string | null;
 }
 
 // 12 cols: Code, Description, Qty needed, On hand, Shortfall, Qty ordered,
-// Unit cost, Line cost, Unit, Source, Ordered, actions.
-const GRID = "130px 1fr 78px 78px 82px 82px 88px 100px 76px 100px 110px 40px";
+// Unit cost, Line cost, Source, Deposit paid, Remainder paid, actions.
+const GRID = "130px 1fr 78px 78px 82px 82px 88px 100px 90px 120px 120px 40px";
 
-const SOURCE_OPTIONS = [
-  { value: "china", label: "China" },
-  { value: "local", label: "Local" },
-  { value: "john", label: "John" },
-];
+type Bucket = "tactile" | "other" | "accessory" | null;
 
-/** Master-sheet category → bucket chip. */
-function categoryToChip(cat: string | null | undefined): { label: string; unknown: boolean; excluded: boolean } {
+/** Master-sheet category → bucket chip + resolvable bucket for planning lookup. */
+function categoryToChip(cat: string | null | undefined): {
+  label: string;
+  unknown: boolean;
+  excluded: boolean;
+  bucket: Bucket;
+} {
   const c = (cat ?? "").toUpperCase();
-  if (c === "TACTILE") return { label: "TACTILE", unknown: false, excluded: false };
-  if (c === "STAIR_NOSING" || c === "ENTRY_MAT") return { label: "OTHER", unknown: false, excluded: false };
-  if (c === "ACCESSORY") return { label: "ACCESSORY", unknown: false, excluded: true };
-  return { label: "UNKNOWN CODE", unknown: true, excluded: false };
+  if (c === "TACTILE") return { label: "TACTILE", unknown: false, excluded: false, bucket: "tactile" };
+  if (c === "STAIR_NOSING" || c === "ENTRY_MAT")
+    return { label: "OTHER", unknown: false, excluded: false, bucket: "other" };
+  if (c === "ACCESSORY") return { label: "ACCESSORY", unknown: false, excluded: true, bucket: "accessory" };
+  return { label: "UNKNOWN CODE", unknown: true, excluded: false, bucket: null };
 }
 
-/** Gold read-only money cell — value sourced from the master sheet. */
+const SOURCE_LABELS: Record<string, string> = {
+  china: "China",
+  local: "Local",
+  john: "John",
+};
+
+/** Gold read-only money cell. */
 function GoldMoneyCell({ value }: { value: number | null | undefined }) {
   const missing = value == null || !isFinite(Number(value));
   return (
@@ -69,7 +84,7 @@ function GoldMoneyCell({ value }: { value: number | null | undefined }) {
   );
 }
 
-/** Gold read-only quantity cell — from the master sheet's current on-hand. */
+/** Gold read-only quantity cell. */
 function GoldQtyCell({ value }: { value: number | null | undefined }) {
   const missing = value == null || !isFinite(Number(value));
   return (
@@ -82,33 +97,81 @@ function GoldQtyCell({ value }: { value: number | null | undefined }) {
   );
 }
 
+/** Inherited source cell — gold when resolved, amber "NO SOURCE" otherwise. */
+function SourceCell({ resolved }: { resolved: string | null }) {
+  if (!resolved) {
+    return (
+      <span
+        className="text-[11px] font-mono uppercase tracking-widest"
+        style={{ color: T_AMBER }}
+      >
+        NO SOURCE
+      </span>
+    );
+  }
+  return (
+    <span className="text-[12.5px]" style={{ color: T_GOLD }}>
+      {SOURCE_LABELS[resolved] ?? resolved}
+    </span>
+  );
+}
+
 export function OrderStockTable({ projectId }: { projectId: string }) {
   const { role } = useRole();
   const readOnly = role !== "office";
   const [rows, setRows] = useState<Row[]>([]);
+  const [planning, setPlanning] = useState<PlanningRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const live = useLiveStock();
 
-  // stock-live health drives the catalogue lock. While it is unavailable we
-  // fall open — locking on incomplete data would silently strand rows in a
-  // wrong mode. The amber "on-hand unavailable" badge already explains why.
   const stockLiveOK = live.status === "live" || live.status === "cached";
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await db
-      .from("stock_orders")
-      .select("*")
-      .eq("project_id", projectId)
-      .order("product_code");
-    setRows((data as Row[]) ?? []);
+    const [ordersRes, planRes] = await Promise.all([
+      db.from("stock_orders").select("*").eq("project_id", projectId).order("product_code"),
+      db.from("stock_planning").select("cost_bucket, source").eq("project_id", projectId),
+    ]);
+    setRows((ordersRes.data as Row[]) ?? []);
+    setPlanning((planRes.data as PlanningRow[]) ?? []);
     setLoading(false);
   }, [projectId]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // Live reload of planning source when the Stock Planning table changes it —
+  // realtime keeps this table's inherited SOURCE in sync without a page reload.
+  useEffect(() => {
+    const channel = db
+      .channel(`order-stock-planning-${projectId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "stock_planning", filter: `project_id=eq.${projectId}` },
+        async () => {
+          const { data } = await db
+            .from("stock_planning")
+            .select("cost_bucket, source")
+            .eq("project_id", projectId);
+          setPlanning((data as PlanningRow[]) ?? []);
+        },
+      )
+      .subscribe();
+    return () => {
+      db.removeChannel(channel);
+    };
+  }, [projectId]);
+
+  const planningSourceByBucket = useMemo(() => {
+    const map: Record<string, string | null> = {};
+    for (const p of planning) {
+      if (!p.cost_bucket) continue;
+      map[p.cost_bucket] = p.source ?? null;
+    }
+    return map;
+  }, [planning]);
 
   const patch = useCallback(async (id: string, p: Partial<Row>) => {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...p } : r)));
@@ -123,9 +186,6 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
     async (id: string, code: string | null) => {
       const trimmed = (code ?? "").trim();
       const patchObj: Partial<Row> = { product_code: trimmed };
-      // Read the current row via functional setState to avoid depending on
-      // `rows` (which would rebuild this callback on every keystroke elsewhere
-      // and defeat TextInput's debounce identity).
       let current: Row | undefined;
       setRows((cur) => {
         current = cur.find((r) => r.id === id);
@@ -145,12 +205,7 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
     [live.items, patch],
   );
 
-  /**
-   * Snapshot unit_cost from the master sheet whenever it resolves and differs
-   * from what is stored. This is a record of the price at the time of ordering
-   * — never a user input. Skipped when live is not ready or the code is
-   * unknown, so we don't wipe historical costs during a transient outage.
-   */
+  /** Snapshot unit_cost whenever the catalogue price resolves and differs. */
   useEffect(() => {
     if (live.status !== "live") return;
     for (const r of rows) {
@@ -166,6 +221,27 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
     }
   }, [rows, live.items, live.status, patch]);
 
+  /**
+   * Snapshot inherited source into stock_orders.source whenever it resolves
+   * and differs. This freezes what the source was at order time; a later
+   * change to Stock Planning must not rewrite historical rows.
+   */
+  useEffect(() => {
+    if (!stockLiveOK) return;
+    for (const r of rows) {
+      if (!r.product_code) continue;
+      const item = live.items[r.product_code];
+      if (!item) continue;
+      const chip = categoryToChip(item.category);
+      if (chip.excluded || chip.bucket == null) continue;
+      const resolved = planningSourceByBucket[chip.bucket] ?? null;
+      if (!resolved) continue;
+      if (r.source !== resolved) {
+        patch(r.id, { source: resolved });
+      }
+    }
+  }, [rows, live.items, stockLiveOK, planningSourceByBucket, patch]);
+
   const add = useCallback(async () => {
     const { data } = await db
       .from("stock_orders")
@@ -179,6 +255,8 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
         unit_cost: null,
         ordered_at: null,
         source: null,
+        deposit_date: null,
+        remainder_date: null,
       })
       .select("*")
       .maybeSingle();
@@ -210,7 +288,6 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
     [remove],
   );
 
-  // Long-press handling for mobile — a single timer shared across rows.
   const longPressTimer = useRef<number | null>(null);
   const cancelLongPress = useCallback(() => {
     if (longPressTimer.current) {
@@ -241,32 +318,78 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
     return { need, ord, lineCost };
   }, [rows]);
 
-  const incomplete = useMemo(
-    () =>
-      rows.filter((r) => {
-        const chip = categoryToChip(live.items[r.product_code]?.category);
-        if (chip.excluded) return false;
-        return (
-          r.qty_ordered == null ||
-          !Number(r.qty_ordered) ||
-          !r.source ||
-          !r.ordered_at
-        );
-      }).length,
-    [rows, live.items],
-  );
+  /**
+   * Per-line completeness report — used for both the amber banner and for
+   * outlining specific cells. A line is complete only when it has: a
+   * resolvable source, qty_ordered > 0, a unit_cost, a deposit_date, and —
+   * for China only — a remainder_date. Excluded (accessory) lines never
+   * flow to the forecast and are ignored.
+   */
+  const incompleteReport = useMemo(() => {
+    const perLine: {
+      row: Row;
+      resolved: string | null;
+      missing: string[];
+    }[] = [];
+    for (const r of rows) {
+      const item = live.items[r.product_code];
+      const chip = categoryToChip(item?.category);
+      if (chip.excluded) continue;
+
+      const resolved =
+        stockLiveOK && item && chip.bucket ? planningSourceByBucket[chip.bucket] ?? null : null;
+
+      const missing: string[] = [];
+      if (!resolved) missing.push("source");
+      if (r.qty_ordered == null || !Number(r.qty_ordered)) missing.push("qty ordered");
+      if (r.unit_cost == null) missing.push("unit cost");
+      if (!r.deposit_date) missing.push("deposit paid date");
+      if (resolved === "china" && !r.remainder_date) missing.push("remainder paid date");
+
+      if (missing.length > 0) perLine.push({ row: r, resolved, missing });
+    }
+    return perLine;
+  }, [rows, live.items, planningSourceByBucket, stockLiveOK]);
+
+  const allComplete = incompleteReport.length === 0 && rows.length > 0;
 
   if (loading) return <div className="p-6 text-[12px] text-muted-foreground">Loading…</div>;
 
   return (
     <div className="space-y-2">
-      {incomplete > 0 && !readOnly && (
-        <div
-          className="text-[10.5px] font-mono uppercase tracking-widest px-3 py-1.5 rounded-sm border"
-          style={{ color: T_AMBER, borderColor: T_AMBER, background: "rgba(186,117,23,0.06)" }}
-        >
-          {incomplete} order line{incomplete === 1 ? "" : "s"} incomplete — qty ordered, source and order date are all required before actual costs reach the forecast
-        </div>
+      {!readOnly && rows.length > 0 && (
+        allComplete ? (
+          <div className="text-[10px] font-mono uppercase tracking-widest" style={{ color: T_GREEN }}>
+            All order lines complete
+          </div>
+        ) : incompleteReport.length > 0 ? (
+          <div
+            className="text-[10.5px] font-mono px-3 py-2 rounded-sm border space-y-1"
+            style={{ color: T_AMBER, borderColor: T_AMBER, background: "rgba(186,117,23,0.06)" }}
+          >
+            <div className="uppercase tracking-widest">
+              {incompleteReport.length} order line{incompleteReport.length === 1 ? "" : "s"} incomplete — these costs will NOT reach the forecast.
+            </div>
+            <ul className="space-y-0.5 pl-1">
+              {incompleteReport.map(({ row, resolved, missing }) => (
+                <li key={row.id} className="normal-case tracking-normal">
+                  <span className="font-mono">
+                    {row.product_code?.trim() || "(no code)"}
+                  </span>
+                  {" — "}
+                  {!resolved ? (
+                    <span>NO SOURCE — set the {categoryToChip(live.items[row.product_code]?.category).label.toLowerCase() || "product"} source in Stock Planning first{missing.filter((m) => m !== "source").length ? "; also missing " + missing.filter((m) => m !== "source").join(", ") : ""}</span>
+                  ) : (
+                    <span>{missing.join(", ")}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <div className="normal-case tracking-normal opacity-90 pt-1">
+              An incomplete line is ignored entirely. Its cost stays at the Stock Planning estimate and the cashflow will be wrong for that month.
+            </div>
+          </div>
+        ) : null
       )}
       <TableShell
         right={
@@ -285,7 +408,7 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
         hint={
           <div className="space-y-1">
             <div className="opacity-45 font-mono text-[10px]">
-              China 30% / 70% split · Local invoice + 1 month · John invoice month
+              Source is set once in Stock Planning. China pays 30% deposit and 70% remainder — enter both dates. Local and John are a single payment.
             </div>
             <div className="opacity-45 font-mono text-[10px]">
               Unit cost is read from the master Stock & Inventory sheet and snapshotted here at time of order. Change prices in the sheet, not here.
@@ -297,7 +420,7 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
         }
       >
         <div className="overflow-x-auto">
-          <div style={{ minWidth: 1180 }}>
+          <div style={{ minWidth: 1240 }}>
             <HeaderRow
               gridTemplate={GRID}
               stickyFirstCol
@@ -310,9 +433,9 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
                 { label: "Qty ordered", align: "right" },
                 { label: "Unit cost", align: "right" },
                 { label: "Line cost", align: "right" },
-                { label: "Unit" },
                 { label: "Source" },
-                { label: "Ordered" },
+                { label: "Deposit paid" },
+                { label: "Remainder paid" },
                 { label: "" },
               ]}
             />
@@ -331,21 +454,21 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
                   const lineCost = uc * qo;
 
                   const excluded = chip.excluded;
-                  const qtyInvalid = !readOnly && !excluded && (r.qty_ordered == null || !Number(r.qty_ordered));
-                  const sourceInvalid = !readOnly && !excluded && !r.source;
-                  const dateInvalid = !readOnly && !excluded && !r.ordered_at;
 
-                  // Catalogue lock: only when stock-live is healthy AND the
-                  // code resolves in the sheet. Custom / unresolved / unknown
-                  // codes stay dark editable; a blank new row stays editable
-                  // until a valid code is entered.
+                  // Inherited source, resolved live from Stock Planning
+                  const resolvedSource =
+                    stockLiveOK && item && chip.bucket ? planningSourceByBucket[chip.bucket] ?? null : null;
+                  const isChina = resolvedSource === "china";
+
+                  const qtyInvalid = !readOnly && !excluded && (r.qty_ordered == null || !Number(r.qty_ordered));
+                  const depositInvalid = !readOnly && !excluded && !r.deposit_date;
+                  const remainderInvalid = !readOnly && !excluded && isChina && !r.remainder_date;
+
                   const isCatalogue = stockLiveOK && !!item;
                   const codeLocked = isCatalogue;
                   const descLocked = isCatalogue;
                   const liveDescription = item?.description ?? null;
 
-                  // On hand / shortfall — only meaningful when live is healthy
-                  // and the code is known to the sheet.
                   const onHand = stockLiveOK && item ? Number(item.on_hand) : null;
                   const qtyNeeded = Number(r.qty_needed) || 0;
                   const shortfall = onHand != null ? Math.max(0, qtyNeeded - onHand) : null;
@@ -447,34 +570,31 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
                         />
                       </div>
                       <div className="px-2 min-w-0">
-                        {readOnly ? (
-                          <ExtCell value={r.unit} />
-                        ) : (
-                          <TextInput
-                            value={r.unit}
-                            onSave={(v) => patch(r.id, { unit: v })}
-                            placeholder="ea"
-                          />
-                        )}
-                      </div>
-                      <div className="px-2">
-                        <SelectCell
-                          value={r.source}
-                          onChange={(v) => patch(r.id, { source: v })}
-                          options={SOURCE_OPTIONS}
-                          readOnly={readOnly}
-                          required={!excluded}
-                          invalid={sourceInvalid}
-                        />
+                        <SourceCell resolved={excluded ? null : resolvedSource} />
                       </div>
                       <div className="px-2">
                         <DateCell
-                          value={r.ordered_at}
-                          onSave={(v) => patch(r.id, { ordered_at: v })}
+                          value={r.deposit_date}
+                          onSave={(v) => patch(r.id, { deposit_date: v })}
                           readOnly={readOnly}
                           required={!excluded}
-                          invalid={dateInvalid}
+                          invalid={depositInvalid}
                         />
+                      </div>
+                      <div className="px-2">
+                        {excluded ? (
+                          <span style={{ color: "rgba(230,238,243,0.28)" }}>—</span>
+                        ) : isChina ? (
+                          <DateCell
+                            value={r.remainder_date}
+                            onSave={(v) => patch(r.id, { remainder_date: v })}
+                            readOnly={readOnly}
+                            required
+                            invalid={remainderInvalid}
+                          />
+                        ) : (
+                          <span style={{ color: "rgba(230,238,243,0.28)" }}>—</span>
+                        )}
                       </div>
                       <div className="flex items-center justify-center relative">
                         {!readOnly && (
@@ -488,7 +608,6 @@ export function OrderStockTable({ projectId }: { projectId: string }) {
                             </button>
                             {menuFor === r.id && (
                               <>
-                                {/* Click-away overlay */}
                                 <div
                                   className="fixed inset-0 z-40"
                                   onClick={() => setMenuFor(null)}
