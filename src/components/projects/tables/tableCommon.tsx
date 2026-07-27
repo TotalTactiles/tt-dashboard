@@ -56,16 +56,16 @@ export function TableShell({
 export function Legend() {
   return (
     <div
-      className="px-3 py-1.5 text-[9.5px] font-mono uppercase tracking-widest border-t flex items-center gap-4"
+      className="px-3 py-1.5 text-[9.5px] font-mono uppercase tracking-widest border-t flex flex-wrap items-center gap-x-4 gap-y-1"
       style={{ borderColor: "#1F2224", background: "#0A0A0A", color: "#6B7280" }}
     >
-      <span>
+      <span className="whitespace-nowrap">
         <span style={{ color: T_BLUE }}>ƒ</span> calculated here
       </span>
-      <span>
+      <span className="whitespace-nowrap">
         <span style={{ color: "#E5E9EA" }}>▭</span> you enter
       </span>
-      <span>
+      <span className="whitespace-nowrap">
         <span style={{ color: T_GOLD }}>■</span> from another system
       </span>
     </div>
