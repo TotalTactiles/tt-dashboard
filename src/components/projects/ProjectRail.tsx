@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Search, Circle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useProjects, type ProjectStatusFilter } from "@/hooks/useProjects";
+import { useProjects } from "@/hooks/useProjects";
 import { Ring } from "./Ring";
 import { formatDateShort } from "@/lib/projects/dateRules";
 
