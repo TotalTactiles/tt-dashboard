@@ -217,6 +217,18 @@ export function CalendarMonthView({ tasks, onOpen }: { tasks: Task[]; onOpen: (i
   });
 
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [expandedPastDays, setExpandedPastDays] = useState<Set<string>>(() => new Set());
+  const isMobile = useIsPmMobile();
+
+  const isPast = (iso: string) => iso < todayIso;
+
+  const togglePast = (iso: string) =>
+    setExpandedPastDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(iso)) next.delete(iso);
+      else next.add(iso);
+      return next;
+    });
 
   const shiftMonth = (delta: number) =>
     setCursor((c) => new Date(c.getFullYear(), c.getMonth() + delta, 1));
@@ -263,23 +275,65 @@ export function CalendarMonthView({ tasks, onOpen }: { tasks: Task[]; onOpen: (i
           <div className="grid grid-cols-7">
             {cells.map((c, i) => {
               if (!c.day || !c.iso) {
-                return <div key={i} className="min-h-[92px] border-r border-b" style={{ borderColor: "#131418", background: "#08080A" }} />;
+                return (
+                  <div
+                    key={i}
+                    className={cn("border-r border-b", isMobile ? "min-h-[44px]" : "min-h-[92px]")}
+                    style={{ borderColor: "#131418", background: "#08080A" }}
+                  />
+                );
               }
               const dayTasks = tasksByDay[c.iso] ?? [];
               const isToday = c.iso === todayIso;
               const isExpanded = expanded === c.iso;
+              // Mobile only: past days with no tasks collapse to compact tiles;
+              // past days with tasks collapse to a single-row summary that a
+              // tap expands into the full cell. Today and future are unchanged.
+              const collapsePast =
+                isMobile && isPast(c.iso) && !isToday && !expandedPastDays.has(c.iso);
               const shown = isExpanded ? dayTasks : dayTasks.slice(0, 3);
               const more = dayTasks.length - shown.length;
+
+              if (collapsePast) {
+                return (
+                  <button
+                    key={i}
+                    onClick={() => dayTasks.length > 0 && togglePast(c.iso!)}
+                    className="min-h-[44px] border-r border-b px-1.5 py-1 flex items-center gap-1.5 text-left min-w-0"
+                    style={{ borderColor: "#131418", background: "#0A0B0D" }}
+                  >
+                    <span
+                      className="text-[10px] font-mono shrink-0"
+                      style={{ color: "rgba(229,233,234,0.35)" }}
+                    >
+                      {c.day}
+                    </span>
+                    {dayTasks.length > 0 && (
+                      <span
+                        className="text-[9.5px] font-mono truncate"
+                        style={{ color: "rgba(229,233,234,0.5)" }}
+                      >
+                        {dayTasks.length}
+                      </span>
+                    )}
+                  </button>
+                );
+              }
+
               return (
                 <div
                   key={i}
-                  className="min-h-[92px] border-r border-b p-1.5 space-y-1 min-w-0"
+                  className={cn(
+                    "border-r border-b p-1.5 space-y-1 min-w-0",
+                    isMobile ? "min-h-[72px]" : "min-h-[92px]",
+                  )}
                   style={{
                     borderColor: "#131418",
                     background: isToday ? "rgba(61,137,218,0.05)" : "transparent",
                     outline: isToday ? "1px solid #3D89DA" : undefined,
                     outlineOffset: "-1px",
                   }}
+                  onClick={() => isMobile && isPast(c.iso!) && !isToday && togglePast(c.iso!)}
                 >
                   <div
                     className="text-[10px] font-mono"
@@ -300,7 +354,7 @@ export function CalendarMonthView({ tasks, onOpen }: { tasks: Task[]; onOpen: (i
                     return (
                       <button
                         key={t.id}
-                        onClick={() => onOpen(t.id)}
+                        onClick={(e) => { e.stopPropagation(); onOpen(t.id); }}
                         className="w-full text-left text-[9.5px] font-mono truncate rounded-sm px-1.5 py-0.5"
                         style={{ background: bg, color: fg }}
                         title={t.name}
@@ -311,7 +365,7 @@ export function CalendarMonthView({ tasks, onOpen }: { tasks: Task[]; onOpen: (i
                   })}
                   {more > 0 && !isExpanded && (
                     <button
-                      onClick={() => setExpanded(c.iso)}
+                      onClick={(e) => { e.stopPropagation(); setExpanded(c.iso); }}
                       className="text-[9.5px] font-mono text-muted-foreground/70 hover:text-foreground"
                     >
                       +{more} more
