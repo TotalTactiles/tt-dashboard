@@ -965,6 +965,7 @@ export type Database = {
       }
       stock_orders: {
         Row: {
+          deposit_date: string | null
           description: string | null
           id: string
           ordered_at: string | null
@@ -972,11 +973,13 @@ export type Database = {
           project_id: string
           qty_needed: number
           qty_ordered: number | null
+          remainder_date: string | null
           source: string | null
           unit: string | null
           unit_cost: number | null
         }
         Insert: {
+          deposit_date?: string | null
           description?: string | null
           id?: string
           ordered_at?: string | null
@@ -984,11 +987,13 @@ export type Database = {
           project_id: string
           qty_needed?: number
           qty_ordered?: number | null
+          remainder_date?: string | null
           source?: string | null
           unit?: string | null
           unit_cost?: number | null
         }
         Update: {
+          deposit_date?: string | null
           description?: string | null
           id?: string
           ordered_at?: string | null
@@ -996,6 +1001,7 @@ export type Database = {
           project_id?: string
           qty_needed?: number
           qty_ordered?: number | null
+          remainder_date?: string | null
           source?: string | null
           unit?: string | null
           unit_cost?: number | null
