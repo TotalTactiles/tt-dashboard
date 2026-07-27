@@ -436,7 +436,7 @@ export function TableView({
       style={{ background: "#0F1113", borderBottom: "1px solid #1F2224" }}
     >
       {label}
-      {sort?.key === k && <span className="ml-1 opacity-60">{sort.dir === "asc" ? "↑" : "↓"}</span>}
+      {k && sort?.key === k && <span className="ml-1 opacity-60">{sort.dir === "asc" ? "↑" : "↓"}</span>}
     </th>
   );
 
