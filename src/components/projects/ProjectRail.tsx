@@ -16,10 +16,6 @@ interface Props {
 
 type Tab = "active" | "completed" | "templates";
 
-function useTabCounts() {
-  return null;
-}
-
 export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth, refreshTick }: Props) {
   const [tab, setTab] = useState<Tab>("active");
   const filter: ProjectStatusFilter = tab === "completed" ? "completed" : "active";
