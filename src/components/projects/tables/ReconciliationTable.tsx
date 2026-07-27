@@ -18,6 +18,7 @@ import {
   NumInput,
   EmptyState,
   formatNum,
+  T_GOLD,
   T_GREEN,
   T_RED,
 } from "./tableCommon";
