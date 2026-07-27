@@ -1187,16 +1187,6 @@ function ProjectsTable({
             </button>
           </div>
 
-          {/* Zoho Projects link */}
-          <a
-            href={ZOHO_PROJECTS_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-mono rounded-md border border-border text-muted-foreground hover:text-foreground hover:border-accent transition-colors"
-          >
-            View in Zoho Projects
-            <ExternalLink className="w-3 h-3" />
-          </a>
         </div>
       </div>
 
