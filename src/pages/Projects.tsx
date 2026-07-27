@@ -10,7 +10,7 @@ import { ColumnsPopover } from "@/components/projects/ColumnsPopover";
 import { CompleteProjectModal } from "@/components/projects/CompleteProjectModal";
 import { SplitProjectModal } from "@/components/projects/SplitProjectModal";
 import { VariationModal } from "@/components/projects/VariationModal";
-import { BoardView, CalendarMonthView, TableView } from "@/components/projects/AltViews";
+import { BoardView, CalendarMonthView } from "@/components/projects/AltViews";
 import { loadColumns, saveColumns, type ColumnKey } from "@/components/projects/columns";
 import { useTasks } from "@/hooks/useTasks";
 import {
@@ -21,9 +21,9 @@ import {
 import { useProfiles } from "@/hooks/useProfiles";
 import { Ring } from "@/components/projects/Ring";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, List, LayoutGrid, Calendar as CalendarIcon, Table as TableIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
+import { CheckCircle2, List, LayoutGrid, Calendar as CalendarIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
 
-type ViewMode = "list" | "board" | "calendar" | "table";
+type ViewMode = "list" | "board" | "calendar";
 
 function formatCompletionUpper(iso: string | null | undefined) {
   if (!iso) return null;
