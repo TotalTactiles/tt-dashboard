@@ -862,7 +862,7 @@ function TaskCompletionCard({ completed, total, index }: { completed: number; to
           {hasData ? `${completed} of ${total} tasks done` : "No tasks found"}
         </p>
         <p className="font-mono text-muted-foreground" style={sublineStyle}>
-          {hasData ? `${remaining} remaining` : "Awaiting Zoho Projects sync"}
+          {hasData ? `${remaining} remaining` : "No tasks found"}
         </p>
       </div>
 
