@@ -43,6 +43,7 @@ const SOURCE_OPTIONS = [
 export function StockPlanningTable({ projectId }: { projectId: string }) {
   const { role } = useRole();
   const readOnly = role !== "office";
+  const isMobile = useIsPmMobile();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
