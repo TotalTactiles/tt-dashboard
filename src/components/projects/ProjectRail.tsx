@@ -18,14 +18,19 @@ type Tab = "active" | "completed" | "templates";
 
 export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth, refreshTick }: Props) {
   const [tab, setTab] = useState<Tab>("active");
-  const filter: ProjectStatusFilter = tab === "completed" ? "completed" : "active";
-  const { projects, progress, loading, refresh } = useProjects(filter);
+  const activeQ = useProjects("active");
+  const completedQ = useProjects("completed");
+  const current = tab === "completed" ? completedQ : activeQ;
+  const projects = tab === "templates" ? [] : current.projects;
+  const progress = current.progress;
+  const loading = current.loading;
   const [q, setQ] = useState("");
 
   useEffect(() => {
     if (refreshTick === undefined) return;
-    refresh();
-  }, [refreshTick, refresh]);
+    activeQ.refresh();
+    completedQ.refresh();
+  }, [refreshTick, activeQ.refresh, completedQ.refresh]);
 
   const filtered = useMemo(() => {
     if (tab === "templates") return [];
@@ -45,6 +50,9 @@ export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth, refr
     if (!activeProjectId && filtered.length > 0) onSelect(filtered[0].id);
   }, [activeProjectId, filtered, onSelect, fullWidth, tab]);
 
+  const activeCount = activeQ.projects.length;
+  const completedCount = completedQ.projects.length;
+
   return (
     <aside
       className={cn(
@@ -54,12 +62,12 @@ export function ProjectRail({ activeProjectId, onSelect, onOpen, fullWidth, refr
       style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
     >
       <div className="px-2 pt-2 border-b" style={{ borderColor: "#1F2224" }}>
-        <div className="flex items-center gap-1">
-          <RailTab active={tab === "active"} onClick={() => setTab("active")}>
+        <div className="flex items-stretch w-full">
+          <RailTab active={tab === "active"} onClick={() => setTab("active")} count={activeCount}>
             Active
           </RailTab>
-          <RailTab active={tab === "completed"} onClick={() => setTab("completed")}>
-            Recently Completed
+          <RailTab active={tab === "completed"} onClick={() => setTab("completed")} count={completedCount}>
+            Completed
           </RailTab>
           <RailTab active={tab === "templates"} onClick={() => setTab("templates")} soon>
             Templates
