@@ -195,6 +195,10 @@ export function CalendarMonthView({ tasks, onOpen }: { tasks: Task[]; onOpen: (i
   }
   while (cells.length % 7 !== 0) cells.push({ day: null, iso: null });
 
+  // Group into weeks of 7
+  const weeks: { day: number | null; iso: string | null }[][] = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+
   const tasksByDay = useMemo(() => {
     const m: Record<string, Task[]> = {};
     for (const t of tasks) {
@@ -216,27 +220,92 @@ export function CalendarMonthView({ tasks, onOpen }: { tasks: Task[]; onOpen: (i
     return d.getFullYear() === cursor.getFullYear() && d.getMonth() === cursor.getMonth();
   });
 
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [expandedPastDays, setExpandedPastDays] = useState<Set<string>>(() => new Set());
   const isMobile = useIsPmMobile();
+  const [expanded, setExpanded] = useState<string | null>(null); // desktop: single cell +N more expand
 
-  const isPast = (iso: string) => iso < todayIso;
+  // A week is "past" iff every ISO cell in it is strictly before today.
+  // Leading/trailing empty cells are ignored.
+  const isPastWeek = (wk: { iso: string | null }[]) => {
+    const isos = wk.map((c) => c.iso).filter((x): x is string => !!x);
+    if (isos.length === 0) return false;
+    return isos.every((iso) => iso < todayIso);
+  };
 
-  const togglePast = (iso: string) =>
-    setExpandedPastDays((prev) => {
+  // Expanded past-week indices for the current month view
+  const [expandedWeeks, setExpandedWeeks] = useState<Set<number>>(() => new Set());
+  // Reset collapse on month change
+  const cursorKey = `${cursor.getFullYear()}-${cursor.getMonth()}`;
+  useEffect(() => {
+    setExpandedWeeks(new Set());
+    setExpanded(null);
+    // reset selection to today if today is in this month, else first day of month
+    const t = new Date();
+    if (t.getFullYear() === cursor.getFullYear() && t.getMonth() === cursor.getMonth()) {
+      setSelectedDay(todayIso);
+    } else {
+      const firstIso = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-01`;
+      setSelectedDay(firstIso);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cursorKey]);
+
+  const toggleWeek = (idx: number) =>
+    setExpandedWeeks((prev) => {
       const next = new Set(prev);
-      if (next.has(iso)) next.delete(iso);
-      else next.add(iso);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
       return next;
     });
+
+  const allWeeksPast = weeks.every((w) => {
+    const isos = w.map((c) => c.iso).filter((x): x is string => !!x);
+    return isos.length === 0 || isos.every((iso) => iso < todayIso);
+  }) && weeks.some((w) => w.some((c) => !!c.iso));
+  const allExpanded =
+    allWeeksPast &&
+    weeks.every((_, i) => !isPastWeek(weeks[i]) || expandedWeeks.has(i));
+
+  const expandAll = () =>
+    setExpandedWeeks(new Set(weeks.map((_, i) => i).filter((i) => isPastWeek(weeks[i]))));
+  const collapseAll = () => setExpandedWeeks(new Set());
+
+  // Mobile day-detail selection
+  const [selectedDay, setSelectedDay] = useState<string>(() => {
+    const t = new Date();
+    if (t.getFullYear() === cursor.getFullYear() && t.getMonth() === cursor.getMonth()) return todayIso;
+    return `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-01`;
+  });
 
   const shiftMonth = (delta: number) =>
     setCursor((c) => new Date(c.getFullYear(), c.getMonth() + delta, 1));
 
+  const formatRange = (wk: { day: number | null; iso: string | null }[]) => {
+    const withIso = wk.filter((c) => c.iso);
+    if (withIso.length === 0) return "";
+    const first = withIso[0].iso!;
+    const last = withIso[withIso.length - 1].iso!;
+    const f = new Date(first + "T00:00:00");
+    const l = new Date(last + "T00:00:00");
+    const fMon = f.toLocaleDateString("en-AU", { month: "short" });
+    const lMon = l.toLocaleDateString("en-AU", { month: "short" });
+    if (fMon === lMon) return `${f.getDate()} – ${l.getDate()} ${lMon}`;
+    return `${f.getDate()} ${fMon} – ${l.getDate()} ${lMon}`;
+  };
+
+  const weekTaskCount = (wk: { iso: string | null }[]) =>
+    wk.reduce((n, c) => (c.iso ? n + (tasksByDay[c.iso]?.length ?? 0) : n), 0);
+
+  const selectedTasks = tasksByDay[selectedDay] ?? [];
+  const selectedDateLabel = (() => {
+    const d = new Date(selectedDay + "T00:00:00");
+    if (isNaN(d.getTime())) return selectedDay;
+    return d.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" });
+  })();
+
   return (
     <div className="rounded-md border overflow-hidden" style={{ borderColor: "#1F2224", background: "#0A0A0A" }}>
       <div
-        className="flex items-center justify-between px-3 py-2 border-b"
+        className="flex items-center justify-between px-3 py-2 border-b gap-2"
         style={{ borderColor: "#1F2224", background: "#0F1113" }}
       >
         <button
@@ -246,8 +315,19 @@ export function CalendarMonthView({ tasks, onOpen }: { tasks: Task[]; onOpen: (i
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
-        <div className="text-[12px] font-semibold text-foreground uppercase tracking-widest">
-          {monthLabel}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="text-[12px] font-semibold text-foreground uppercase tracking-widest truncate">
+            {monthLabel}
+          </div>
+          {allWeeksPast && (
+            <button
+              onClick={allExpanded ? collapseAll : expandAll}
+              className="text-[10px] font-mono uppercase tracking-widest px-2 py-1 rounded border hover:bg-white/[0.05] text-muted-foreground shrink-0"
+              style={{ borderColor: "#1F2224" }}
+            >
+              {allExpanded ? "Collapse all" : "Expand all"}
+            </button>
+          )}
         </div>
         <button
           onClick={() => shiftMonth(1)}
@@ -258,7 +338,7 @@ export function CalendarMonthView({ tasks, onOpen }: { tasks: Task[]; onOpen: (i
         </button>
       </div>
 
-      {dated.length === 0 ? (
+      {dated.length === 0 && !allWeeksPast ? (
         <div className="p-8 text-center text-[11.5px] font-mono text-muted-foreground">
           No dated tasks this month.
         </div>
@@ -272,109 +352,229 @@ export function CalendarMonthView({ tasks, onOpen }: { tasks: Task[]; onOpen: (i
               <div key={d} className="px-2 py-1.5 text-center">{d}</div>
             ))}
           </div>
-          <div className="grid grid-cols-7">
-            {cells.map((c, i) => {
-              if (!c.day || !c.iso) {
-                return (
-                  <div
-                    key={i}
-                    className={cn("border-r border-b", isMobile ? "min-h-[44px]" : "min-h-[92px]")}
-                    style={{ borderColor: "#131418", background: "#08080A" }}
-                  />
-                );
-              }
-              const dayTasks = tasksByDay[c.iso] ?? [];
-              const isToday = c.iso === todayIso;
-              const isExpanded = expanded === c.iso;
-              // Mobile only: past days with no tasks collapse to compact tiles;
-              // past days with tasks collapse to a single-row summary that a
-              // tap expands into the full cell. Today and future are unchanged.
-              const collapsePast =
-                isMobile && isPast(c.iso) && !isToday && !expandedPastDays.has(c.iso);
-              const shown = isExpanded ? dayTasks : dayTasks.slice(0, 3);
-              const more = dayTasks.length - shown.length;
+          <div>
+            {weeks.map((wk, wIdx) => {
+              const past = isPastWeek(wk);
+              const collapsed = past && !expandedWeeks.has(wIdx);
 
-              if (collapsePast) {
+              if (collapsed) {
+                const count = weekTaskCount(wk);
                 return (
                   <button
-                    key={i}
-                    onClick={() => dayTasks.length > 0 && togglePast(c.iso!)}
-                    className="min-h-[44px] border-r border-b px-1.5 py-1 flex items-center gap-1.5 text-left min-w-0"
-                    style={{ borderColor: "#131418", background: "#0A0B0D" }}
+                    key={`w-${wIdx}`}
+                    onClick={() => toggleWeek(wIdx)}
+                    className="w-full flex items-center justify-between px-3 py-2 border-b text-left hover:bg-white/[0.03] transition-colors"
+                    style={{ borderColor: "#131418", background: "#0A0B0D", minHeight: 32 }}
+                    aria-expanded={false}
                   >
-                    <span
-                      className="text-[10px] font-mono shrink-0"
-                      style={{ color: "rgba(229,233,234,0.35)" }}
-                    >
-                      {c.day}
-                    </span>
-                    {dayTasks.length > 0 && (
-                      <span
-                        className="text-[9.5px] font-mono truncate"
-                        style={{ color: "rgba(229,233,234,0.5)" }}
-                      >
-                        {dayTasks.length}
+                    <span className="flex items-center gap-2 min-w-0">
+                      <ChevronRight className="h-3 w-3 shrink-0" style={{ color: "rgba(229,233,234,0.4)" }} />
+                      <span className="text-[10.5px] font-mono truncate" style={{ color: "rgba(229,233,234,0.55)" }}>
+                        {formatRange(wk)}
                       </span>
-                    )}
+                    </span>
+                    <span className="text-[10px] font-mono shrink-0" style={{ color: "rgba(229,233,234,0.4)" }}>
+                      {count === 0 ? "no tasks" : count === 1 ? "1 task" : `${count} tasks`}
+                    </span>
                   </button>
                 );
               }
 
+              // Expanded (or non-past) week: 7 day cells
               return (
-                <div
-                  key={i}
-                  className={cn(
-                    "border-r border-b p-1.5 space-y-1 min-w-0",
-                    isMobile ? "min-h-[72px]" : "min-h-[92px]",
+                <div key={`w-${wIdx}`} className="grid grid-cols-7 relative">
+                  {past && (
+                    <button
+                      onClick={() => toggleWeek(wIdx)}
+                      className="absolute top-0.5 right-0.5 z-10 text-[9px] font-mono uppercase tracking-widest px-1.5 py-0.5 rounded hover:bg-white/[0.06]"
+                      style={{ color: "rgba(229,233,234,0.35)" }}
+                      title="Collapse week"
+                    >
+                      collapse
+                    </button>
                   )}
-                  style={{
-                    borderColor: "#131418",
-                    background: isToday ? "rgba(61,137,218,0.05)" : "transparent",
-                    outline: isToday ? "1px solid #3D89DA" : undefined,
-                    outlineOffset: "-1px",
-                  }}
-                  onClick={() => isMobile && isPast(c.iso!) && !isToday && togglePast(c.iso!)}
-                >
-                  <div
-                    className="text-[10px] font-mono"
-                    style={{ color: isToday ? "#3D89DA" : "rgba(229,233,234,0.5)" }}
-                  >
-                    {c.day}
-                  </div>
-                  {shown.map((t) => {
+                  {wk.map((c, i) => {
+                    if (!c.day || !c.iso) {
+                      return (
+                        <div
+                          key={i}
+                          className={cn("border-r border-b", isMobile ? "min-h-[44px]" : "min-h-[92px]")}
+                          style={{ borderColor: "#131418", background: "#08080A" }}
+                        />
+                      );
+                    }
+                    const dayTasks = tasksByDay[c.iso] ?? [];
+                    const isToday = c.iso === todayIso;
+                    const isSelected = isMobile && c.iso === selectedDay;
+                    const isExpanded = expanded === c.iso;
+                    const shown = isExpanded ? dayTasks : dayTasks.slice(0, 3);
+                    const more = dayTasks.length - shown.length;
+
+                    if (isMobile) {
+                      // Marker-only cell: date + dot, no chips
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => setSelectedDay(c.iso!)}
+                          className={cn(
+                            "border-r border-b p-1.5 flex flex-col items-center justify-start gap-1 min-w-0 text-left",
+                          )}
+                          style={{
+                            borderColor: "#131418",
+                            background: isSelected
+                              ? "rgba(61,137,218,0.14)"
+                              : isToday
+                                ? "rgba(61,137,218,0.05)"
+                                : "transparent",
+                            outline: isSelected
+                              ? "1px solid #3D89DA"
+                              : isToday
+                                ? "1px solid rgba(61,137,218,0.5)"
+                                : undefined,
+                            outlineOffset: "-1px",
+                            minHeight: 44,
+                          }}
+                          aria-pressed={isSelected}
+                        >
+                          <span
+                            className="text-[11px] font-mono"
+                            style={{ color: isToday ? "#3D89DA" : isSelected ? "#3D89DA" : "rgba(229,233,234,0.65)" }}
+                          >
+                            {c.day}
+                          </span>
+                          {dayTasks.length > 0 && (
+                            <span
+                              className="rounded-full"
+                              style={{
+                                width: 6,
+                                height: 6,
+                                background: dayTasks.some((t) => t.status !== "done" && daysUntil(t.end_date) !== null && daysUntil(t.end_date)! < 0)
+                                  ? "#E24B4A"
+                                  : dayTasks.every((t) => t.status === "done")
+                                    ? "#22C55E"
+                                    : "#3D89DA",
+                              }}
+                            />
+                          )}
+                        </button>
+                      );
+                    }
+
+                    // Desktop: chips with names (unchanged)
+                    return (
+                      <div
+                        key={i}
+                        className="border-r border-b p-1.5 space-y-1 min-w-0 min-h-[92px]"
+                        style={{
+                          borderColor: "#131418",
+                          background: isToday ? "rgba(61,137,218,0.05)" : "transparent",
+                          outline: isToday ? "1px solid #3D89DA" : undefined,
+                          outlineOffset: "-1px",
+                        }}
+                      >
+                        <div
+                          className="text-[10px] font-mono"
+                          style={{ color: isToday ? "#3D89DA" : "rgba(229,233,234,0.5)" }}
+                        >
+                          {c.day}
+                        </div>
+                        {shown.map((t) => {
+                          const done = t.status === "done";
+                          const d = daysUntil(t.end_date);
+                          const overdue = !done && d !== null && d < 0;
+                          const bg = done
+                            ? "rgba(34,197,94,0.12)"
+                            : overdue
+                              ? "rgba(226,75,74,0.14)"
+                              : "rgba(61,137,218,0.12)";
+                          const fg = done ? "#22C55E" : overdue ? "#E24B4A" : "#3D89DA";
+                          return (
+                            <button
+                              key={t.id}
+                              onClick={(e) => { e.stopPropagation(); onOpen(t.id); }}
+                              className="w-full text-left text-[9.5px] font-mono truncate rounded-sm px-1.5 py-0.5"
+                              style={{ background: bg, color: fg }}
+                              title={t.name}
+                            >
+                              {t.name}
+                            </button>
+                          );
+                        })}
+                        {more > 0 && !isExpanded && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setExpanded(c.iso); }}
+                            className="text-[9.5px] font-mono text-muted-foreground/70 hover:text-foreground"
+                          >
+                            +{more} more
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+
+          {isMobile && (
+            <div className="border-t" style={{ borderColor: "#1F2224", background: "#0A0B0D" }}>
+              <div
+                className="px-3 py-2 border-b text-[11px] font-semibold uppercase tracking-widest text-foreground"
+                style={{ borderColor: "#1F2224", background: "#0F1113" }}
+              >
+                {selectedDateLabel}
+              </div>
+              {selectedTasks.length === 0 ? (
+                <div className="px-3 py-4 text-[11.5px] font-mono text-muted-foreground">
+                  No tasks on this day.
+                </div>
+              ) : (
+                <ul className="divide-y" style={{ borderColor: "#131418" }}>
+                  {selectedTasks.map((t) => {
                     const done = t.status === "done";
                     const d = daysUntil(t.end_date);
                     const overdue = !done && d !== null && d < 0;
+                    const fg = done ? "#22C55E" : overdue ? "#E24B4A" : "#3D89DA";
                     const bg = done
                       ? "rgba(34,197,94,0.12)"
                       : overdue
                         ? "rgba(226,75,74,0.14)"
                         : "rgba(61,137,218,0.12)";
-                    const fg = done ? "#22C55E" : overdue ? "#E24B4A" : "#3D89DA";
                     return (
-                      <button
-                        key={t.id}
-                        onClick={(e) => { e.stopPropagation(); onOpen(t.id); }}
-                        className="w-full text-left text-[9.5px] font-mono truncate rounded-sm px-1.5 py-0.5"
-                        style={{ background: bg, color: fg }}
-                        title={t.name}
-                      >
-                        {t.name}
-                      </button>
+                      <li key={t.id} style={{ borderColor: "#131418" }}>
+                        <button
+                          onClick={() => onOpen(t.id)}
+                          className="w-full text-left px-3 py-2 flex items-start gap-3 hover:bg-white/[0.03]"
+                          style={{ minHeight: 44 }}
+                        >
+                          <span
+                            className="mt-0.5 h-2 w-2 rounded-full shrink-0"
+                            style={{ background: fg }}
+                          />
+                          <span className="flex-1 min-w-0">
+                            <span
+                              className={cn(
+                                "block text-[12px] leading-snug break-words",
+                                done ? "line-through text-muted-foreground" : "text-foreground/90",
+                              )}
+                            >
+                              {t.name}
+                            </span>
+                          </span>
+                          <span
+                            className="text-[9px] font-mono uppercase tracking-widest px-1.5 py-0.5 rounded-sm shrink-0"
+                            style={{ color: fg, background: bg }}
+                          >
+                            {done ? "Done" : overdue ? "Overdue" : "Open"}
+                          </span>
+                        </button>
+                      </li>
                     );
                   })}
-                  {more > 0 && !isExpanded && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setExpanded(c.iso); }}
-                      className="text-[9.5px] font-mono text-muted-foreground/70 hover:text-foreground"
-                    >
-                      +{more} more
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                </ul>
+              )}
+            </div>
+          )}
         </>
       )}
     </div>
