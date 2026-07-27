@@ -62,6 +62,7 @@ export function ReconciliationTable({ projectId }: { projectId: string }) {
   const [submitting, setSubmitting] = useState(false);
   const cancelBtnRef = useRef<HTMLButtonElement>(null);
   const live = useLiveStock();
+  const isMobile = useIsPmMobile();
 
   const load = useCallback(async () => {
     setLoading(true);
