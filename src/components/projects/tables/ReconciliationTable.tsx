@@ -22,6 +22,7 @@ import {
   T_RED,
 } from "./tableCommon";
 import { useLiveStock, LiveStockBadge } from "@/hooks/useLiveStock";
+import { useIsPmMobile } from "@/hooks/useProjects";
 
 const db = supabase as any;
 
