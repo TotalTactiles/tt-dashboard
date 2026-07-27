@@ -192,23 +192,87 @@ export function ReconciliationTable({ projectId }: { projectId: string }) {
 
   return (
     <TableShell right={<LiveStockBadge status={live.status} syncedAt={live.syncedAt} />}>
-      <HeaderRow
-        gridTemplate={GRID}
-        cols={[
-          { label: "Code" },
-          { label: "Description" },
-          { label: "Planned", align: "right" },
-          { label: "Used", align: "right" },
-          { label: "Left over", align: "right" },
-          { label: "Unit", align: "right" },
-        ]}
-      />
+      {!isMobile && (
+        <HeaderRow
+          gridTemplate={GRID}
+          cols={[
+            { label: "Code" },
+            { label: "Description" },
+            { label: "Planned", align: "right" },
+            { label: "Used", align: "right" },
+            { label: "Left over", align: "right" },
+            { label: "Unit", align: "right" },
+          ]}
+        />
+      )}
       {rows.length === 0 ? (
         <EmptyState message="Seeded from the quote scope when the project is built." />
+      ) : isMobile ? (
+        <>
+          <div className="p-2 space-y-2">
+            {rows.map((r) => {
+              const leftover = Number(r.planned_qty) - Number(r.used_qty ?? 0);
+              const usedLocked = !!baseByCode.get(r.product_code)?.returned_to_stock;
+              return (
+                <div
+                  key={r.product_code}
+                  className="rounded-md border p-2.5 space-y-2"
+                  style={{ borderColor: "#1F2224", background: "#0B0C0F" }}
+                >
+                  <div className="flex items-baseline justify-between gap-2 min-w-0">
+                    <div className="font-mono text-[12px] text-foreground shrink-0">{r.product_code}</div>
+                    <div className="font-mono text-[10.5px] text-muted-foreground shrink-0">{r.unit ?? "—"}</div>
+                  </div>
+                  {r.description && (
+                    <div className="text-[11px] text-muted-foreground truncate">{r.description}</div>
+                  )}
+                  <div className="grid grid-cols-3 gap-2 items-end">
+                    <div>
+                      <div className="text-[9.5px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Planned</div>
+                      <div className="font-mono text-[12px] tabular-nums" style={{ color: T_GOLD }}>
+                        {formatNum(Number(r.planned_qty))}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[9.5px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Used</div>
+                      <NumInput
+                        value={r.used_qty}
+                        onSave={(n) => saveUsed(r.product_code, n)}
+                        required
+                        readOnly={usedLocked}
+                      />
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[9.5px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Left over</div>
+                      <div
+                        className="font-mono text-[12px] tabular-nums"
+                        style={{ color: leftover > 0 ? T_GREEN : leftover < 0 ? T_RED : "#B0B8BF" }}
+                      >
+                        {formatNum(leftover)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div
+            className="flex items-center justify-between px-3 py-2 border-t"
+            style={{ borderColor: "#1F2224", background: "#1D1D22" }}
+          >
+            <span className="text-[10.5px] font-mono uppercase tracking-widest text-muted-foreground">Totals</span>
+            <div className="flex items-center gap-3 font-mono text-[12px] tabular-nums">
+              <span style={{ color: T_GOLD }}>plan {formatNum(totals.plan)}</span>
+              <span style={{ color: "#E5E9EA" }}>used {formatNum(totals.used)}</span>
+              <span style={{ color: totalLeftover > 0 ? T_GREEN : "#3D89DA" }}>left {formatNum(totalLeftover)}</span>
+            </div>
+          </div>
+        </>
       ) : (
         <>
           {rows.map((r) => {
             const leftover = Number(r.planned_qty) - Number(r.used_qty ?? 0);
+            const usedLocked = !!baseByCode.get(r.product_code)?.returned_to_stock;
             return (
               <div
                 key={r.product_code}
@@ -219,7 +283,12 @@ export function ReconciliationTable({ projectId }: { projectId: string }) {
                 <div className="px-2 min-w-0"><ExtCell value={r.description} /></div>
                 <div className="px-2 flex justify-end"><ExtCell value={r.planned_qty} numeric align="right" /></div>
                 <div className="px-2">
-                  <NumInput value={r.used_qty} onSave={(n) => saveUsed(r.product_code, n)} required />
+                  <NumInput
+                    value={r.used_qty}
+                    onSave={(n) => saveUsed(r.product_code, n)}
+                    required
+                    readOnly={usedLocked}
+                  />
                 </div>
                 <div className="px-2 flex justify-end">
                   <CalcCell value={leftover} color={leftover > 0 ? T_GREEN : leftover < 0 ? T_RED : undefined} />
@@ -239,6 +308,12 @@ export function ReconciliationTable({ projectId }: { projectId: string }) {
               <span />,
             ]}
           />
+        </>
+      )}
+      {rows.length > 0 && (
+        <>
+
+
 
           {lastReturned && !showButton && (
             <div
