@@ -253,6 +253,8 @@ function ProjectsInner() {
                 columns={columns}
                 onColumnsChange={setColumns}
                 isMobile={isMobile}
+                view={view}
+                onViewChange={setView}
               />
             </>
           )}
@@ -266,41 +268,69 @@ function ProjectsInner() {
                 No task lists yet.
               </div>
             )}
-            {!isMobile && lists.length > 0 && (
-              <div
-                className="rounded-md border overflow-hidden"
-                style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
-              >
-                <TaskListColumnHeader columns={effectiveColumns} />
-              </div>
-            )}
-            {lists.map((l) => (
-              <TaskListSection
-                key={l.id}
-                list={l}
-                tasks={filteredTasks}
-                columns={effectiveColumns}
-                profiles={profiles}
-                project={project}
-                onOpen={handleTaskOpen}
-                onToggle={handleToggle}
-                onPatch={updateTask}
-              />
-            ))}
-          </div>
 
-          {projectId && project && canManageLifecycle && (
-            <LifecycleActionBar
-              projectName={project.name}
-              completedAt={project.completed_at}
-              openTasks={open}
-              totalTasks={total}
-              isMobile={isMobile}
-              onSplit={openSplitModal}
-              onComplete={openCompleteModal}
-              onVariation={openVariationModal}
-            />
-          )}
+            {projectId && lists.length > 0 && view === "list" && (
+              <>
+                {!isMobile && (
+                  <div
+                    className="rounded-md border overflow-hidden"
+                    style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
+                  >
+                    <TaskListColumnHeader columns={effectiveColumns} />
+                  </div>
+                )}
+                {lists.map((l) => (
+                  <TaskListSection
+                    key={l.id}
+                    list={l}
+                    tasks={filteredTasks}
+                    columns={effectiveColumns}
+                    profiles={profiles}
+                    project={project}
+                    onOpen={handleTaskOpen}
+                    onToggle={handleToggle}
+                    onPatch={updateTask}
+                  />
+                ))}
+              </>
+            )}
+
+            {projectId && lists.length > 0 && view === "board" && (
+              <BoardView
+                lists={lists}
+                tasks={filteredTasks}
+                profiles={profiles}
+                onOpen={handleTaskOpen}
+              />
+            )}
+
+            {projectId && lists.length > 0 && view === "calendar" && (
+              <CalendarMonthView tasks={filteredTasks} onOpen={handleTaskOpen} />
+            )}
+
+            {projectId && lists.length > 0 && view === "table" && (
+              <TableView
+                lists={lists}
+                tasks={filteredTasks}
+                profiles={profiles}
+                columns={effectiveColumns}
+                onOpen={handleTaskOpen}
+              />
+            )}
+
+            {projectId && project && canManageLifecycle && (
+              <LifecycleActionBar
+                projectName={project.name}
+                completedAt={project.completed_at}
+                openTasks={open}
+                totalTasks={total}
+                isMobile={isMobile}
+                onSplit={openSplitModal}
+                onComplete={openCompleteModal}
+                onVariation={openVariationModal}
+              />
+            )}
+          </div>
         </div>
       </div>
       )}
