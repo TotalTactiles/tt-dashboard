@@ -418,10 +418,10 @@ function LifecycleActionBar({
   return (
     <div
       className={cn(
-        "sticky bottom-0 z-30 border-t backdrop-blur-md",
-        isMobile ? "px-3 py-2.5" : "px-3 md:px-6 py-3",
+        "mt-2 rounded-md border",
+        isMobile ? "px-3 py-2.5" : "px-4 py-3",
       )}
-      style={{ borderColor: "#1F2224", background: "rgba(10,10,10,0.94)" }}
+      style={{ borderColor: "#1F2224", background: "#0A0A0A" }}
     >
       <div className="flex items-center justify-end gap-2 flex-wrap">
         {isCompleted && (
