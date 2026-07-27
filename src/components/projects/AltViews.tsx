@@ -3,8 +3,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Task, TaskList as TL } from "@/hooks/useTasks";
 import type { ProfileLite } from "@/hooks/useProfiles";
-import { formatDateShort, daysUntil } from "@/lib/projects/dateRules";
-import { COLUMN_DEFS, type ColumnKey } from "./columns";
+import { daysUntil } from "@/lib/projects/dateRules";
+import { useIsPmMobile } from "@/hooks/useProjects";
 
 interface CommonProps {
   lists: TL[];
