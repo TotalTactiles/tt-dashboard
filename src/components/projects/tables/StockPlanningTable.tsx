@@ -135,18 +135,104 @@ export function StockPlanningTable({ projectId }: { projectId: string }) {
           </span>
         }
       >
-        <HeaderRow
-          gridTemplate={GRID}
-          cols={[
-            { label: "Item" },
-            { label: "Bucket" },
-            { label: "Source" },
-            { label: "Amount", align: "right" },
-            { label: "" },
-          ]}
-        />
+        {!isMobile && (
+          <HeaderRow
+            gridTemplate={GRID}
+            cols={[
+              { label: "Item" },
+              { label: "Bucket" },
+              { label: "Source" },
+              { label: "Amount", align: "right" },
+              { label: "" },
+            ]}
+          />
+        )}
         {rows.length === 0 ? (
           <EmptyState message="Two rows are seeded when a project is created. If this is empty, the project predates that." />
+        ) : isMobile ? (
+          <>
+            <div className="p-2 space-y-2">
+              {rows.map((r) => {
+                const amountInvalid = !readOnly && (r.amount == null || !Number(r.amount));
+                const bucketInvalid = !readOnly && !r.cost_bucket;
+                const sourceInvalid = !readOnly && !r.source;
+                return (
+                  <div
+                    key={r.id}
+                    className="rounded-md border p-2.5 space-y-2"
+                    style={{ borderColor: "#1F2224", background: "#0B0C0F" }}
+                  >
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        {readOnly ? (
+                          <ExtCell value={r.line_label} />
+                        ) : (
+                          <TextInput
+                            value={r.line_label}
+                            onSave={(v) => patch(r.id, { line_label: v ?? "" })}
+                            required
+                            placeholder="Item"
+                          />
+                        )}
+                      </div>
+                      {!readOnly && (
+                        <button
+                          onClick={() => remove(r.id)}
+                          className="shrink-0 text-muted-foreground hover:text-[#E24B4A] p-2 -m-2"
+                          aria-label="Remove line"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <div className="text-[9.5px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Bucket</div>
+                        <SelectCell
+                          value={r.cost_bucket}
+                          onChange={(v) => patch(r.id, { cost_bucket: v })}
+                          options={BUCKET_OPTIONS}
+                          readOnly={readOnly}
+                          required
+                          invalid={bucketInvalid}
+                          placeholder="—"
+                        />
+                      </div>
+                      <div>
+                        <div className="text-[9.5px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Source</div>
+                        <SelectCell
+                          value={r.source}
+                          onChange={(v) => patch(r.id, { source: v })}
+                          options={SOURCE_OPTIONS}
+                          readOnly={readOnly}
+                          required
+                          invalid={sourceInvalid}
+                          placeholder="—"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[9.5px] font-mono uppercase tracking-widest text-muted-foreground mb-1">Amount</div>
+                      <NumInput
+                        value={r.amount}
+                        onSave={(n) => patch(r.id, { amount: n })}
+                        readOnly={readOnly}
+                        required
+                        invalid={amountInvalid}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div
+              className="flex items-center justify-between px-3 py-2 border-t"
+              style={{ borderColor: "#1F2224", background: "#1D1D22" }}
+            >
+              <span className="text-[10.5px] font-mono uppercase tracking-widest text-muted-foreground">Total</span>
+              <span className="font-mono text-[12.5px] tabular-nums" style={{ color: T_GOLD }}>{formatMoney(total)}</span>
+            </div>
+          </>
         ) : (
           <>
             {rows.map((r) => {
