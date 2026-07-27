@@ -553,18 +553,22 @@ function ViewTab({
   label,
   active,
   soon,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   active?: boolean;
   soon?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <button
-      disabled={!active}
+      onClick={onClick}
+      disabled={soon}
       className={cn(
         "h-7 px-2.5 rounded-md inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-widest transition-colors shrink-0",
-        active ? "text-foreground" : "text-muted-foreground/60 cursor-not-allowed",
+        active ? "text-foreground" : "text-muted-foreground/70 hover:text-foreground",
+        soon && "cursor-not-allowed",
       )}
       style={{ background: active ? "#16161A" : "transparent", opacity: soon ? 0.35 : undefined }}
     >
