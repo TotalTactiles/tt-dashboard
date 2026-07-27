@@ -308,15 +308,7 @@ function ProjectsInner() {
               <CalendarMonthView tasks={filteredTasks} onOpen={handleTaskOpen} />
             )}
 
-            {projectId && lists.length > 0 && view === "table" && (
-              <TableView
-                lists={lists}
-                tasks={filteredTasks}
-                profiles={profiles}
-                columns={effectiveColumns}
-                onOpen={handleTaskOpen}
-              />
-            )}
+            {/* Table view removed. */}
 
             {projectId && project && canManageLifecycle && (
               <LifecycleActionBar
