@@ -1,18 +1,29 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-// Extend this list to add more operators.
-export const CRM_OPERATORS = ["Chris", "Mehmet"];
+// Team members who work the CRM. Add names here as the team grows —
+// temporary stand-in until real user accounts exist.
+export const CRM_OPERATORS = ["Krishan", "Mehmet"] as const;
 
 export const CRM_OPERATOR_KEY = "tt_crm_operator";
 
 export function getStoredOperator(): string | null {
-  try { return localStorage.getItem(CRM_OPERATOR_KEY); } catch { return null; }
+  try {
+    const v = localStorage.getItem(CRM_OPERATOR_KEY);
+    if (!v || !(CRM_OPERATORS as readonly string[]).includes(v)) {
+      if (v) localStorage.removeItem(CRM_OPERATOR_KEY);
+      return null;
+    }
+    return v;
+  } catch { return null; }
 }
 export function setStoredOperator(name: string | null) {
   try {
-    if (name) localStorage.setItem(CRM_OPERATOR_KEY, name);
-    else localStorage.removeItem(CRM_OPERATOR_KEY);
+    if (name && (CRM_OPERATORS as readonly string[]).includes(name)) {
+      localStorage.setItem(CRM_OPERATOR_KEY, name);
+    } else {
+      localStorage.removeItem(CRM_OPERATOR_KEY);
+    }
   } catch {}
 }
 
