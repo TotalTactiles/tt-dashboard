@@ -280,6 +280,317 @@ export type Database = {
           },
         ]
       }
+      contacts: {
+        Row: {
+          apollo_contact_id: string | null
+          created_at: string
+          email: string | null
+          first_name: string
+          id: string
+          is_active: boolean
+          is_primary: boolean
+          last_name: string | null
+          mobile: string | null
+          notes: string | null
+          organisation_id: string
+          phone: string | null
+          role: string | null
+          updated_at: string
+          zoho_contact_id: string | null
+        }
+        Insert: {
+          apollo_contact_id?: string | null
+          created_at?: string
+          email?: string | null
+          first_name: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          last_name?: string | null
+          mobile?: string | null
+          notes?: string | null
+          organisation_id: string
+          phone?: string | null
+          role?: string | null
+          updated_at?: string
+          zoho_contact_id?: string | null
+        }
+        Update: {
+          apollo_contact_id?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          last_name?: string | null
+          mobile?: string | null
+          notes?: string | null
+          organisation_id?: string
+          phone?: string | null
+          role?: string | null
+          updated_at?: string
+          zoho_contact_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_stage_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          deal_id: string
+          from_stage: Database["public"]["Enums"]["deal_stage"] | null
+          id: number
+          note: string | null
+          to_stage: Database["public"]["Enums"]["deal_stage"]
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          deal_id: string
+          from_stage?: Database["public"]["Enums"]["deal_stage"] | null
+          id?: number
+          note?: string | null
+          to_stage: Database["public"]["Enums"]["deal_stage"]
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          deal_id?: string
+          from_stage?: Database["public"]["Enums"]["deal_stage"] | null
+          id?: number
+          note?: string | null
+          to_stage?: Database["public"]["Enums"]["deal_stage"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_stage_history_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deals: {
+        Row: {
+          closing_date: string | null
+          contract_value: number
+          converted_from_lead_id: string | null
+          created_at: string
+          current_inventory: string | null
+          deal_number: string | null
+          follow_up_date: string | null
+          id: string
+          is_split_parent: boolean
+          is_variation: boolean
+          kind: Database["public"]["Enums"]["deal_kind"]
+          loss_notes: string | null
+          loss_reason: string | null
+          lost_at: string | null
+          name: string
+          next_step: string | null
+          organisation_id: string | null
+          original_contract_value: number | null
+          owner_email: string | null
+          parent_deal_id: string | null
+          pipeline: string | null
+          primary_contact_id: string | null
+          project_id: string | null
+          root_deal_id: string | null
+          scope_of_works: string | null
+          source_system: string
+          stage: Database["public"]["Enums"]["deal_stage"]
+          stage_number: number | null
+          total_costs: number | null
+          updated_at: string
+          variation_of_deal_id: string | null
+          zoho_id: string | null
+        }
+        Insert: {
+          closing_date?: string | null
+          contract_value?: number
+          converted_from_lead_id?: string | null
+          created_at?: string
+          current_inventory?: string | null
+          deal_number?: string | null
+          follow_up_date?: string | null
+          id?: string
+          is_split_parent?: boolean
+          is_variation?: boolean
+          kind?: Database["public"]["Enums"]["deal_kind"]
+          loss_notes?: string | null
+          loss_reason?: string | null
+          lost_at?: string | null
+          name: string
+          next_step?: string | null
+          organisation_id?: string | null
+          original_contract_value?: number | null
+          owner_email?: string | null
+          parent_deal_id?: string | null
+          pipeline?: string | null
+          primary_contact_id?: string | null
+          project_id?: string | null
+          root_deal_id?: string | null
+          scope_of_works?: string | null
+          source_system?: string
+          stage?: Database["public"]["Enums"]["deal_stage"]
+          stage_number?: number | null
+          total_costs?: number | null
+          updated_at?: string
+          variation_of_deal_id?: string | null
+          zoho_id?: string | null
+        }
+        Update: {
+          closing_date?: string | null
+          contract_value?: number
+          converted_from_lead_id?: string | null
+          created_at?: string
+          current_inventory?: string | null
+          deal_number?: string | null
+          follow_up_date?: string | null
+          id?: string
+          is_split_parent?: boolean
+          is_variation?: boolean
+          kind?: Database["public"]["Enums"]["deal_kind"]
+          loss_notes?: string | null
+          loss_reason?: string | null
+          lost_at?: string | null
+          name?: string
+          next_step?: string | null
+          organisation_id?: string | null
+          original_contract_value?: number | null
+          owner_email?: string | null
+          parent_deal_id?: string | null
+          pipeline?: string | null
+          primary_contact_id?: string | null
+          project_id?: string | null
+          root_deal_id?: string | null
+          scope_of_works?: string | null
+          source_system?: string
+          stage?: Database["public"]["Enums"]["deal_stage"]
+          stage_number?: number | null
+          total_costs?: number | null
+          updated_at?: string
+          variation_of_deal_id?: string | null
+          zoho_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deals_converted_from_lead_id_fkey"
+            columns: ["converted_from_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_converted_from_lead_id_fkey"
+            columns: ["converted_from_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_converted_from_lead_id_fkey"
+            columns: ["converted_from_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_silence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_converted_from_lead_id_fkey"
+            columns: ["converted_from_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_needing_rating"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_converted_from_lead_id_fkey"
+            columns: ["converted_from_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_unroutable"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_converted_from_lead_id_fkey"
+            columns: ["converted_from_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_zoho_pending"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_parent_deal_id_fkey"
+            columns: ["parent_deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_primary_contact_id_fkey"
+            columns: ["primary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_accessory_pool"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "deals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_labour_actual"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "deals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "v_project_progress"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "deals_root_deal_id_fkey"
+            columns: ["root_deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_variation_of_deal_id_fkey"
+            columns: ["variation_of_deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_rates: {
         Row: {
           effective_from: string
@@ -469,6 +780,955 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lead_call_outcomes: {
+        Row: {
+          code: string
+          is_active: boolean
+          is_contact: boolean
+          label: string
+          retired_at: string | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          is_active?: boolean
+          is_contact?: boolean
+          label: string
+          retired_at?: string | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          is_active?: boolean
+          is_contact?: boolean
+          label?: string
+          retired_at?: string | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      lead_calls: {
+        Row: {
+          called_at: string
+          created_at: string
+          created_by: string | null
+          duration_seconds: number | null
+          id: string
+          lead_id: string
+          notes: string | null
+          outcome_code: string
+          sentiment: string | null
+          spoke_with: string | null
+        }
+        Insert: {
+          called_at?: string
+          created_at?: string
+          created_by?: string | null
+          duration_seconds?: number | null
+          id?: string
+          lead_id: string
+          notes?: string | null
+          outcome_code: string
+          sentiment?: string | null
+          spoke_with?: string | null
+        }
+        Update: {
+          called_at?: string
+          created_at?: string
+          created_by?: string | null
+          duration_seconds?: number | null
+          id?: string
+          lead_id?: string
+          notes?: string | null
+          outcome_code?: string
+          sentiment?: string | null
+          spoke_with?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_silence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_needing_rating"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_unroutable"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_zoho_pending"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_outcome_code_fkey"
+            columns: ["outcome_code"]
+            isOneToOne: false
+            referencedRelation: "lead_call_outcomes"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      lead_event_kinds: {
+        Row: {
+          is_metric: boolean
+          kind: string
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          is_metric?: boolean
+          kind: string
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          is_metric?: boolean
+          kind?: string
+          label?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      lead_events: {
+        Row: {
+          created_by: string | null
+          detail: string | null
+          external_id: string | null
+          id: number
+          kind: string
+          lead_id: string
+          occurred_at: string
+        }
+        Insert: {
+          created_by?: string | null
+          detail?: string | null
+          external_id?: string | null
+          id?: number
+          kind: string
+          lead_id: string
+          occurred_at?: string
+        }
+        Update: {
+          created_by?: string | null
+          detail?: string | null
+          external_id?: string | null
+          id?: number
+          kind?: string
+          lead_id?: string
+          occurred_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_silence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_needing_rating"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_unroutable"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_zoho_pending"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_next_steps: {
+        Row: {
+          code: string
+          created_at: string
+          follow_up_days: number | null
+          is_active: boolean
+          label: string
+          retired_at: string | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          follow_up_days?: number | null
+          is_active?: boolean
+          label: string
+          retired_at?: string | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          follow_up_days?: number | null
+          is_active?: boolean
+          label?: string
+          retired_at?: string | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      lead_rating_bands: {
+        Row: {
+          code: string
+          colour: string | null
+          created_at: string
+          definition: string
+          is_active: boolean
+          label: string
+          max_score: number
+          min_score: number
+          retired_at: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          colour?: string | null
+          created_at?: string
+          definition: string
+          is_active?: boolean
+          label: string
+          max_score: number
+          min_score: number
+          retired_at?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          colour?: string | null
+          created_at?: string
+          definition?: string
+          is_active?: boolean
+          label?: string
+          max_score?: number
+          min_score?: number
+          retired_at?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lead_rating_history: {
+        Row: {
+          band: string
+          computed_at: string
+          id: number
+          lead_id: string
+          model: string | null
+          next_best_action: string | null
+          previous_score: number | null
+          reason: string | null
+          score: number
+          signals: Json | null
+          triggered_by: string | null
+        }
+        Insert: {
+          band: string
+          computed_at?: string
+          id?: number
+          lead_id: string
+          model?: string | null
+          next_best_action?: string | null
+          previous_score?: number | null
+          reason?: string | null
+          score: number
+          signals?: Json | null
+          triggered_by?: string | null
+        }
+        Update: {
+          band?: string
+          computed_at?: string
+          id?: number
+          lead_id?: string
+          model?: string | null
+          next_best_action?: string | null
+          previous_score?: number | null
+          reason?: string | null
+          score?: number
+          signals?: Json | null
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_rating_history_band_fkey"
+            columns: ["band"]
+            isOneToOne: false
+            referencedRelation: "lead_rating_bands"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_silence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_needing_rating"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_unroutable"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_zoho_pending"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_silence_rules: {
+        Row: {
+          action_prompt: string | null
+          auto_stage: Database["public"]["Enums"]["lead_stage"] | null
+          cap_band_code: string | null
+          code: string
+          created_at: string
+          days_silent_min: number
+          is_active: boolean
+          label: string
+          penalty_points: number
+          retired_at: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          action_prompt?: string | null
+          auto_stage?: Database["public"]["Enums"]["lead_stage"] | null
+          cap_band_code?: string | null
+          code: string
+          created_at?: string
+          days_silent_min: number
+          is_active?: boolean
+          label: string
+          penalty_points?: number
+          retired_at?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          action_prompt?: string | null
+          auto_stage?: Database["public"]["Enums"]["lead_stage"] | null
+          cap_band_code?: string | null
+          code?: string
+          created_at?: string
+          days_silent_min?: number
+          is_active?: boolean
+          label?: string
+          penalty_points?: number
+          retired_at?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_silence_rules_cap_band_code_fkey"
+            columns: ["cap_band_code"]
+            isOneToOne: false
+            referencedRelation: "lead_rating_bands"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      lead_sources: {
+        Row: {
+          code: string
+          created_at: string
+          is_active: boolean
+          label: string
+          retired_at: string | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          is_active?: boolean
+          label: string
+          retired_at?: string | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          is_active?: boolean
+          label?: string
+          retired_at?: string | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      lead_statuses: {
+        Row: {
+          code: string
+          created_at: string
+          is_active: boolean
+          label: string
+          retired_at: string | null
+          sort_order: number
+          zoho_value: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          is_active?: boolean
+          label: string
+          retired_at?: string | null
+          sort_order?: number
+          zoho_value?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          is_active?: boolean
+          label?: string
+          retired_at?: string | null
+          sort_order?: number
+          zoho_value?: string | null
+        }
+        Relationships: []
+      }
+      lead_tags: {
+        Row: {
+          colour: string | null
+          created_at: string
+          is_active: boolean
+          label: string | null
+          tag: string
+          use_count: number
+        }
+        Insert: {
+          colour?: string | null
+          created_at?: string
+          is_active?: boolean
+          label?: string | null
+          tag: string
+          use_count?: number
+        }
+        Update: {
+          colour?: string | null
+          created_at?: string
+          is_active?: boolean
+          label?: string | null
+          tag?: string
+          use_count?: number
+        }
+        Relationships: []
+      }
+      lead_tasks: {
+        Row: {
+          assigned_to: string | null
+          auto_generated: boolean
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          due_date: string
+          id: string
+          kind: string
+          lead_id: string
+          notes: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          auto_generated?: boolean
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date: string
+          id?: string
+          kind?: string
+          lead_id: string
+          notes?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          auto_generated?: boolean
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string
+          id?: string
+          kind?: string
+          lead_id?: string
+          notes?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_silence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_needing_rating"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_unroutable"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_zoho_pending"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_templates: {
+        Row: {
+          body_html: string
+          channel: string
+          created_at: string
+          id: string
+          is_active: boolean
+          next_step_code: string
+          send_mode: string
+          state: string | null
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          body_html: string
+          channel?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          next_step_code: string
+          send_mode?: string
+          state?: string | null
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          body_html?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          next_step_code?: string
+          send_mode?: string
+          state?: string | null
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_templates_next_step_code_fkey"
+            columns: ["next_step_code"]
+            isOneToOne: false
+            referencedRelation: "lead_next_steps"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          apollo_contact_id: string | null
+          apollo_org_id: string | null
+          archived_at: string | null
+          category: string | null
+          cc_bcc: string | null
+          claimed_at: string | null
+          claimed_by: string | null
+          company_builder: string
+          converted_at: string | null
+          converted_in_zoho_at: string | null
+          converted_to_contact_id: string | null
+          converted_to_deal_id: string | null
+          converted_to_org_id: string | null
+          created_at: string
+          direct_email: string | null
+          email_sent_at: string | null
+          enriched_at: string | null
+          enrichment_status: string | null
+          follow_up_date: string | null
+          id: string
+          lead_number: string | null
+          message_id: string | null
+          next_best_action: string | null
+          next_step_code: string | null
+          notes: string | null
+          organisation_id: string | null
+          owner_email: string | null
+          phone: string | null
+          project_contact_name: string | null
+          project_name: string | null
+          rated_at: string | null
+          rating_band: string | null
+          rating_model: string | null
+          rating_reason: string | null
+          rating_score: number | null
+          rating_stale: boolean
+          rating_stale_since: string | null
+          reception_email: string | null
+          reception_name: string | null
+          responded_at: string | null
+          role: string | null
+          secondary_contact: string | null
+          secondary_email: string | null
+          site_address: string | null
+          source: string | null
+          source_code: string | null
+          source_system: string
+          stage: Database["public"]["Enums"]["lead_stage"]
+          state: string | null
+          status_code: string | null
+          tags: string[]
+          updated_at: string
+          who_spoke_with: string | null
+          zoho_converted_deal_id: string | null
+          zoho_id: string | null
+          zoho_push_count: number
+          zoho_sync_error: string | null
+          zoho_sync_status: string | null
+          zoho_synced_at: string | null
+        }
+        Insert: {
+          apollo_contact_id?: string | null
+          apollo_org_id?: string | null
+          archived_at?: string | null
+          category?: string | null
+          cc_bcc?: string | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          company_builder: string
+          converted_at?: string | null
+          converted_in_zoho_at?: string | null
+          converted_to_contact_id?: string | null
+          converted_to_deal_id?: string | null
+          converted_to_org_id?: string | null
+          created_at?: string
+          direct_email?: string | null
+          email_sent_at?: string | null
+          enriched_at?: string | null
+          enrichment_status?: string | null
+          follow_up_date?: string | null
+          id?: string
+          lead_number?: string | null
+          message_id?: string | null
+          next_best_action?: string | null
+          next_step_code?: string | null
+          notes?: string | null
+          organisation_id?: string | null
+          owner_email?: string | null
+          phone?: string | null
+          project_contact_name?: string | null
+          project_name?: string | null
+          rated_at?: string | null
+          rating_band?: string | null
+          rating_model?: string | null
+          rating_reason?: string | null
+          rating_score?: number | null
+          rating_stale?: boolean
+          rating_stale_since?: string | null
+          reception_email?: string | null
+          reception_name?: string | null
+          responded_at?: string | null
+          role?: string | null
+          secondary_contact?: string | null
+          secondary_email?: string | null
+          site_address?: string | null
+          source?: string | null
+          source_code?: string | null
+          source_system?: string
+          stage?: Database["public"]["Enums"]["lead_stage"]
+          state?: string | null
+          status_code?: string | null
+          tags?: string[]
+          updated_at?: string
+          who_spoke_with?: string | null
+          zoho_converted_deal_id?: string | null
+          zoho_id?: string | null
+          zoho_push_count?: number
+          zoho_sync_error?: string | null
+          zoho_sync_status?: string | null
+          zoho_synced_at?: string | null
+        }
+        Update: {
+          apollo_contact_id?: string | null
+          apollo_org_id?: string | null
+          archived_at?: string | null
+          category?: string | null
+          cc_bcc?: string | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          company_builder?: string
+          converted_at?: string | null
+          converted_in_zoho_at?: string | null
+          converted_to_contact_id?: string | null
+          converted_to_deal_id?: string | null
+          converted_to_org_id?: string | null
+          created_at?: string
+          direct_email?: string | null
+          email_sent_at?: string | null
+          enriched_at?: string | null
+          enrichment_status?: string | null
+          follow_up_date?: string | null
+          id?: string
+          lead_number?: string | null
+          message_id?: string | null
+          next_best_action?: string | null
+          next_step_code?: string | null
+          notes?: string | null
+          organisation_id?: string | null
+          owner_email?: string | null
+          phone?: string | null
+          project_contact_name?: string | null
+          project_name?: string | null
+          rated_at?: string | null
+          rating_band?: string | null
+          rating_model?: string | null
+          rating_reason?: string | null
+          rating_score?: number | null
+          rating_stale?: boolean
+          rating_stale_since?: string | null
+          reception_email?: string | null
+          reception_name?: string | null
+          responded_at?: string | null
+          role?: string | null
+          secondary_contact?: string | null
+          secondary_email?: string | null
+          site_address?: string | null
+          source?: string | null
+          source_code?: string | null
+          source_system?: string
+          stage?: Database["public"]["Enums"]["lead_stage"]
+          state?: string | null
+          status_code?: string | null
+          tags?: string[]
+          updated_at?: string
+          who_spoke_with?: string | null
+          zoho_converted_deal_id?: string | null
+          zoho_id?: string | null
+          zoho_push_count?: number
+          zoho_sync_error?: string | null
+          zoho_sync_status?: string | null
+          zoho_synced_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_converted_to_contact_id_fkey"
+            columns: ["converted_to_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_converted_to_deal_fkey"
+            columns: ["converted_to_deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_converted_to_org_id_fkey"
+            columns: ["converted_to_org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_next_step_code_fkey"
+            columns: ["next_step_code"]
+            isOneToOne: false
+            referencedRelation: "lead_next_steps"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_rating_band_fkey"
+            columns: ["rating_band"]
+            isOneToOne: false
+            referencedRelation: "lead_rating_bands"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_source_code_fkey"
+            columns: ["source_code"]
+            isOneToOne: false
+            referencedRelation: "lead_sources"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_status_code_fkey"
+            columns: ["status_code"]
+            isOneToOne: false
+            referencedRelation: "lead_statuses"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      organisations: {
+        Row: {
+          abn: string | null
+          billing_address: string | null
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          phone: string | null
+          shopify_customer_id: string | null
+          trading_name: string | null
+          types: Database["public"]["Enums"]["org_type"][]
+          updated_at: string
+          website: string | null
+          xero_contact_id: string | null
+          zoho_account_id: string | null
+        }
+        Insert: {
+          abn?: string | null
+          billing_address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          phone?: string | null
+          shopify_customer_id?: string | null
+          trading_name?: string | null
+          types?: Database["public"]["Enums"]["org_type"][]
+          updated_at?: string
+          website?: string | null
+          xero_contact_id?: string | null
+          zoho_account_id?: string | null
+        }
+        Update: {
+          abn?: string | null
+          billing_address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          shopify_customer_id?: string | null
+          trading_name?: string | null
+          types?: Database["public"]["Enums"]["org_type"][]
+          updated_at?: string
+          website?: string | null
+          xero_contact_id?: string | null
+          zoho_account_id?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -1609,6 +2869,442 @@ export type Database = {
           },
         ]
       }
+      v_company_history: {
+        Row: {
+          archived: number | null
+          company: string | null
+          conversion_rate_pct: number | null
+          converted: number | null
+          ever_responded: number | null
+          first_contacted: string | null
+          last_contacted: string | null
+          organisation_id: string | null
+          response_rate_pct: number | null
+          total_leads: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_lead_funnel_summary: {
+        Row: {
+          actioned: number | null
+          awaiting_call: number | null
+          conversion_rate_pct: number | null
+          converted: number | null
+          emails_opened: number | null
+          emails_sent: number | null
+          hot: number | null
+          needs_attention: number | null
+          open_rate_pct: number | null
+          replies: number | null
+          reply_rate_pct: number | null
+          responded: number | null
+          total_leads: number | null
+          warm: number | null
+        }
+        Relationships: []
+      }
+      v_lead_metrics: {
+        Row: {
+          company_builder: string | null
+          converted_at: string | null
+          created_at: string | null
+          days_to_convert: number | null
+          emails_bounced: number | null
+          emails_delivered: number | null
+          emails_opened: number | null
+          emails_scheduled: number | null
+          emails_sent: number | null
+          first_sent_at: string | null
+          id: string | null
+          last_reply_at: string | null
+          links_clicked: number | null
+          next_step_code: string | null
+          project_name: string | null
+          rating_band: string | null
+          rating_score: number | null
+          replies: number | null
+          stage: Database["public"]["Enums"]["lead_stage"] | null
+          state: string | null
+          status_code: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_next_step_code_fkey"
+            columns: ["next_step_code"]
+            isOneToOne: false
+            referencedRelation: "lead_next_steps"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_rating_band_fkey"
+            columns: ["rating_band"]
+            isOneToOne: false
+            referencedRelation: "lead_rating_bands"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_status_code_fkey"
+            columns: ["status_code"]
+            isOneToOne: false
+            referencedRelation: "lead_statuses"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      v_lead_rating_trend: {
+        Row: {
+          band: string | null
+          company_builder: string | null
+          computed_at: string | null
+          delta: number | null
+          lead_id: string | null
+          next_best_action: string | null
+          previous_score: number | null
+          project_name: string | null
+          reason: string | null
+          recency: number | null
+          score: number | null
+          triggered_by: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_rating_history_band_fkey"
+            columns: ["band"]
+            isOneToOne: false
+            referencedRelation: "lead_rating_bands"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_silence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_needing_rating"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_unroutable"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_zoho_pending"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_lead_silence: {
+        Row: {
+          action_prompt: string | null
+          auto_stage: Database["public"]["Enums"]["lead_stage"] | null
+          cap_band_code: string | null
+          company_builder: string | null
+          days_silent: number | null
+          id: string | null
+          last_activity_at: string | null
+          penalty_points: number | null
+          project_name: string | null
+          rating_band: string | null
+          rating_score: number | null
+          silence_rule_code: string | null
+          silence_rule_label: string | null
+          stage: Database["public"]["Enums"]["lead_stage"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_silence_rules_cap_band_code_fkey"
+            columns: ["cap_band_code"]
+            isOneToOne: false
+            referencedRelation: "lead_rating_bands"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_rating_band_fkey"
+            columns: ["rating_band"]
+            isOneToOne: false
+            referencedRelation: "lead_rating_bands"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      v_lead_tasks_due: {
+        Row: {
+          assigned_to: string | null
+          auto_generated: boolean | null
+          company_builder: string | null
+          days_until_due: number | null
+          due_date: string | null
+          id: string | null
+          kind: string | null
+          lead_id: string | null
+          project_name: string | null
+          rating_band: string | null
+          rating_score: number | null
+          state: string | null
+          title: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_silence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_needing_rating"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_unroutable"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_zoho_pending"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_rating_band_fkey"
+            columns: ["rating_band"]
+            isOneToOne: false
+            referencedRelation: "lead_rating_bands"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      v_leads_needing_rating: {
+        Row: {
+          call_count: number | null
+          company_builder: string | null
+          current_band: string | null
+          current_score: number | null
+          event_count: number | null
+          id: string | null
+          last_activity_at: string | null
+          organisation_id: string | null
+          project_name: string | null
+          rated_at: string | null
+          rating_stale_since: string | null
+          stage: Database["public"]["Enums"]["lead_stage"] | null
+          state: string | null
+        }
+        Insert: {
+          call_count?: never
+          company_builder?: string | null
+          current_band?: string | null
+          current_score?: number | null
+          event_count?: never
+          id?: string | null
+          last_activity_at?: never
+          organisation_id?: string | null
+          project_name?: string | null
+          rated_at?: string | null
+          rating_stale_since?: string | null
+          stage?: Database["public"]["Enums"]["lead_stage"] | null
+          state?: string | null
+        }
+        Update: {
+          call_count?: never
+          company_builder?: string | null
+          current_band?: string | null
+          current_score?: number | null
+          event_count?: never
+          id?: string | null
+          last_activity_at?: never
+          organisation_id?: string | null
+          project_name?: string | null
+          rated_at?: string | null
+          rating_stale_since?: string | null
+          stage?: Database["public"]["Enums"]["lead_stage"] | null
+          state?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_rating_band_fkey"
+            columns: ["current_band"]
+            isOneToOne: false
+            referencedRelation: "lead_rating_bands"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      v_leads_unroutable: {
+        Row: {
+          company_builder: string | null
+          id: string | null
+          next_step_code: string | null
+          project_name: string | null
+          stage: Database["public"]["Enums"]["lead_stage"] | null
+          state: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_builder?: string | null
+          id?: string | null
+          next_step_code?: string | null
+          project_name?: string | null
+          stage?: Database["public"]["Enums"]["lead_stage"] | null
+          state?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_builder?: string | null
+          id?: string | null
+          next_step_code?: string | null
+          project_name?: string | null
+          stage?: Database["public"]["Enums"]["lead_stage"] | null
+          state?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_next_step_code_fkey"
+            columns: ["next_step_code"]
+            isOneToOne: false
+            referencedRelation: "lead_next_steps"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      v_leads_zoho_pending: {
+        Row: {
+          blocked_no_project_name: boolean | null
+          company_builder: string | null
+          id: string | null
+          next_step_code: string | null
+          project_contact_name: string | null
+          project_name: string | null
+          push_mode: string | null
+          rating_band: string | null
+          state: string | null
+          status_code: string | null
+          updated_at: string | null
+          zoho_id: string | null
+          zoho_sync_error: string | null
+          zoho_sync_status: string | null
+          zoho_synced_at: string | null
+        }
+        Insert: {
+          blocked_no_project_name?: never
+          company_builder?: string | null
+          id?: string | null
+          next_step_code?: string | null
+          project_contact_name?: string | null
+          project_name?: string | null
+          push_mode?: never
+          rating_band?: string | null
+          state?: string | null
+          status_code?: string | null
+          updated_at?: string | null
+          zoho_id?: string | null
+          zoho_sync_error?: string | null
+          zoho_sync_status?: string | null
+          zoho_synced_at?: string | null
+        }
+        Update: {
+          blocked_no_project_name?: never
+          company_builder?: string | null
+          id?: string | null
+          next_step_code?: string | null
+          project_contact_name?: string | null
+          project_name?: string | null
+          push_mode?: never
+          rating_band?: string | null
+          state?: string | null
+          status_code?: string | null
+          updated_at?: string | null
+          zoho_id?: string | null
+          zoho_sync_error?: string | null
+          zoho_sync_status?: string | null
+          zoho_synced_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_next_step_code_fkey"
+            columns: ["next_step_code"]
+            isOneToOne: false
+            referencedRelation: "lead_next_steps"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_rating_band_fkey"
+            columns: ["rating_band"]
+            isOneToOne: false
+            referencedRelation: "lead_rating_bands"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_status_code_fkey"
+            columns: ["status_code"]
+            isOneToOne: false
+            referencedRelation: "lead_statuses"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       v_pending_stock_movements: {
         Row: {
           movement_count: number | null
@@ -1812,6 +3508,7 @@ export type Database = {
           task_name: string
         }[]
       }
+      resolve_rating_band: { Args: { p_score: number }; Returns: string }
       resolve_task_dates: {
         Args: {
           p_est_start: string
@@ -1825,6 +3522,7 @@ export type Database = {
           start_date: string
         }[]
       }
+      tt_mark_silent_leads_stale: { Args: never; Returns: number }
     }
     Enums: {
       date_rule:
@@ -1836,7 +3534,24 @@ export type Database = {
         | "est_start_minus_6w"
         | "est_start_minus_2w"
         | "est_start_plus_10d"
+      deal_kind: "installation" | "trade_product"
+      deal_stage:
+        | "quoted"
+        | "verbal_confirmation"
+        | "po_received"
+        | "completed"
+        | "lost_dead"
       invoice_status: "draft" | "sent" | "paid"
+      lead_stage:
+        | "new"
+        | "enriching"
+        | "ready_to_call"
+        | "actioned"
+        | "responded"
+        | "needs_attention"
+        | "converted"
+        | "archived"
+      org_type: "customer" | "trade_customer" | "supplier" | "subcontractor"
       project_status: "active" | "awaiting_signoff" | "completed" | "cancelled"
       task_status: "open" | "done"
       user_role: "office" | "worker"
@@ -1977,7 +3692,26 @@ export const Constants = {
         "est_start_minus_2w",
         "est_start_plus_10d",
       ],
+      deal_kind: ["installation", "trade_product"],
+      deal_stage: [
+        "quoted",
+        "verbal_confirmation",
+        "po_received",
+        "completed",
+        "lost_dead",
+      ],
       invoice_status: ["draft", "sent", "paid"],
+      lead_stage: [
+        "new",
+        "enriching",
+        "ready_to_call",
+        "actioned",
+        "responded",
+        "needs_attention",
+        "converted",
+        "archived",
+      ],
+      org_type: ["customer", "trade_customer", "supplier", "subcontractor"],
       project_status: ["active", "awaiting_signoff", "completed", "cancelled"],
       task_status: ["open", "done"],
       user_role: ["office", "worker"],
