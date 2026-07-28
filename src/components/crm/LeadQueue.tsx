@@ -29,7 +29,7 @@ interface CallRow { id: string; called_at: string; outcome_code: string; notes: 
 
 export default function LeadQueue({ operator }: { operator: string }) {
   const refs = useCrmRefs();
-  const { rows, loading, reload } = useLeadQueue(operator);
+  const { rows, totalCount, loading, reload } = useLeadQueue(operator);
   const [idx, setIdx] = useState(0);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [logOpen, setLogOpen] = useState(false);
