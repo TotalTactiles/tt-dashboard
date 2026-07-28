@@ -56,8 +56,8 @@ function InlineField({
 }
 
 export default function LeadDrawer({
-  leadId, open, onOpenChange, operator,
-}: { leadId: string | null; open: boolean; onOpenChange: (v: boolean) => void; operator: string }) {
+  leadId, open, onOpenChange, operator, onDeleted,
+}: { leadId: string | null; open: boolean; onOpenChange: (v: boolean) => void; operator: string; onDeleted?: () => void }) {
   const refs = useCrmRefs();
   const { lead, reload } = useLead(leadId);
   const [events, setEvents] = useState<any[]>([]);
@@ -66,8 +66,13 @@ export default function LeadDrawer({
   const [ratingHistory, setRatingHistory] = useState<any[]>([]);
   const [history, setHistory] = useState<any | null>(null);
   const [silence, setSilence] = useState<any | null>(null);
+  const [incomplete, setIncomplete] = useState<string[] | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
   const [newTask, setNewTask] = useState({ title: "", kind: "follow_up", due_date: "" });
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
 
   const load = useCallback(async () => {
     if (!leadId || !lead) return;
