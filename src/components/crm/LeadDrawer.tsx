@@ -76,16 +76,18 @@ export default function LeadDrawer({
 
   const load = useCallback(async () => {
     if (!leadId || !lead) return;
-    const [e, c, t, r, h, s] = await Promise.all([
+    const [e, c, t, r, h, s, inc] = await Promise.all([
       db.from("lead_events").select("*").eq("lead_id", leadId).order("occurred_at", { ascending: false }),
       db.from("lead_calls").select("*").eq("lead_id", leadId).order("called_at", { ascending: false }),
       db.from("lead_tasks").select("*").eq("lead_id", leadId).order("status", { ascending: true }).order("due_date"),
       db.from("lead_rating_history").select("*").eq("lead_id", leadId).order("computed_at", { ascending: false }),
       db.from("v_company_history").select("*").eq("company", lead.company_builder).maybeSingle(),
       db.from("v_lead_silence").select("*").eq("id", leadId).maybeSingle(),
+      db.from("v_leads_incomplete").select("missing_fields").eq("id", leadId).maybeSingle(),
     ]);
     setEvents(e.data ?? []); setCalls(c.data ?? []); setTasks(t.data ?? []);
     setRatingHistory(r.data ?? []); setHistory(h.data ?? null); setSilence(s.data ?? null);
+    setIncomplete(inc.data?.missing_fields ?? null);
   }, [leadId, lead?.company_builder]);
 
   useEffect(() => { load(); }, [load]);
