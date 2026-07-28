@@ -97,83 +97,56 @@ export default function SetNextStepDialog({
   }
 
   async function confirm() {
-    if (!ready || !step) return;
+    if (!ready || !step || saving) return;
     setSaving(true);
     await commitLeadFieldPatch();
-    const now = new Date().toISOString();
+
+    // Write only what the workflow does not own. Stage, lead_events and
+    // email_sent_at are set by the tt-lead-send workflow itself.
     await db.from("leads").update({
       next_step_code: step.code,
-      stage: targetStage,
       claimed_by: null,
       claimed_at: null,
     }).eq("id", lead.id);
-    await db.from("lead_events").insert({
-      lead_id: lead.id, kind: "status_changed",
-      detail: `Next step → ${step.label}`,
-      occurred_at: now, created_by: operator,
-    });
 
-    const { data: fresh } = await db.from("leads").select("*").eq("id", lead.id).maybeSingle();
-    const l: any = fresh ?? { ...lead, project_name: projectName, state, direct_email: email, phone };
+    const body = { lead_id: lead.id, operator };
 
-    const sheetValue = step.sheet_value ?? step.label;
-    const body = {
-      lead_id: lead.id,
-      project_name: l.project_name ?? null,
-      next_step_label: sheetValue,
-      source_system: l.source_system ?? null,
-      company_builder: l.company_builder ?? null,
-      state: l.state ?? null,
-      project_contact_name: l.project_contact_name ?? null,
-      role: l.role ?? null,
-      phone: l.phone ?? null,
-      direct_email: l.direct_email ?? null,
-      reception_name: l.reception_name ?? null,
-      reception_email: l.reception_email ?? null,
-      cc_bcc: l.cc_bcc ?? null,
-      notes: l.notes ?? null,
-      who_spoke_with: l.who_spoke_with ?? null,
-    };
-
-    let mirror:
-      | { kind: "ok"; path: string }
-      | { kind: "anomaly"; reason: string }
-      | { kind: "network" } = { kind: "network" };
+    let result:
+      | { kind: "ok"; to: string }
+      | { kind: "error"; message: string }
+      | { kind: "network"; message: string } = { kind: "network", message: "the send workflow did not respond" };
 
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 15_000);
-      const res = await fetch("https://n8n.srv1437130.hstgr.cloud/webhook/tt-lead-action", {
+      const timer = setTimeout(() => controller.abort(), 30_000);
+      const res = await fetch("https://n8n.srv1437130.hstgr.cloud/webhook/tt-lead-send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
         signal: controller.signal,
       });
       clearTimeout(timer);
-      const json = await res.json();
-      if (json?.ok === true) {
-        mirror = { kind: "ok", path: String(json.path ?? "") };
-      } else if (json?.ok === false && json?.path === "anomaly") {
-        mirror = { kind: "anomaly", reason: String(json.reason ?? "Unknown anomaly") };
+      let json: any = null;
+      try { json = await res.json(); } catch { /* non-json */ }
+      if (!res.ok) {
+        result = { kind: "error", message: String(json?.error ?? json?.message ?? `HTTP ${res.status}`) };
+      } else if (json?.ok === true) {
+        result = { kind: "ok", to: String(json.to ?? "") };
+      } else {
+        result = { kind: "error", message: String(json?.error ?? json?.message ?? "Unknown error") };
       }
-    } catch {
-      mirror = { kind: "network" };
+    } catch (e: any) {
+      result = { kind: "network", message: "the send workflow did not respond" };
     }
 
     setSaving(false);
 
-    if (mirror.kind === "ok") {
-      toast({ title: "Next step set", description: "Email automation queued." });
-    } else if (mirror.kind === "anomaly") {
-      toast({
-        title: "Lead flagged for attention",
-        description: mirror.reason,
-        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
-      });
+    if (result.kind === "ok") {
+      toast({ title: "Draft created", description: `Draft created for ${result.to}` });
     } else {
       toast({
-        title: "Saved, but sheet sync did not confirm",
-        description: "Check the lead before relying on the email going out.",
+        title: "Next step saved, but no draft was created",
+        description: result.message,
         className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
       });
     }
