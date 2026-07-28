@@ -85,8 +85,72 @@ export default function SetNextStepDialog({
       detail: `Next step → ${step.label}`,
       occurred_at: now, created_by: operator,
     });
+
+    // Re-read the lead so the mirror payload reflects the freshly committed patch
+    const { data: fresh } = await db.from("leads").select("*").eq("id", lead.id).maybeSingle();
+    const l: any = fresh ?? { ...lead, project_name: projectName, state, direct_email: email, phone };
+
+    const body = {
+      lead_id: lead.id,
+      project_name: l.project_name ?? null,
+      next_step_label: step.label,
+      source_system: l.source_system ?? null,
+      company_builder: l.company_builder ?? null,
+      state: l.state ?? null,
+      project_contact_name: l.project_contact_name ?? null,
+      role: l.role ?? null,
+      phone: l.phone ?? null,
+      direct_email: l.direct_email ?? null,
+      reception_name: l.reception_name ?? null,
+      reception_email: l.reception_email ?? null,
+      cc_bcc: l.cc_bcc ?? null,
+      notes: l.notes ?? null,
+      who_spoke_with: l.who_spoke_with ?? null,
+    };
+
+    let mirror:
+      | { kind: "ok"; path: string }
+      | { kind: "anomaly"; reason: string }
+      | { kind: "network" } = { kind: "network" };
+
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15_000);
+      const res = await fetch("https://n8n.srv1437130.hstgr.cloud/webhook/tt-lead-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      const json = await res.json();
+      if (json?.ok === true) {
+        mirror = { kind: "ok", path: String(json.path ?? "") };
+      } else if (json?.ok === false && json?.path === "anomaly") {
+        mirror = { kind: "anomaly", reason: String(json.reason ?? "Unknown anomaly") };
+      }
+    } catch {
+      mirror = { kind: "network" };
+    }
+
     setSaving(false);
-    toast({ title: "Lead actioned", description: `Moved to Actioned. Follow-up ${followUpDate ? formatDate(followUpDate) : "scheduled"}.` });
+
+    if (mirror.kind === "ok") {
+      toast({ title: "Next step set", description: "Email automation queued." });
+    } else if (mirror.kind === "anomaly") {
+      toast({
+        title: "Lead flagged for attention",
+        description: mirror.reason,
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+    } else {
+      toast({
+        title: "Saved, but sheet sync did not confirm",
+        description: "Check the lead before relying on the email going out.",
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+    }
+
     onSaved();
     onOpenChange(false);
   }
