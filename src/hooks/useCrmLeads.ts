@@ -159,7 +159,7 @@ export function useLeadBrowse(filters: {
       setLoading(false);
     })();
     return () => { cancel = true; };
-  }, [filters.search, filters.stage, filters.status, filters.nextStep, filters.source, filters.state, filters.band, filters.page]);
+  }, [filters.search, filters.stage, filters.status, filters.nextStep, filters.source, filters.state, filters.band, filters.page, filters._tick]);
 
   return { rows, count, loading };
 }
