@@ -306,3 +306,48 @@ export async function createLead(input: NewLeadInput): Promise<Lead> {
   }
   return data as Lead;
 }
+
+// -------- Apollo enrichment --------
+export type EnrichMode = "full" | "enrich";
+
+export interface EnrichResponse {
+  ok: boolean;
+  matched?: boolean;
+  draft?: "created" | "failed" | string;
+  detail?: string;
+  contact?: { name?: string | null; email?: string | null } | null;
+  [k: string]: any;
+}
+
+const ENRICH_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-lead-enrich";
+
+export async function enrichLead(
+  leadId: string,
+  operator: string,
+  mode: EnrichMode,
+): Promise<EnrichResponse> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60_000);
+  try {
+    const res = await fetch(ENRICH_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lead_id: leadId, operator, mode }),
+      signal: controller.signal,
+    });
+    let body: any = null;
+    try { body = await res.json(); } catch { body = null; }
+    if (!res.ok) {
+      return { ok: false, detail: body?.detail ?? `Apollo request failed (${res.status})` };
+    }
+    return (body ?? { ok: false, detail: "Empty response from Apollo" }) as EnrichResponse;
+  } catch (err: any) {
+    if (err?.name === "AbortError") {
+      return { ok: false, detail: "Apollo did not respond — the lead is unchanged" };
+    }
+    return { ok: false, detail: err?.message ?? "Apollo did not respond — the lead is unchanged" };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+

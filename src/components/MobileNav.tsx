@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "CRM", url: "/crm", icon: PhoneCall },
+  { title: "The Oven", url: "/crm", icon: PhoneCall },
   { title: "Deal Flow", url: "/deals", icon: Activity },
   { title: "Fin. Health", url: "/financial-health", icon: HeartPulse },
   { title: "Projects", url: "/projects", icon: Hammer },
