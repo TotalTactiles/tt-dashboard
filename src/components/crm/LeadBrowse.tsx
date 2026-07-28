@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { AlertTriangle, Trash2, Plus } from "lucide-react";
+import { AlertTriangle, Trash2, Plus, MoreHorizontal, Sparkles } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
-import { bandFor, Lead, useCrmRefs, useLeadBrowse, useLeadsIncomplete, deleteLeads } from "@/hooks/useCrmLeads";
+import { bandFor, Lead, useCrmRefs, useLeadBrowse, useLeadsIncomplete, deleteLeads, enrichLead } from "@/hooks/useCrmLeads";
 import { useToast } from "@/hooks/use-toast";
 import LeadDrawer from "./LeadDrawer";
 import AddLeadDialog from "./AddLeadDialog";
@@ -266,7 +267,36 @@ export default function LeadBrowse({ operator }: { operator: string }) {
                   <TableCell className={`text-xs font-mono ${isStale ? "text-chart-orange" : "text-muted-foreground"}`}>
                     {days != null ? `${days}d ago` : "—"}
                   </TableCell>
-                  <TableCell />
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={async () => {
+                            const r = await enrichLead(l.id, operator, "enrich");
+                            if (r.ok && r.matched) {
+                              const name = r.contact?.name?.trim() || "contact";
+                              const email = r.contact?.email?.trim();
+                              toast({ title: email ? `Found ${name} — ${email}` : `Found ${name}` });
+                              setReloadTick((t) => t + 1);
+                            } else {
+                              toast({
+                                title: r.matched === false ? "No match" : "Enrichment failed",
+                                description: r.detail || "Apollo did not respond — the lead is unchanged",
+                                className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+                              });
+                            }
+                          }}
+                        >
+                          <Sparkles className="w-3.5 h-3.5 mr-2" /> Enrich with Apollo
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
               );
             })}
