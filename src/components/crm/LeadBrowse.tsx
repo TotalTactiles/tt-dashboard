@@ -318,6 +318,13 @@ export default function LeadBrowse({ operator }: { operator: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AddLeadDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onCreated={(id) => { setReloadTick((t) => t + 1); reloadIncomplete(); setDrawerId(id); }}
+        onOpenLead={(id) => { setAddOpen(false); setDrawerId(id); }}
+      />
     </div>
   );
 }
