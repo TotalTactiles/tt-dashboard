@@ -34,10 +34,20 @@ export interface Lead {
 export interface RefRow { code: string; label: string; sort_order: number; is_active: boolean; [k: string]: any; }
 export interface RatingBand { code: string; label: string; min_score: number; max_score: number; colour: string | null; sort_order: number; }
 
+export interface NextStepRow extends RefRow {
+  follow_up_days: number | null;
+  sheet_value: string | null;
+  applies_to_stage: string | null;
+  moves_to_stage: string | null;
+  requires_email: boolean;
+  requires_state: boolean;
+  is_system: boolean;
+}
+
 // -------- reference tables (cached in-module) --------
 let refCache: {
   outcomes: RefRow[];
-  nextSteps: (RefRow & { follow_up_days: number | null })[];
+  nextSteps: NextStepRow[];
   statuses: RefRow[];
   sources: RefRow[];
   bands: RatingBand[];
@@ -119,6 +129,7 @@ export async function releaseClaim(id: string) {
 // -------- browse --------
 export function useLeadBrowse(filters: {
   search: string; stage: string; status: string; nextStep: string; source: string; state: string; band: string; page: number;
+  _tick?: number;
 }) {
   const [rows, setRows] = useState<Lead[]>([]);
   const [count, setCount] = useState(0);
@@ -148,7 +159,34 @@ export function useLeadBrowse(filters: {
       setLoading(false);
     })();
     return () => { cancel = true; };
-  }, [filters.search, filters.stage, filters.status, filters.nextStep, filters.source, filters.state, filters.band, filters.page]);
+  }, [filters.search, filters.stage, filters.status, filters.nextStep, filters.source, filters.state, filters.band, filters.page, filters._tick]);
 
   return { rows, count, loading };
+}
+
+// -------- incomplete leads --------
+export interface IncompleteRow {
+  id: string;
+  missing_fields: string[];
+}
+export function useLeadsIncomplete() {
+  const [map, setMap] = useState<Record<string, string[]>>({});
+  const reload = useCallback(async () => {
+    const { data } = await db.from("v_leads_incomplete").select("id,missing_fields");
+    const m: Record<string, string[]> = {};
+    (data ?? []).forEach((r: any) => { m[r.id] = r.missing_fields ?? []; });
+    setMap(m);
+  }, []);
+  useEffect(() => { reload(); }, [reload]);
+  return { map, reload };
+}
+
+// -------- deletion --------
+export async function deleteLead(id: string, reason: string, operator: string) {
+  const { error } = await db.rpc("delete_lead", { p_lead: id, p_reason: reason, p_by: operator });
+  if (error) throw error;
+}
+export async function deleteLeads(ids: string[], reason: string, operator: string) {
+  const { error } = await db.rpc("delete_leads", { p_leads: ids, p_reason: reason, p_by: operator });
+  if (error) throw error;
 }

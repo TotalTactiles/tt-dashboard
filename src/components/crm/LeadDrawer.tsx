@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { bandFor, Lead, useCrmRefs } from "@/hooks/useCrmLeads";
-import { Check } from "lucide-react";
+import { bandFor, Lead, useCrmRefs, deleteLead } from "@/hooks/useCrmLeads";
+import { useToast } from "@/hooks/use-toast";
+import { Check, AlertTriangle, Trash2 } from "lucide-react";
 
 const db = supabase as any;
 
@@ -25,8 +27,8 @@ function useLead(id: string | null) {
 }
 
 function InlineField({
-  label, value, onSave, textarea,
-}: { label: string; value: string | null; onSave: (v: string) => Promise<void>; textarea?: boolean }) {
+  label, value, onSave, textarea, highlight,
+}: { label: string; value: string | null; onSave: (v: string) => Promise<void>; textarea?: boolean; highlight?: boolean }) {
   const [v, setV] = useState(value ?? "");
   const [saved, setSaved] = useState(false);
   useEffect(() => { setV(value ?? ""); }, [value]);
@@ -36,23 +38,26 @@ function InlineField({
     setSaved(true);
     setTimeout(() => setSaved(false), 1200);
   };
+  const cls = `mt-1 ${highlight ? "border-chart-orange/60 ring-1 ring-chart-orange/40" : ""}`;
   return (
     <div>
       <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono flex items-center gap-2">
-        {label} {saved && <span className="text-chart-green normal-case flex items-center gap-1"><Check className="w-3 h-3" /> saved</span>}
+        {label}
+        {highlight && <span className="text-chart-orange normal-case">· missing</span>}
+        {saved && <span className="text-chart-green normal-case flex items-center gap-1"><Check className="w-3 h-3" /> saved</span>}
       </Label>
       {textarea ? (
-        <Textarea className="mt-1" rows={3} value={v} onChange={(e) => setV(e.target.value)} onBlur={commit} />
+        <Textarea className={cls} rows={3} value={v} onChange={(e) => setV(e.target.value)} onBlur={commit} />
       ) : (
-        <Input className="mt-1" value={v} onChange={(e) => setV(e.target.value)} onBlur={commit} />
+        <Input className={cls} value={v} onChange={(e) => setV(e.target.value)} onBlur={commit} />
       )}
     </div>
   );
 }
 
 export default function LeadDrawer({
-  leadId, open, onOpenChange, operator,
-}: { leadId: string | null; open: boolean; onOpenChange: (v: boolean) => void; operator: string }) {
+  leadId, open, onOpenChange, operator, onDeleted,
+}: { leadId: string | null; open: boolean; onOpenChange: (v: boolean) => void; operator: string; onDeleted?: () => void }) {
   const refs = useCrmRefs();
   const { lead, reload } = useLead(leadId);
   const [events, setEvents] = useState<any[]>([]);
@@ -61,21 +66,28 @@ export default function LeadDrawer({
   const [ratingHistory, setRatingHistory] = useState<any[]>([]);
   const [history, setHistory] = useState<any | null>(null);
   const [silence, setSilence] = useState<any | null>(null);
+  const [incomplete, setIncomplete] = useState<string[] | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
   const [newTask, setNewTask] = useState({ title: "", kind: "follow_up", due_date: "" });
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
 
   const load = useCallback(async () => {
     if (!leadId || !lead) return;
-    const [e, c, t, r, h, s] = await Promise.all([
+    const [e, c, t, r, h, s, inc] = await Promise.all([
       db.from("lead_events").select("*").eq("lead_id", leadId).order("occurred_at", { ascending: false }),
       db.from("lead_calls").select("*").eq("lead_id", leadId).order("called_at", { ascending: false }),
       db.from("lead_tasks").select("*").eq("lead_id", leadId).order("status", { ascending: true }).order("due_date"),
       db.from("lead_rating_history").select("*").eq("lead_id", leadId).order("computed_at", { ascending: false }),
       db.from("v_company_history").select("*").eq("company", lead.company_builder).maybeSingle(),
       db.from("v_lead_silence").select("*").eq("id", leadId).maybeSingle(),
+      db.from("v_leads_incomplete").select("missing_fields").eq("id", leadId).maybeSingle(),
     ]);
     setEvents(e.data ?? []); setCalls(c.data ?? []); setTasks(t.data ?? []);
     setRatingHistory(r.data ?? []); setHistory(h.data ?? null); setSilence(s.data ?? null);
+    setIncomplete(inc.data?.missing_fields ?? null);
   }, [leadId, lead?.company_builder]);
 
   useEffect(() => { load(); }, [load]);
@@ -197,6 +209,17 @@ export default function LeadDrawer({
                     <span className="font-semibold">Next best action:</span> {lead.next_best_action}
                   </div>
                 )}
+                {incomplete && incomplete.length > 0 && (
+                  <div className="rounded-md border border-chart-orange/40 bg-chart-orange/10 px-3 py-2 text-xs text-chart-orange flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <div className="font-semibold">Incomplete lead — needs {incomplete.join(", ")}</div>
+                      {incomplete.includes("company") && (
+                        <div className="opacity-90 mt-0.5">Builder is a placeholder — find out who the builder actually is.</div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {history && history.total_leads > 0 && (
                   <div className="rounded-md border border-border bg-muted/20 px-3 py-2 text-xs font-mono">
                     <span className="font-semibold">{history.total_leads}</span> previous leads · <span className="font-semibold">{history.converted}</span> converted · <span className="font-semibold">{Math.round(history.response_rate_pct)}%</span> response
@@ -208,18 +231,30 @@ export default function LeadDrawer({
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-3">
-                  <InlineField label="Company" value={lead.company_builder} onSave={(v) => patchLead({ company_builder: v })} />
-                  <InlineField label="Project name" value={lead.project_name} onSave={(v) => patchLead({ project_name: v })} />
+                  <InlineField label="Company" value={lead.company_builder} onSave={(v) => patchLead({ company_builder: v })} highlight={incomplete?.includes("company")} />
+                  <InlineField label="Project name" value={lead.project_name} onSave={(v) => patchLead({ project_name: v })} highlight={incomplete?.includes("project_name")} />
                   <InlineField label="Contact name" value={lead.project_contact_name} onSave={(v) => patchLead({ project_contact_name: v })} />
                   <InlineField label="Role" value={lead.role} onSave={(v) => patchLead({ role: v })} />
                   <InlineField label="Phone" value={lead.phone} onSave={(v) => patchLead({ phone: v })} />
-                  <InlineField label="Direct email" value={lead.direct_email} onSave={(v) => patchLead({ direct_email: v })} />
+                  <InlineField label="Direct email" value={lead.direct_email} onSave={(v) => patchLead({ direct_email: v })} highlight={incomplete?.includes("email")} />
                   <InlineField label="Reception name" value={lead.reception_name} onSave={(v) => patchLead({ reception_name: v })} />
                   <InlineField label="Reception email" value={lead.reception_email} onSave={(v) => patchLead({ reception_email: v })} />
-                  <InlineField label="State" value={lead.state} onSave={(v) => patchLead({ state: v.toUpperCase() || null })} />
+                  <InlineField label="State" value={lead.state} onSave={(v) => patchLead({ state: v.toUpperCase() || null })} highlight={incomplete?.includes("state")} />
                   <InlineField label="Site address" value={lead.site_address} onSave={(v) => patchLead({ site_address: v })} />
                 </div>
                 <InlineField label="Notes" value={lead.notes} onSave={(v) => patchLead({ notes: v })} textarea />
+
+                <div className="mt-8 pt-6 border-t border-destructive/30">
+                  <div className="text-[10px] uppercase tracking-widest text-destructive font-mono mb-2">Danger zone</div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-xs text-muted-foreground">
+                      Permanently delete this lead and all its calls, notes, tasks and rating history. This cannot be undone.
+                    </div>
+                    <Button variant="destructive" size="sm" onClick={() => { setDeleteReason(""); setDeleteOpen(true); }}>
+                      <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete lead
+                    </Button>
+                  </div>
+                </div>
               </TabsContent>
 
               <TabsContent value="notes" className="mt-4 space-y-3">
@@ -295,6 +330,56 @@ export default function LeadDrawer({
           </div>
         </div>
       </SheetContent>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-4 h-4" /> Delete this lead permanently?
+            </DialogTitle>
+            <DialogDescription>
+              This removes <span className="font-semibold">{lead.company_builder}</span>
+              {lead.project_name ? <> — {lead.project_name}</> : null} and all its calls, notes, tasks and rating history. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div>
+            <Label className="text-xs">Reason (required)</Label>
+            <Input
+              className="mt-1"
+              value={deleteReason}
+              onChange={(e) => setDeleteReason(e.target.value)}
+              placeholder="e.g. duplicate, out of scope, test data"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>Cancel</Button>
+            <Button
+              variant="destructive"
+              disabled={!deleteReason.trim() || deleting}
+              onClick={async () => {
+                setDeleting(true);
+                try {
+                  await deleteLead(lead.id, deleteReason.trim(), operator);
+                  toast({ title: "Lead deleted", description: "The lead and all its history are gone." });
+                  setDeleteOpen(false);
+                  onOpenChange(false);
+                  onDeleted?.();
+                } catch (err: any) {
+                  toast({
+                    title: "Delete failed",
+                    description: err?.message ?? "Try again",
+                    className: "border-destructive/40 bg-destructive/10 text-destructive",
+                  });
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+            >
+              {deleting ? "Deleting…" : "Delete permanently"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }
