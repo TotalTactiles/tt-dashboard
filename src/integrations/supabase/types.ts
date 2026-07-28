@@ -1608,27 +1608,36 @@ export type Database = {
           code: string
           created_at: string
           is_active: boolean
+          is_terminal: boolean
           label: string
+          pipeline_group: string | null
           retired_at: string | null
           sort_order: number
+          zoho_count: number | null
           zoho_value: string | null
         }
         Insert: {
           code: string
           created_at?: string
           is_active?: boolean
+          is_terminal?: boolean
           label: string
+          pipeline_group?: string | null
           retired_at?: string | null
           sort_order?: number
+          zoho_count?: number | null
           zoho_value?: string | null
         }
         Update: {
           code?: string
           created_at?: string
           is_active?: boolean
+          is_terminal?: boolean
           label?: string
+          pipeline_group?: string | null
           retired_at?: string | null
           sort_order?: number
+          zoho_count?: number | null
           zoho_value?: string | null
         }
         Relationships: []
@@ -1774,6 +1783,7 @@ export type Database = {
           is_active: boolean
           next_step_code: string
           send_mode: string
+          send_to: string
           state: string | null
           subject: string
           updated_at: string
@@ -1787,6 +1797,7 @@ export type Database = {
           is_active?: boolean
           next_step_code: string
           send_mode?: string
+          send_to?: string
           state?: string | null
           subject: string
           updated_at?: string
@@ -1800,6 +1811,7 @@ export type Database = {
           is_active?: boolean
           next_step_code?: string
           send_mode?: string
+          send_to?: string
           state?: string | null
           subject?: string
           updated_at?: string
