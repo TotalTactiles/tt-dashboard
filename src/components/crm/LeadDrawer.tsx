@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { bandFor, Lead, useCrmRefs, deleteLead } from "@/hooks/useCrmLeads";
 import { useToast } from "@/hooks/use-toast";
 import { Check, AlertTriangle, Trash2 } from "lucide-react";
+import EnrichButton from "./EnrichButton";
 
 const db = supabase as any;
 
@@ -230,6 +231,10 @@ export default function LeadDrawer({
                     {silence.days_silent}d silent · {silence.action_prompt}
                   </div>
                 )}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">Contact details</div>
+                  <EnrichButton leadId={lead.id} operator={operator} onDone={() => reload()} />
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <InlineField label="Company" value={lead.company_builder} onSave={(v) => patchLead({ company_builder: v })} highlight={incomplete?.includes("company")} />
                   <InlineField label="Project name" value={lead.project_name} onSave={(v) => patchLead({ project_name: v })} highlight={incomplete?.includes("project_name")} />
