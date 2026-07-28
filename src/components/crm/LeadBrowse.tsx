@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { AlertTriangle, Trash2 } from "lucide-react";
+import { AlertTriangle, Trash2, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { bandFor, Lead, useCrmRefs, useLeadBrowse, useLeadsIncomplete, deleteLeads } from "@/hooks/useCrmLeads";
 import { useToast } from "@/hooks/use-toast";
 import LeadDrawer from "./LeadDrawer";
+import AddLeadDialog from "./AddLeadDialog";
 
 const db = supabase as any;
 
@@ -51,6 +52,7 @@ export default function LeadBrowse({ operator }: { operator: string }) {
   const [bulkReason, setBulkReason] = useState("");
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [reloadTick, setReloadTick] = useState(0);
+  const [addOpen, setAddOpen] = useState(false);
 
   useEffect(() => {
     db.from("v_lead_funnel_summary").select("*").maybeSingle().then((r: any) => setFunnel(r.data ?? null));
@@ -181,15 +183,20 @@ export default function LeadBrowse({ operator }: { operator: string }) {
             <span className="text-chart-orange">Incomplete only</span>
             <span className="text-muted-foreground">({Object.keys(incompleteMap).length})</span>
           </label>
-          {selected.size > 0 && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => { setBulkReason(""); setBulkOpen(true); }}
-            >
-              <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete {selected.size} selected
+          <div className="flex items-center gap-2">
+            {selected.size > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => { setBulkReason(""); setBulkOpen(true); }}
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete {selected.size} selected
+              </Button>
+            )}
+            <Button size="sm" onClick={() => setAddOpen(true)}>
+              <Plus className="w-3.5 h-3.5 mr-1.5" /> Add lead
             </Button>
-          )}
+          </div>
         </div>
       </Card>
 
@@ -311,6 +318,13 @@ export default function LeadBrowse({ operator }: { operator: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AddLeadDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onCreated={(id) => { setReloadTick((t) => t + 1); reloadIncomplete(); setDrawerId(id); }}
+        onOpenLead={(id) => { setAddOpen(false); setDrawerId(id); }}
+      />
     </div>
   );
 }
