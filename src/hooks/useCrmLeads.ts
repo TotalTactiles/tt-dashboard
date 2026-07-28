@@ -34,10 +34,20 @@ export interface Lead {
 export interface RefRow { code: string; label: string; sort_order: number; is_active: boolean; [k: string]: any; }
 export interface RatingBand { code: string; label: string; min_score: number; max_score: number; colour: string | null; sort_order: number; }
 
+export interface NextStepRow extends RefRow {
+  follow_up_days: number | null;
+  sheet_value: string | null;
+  applies_to_stage: string | null;
+  moves_to_stage: string | null;
+  requires_email: boolean;
+  requires_state: boolean;
+  is_system: boolean;
+}
+
 // -------- reference tables (cached in-module) --------
 let refCache: {
   outcomes: RefRow[];
-  nextSteps: (RefRow & { follow_up_days: number | null })[];
+  nextSteps: NextStepRow[];
   statuses: RefRow[];
   sources: RefRow[];
   bands: RatingBand[];
