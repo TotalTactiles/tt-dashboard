@@ -183,15 +183,20 @@ export default function LeadBrowse({ operator }: { operator: string }) {
             <span className="text-chart-orange">Incomplete only</span>
             <span className="text-muted-foreground">({Object.keys(incompleteMap).length})</span>
           </label>
-          {selected.size > 0 && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => { setBulkReason(""); setBulkOpen(true); }}
-            >
-              <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete {selected.size} selected
+          <div className="flex items-center gap-2">
+            {selected.size > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => { setBulkReason(""); setBulkOpen(true); }}
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete {selected.size} selected
+              </Button>
+            )}
+            <Button size="sm" onClick={() => setAddOpen(true)}>
+              <Plus className="w-3.5 h-3.5 mr-1.5" /> Add lead
             </Button>
-          )}
+          </div>
         </div>
       </Card>
 
