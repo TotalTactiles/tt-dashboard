@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
+
+const FragmentRow = ({ children }: { children: ReactNode }) => <Fragment>{children}</Fragment>;
 import { ChevronDown, ChevronRight, ArrowUpDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -106,9 +108,8 @@ export default function CompanyList() {
               {pageRows.map((r) => {
                 const isOpen = expanded === r.organisation_id;
                 return (
-                  <>
+                  <FragmentRow key={r.organisation_id}>
                     <tr
-                      key={r.organisation_id}
                       className="border-t border-border cursor-pointer hover:bg-muted/30"
                       onClick={() => setExpanded(isOpen ? null : r.organisation_id)}
                     >
@@ -131,7 +132,7 @@ export default function CompanyList() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </FragmentRow>
                 );
               })}
             </tbody>
