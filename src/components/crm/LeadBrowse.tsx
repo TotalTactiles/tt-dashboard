@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { AlertTriangle, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { bandFor, Lead, useCrmRefs, useLeadBrowse } from "@/hooks/useCrmLeads";
+import { bandFor, Lead, useCrmRefs, useLeadBrowse, useLeadsIncomplete, deleteLeads } from "@/hooks/useCrmLeads";
+import { useToast } from "@/hooks/use-toast";
 import LeadDrawer from "./LeadDrawer";
 
 const db = supabase as any;
@@ -33,18 +38,32 @@ function KpiTile({ label, value }: { label: string; value: string | number }) {
 
 export default function LeadBrowse({ operator }: { operator: string }) {
   const refs = useCrmRefs();
+  const { toast } = useToast();
   const [funnel, setFunnel] = useState<any | null>(null);
   const [filters, setFilters] = useState({
     search: "", stage: "", status: "", nextStep: "", source: "", state: "", band: "", page: 0,
   });
+  const [incompleteOnly, setIncompleteOnly] = useState(false);
   const [drawerId, setDrawerId] = useState<string | null>(null);
   const [silence, setSilence] = useState<Record<string, { days_silent: number }>>({});
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkReason, setBulkReason] = useState("");
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
     db.from("v_lead_funnel_summary").select("*").maybeSingle().then((r: any) => setFunnel(r.data ?? null));
-  }, []);
+  }, [reloadTick]);
 
-  const { rows, count, loading } = useLeadBrowse(filters);
+  const { rows: rawRows, count: rawCount, loading } = useLeadBrowse({ ...filters, _tick: reloadTick } as any);
+  const { map: incompleteMap, reload: reloadIncomplete } = useLeadsIncomplete();
+
+  const rows = useMemo(
+    () => (incompleteOnly ? rawRows.filter((r) => incompleteMap[r.id]) : rawRows),
+    [rawRows, incompleteOnly, incompleteMap],
+  );
+  const count = incompleteOnly ? rows.length : rawCount;
 
   useEffect(() => {
     if (!rows.length) return;
@@ -56,10 +75,54 @@ export default function LeadBrowse({ operator }: { operator: string }) {
     });
   }, [rows]);
 
-  const stateOptions = useMemo(() => Array.from(new Set(rows.map((r) => r.state).filter(Boolean))) as string[], [rows]);
-  const pages = Math.ceil(count / 50);
+  // Clear stale selections that no longer exist on the current page
+  useEffect(() => {
+    setSelected((prev) => {
+      const visible = new Set(rows.map((r) => r.id));
+      const next = new Set<string>();
+      prev.forEach((id) => { if (visible.has(id)) next.add(id); });
+      return next.size === prev.size ? prev : next;
+    });
+  }, [rows]);
 
+  const pages = Math.ceil(count / 50);
   const setF = (k: keyof typeof filters, v: any) => setFilters({ ...filters, [k]: v, page: 0 });
+
+  const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
+  const toggleAll = () => {
+    const next = new Set(selected);
+    if (allSelected) rows.forEach((r) => next.delete(r.id));
+    else rows.forEach((r) => next.add(r.id));
+    setSelected(next);
+  };
+  const toggleOne = (id: string) => {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setSelected(next);
+  };
+
+  async function confirmBulkDelete() {
+    const ids = Array.from(selected);
+    if (!ids.length || !bulkReason.trim()) return;
+    setBulkDeleting(true);
+    try {
+      await deleteLeads(ids, bulkReason.trim(), operator);
+      toast({ title: `Deleted ${ids.length} lead${ids.length === 1 ? "" : "s"}`, description: "All history removed." });
+      setBulkOpen(false);
+      setBulkReason("");
+      setSelected(new Set());
+      setReloadTick((t) => t + 1);
+      reloadIncomplete();
+    } catch (err: any) {
+      toast({
+        title: "Delete failed",
+        description: err?.message ?? "Try again",
+        className: "border-destructive/40 bg-destructive/10 text-destructive",
+      });
+    } finally {
+      setBulkDeleting(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -112,12 +175,31 @@ export default function LeadBrowse({ operator }: { operator: string }) {
             </SelectContent>
           </Select>
         </div>
+        <div className="flex items-center justify-between gap-3 mt-2">
+          <label className="flex items-center gap-2 text-xs font-mono cursor-pointer">
+            <Checkbox checked={incompleteOnly} onCheckedChange={(v) => setIncompleteOnly(!!v)} />
+            <span className="text-chart-orange">Incomplete only</span>
+            <span className="text-muted-foreground">({Object.keys(incompleteMap).length})</span>
+          </label>
+          {selected.size > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => { setBulkReason(""); setBulkOpen(true); }}
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete {selected.size} selected
+            </Button>
+          )}
+        </div>
       </Card>
 
       <Card>
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-8">
+                <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" />
+              </TableHead>
               <TableHead>Company</TableHead>
               <TableHead>Project</TableHead>
               <TableHead>State</TableHead>
@@ -129,8 +211,8 @@ export default function LeadBrowse({ operator }: { operator: string }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading && <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground">Loading…</TableCell></TableRow>}
-            {!loading && !rows.length && <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground italic">No leads match</TableCell></TableRow>}
+            {loading && <TableRow><TableCell colSpan={9} className="text-center text-sm text-muted-foreground">Loading…</TableCell></TableRow>}
+            {!loading && !rows.length && <TableRow><TableCell colSpan={9} className="text-center text-sm text-muted-foreground italic">No leads match</TableCell></TableRow>}
             {rows.map((l: Lead) => {
               const band = bandFor(l.rating_score, refs?.bands);
               const status = refs?.statuses.find((s) => s.code === l.status_code);
@@ -138,11 +220,27 @@ export default function LeadBrowse({ operator }: { operator: string }) {
               const days = silRow?.days_silent;
               const isStale = days != null && days > 35;
               const claimed = l.claimed_by && l.claimed_at && (Date.now() - new Date(l.claimed_at).getTime()) < 30 * 60 * 1000;
+              const missing = incompleteMap[l.id];
+              const isSelected = selected.has(l.id);
               return (
                 <TableRow key={l.id} className="cursor-pointer" onClick={() => setDrawerId(l.id)}>
+                  <TableCell className="w-8" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox checked={isSelected} onCheckedChange={() => toggleOne(l.id)} aria-label={`Select ${l.company_builder}`} />
+                  </TableCell>
                   <TableCell className="font-medium">
-                    {l.company_builder}
-                    {claimed && <span className="ml-2 text-[10px] font-mono text-muted-foreground">Claimed by {l.claimed_by}</span>}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span>{l.company_builder}</span>
+                      {missing && missing.length > 0 && (
+                        <span
+                          title={`Missing: ${missing.join(", ")}`}
+                          className="text-[10px] font-mono px-1.5 py-0.5 rounded uppercase bg-chart-orange/15 text-chart-orange border border-chart-orange/40 flex items-center gap-1"
+                        >
+                          <AlertTriangle className="w-3 h-3" />
+                          {missing.join(" · ")}
+                        </span>
+                      )}
+                      {claimed && <span className="text-[10px] font-mono text-muted-foreground">Claimed by {l.claimed_by}</span>}
+                    </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{l.project_name || "—"}</TableCell>
                   <TableCell><span className="text-xs font-mono">{l.state || "—"}</span></TableCell>
@@ -178,7 +276,41 @@ export default function LeadBrowse({ operator }: { operator: string }) {
         )}
       </Card>
 
-      <LeadDrawer leadId={drawerId} open={!!drawerId} onOpenChange={(v) => !v && setDrawerId(null)} operator={operator} />
+      <LeadDrawer
+        leadId={drawerId}
+        open={!!drawerId}
+        onOpenChange={(v) => !v && setDrawerId(null)}
+        operator={operator}
+        onDeleted={() => { setReloadTick((t) => t + 1); reloadIncomplete(); }}
+      />
+
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-4 h-4" /> Delete {selected.size} lead{selected.size === 1 ? "" : "s"} permanently?
+            </DialogTitle>
+            <DialogDescription>
+              This removes every selected lead and all their calls, notes, tasks and rating history. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div>
+            <Label className="text-xs">Reason (required)</Label>
+            <Input
+              className="mt-1"
+              value={bulkReason}
+              onChange={(e) => setBulkReason(e.target.value)}
+              placeholder="e.g. duplicate batch, out of scope"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkOpen(false)} disabled={bulkDeleting}>Cancel</Button>
+            <Button variant="destructive" disabled={!bulkReason.trim() || bulkDeleting} onClick={confirmBulkDelete}>
+              {bulkDeleting ? "Deleting…" : `Delete ${selected.size} permanently`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
