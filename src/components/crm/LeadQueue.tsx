@@ -29,7 +29,7 @@ interface CallRow { id: string; called_at: string; outcome_code: string; notes: 
 
 export default function LeadQueue({ operator }: { operator: string }) {
   const refs = useCrmRefs();
-  const { rows, loading, reload } = useLeadQueue(operator);
+  const { rows, totalCount, loading, reload } = useLeadQueue(operator);
   const [idx, setIdx] = useState(0);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [logOpen, setLogOpen] = useState(false);
@@ -127,7 +127,7 @@ export default function LeadQueue({ operator }: { operator: string }) {
       <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-muted-foreground uppercase tracking-wider">
         <span>Working as <span className="text-foreground font-semibold normal-case">{operator}</span></span>
         <span>·</span>
-        <span>{rows.length - idx} leads in queue</span>
+        <span>{totalCount} leads in queue</span>
         <div className="flex-1 min-w-[120px]">
           <div className="h-1 bg-muted rounded-full overflow-hidden">
             <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
