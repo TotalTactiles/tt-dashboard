@@ -1,9 +1,10 @@
-import { LayoutDashboard, Activity, HeartPulse, CalendarDays, Users, Target, BrainCircuit, FunctionSquare, Hammer, Settings } from "lucide-react";
+import { LayoutDashboard, Activity, HeartPulse, CalendarDays, Users, Target, BrainCircuit, FunctionSquare, Hammer, PhoneCall, Settings } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "CRM", url: "/crm", icon: PhoneCall },
   { title: "Deal Flow", url: "/deals", icon: Activity },
   { title: "Fin. Health", url: "/financial-health", icon: HeartPulse },
   { title: "Projects", url: "/projects", icon: Hammer },
