@@ -330,6 +330,56 @@ export default function LeadDrawer({
           </div>
         </div>
       </SheetContent>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-4 h-4" /> Delete this lead permanently?
+            </DialogTitle>
+            <DialogDescription>
+              This removes <span className="font-semibold">{lead.company_builder}</span>
+              {lead.project_name ? <> — {lead.project_name}</> : null} and all its calls, notes, tasks and rating history. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div>
+            <Label className="text-xs">Reason (required)</Label>
+            <Input
+              className="mt-1"
+              value={deleteReason}
+              onChange={(e) => setDeleteReason(e.target.value)}
+              placeholder="e.g. duplicate, out of scope, test data"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>Cancel</Button>
+            <Button
+              variant="destructive"
+              disabled={!deleteReason.trim() || deleting}
+              onClick={async () => {
+                setDeleting(true);
+                try {
+                  await deleteLead(lead.id, deleteReason.trim(), operator);
+                  toast({ title: "Lead deleted", description: "The lead and all its history are gone." });
+                  setDeleteOpen(false);
+                  onOpenChange(false);
+                  onDeleted?.();
+                } catch (err: any) {
+                  toast({
+                    title: "Delete failed",
+                    description: err?.message ?? "Try again",
+                    className: "border-destructive/40 bg-destructive/10 text-destructive",
+                  });
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+            >
+              {deleting ? "Deleting…" : "Delete permanently"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }
