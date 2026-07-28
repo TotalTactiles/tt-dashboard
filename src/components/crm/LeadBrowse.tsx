@@ -52,6 +52,7 @@ export default function LeadBrowse({ operator }: { operator: string }) {
   const [bulkReason, setBulkReason] = useState("");
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [reloadTick, setReloadTick] = useState(0);
+  const [addOpen, setAddOpen] = useState(false);
 
   useEffect(() => {
     db.from("v_lead_funnel_summary").select("*").maybeSingle().then((r: any) => setFunnel(r.data ?? null));
