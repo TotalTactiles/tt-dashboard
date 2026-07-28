@@ -129,6 +129,7 @@ export async function releaseClaim(id: string) {
 // -------- browse --------
 export function useLeadBrowse(filters: {
   search: string; stage: string; status: string; nextStep: string; source: string; state: string; band: string; page: number;
+  _tick?: number;
 }) {
   const [rows, setRows] = useState<Lead[]>([]);
   const [count, setCount] = useState(0);
