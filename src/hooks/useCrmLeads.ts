@@ -190,3 +190,117 @@ export async function deleteLeads(ids: string[], reason: string, operator: strin
   const { error } = await db.rpc("delete_leads", { p_leads: ids, p_reason: reason, p_by: operator });
   if (error) throw error;
 }
+
+// -------- add lead --------
+export interface SimilarLeadRow {
+  id: string;
+  project_name: string | null;
+  company_builder: string | null;
+  stage: string;
+  score: number;
+  exact_project: boolean;
+  same_company: boolean;
+}
+
+export async function findSimilarLeads(project: string, company: string | null) {
+  const { data, error } = await db.rpc("find_similar_leads", {
+    p_project: project,
+    p_company: company,
+    p_threshold: 0.4,
+  });
+  if (error) throw error;
+  return (data ?? []) as SimilarLeadRow[];
+}
+
+export interface OrgSuggestion {
+  id: string;
+  name: string;
+  lead_count: number;
+}
+
+export async function searchOrganisations(q: string): Promise<OrgSuggestion[]> {
+  const term = q.trim();
+  if (term.length < 2) return [];
+  const { data: orgs } = await db
+    .from("organisations")
+    .select("id,name")
+    .ilike("name", `%${term.replace(/[%,]/g, "")}%`)
+    .eq("is_active", true)
+    .order("name")
+    .limit(8);
+  const list = (orgs ?? []) as { id: string; name: string }[];
+  if (!list.length) return [];
+  const ids = list.map((o) => o.id);
+  const { data: leads } = await db.from("leads").select("organisation_id").in("organisation_id", ids);
+  const counts: Record<string, number> = {};
+  ((leads ?? []) as { organisation_id: string }[]).forEach((l) => {
+    if (l.organisation_id) counts[l.organisation_id] = (counts[l.organisation_id] ?? 0) + 1;
+  });
+  return list.map((o) => ({ id: o.id, name: o.name, lead_count: counts[o.id] ?? 0 }));
+}
+
+export async function fetchLeadStates(): Promise<string[]> {
+  const { data } = await db.from("leads").select("state").not("state", "is", null).limit(2000);
+  const set = new Set<string>();
+  ((data ?? []) as { state: string | null }[]).forEach((r) => { if (r.state) set.add(r.state.trim().toUpperCase()); });
+  const arr = Array.from(set).filter(Boolean);
+  const priority = ["NSW", "QLD"];
+  arr.sort((a, b) => {
+    const ai = priority.indexOf(a); const bi = priority.indexOf(b);
+    if (ai !== -1 || bi !== -1) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    return a.localeCompare(b);
+  });
+  // ensure NSW/QLD present even if not in data
+  priority.slice().reverse().forEach((p) => { if (!arr.includes(p)) arr.unshift(p); });
+  return arr;
+}
+
+export interface NewLeadInput {
+  project_name: string;
+  company_builder: string;
+  organisation_id: string | null;
+  state: string;
+  project_contact_name?: string | null;
+  role?: string | null;
+  phone?: string | null;
+  direct_email?: string | null;
+  reception_name?: string | null;
+  reception_email?: string | null;
+  site_address?: string | null;
+  notes?: string | null;
+  source_code?: string | null;
+}
+
+export class DuplicateLeadError extends Error {
+  constructor() { super("A live lead with this project name already exists."); }
+}
+
+export async function createLead(input: NewLeadInput): Promise<Lead> {
+  const payload: any = {
+    project_name: input.project_name.trim(),
+    company_builder: input.company_builder.trim(),
+    organisation_id: input.organisation_id,
+    state: input.state.trim().toUpperCase() || null,
+    project_contact_name: input.project_contact_name?.trim() || null,
+    role: input.role?.trim() || null,
+    phone: input.phone?.trim() || null,
+    direct_email: input.direct_email?.trim() || null,
+    reception_name: input.reception_name?.trim() || null,
+    reception_email: input.reception_email?.trim() || null,
+    site_address: input.site_address?.trim() || null,
+    notes: input.notes?.trim() || null,
+    source_code: input.source_code || null,
+    stage: "new",
+    source_system: "dashboard",
+    source_row_key: null,
+  };
+  const { data, error } = await db.from("leads").insert(payload).select("*").single();
+  if (error) {
+    const msg = `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
+    if (msg.includes("leads_project_unique") || (error.code === "23505" && msg.includes("project"))) {
+      throw new DuplicateLeadError();
+    }
+    throw error;
+  }
+  return data as Lead;
+}
