@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { bandFor, Lead, useCrmRefs } from "@/hooks/useCrmLeads";
-import { Check } from "lucide-react";
+import { bandFor, Lead, useCrmRefs, deleteLead } from "@/hooks/useCrmLeads";
+import { useToast } from "@/hooks/use-toast";
+import { Check, AlertTriangle, Trash2 } from "lucide-react";
 
 const db = supabase as any;
 
