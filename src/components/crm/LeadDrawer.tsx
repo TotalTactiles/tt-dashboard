@@ -27,8 +27,8 @@ function useLead(id: string | null) {
 }
 
 function InlineField({
-  label, value, onSave, textarea,
-}: { label: string; value: string | null; onSave: (v: string) => Promise<void>; textarea?: boolean }) {
+  label, value, onSave, textarea, highlight,
+}: { label: string; value: string | null; onSave: (v: string) => Promise<void>; textarea?: boolean; highlight?: boolean }) {
   const [v, setV] = useState(value ?? "");
   const [saved, setSaved] = useState(false);
   useEffect(() => { setV(value ?? ""); }, [value]);
@@ -38,15 +38,18 @@ function InlineField({
     setSaved(true);
     setTimeout(() => setSaved(false), 1200);
   };
+  const cls = `mt-1 ${highlight ? "border-chart-orange/60 ring-1 ring-chart-orange/40" : ""}`;
   return (
     <div>
       <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono flex items-center gap-2">
-        {label} {saved && <span className="text-chart-green normal-case flex items-center gap-1"><Check className="w-3 h-3" /> saved</span>}
+        {label}
+        {highlight && <span className="text-chart-orange normal-case">· missing</span>}
+        {saved && <span className="text-chart-green normal-case flex items-center gap-1"><Check className="w-3 h-3" /> saved</span>}
       </Label>
       {textarea ? (
-        <Textarea className="mt-1" rows={3} value={v} onChange={(e) => setV(e.target.value)} onBlur={commit} />
+        <Textarea className={cls} rows={3} value={v} onChange={(e) => setV(e.target.value)} onBlur={commit} />
       ) : (
-        <Input className="mt-1" value={v} onChange={(e) => setV(e.target.value)} onBlur={commit} />
+        <Input className={cls} value={v} onChange={(e) => setV(e.target.value)} onBlur={commit} />
       )}
     </div>
   );
