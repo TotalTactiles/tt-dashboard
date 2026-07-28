@@ -162,3 +162,30 @@ export function useLeadBrowse(filters: {
 
   return { rows, count, loading };
 }
+
+// -------- incomplete leads --------
+export interface IncompleteRow {
+  id: string;
+  missing_fields: string[];
+}
+export function useLeadsIncomplete() {
+  const [map, setMap] = useState<Record<string, string[]>>({});
+  const reload = useCallback(async () => {
+    const { data } = await db.from("v_leads_incomplete").select("id,missing_fields");
+    const m: Record<string, string[]> = {};
+    (data ?? []).forEach((r: any) => { m[r.id] = r.missing_fields ?? []; });
+    setMap(m);
+  }, []);
+  useEffect(() => { reload(); }, [reload]);
+  return { map, reload };
+}
+
+// -------- deletion --------
+export async function deleteLead(id: string, reason: string, operator: string) {
+  const { error } = await db.rpc("delete_lead", { p_lead: id, p_reason: reason, p_by: operator });
+  if (error) throw error;
+}
+export async function deleteLeads(ids: string[], reason: string, operator: string) {
+  const { error } = await db.rpc("delete_leads", { p_leads: ids, p_reason: reason, p_by: operator });
+  if (error) throw error;
+}
