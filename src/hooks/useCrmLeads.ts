@@ -95,28 +95,30 @@ export function bandFor(score: number | null | undefined, bands: RatingBand[] | 
 // -------- queue --------
 export function useLeadQueue(operator: string | null) {
   const [rows, setRows] = useState<Lead[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
     if (!operator) return;
     setLoading(true);
     const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-    const { data } = await db
+    const { data, count } = await db
       .from("leads")
-      .select("*")
+      .select("*", { count: "exact" })
       .eq("stage", "ready_to_call")
       .order("rating_score", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: true })
-      .limit(200);
+      .range(0, 4999);
     const filtered = ((data as Lead[]) ?? []).filter(
       (l) => !l.claimed_by || l.claimed_by === operator || !l.claimed_at || l.claimed_at < cutoff,
     );
     setRows(filtered);
+    setTotalCount(count ?? filtered.length);
     setLoading(false);
   }, [operator]);
 
   useEffect(() => { load(); }, [load]);
-  return { rows, loading, reload: load };
+  return { rows, totalCount, loading, reload: load };
 }
 
 export async function claimLead(id: string, operator: string) {
