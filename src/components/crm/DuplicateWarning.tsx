@@ -47,7 +47,7 @@ export default function DuplicateWarning({
         <div className="text-sm flex items-center gap-2">
           <span className="font-medium">{r.project_name}</span>
           <span className="text-muted-foreground">· {r.company_builder}</span>
-          <span className="text-[10px] font-mono uppercase text-muted-foreground">· {r.stage.replaceAll("_", " ")}</span>
+          <span className="text-[10px] font-mono uppercase text-muted-foreground">· {r.stage.replace(/_/g, " ")}</span>
           <button type="button" onClick={() => onOpen(r.id)} className="ml-auto text-xs underline text-destructive">
             Open that lead
           </button>
