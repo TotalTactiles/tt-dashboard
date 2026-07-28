@@ -101,14 +101,14 @@ export default function PersonSearch() {
             <tbody>
               {!enabled && (
                 <tr><td colSpan={9} className="text-center py-10 text-sm text-muted-foreground">
-                  Search by name, email, builder or role
+                  Search by name, email, builder or role<br />Or filter by engagement to browse.
                 </td></tr>
               )}
               {enabled && loading && (
                 <tr><td colSpan={9} className="text-center py-8 text-sm text-muted-foreground">Searching…</td></tr>
               )}
               {enabled && !loading && rows.length === 0 && (
-                <tr><td colSpan={9} className="text-center py-8 text-sm text-muted-foreground">No people match your search.</td></tr>
+                <tr><td colSpan={9} className="text-center py-8 text-sm text-muted-foreground">No contacts match.</td></tr>
               )}
               {enabled && !loading && rows.map((c) => {
                 const lastActRaw = pickLater(c.last_replied, c.last_emailed);
