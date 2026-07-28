@@ -209,6 +209,17 @@ export default function LeadDrawer({
                     <span className="font-semibold">Next best action:</span> {lead.next_best_action}
                   </div>
                 )}
+                {incomplete && incomplete.length > 0 && (
+                  <div className="rounded-md border border-chart-orange/40 bg-chart-orange/10 px-3 py-2 text-xs text-chart-orange flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <div className="font-semibold">Incomplete lead — needs {incomplete.join(", ")}</div>
+                      {incomplete.includes("company") && (
+                        <div className="opacity-90 mt-0.5">Builder is a placeholder — find out who the builder actually is.</div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {history && history.total_leads > 0 && (
                   <div className="rounded-md border border-border bg-muted/20 px-3 py-2 text-xs font-mono">
                     <span className="font-semibold">{history.total_leads}</span> previous leads · <span className="font-semibold">{history.converted}</span> converted · <span className="font-semibold">{Math.round(history.response_rate_pct)}%</span> response
@@ -220,18 +231,30 @@ export default function LeadDrawer({
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-3">
-                  <InlineField label="Company" value={lead.company_builder} onSave={(v) => patchLead({ company_builder: v })} />
-                  <InlineField label="Project name" value={lead.project_name} onSave={(v) => patchLead({ project_name: v })} />
+                  <InlineField label="Company" value={lead.company_builder} onSave={(v) => patchLead({ company_builder: v })} highlight={incomplete?.includes("company")} />
+                  <InlineField label="Project name" value={lead.project_name} onSave={(v) => patchLead({ project_name: v })} highlight={incomplete?.includes("project_name")} />
                   <InlineField label="Contact name" value={lead.project_contact_name} onSave={(v) => patchLead({ project_contact_name: v })} />
                   <InlineField label="Role" value={lead.role} onSave={(v) => patchLead({ role: v })} />
                   <InlineField label="Phone" value={lead.phone} onSave={(v) => patchLead({ phone: v })} />
-                  <InlineField label="Direct email" value={lead.direct_email} onSave={(v) => patchLead({ direct_email: v })} />
+                  <InlineField label="Direct email" value={lead.direct_email} onSave={(v) => patchLead({ direct_email: v })} highlight={incomplete?.includes("email")} />
                   <InlineField label="Reception name" value={lead.reception_name} onSave={(v) => patchLead({ reception_name: v })} />
                   <InlineField label="Reception email" value={lead.reception_email} onSave={(v) => patchLead({ reception_email: v })} />
-                  <InlineField label="State" value={lead.state} onSave={(v) => patchLead({ state: v.toUpperCase() || null })} />
+                  <InlineField label="State" value={lead.state} onSave={(v) => patchLead({ state: v.toUpperCase() || null })} highlight={incomplete?.includes("state")} />
                   <InlineField label="Site address" value={lead.site_address} onSave={(v) => patchLead({ site_address: v })} />
                 </div>
                 <InlineField label="Notes" value={lead.notes} onSave={(v) => patchLead({ notes: v })} textarea />
+
+                <div className="mt-8 pt-6 border-t border-destructive/30">
+                  <div className="text-[10px] uppercase tracking-widest text-destructive font-mono mb-2">Danger zone</div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-xs text-muted-foreground">
+                      Permanently delete this lead and all its calls, notes, tasks and rating history. This cannot be undone.
+                    </div>
+                    <Button variant="destructive" size="sm" onClick={() => { setDeleteReason(""); setDeleteOpen(true); }}>
+                      <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete lead
+                    </Button>
+                  </div>
+                </div>
               </TabsContent>
 
               <TabsContent value="notes" className="mt-4 space-y-3">
