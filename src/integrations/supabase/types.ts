@@ -601,6 +601,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "deals_primary_contact_id_fkey"
+            columns: ["primary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_directory"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "deals_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -994,6 +1001,7 @@ export type Database = {
           kind: string
           lead_id: string
           occurred_at: string
+          recipient_email: string | null
         }
         Insert: {
           created_by?: string | null
@@ -1003,6 +1011,7 @@ export type Database = {
           kind: string
           lead_id: string
           occurred_at?: string
+          recipient_email?: string | null
         }
         Update: {
           created_by?: string | null
@@ -1012,6 +1021,7 @@ export type Database = {
           kind?: string
           lead_id?: string
           occurred_at?: string
+          recipient_email?: string | null
         }
         Relationships: [
           {
@@ -1311,8 +1321,10 @@ export type Database = {
           requires_email: boolean
           requires_state: boolean
           retired_at: string | null
+          sends_email: boolean
           sheet_value: string | null
           sort_order: number
+          zoho_status: string | null
         }
         Insert: {
           applies_to_stage?: Database["public"]["Enums"]["lead_stage"] | null
@@ -1327,8 +1339,10 @@ export type Database = {
           requires_email?: boolean
           requires_state?: boolean
           retired_at?: string | null
+          sends_email?: boolean
           sheet_value?: string | null
           sort_order?: number
+          zoho_status?: string | null
         }
         Update: {
           applies_to_stage?: Database["public"]["Enums"]["lead_stage"] | null
@@ -1343,8 +1357,10 @@ export type Database = {
           requires_email?: boolean
           requires_state?: boolean
           retired_at?: string | null
+          sends_email?: boolean
           sheet_value?: string | null
           sort_order?: number
+          zoho_status?: string | null
         }
         Relationships: []
       }
@@ -2060,6 +2076,13 @@ export type Database = {
             columns: ["converted_to_contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_converted_to_contact_id_fkey"
+            columns: ["converted_to_contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_directory"
             referencedColumns: ["id"]
           },
           {
@@ -3345,6 +3368,27 @@ export type Database = {
           },
         ]
       }
+      v_company_contacts_summary: {
+        Row: {
+          company: string | null
+          contacts: number | null
+          emailed_no_reply: number | null
+          last_emailed: string | null
+          last_replied: string | null
+          never_contacted: number | null
+          organisation_id: string | null
+          replied: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_company_fragments: {
         Row: {
           canonical: string | null
@@ -3371,6 +3415,34 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "leads_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_contacts_directory: {
+        Row: {
+          company: string | null
+          created_at: string | null
+          email: string | null
+          emails_sent: number | null
+          engagement: string | null
+          from_apollo: boolean | null
+          full_name: string | null
+          id: string | null
+          last_emailed: string | null
+          last_replied: string | null
+          organisation_id: string | null
+          phone: string | null
+          projects_emailed_about: string[] | null
+          replies: number | null
+          role: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_organisation_id_fkey"
             columns: ["organisation_id"]
             isOneToOne: false
             referencedRelation: "organisations"
