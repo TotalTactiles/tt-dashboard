@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { AlertTriangle, Trash2 } from "lucide-react";
+import { AlertTriangle, Trash2, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { bandFor, Lead, useCrmRefs, useLeadBrowse, useLeadsIncomplete, deleteLeads } from "@/hooks/useCrmLeads";
 import { useToast } from "@/hooks/use-toast";
 import LeadDrawer from "./LeadDrawer";
+import AddLeadDialog from "./AddLeadDialog";
 
 const db = supabase as any;
 
