@@ -3945,6 +3945,7 @@ export type Database = {
       }
       v_lead_card_context: {
         Row: {
+          block_e: Json | null
           closed_lost_count: number | null
           completed_count: number | null
           deal_count: number | null
