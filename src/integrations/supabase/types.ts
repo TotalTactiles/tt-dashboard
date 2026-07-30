@@ -684,6 +684,13 @@ export type Database = {
             foreignKeyName: "deals_converted_from_lead_id_fkey"
             columns: ["converted_from_lead_id"]
             isOneToOne: false
+            referencedRelation: "v_lead_timing"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "deals_converted_from_lead_id_fkey"
+            columns: ["converted_from_lead_id"]
+            isOneToOne: false
             referencedRelation: "v_leads_incomplete"
             referencedColumns: ["id"]
           },
@@ -1158,6 +1165,13 @@ export type Database = {
             foreignKeyName: "lead_calls_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "v_lead_timing"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
             referencedRelation: "v_leads_incomplete"
             referencedColumns: ["id"]
           },
@@ -1278,6 +1292,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_lead_silence"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_timing"
+            referencedColumns: ["lead_id"]
           },
           {
             foreignKeyName: "lead_events_lead_id_fkey"
@@ -1459,6 +1480,13 @@ export type Database = {
             foreignKeyName: "lead_import_rows_dup_lead_id_fkey"
             columns: ["dup_lead_id"]
             isOneToOne: false
+            referencedRelation: "v_lead_timing"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "lead_import_rows_dup_lead_id_fkey"
+            columns: ["dup_lead_id"]
+            isOneToOne: false
             referencedRelation: "v_leads_incomplete"
             referencedColumns: ["id"]
           },
@@ -1517,6 +1545,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_lead_silence"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_import_rows_imported_lead_id_fkey"
+            columns: ["imported_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_timing"
+            referencedColumns: ["lead_id"]
           },
           {
             foreignKeyName: "lead_import_rows_imported_lead_id_fkey"
@@ -1790,6 +1825,13 @@ export type Database = {
             foreignKeyName: "lead_rating_history_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "v_lead_timing"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
             referencedRelation: "v_leads_incomplete"
             referencedColumns: ["id"]
           },
@@ -1966,6 +2008,7 @@ export type Database = {
         Row: {
           cancels_on_reply: boolean
           created_at: string
+          days_from_eoi: number | null
           description: string | null
           is_active: boolean
           is_sequence: boolean
@@ -1977,6 +2020,7 @@ export type Database = {
         Insert: {
           cancels_on_reply?: boolean
           created_at?: string
+          days_from_eoi?: number | null
           description?: string | null
           is_active?: boolean
           is_sequence?: boolean
@@ -1988,6 +2032,7 @@ export type Database = {
         Update: {
           cancels_on_reply?: boolean
           created_at?: string
+          days_from_eoi?: number | null
           description?: string | null
           is_active?: boolean
           is_sequence?: boolean
@@ -2046,6 +2091,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "lead_tasks_kind_fk"
+            columns: ["kind"]
+            isOneToOne: false
+            referencedRelation: "lead_task_kinds"
+            referencedColumns: ["kind"]
+          },
+          {
             foreignKeyName: "lead_tasks_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
@@ -2079,6 +2131,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_lead_silence"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_timing"
+            referencedColumns: ["lead_id"]
           },
           {
             foreignKeyName: "lead_tasks_lead_id_fkey"
@@ -4240,6 +4299,13 @@ export type Database = {
             foreignKeyName: "lead_rating_history_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "v_lead_timing"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
             referencedRelation: "v_leads_incomplete"
             referencedColumns: ["id"]
           },
@@ -4335,21 +4401,32 @@ export type Database = {
       }
       v_lead_tasks_due: {
         Row: {
-          assigned_to: string | null
-          auto_generated: boolean | null
-          company_builder: string | null
-          days_until_due: number | null
+          company: string | null
+          days_overdue: number | null
+          direct_email: string | null
           due_date: string | null
-          id: string | null
           kind: string | null
+          kind_label: string | null
           lead_id: string | null
+          lead_stage: string | null
+          next_step_code: string | null
+          organisation_id: string | null
+          project_contact_name: string | null
           project_name: string | null
-          rating_band: string | null
-          rating_score: number | null
+          reception_email: string | null
+          sequence_position: number | null
           state: string | null
-          title: string | null
+          task_id: string | null
+          who_spoke_code: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "lead_tasks_kind_fk"
+            columns: ["kind"]
+            isOneToOne: false
+            referencedRelation: "lead_task_kinds"
+            referencedColumns: ["kind"]
+          },
           {
             foreignKeyName: "lead_tasks_lead_id_fkey"
             columns: ["lead_id"]
@@ -4389,6 +4466,13 @@ export type Database = {
             foreignKeyName: "lead_tasks_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "v_lead_timing"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
             referencedRelation: "v_leads_incomplete"
             referencedColumns: ["id"]
           },
@@ -4414,13 +4498,55 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "leads_rating_band_fkey"
-            columns: ["rating_band"]
+            foreignKeyName: "leads_next_step_code_fkey"
+            columns: ["next_step_code"]
             isOneToOne: false
-            referencedRelation: "lead_rating_bands"
+            referencedRelation: "lead_next_steps"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_next_step_code_fkey"
+            columns: ["next_step_code"]
+            isOneToOne: false
+            referencedRelation: "v_lead_step_options"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_card_context"
+            referencedColumns: ["organisation_id"]
+          },
+          {
+            foreignKeyName: "leads_who_spoke_code_fkey"
+            columns: ["who_spoke_code"]
+            isOneToOne: false
+            referencedRelation: "lead_who_spoke"
             referencedColumns: ["code"]
           },
         ]
+      }
+      v_lead_timing: {
+        Row: {
+          company: string | null
+          date_precision: string | null
+          days_away: number | null
+          due_date: string | null
+          lead_id: string | null
+          project_name: string | null
+          source_text: string | null
+          stage: string | null
+          timing_band: string | null
+        }
+        Relationships: []
       }
       v_leads_incomplete: {
         Row: {
@@ -4946,6 +5072,23 @@ export type Database = {
       score_contact_role: { Args: { p_title: string }; Returns: number }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      tt_advance_follow_up: {
+        Args: {
+          p_completed_kind: string
+          p_created_by?: string
+          p_lead_id: string
+        }
+        Returns: string
+      }
+      tt_check_allowed_values: { Args: { p_def: string }; Returns: string[] }
+      tt_extract_completion: {
+        Args: { p_notes: string }
+        Returns: {
+          date_precision: string
+          due_date: string
+          raw: string
+        }[]
+      }
       tt_find_duplicate_lead: {
         Args: { p_lead_id: string }
         Returns: {
@@ -4958,8 +5101,23 @@ export type Database = {
           stage: string
         }[]
       }
+      tt_last_email_message_id: { Args: { p_lead_id: string }; Returns: string }
       tt_mark_silent_leads_stale: { Args: never; Returns: number }
       tt_purge_missing_zoho_deals: { Args: never; Returns: number }
+      tt_restart_follow_ups: {
+        Args: { p_created_by?: string; p_from: string; p_lead_id: string }
+        Returns: string
+      }
+      tt_schedule_task: {
+        Args: {
+          p_created_by?: string
+          p_due: string
+          p_kind: string
+          p_lead_id: string
+          p_notes?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       date_rule:
