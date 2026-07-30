@@ -27,9 +27,10 @@ function formatDate(d: Date) {
 }
 
 export default function SetNextStepDialog({
-  open, onOpenChange, lead, operator, onSaved,
+  open, onOpenChange, lead, operator, onSaved, priorWorkSlots,
 }: {
   open: boolean; onOpenChange: (v: boolean) => void; lead: Lead; operator: string; onSaved: () => void;
+  priorWorkSlots?: { project: string; contact: string; state: "completed" | "in_progress"; stages: number }[];
 }) {
   const refs = useCrmRefs();
   const allSteps = refs?.nextSteps ?? [];
