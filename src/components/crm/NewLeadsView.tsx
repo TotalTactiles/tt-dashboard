@@ -449,6 +449,55 @@ export default function NewLeadsView({ operator }: { operator: string }) {
 
   const hasEmail = !!lead?.direct_email;
 
+  const manualEligible = useMemo(() => {
+    if (!lead) return false;
+    if (lead.project_contact_name && lead.direct_email) return false;
+    const st = enrichStatusById[lead.id] ?? (lead as any).enrichment_status ?? null;
+    const enrichDeadEnd = st === "no_org" || st === "no_email";
+    const bare = !lead.project_contact_name && !lead.direct_email;
+    return enrichDeadEnd || bare;
+  }, [lead, enrichStatusById]);
+
+  async function saveManualContact(v: { name: string; email: string; role: string }) {
+    if (!lead) return;
+    const name = v.name.trim();
+    const email = v.email.trim().toLowerCase();
+    const role = v.role.trim() || null;
+
+    const { error } = await db
+      .from("leads")
+      .update({ project_contact_name: name, direct_email: email, role })
+      .eq("id", lead.id);
+
+    if (error) {
+      toast({
+        title: "Could not save the contact",
+        description: error.message ?? "The lead is unchanged.",
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+      return;
+    }
+
+    if (lead.organisation_id) {
+      try {
+        await db.from("contacts").insert({
+          organisation_id: lead.organisation_id,
+          first_name: name.split(/\s+/)[0],
+          last_name: name.split(/\s+/).slice(1).join(" ") || null,
+          email,
+          role,
+        });
+      } catch {
+        // a duplicate or constraint failure must never undo the lead update
+      }
+    }
+
+    await reload();
+    setManualOpenFor(null);
+    toast({ title: "Contact saved — you can now send an EOI" });
+  }
+
+
   const priorWorkSlots: PriorWorkSlot[] | undefined = useMemo(() => {
     if (!ctx?.block_e) return undefined;
     return slots
