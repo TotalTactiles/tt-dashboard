@@ -646,7 +646,27 @@ export default function NewLeadsView({ operator }: { operator: string }) {
           ) : (
             <div className="text-sm text-chart-orange italic">No contact details yet</div>
           )}
+
+          {manualEligible && (
+            manualOpenFor === lead.id ? (
+              <ManualContactPanel
+                key={lead.id}
+                onCancel={() => setManualOpenFor(null)}
+                onSave={saveManualContact}
+              />
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-2"
+                onClick={() => setManualOpenFor(lead.id)}
+              >
+                Enter contact manually
+              </Button>
+            )
+          )}
         </div>
+
 
         <div>
           <button
