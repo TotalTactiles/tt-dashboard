@@ -27,9 +27,10 @@ function formatDate(d: Date) {
 }
 
 export default function SetNextStepDialog({
-  open, onOpenChange, lead, operator, onSaved,
+  open, onOpenChange, lead, operator, onSaved, priorWorkSlots,
 }: {
   open: boolean; onOpenChange: (v: boolean) => void; lead: Lead; operator: string; onSaved: () => void;
+  priorWorkSlots?: { project: string; contact: string; state: "completed" | "in_progress"; stages: number }[];
 }) {
   const refs = useCrmRefs();
   const allSteps = refs?.nextSteps ?? [];
@@ -109,7 +110,10 @@ export default function SetNextStepDialog({
       claimed_at: null,
     }).eq("id", lead.id);
 
-    const body = { lead_id: lead.id, operator };
+    const body: any = { lead_id: lead.id, operator };
+    if (priorWorkSlots) {
+      body.prior_work = { slots: priorWorkSlots.filter((s) => !!s.project) };
+    }
 
     let result:
       | { kind: "ok"; to: string }
