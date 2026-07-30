@@ -525,6 +525,10 @@ export default function NewLeadsView({ operator }: { operator: string }) {
     setBusy(true);
     try {
       const r = await enrichLead(lead.id, operator, "full");
+      const st = (r as any).enrichment_status ?? (r as any).status ?? null;
+      if (st === "no_org" || st === "no_email") {
+        setEnrichStatusById((p) => ({ ...p, [lead.id]: st }));
+      }
       if (r.ok && r.matched && r.draft === "created") {
         const name = r.contact?.name?.trim() || "contact";
         toast({ title: `Found ${name} — draft created`, description: "Email drafted in sales@ and Zoho lead created." });
