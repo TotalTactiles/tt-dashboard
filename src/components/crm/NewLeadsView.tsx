@@ -315,6 +315,89 @@ function SlotRow({
   );
 }
 
+// ---------------- Manual contact entry ----------------
+
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+const MANUAL_INPUT_CLS =
+  "w-full bg-transparent border rounded px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary";
+
+function ManualContactPanel({
+  onCancel, onSave,
+}: {
+  onCancel: () => void;
+  onSave: (v: { name: string; email: string; role: string }) => Promise<void>;
+}) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("");
+  const [nameTouched, setNameTouched] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const nameOk = name.trim().length >= 2;
+  const emailOk = EMAIL_RE.test(email.trim());
+  const canSave = nameOk && emailOk && !saving;
+
+  const nameBad = nameTouched && name.length > 0 && !nameOk;
+  const emailBad = emailTouched && email.length > 0 && !emailOk;
+
+  return (
+    <div className="mt-3 rounded-md border border-border bg-muted/10 px-3 py-3 space-y-3">
+      <div>
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-1">Name</div>
+        <input
+          className={MANUAL_INPUT_CLS + (nameBad ? " border-red-500" : " border-border")}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={() => setNameTouched(true)}
+        />
+      </div>
+      <div>
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-1">Email</div>
+        <input
+          className={MANUAL_INPUT_CLS + (emailBad ? " border-red-500" : " border-border")}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          onBlur={() => setEmailTouched(true)}
+        />
+      </div>
+      <div>
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-1">Role</div>
+        <input
+          className={MANUAL_INPUT_CLS + " border-border"}
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+        />
+      </div>
+      <div className="flex flex-wrap items-center gap-3 pt-1">
+        <Button
+          size="sm"
+          disabled={!canSave}
+          style={canSave ? { backgroundColor: "#3D89DA", color: "#fff" } : undefined}
+          onClick={async () => {
+            setSaving(true);
+            try {
+              await onSave({ name, email, role });
+            } finally {
+              setSaving(false);
+            }
+          }}
+        >
+          {saving ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+          Save contact
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onCancel} disabled={saving}>Cancel</Button>
+        {!(nameOk && emailOk) && (
+          <span style={{ color: "#e5934b", fontSize: "11.5px" }}>Name and a valid email are required</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+
 export default function NewLeadsView({ operator }: { operator: string }) {
   const refs = useCrmRefs();
   const { rows, loading, reload } = useNewLeads();
@@ -325,7 +408,10 @@ export default function NewLeadsView({ operator }: { operator: string }) {
   const [history, setHistory] = useState<CompanyHistory | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [slots, setSlots] = useState<SlotState[]>([{ ...EMPTY_SLOT }, { ...EMPTY_SLOT }]);
+  const [manualOpenFor, setManualOpenFor] = useState<string | null>(null);
+  const [enrichStatusById, setEnrichStatusById] = useState<Record<string, string>>({});
   const { toast } = useToast();
+
 
   const lead = rows[idx];
   const ctx = useLeadCardContext(lead?.organisation_id ?? null);
@@ -363,6 +449,55 @@ export default function NewLeadsView({ operator }: { operator: string }) {
 
   const hasEmail = !!lead?.direct_email;
 
+  const manualEligible = useMemo(() => {
+    if (!lead) return false;
+    if (lead.project_contact_name && lead.direct_email) return false;
+    const st = enrichStatusById[lead.id] ?? (lead as any).enrichment_status ?? null;
+    const enrichDeadEnd = st === "no_org" || st === "no_email";
+    const bare = !lead.project_contact_name && !lead.direct_email;
+    return enrichDeadEnd || bare;
+  }, [lead, enrichStatusById]);
+
+  async function saveManualContact(v: { name: string; email: string; role: string }) {
+    if (!lead) return;
+    const name = v.name.trim();
+    const email = v.email.trim().toLowerCase();
+    const role = v.role.trim() || null;
+
+    const { error } = await db
+      .from("leads")
+      .update({ project_contact_name: name, direct_email: email, role })
+      .eq("id", lead.id);
+
+    if (error) {
+      toast({
+        title: "Could not save the contact",
+        description: error.message ?? "The lead is unchanged.",
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+      return;
+    }
+
+    if (lead.organisation_id) {
+      try {
+        await db.from("contacts").insert({
+          organisation_id: lead.organisation_id,
+          first_name: name.split(/\s+/)[0],
+          last_name: name.split(/\s+/).slice(1).join(" ") || null,
+          email,
+          role,
+        });
+      } catch {
+        // a duplicate or constraint failure must never undo the lead update
+      }
+    }
+
+    await reload();
+    setManualOpenFor(null);
+    toast({ title: "Contact saved — you can now send an EOI" });
+  }
+
+
   const priorWorkSlots: PriorWorkSlot[] | undefined = useMemo(() => {
     if (!ctx?.block_e) return undefined;
     return slots
@@ -390,6 +525,10 @@ export default function NewLeadsView({ operator }: { operator: string }) {
     setBusy(true);
     try {
       const r = await enrichLead(lead.id, operator, "full");
+      const st = (r as any).enrichment_status ?? (r as any).status ?? null;
+      if (st === "no_org" || st === "no_email") {
+        setEnrichStatusById((p) => ({ ...p, [lead.id]: st }));
+      }
       if (r.ok && r.matched && r.draft === "created") {
         const name = r.contact?.name?.trim() || "contact";
         toast({ title: `Found ${name} — draft created`, description: "Email drafted in sales@ and Zoho lead created." });
@@ -507,7 +646,27 @@ export default function NewLeadsView({ operator }: { operator: string }) {
           ) : (
             <div className="text-sm text-chart-orange italic">No contact details yet</div>
           )}
+
+          {manualEligible && (
+            manualOpenFor === lead.id ? (
+              <ManualContactPanel
+                key={lead.id}
+                onCancel={() => setManualOpenFor(null)}
+                onSave={saveManualContact}
+              />
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-2"
+                onClick={() => setManualOpenFor(lead.id)}
+              >
+                Enter contact manually
+              </Button>
+            )
+          )}
         </div>
+
 
         <div>
           <button
