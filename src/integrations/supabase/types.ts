@@ -379,6 +379,13 @@ export type Database = {
             referencedRelation: "organisations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contacts_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_card_context"
+            referencedColumns: ["organisation_id"]
+          },
         ]
       }
       deal_stage_history: {
@@ -386,28 +393,28 @@ export type Database = {
           changed_at: string
           changed_by: string | null
           deal_id: string
-          from_stage: Database["public"]["Enums"]["deal_stage"] | null
+          from_stage: string | null
           id: number
           note: string | null
-          to_stage: Database["public"]["Enums"]["deal_stage"]
+          to_stage: string
         }
         Insert: {
           changed_at?: string
           changed_by?: string | null
           deal_id: string
-          from_stage?: Database["public"]["Enums"]["deal_stage"] | null
+          from_stage?: string | null
           id?: number
           note?: string | null
-          to_stage: Database["public"]["Enums"]["deal_stage"]
+          to_stage: string
         }
         Update: {
           changed_at?: string
           changed_by?: string | null
           deal_id?: string
-          from_stage?: Database["public"]["Enums"]["deal_stage"] | null
+          from_stage?: string | null
           id?: number
           note?: string | null
-          to_stage?: Database["public"]["Enums"]["deal_stage"]
+          to_stage?: string
         }
         Relationships: [
           {
@@ -417,7 +424,107 @@ export type Database = {
             referencedRelation: "deals"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "deal_stage_history_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deals_board"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_stage_history_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deals_missing_from_zoho"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_stage_history_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deals_stale"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_stage_history_from_fk"
+            columns: ["from_stage"]
+            isOneToOne: false
+            referencedRelation: "deal_stages"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "deal_stage_history_from_fk"
+            columns: ["from_stage"]
+            isOneToOne: false
+            referencedRelation: "v_deals_pipeline_summary"
+            referencedColumns: ["stage"]
+          },
+          {
+            foreignKeyName: "deal_stage_history_to_fk"
+            columns: ["to_stage"]
+            isOneToOne: false
+            referencedRelation: "deal_stages"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "deal_stage_history_to_fk"
+            columns: ["to_stage"]
+            isOneToOne: false
+            referencedRelation: "v_deals_pipeline_summary"
+            referencedColumns: ["stage"]
+          },
         ]
+      }
+      deal_stages: {
+        Row: {
+          code: string
+          created_at: string
+          is_active: boolean
+          is_open: boolean
+          is_terminal: boolean
+          is_won: boolean
+          label: string
+          prior_work_state: string
+          retired_at: string | null
+          sort_order: number
+          stale_after_days: number | null
+          staleness_exempt: boolean
+          updated_at: string
+          zoho_value: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          is_active?: boolean
+          is_open?: boolean
+          is_terminal?: boolean
+          is_won?: boolean
+          label: string
+          prior_work_state: string
+          retired_at?: string | null
+          sort_order?: number
+          stale_after_days?: number | null
+          staleness_exempt?: boolean
+          updated_at?: string
+          zoho_value?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          is_active?: boolean
+          is_open?: boolean
+          is_terminal?: boolean
+          is_won?: boolean
+          label?: string
+          prior_work_state?: string
+          retired_at?: string | null
+          sort_order?: number
+          stale_after_days?: number | null
+          staleness_exempt?: boolean
+          updated_at?: string
+          zoho_value?: string | null
+        }
+        Relationships: []
       }
       deals: {
         Row: {
@@ -432,6 +539,8 @@ export type Database = {
           is_split_parent: boolean
           is_variation: boolean
           kind: Database["public"]["Enums"]["deal_kind"]
+          last_activity_at: string | null
+          last_seen_at: string | null
           loss_notes: string | null
           loss_reason: string | null
           lost_at: string | null
@@ -446,8 +555,11 @@ export type Database = {
           project_id: string | null
           root_deal_id: string | null
           scope_of_works: string | null
+          source_company: string | null
+          source_contact_name: string | null
           source_system: string
-          stage: Database["public"]["Enums"]["deal_stage"]
+          stage: string
+          stage_modified_at: string | null
           stage_number: number | null
           total_costs: number | null
           updated_at: string
@@ -466,6 +578,8 @@ export type Database = {
           is_split_parent?: boolean
           is_variation?: boolean
           kind?: Database["public"]["Enums"]["deal_kind"]
+          last_activity_at?: string | null
+          last_seen_at?: string | null
           loss_notes?: string | null
           loss_reason?: string | null
           lost_at?: string | null
@@ -480,8 +594,11 @@ export type Database = {
           project_id?: string | null
           root_deal_id?: string | null
           scope_of_works?: string | null
+          source_company?: string | null
+          source_contact_name?: string | null
           source_system?: string
-          stage?: Database["public"]["Enums"]["deal_stage"]
+          stage?: string
+          stage_modified_at?: string | null
           stage_number?: number | null
           total_costs?: number | null
           updated_at?: string
@@ -500,6 +617,8 @@ export type Database = {
           is_split_parent?: boolean
           is_variation?: boolean
           kind?: Database["public"]["Enums"]["deal_kind"]
+          last_activity_at?: string | null
+          last_seen_at?: string | null
           loss_notes?: string | null
           loss_reason?: string | null
           lost_at?: string | null
@@ -514,8 +633,11 @@ export type Database = {
           project_id?: string | null
           root_deal_id?: string | null
           scope_of_works?: string | null
+          source_company?: string | null
+          source_contact_name?: string | null
           source_system?: string
-          stage?: Database["public"]["Enums"]["deal_stage"]
+          stage?: string
+          stage_modified_at?: string | null
           stage_number?: number | null
           total_costs?: number | null
           updated_at?: string
@@ -587,10 +709,38 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "deals_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_card_context"
+            referencedColumns: ["organisation_id"]
+          },
+          {
             foreignKeyName: "deals_parent_deal_id_fkey"
             columns: ["parent_deal_id"]
             isOneToOne: false
             referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_parent_deal_id_fkey"
+            columns: ["parent_deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deals_board"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_parent_deal_id_fkey"
+            columns: ["parent_deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deals_missing_from_zoho"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_parent_deal_id_fkey"
+            columns: ["parent_deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deals_stale"
             referencedColumns: ["id"]
           },
           {
@@ -643,10 +793,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "deals_root_deal_id_fkey"
+            columns: ["root_deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deals_board"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_root_deal_id_fkey"
+            columns: ["root_deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deals_missing_from_zoho"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_root_deal_id_fkey"
+            columns: ["root_deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deals_stale"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_stage_fk"
+            columns: ["stage"]
+            isOneToOne: false
+            referencedRelation: "deal_stages"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "deals_stage_fk"
+            columns: ["stage"]
+            isOneToOne: false
+            referencedRelation: "v_deals_pipeline_summary"
+            referencedColumns: ["stage"]
+          },
+          {
             foreignKeyName: "deals_variation_of_deal_id_fkey"
             columns: ["variation_of_deal_id"]
             isOneToOne: false
             referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_variation_of_deal_id_fkey"
+            columns: ["variation_of_deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deals_board"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_variation_of_deal_id_fkey"
+            columns: ["variation_of_deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deals_missing_from_zoho"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_variation_of_deal_id_fkey"
+            columns: ["variation_of_deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deals_stale"
             referencedColumns: ["id"]
           },
         ]
@@ -2093,11 +2299,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "leads_converted_to_deal_fkey"
+            columns: ["converted_to_deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deals_board"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_converted_to_deal_fkey"
+            columns: ["converted_to_deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deals_missing_from_zoho"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_converted_to_deal_fkey"
+            columns: ["converted_to_deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deals_stale"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "leads_converted_to_org_id_fkey"
             columns: ["converted_to_org_id"]
             isOneToOne: false
             referencedRelation: "organisations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_converted_to_org_id_fkey"
+            columns: ["converted_to_org_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_card_context"
+            referencedColumns: ["organisation_id"]
           },
           {
             foreignKeyName: "leads_next_step_code_fkey"
@@ -2112,6 +2346,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organisations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_card_context"
+            referencedColumns: ["organisation_id"]
           },
           {
             foreignKeyName: "leads_rating_band_fkey"
@@ -2170,6 +2411,13 @@ export type Database = {
             referencedRelation: "organisations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "organisation_aliases_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_card_context"
+            referencedColumns: ["organisation_id"]
+          },
         ]
       }
       organisations: {
@@ -2180,6 +2428,7 @@ export type Database = {
           email: string | null
           id: string
           is_active: boolean
+          is_test: boolean
           name: string
           notes: string | null
           phone: string | null
@@ -2198,6 +2447,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_active?: boolean
+          is_test?: boolean
           name: string
           notes?: string | null
           phone?: string | null
@@ -2216,6 +2466,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_active?: boolean
+          is_test?: boolean
           name?: string
           notes?: string | null
           phone?: string | null
@@ -3387,6 +3638,13 @@ export type Database = {
             referencedRelation: "organisations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contacts_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_card_context"
+            referencedColumns: ["organisation_id"]
+          },
         ]
       }
       v_company_fragments: {
@@ -3420,6 +3678,46 @@ export type Database = {
             referencedRelation: "organisations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "leads_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_card_context"
+            referencedColumns: ["organisation_id"]
+          },
+        ]
+      }
+      v_company_prior_work: {
+        Row: {
+          block_e_state: string | null
+          organisation_id: string | null
+          organisation_name: string | null
+          p1_contact: string | null
+          p1_project: string | null
+          p1_stages: number | null
+          p1_state: string | null
+          p2_contact: string | null
+          p2_project: string | null
+          p2_stages: number | null
+          p2_state: string | null
+          project_count: number | null
+          same_contact: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deals_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_card_context"
+            referencedColumns: ["organisation_id"]
+          },
         ]
       }
       v_contacts_directory: {
@@ -3448,7 +3746,173 @@ export type Database = {
             referencedRelation: "organisations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contacts_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_card_context"
+            referencedColumns: ["organisation_id"]
+          },
         ]
+      }
+      v_deals_board: {
+        Row: {
+          closing_date: string | null
+          company: string | null
+          contact: string | null
+          contract_value: number | null
+          created_at: string | null
+          days_in_stage: number | null
+          follow_up_date: string | null
+          has_costs: boolean | null
+          id: string | null
+          is_forecast: boolean | null
+          is_open: boolean | null
+          is_stale: boolean | null
+          is_terminal: boolean | null
+          is_won: boolean | null
+          last_activity_at: string | null
+          last_seen_at: string | null
+          loss_notes: string | null
+          loss_reason: string | null
+          next_step: string | null
+          organisation_id: string | null
+          owner_email: string | null
+          prior_work_state: string | null
+          project: string | null
+          source_company: string | null
+          source_system: string | null
+          stage: string | null
+          stage_label: string | null
+          stage_modified_at: string | null
+          stage_order: number | null
+          stale_after_days: number | null
+          staleness_exempt: boolean | null
+          total_costs: number | null
+          updated_at: string | null
+          zoho_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deals_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_card_context"
+            referencedColumns: ["organisation_id"]
+          },
+          {
+            foreignKeyName: "deals_stage_fk"
+            columns: ["stage"]
+            isOneToOne: false
+            referencedRelation: "deal_stages"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "deals_stage_fk"
+            columns: ["stage"]
+            isOneToOne: false
+            referencedRelation: "v_deals_pipeline_summary"
+            referencedColumns: ["stage"]
+          },
+        ]
+      }
+      v_deals_missing_from_zoho: {
+        Row: {
+          contract_value: number | null
+          id: string | null
+          last_seen_at: string | null
+          latest_run: string | null
+          name: string | null
+          source_company: string | null
+          stage: string | null
+          zoho_id: string | null
+        }
+        Insert: {
+          contract_value?: number | null
+          id?: string | null
+          last_seen_at?: string | null
+          latest_run?: never
+          name?: string | null
+          source_company?: string | null
+          stage?: string | null
+          zoho_id?: string | null
+        }
+        Update: {
+          contract_value?: number | null
+          id?: string | null
+          last_seen_at?: string | null
+          latest_run?: never
+          name?: string | null
+          source_company?: string | null
+          stage?: string | null
+          zoho_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deals_stage_fk"
+            columns: ["stage"]
+            isOneToOne: false
+            referencedRelation: "deal_stages"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "deals_stage_fk"
+            columns: ["stage"]
+            isOneToOne: false
+            referencedRelation: "v_deals_pipeline_summary"
+            referencedColumns: ["stage"]
+          },
+        ]
+      }
+      v_deals_pipeline_summary: {
+        Row: {
+          deal_count: number | null
+          is_open: boolean | null
+          is_terminal: boolean | null
+          is_won: boolean | null
+          missing_contact_count: number | null
+          stage: string | null
+          stage_label: string | null
+          stage_order: number | null
+          stale_count: number | null
+          total_contract_value: number | null
+        }
+        Relationships: []
+      }
+      v_deals_stale: {
+        Row: {
+          company: string | null
+          contact: string | null
+          contract_value: number | null
+          days_in_stage: number | null
+          days_overdue: number | null
+          id: string | null
+          next_step: string | null
+          owner_email: string | null
+          project: string | null
+          stage_label: string | null
+          stale_after_days: number | null
+          zoho_id: string | null
+        }
+        Relationships: []
+      }
+      v_deals_unlinked: {
+        Row: {
+          deal_count: number | null
+          first_seen: string | null
+          source_company: string | null
+          stages: string | null
+          suggested_organisation: string | null
+          suggestion_score: number | null
+        }
+        Relationships: []
       }
       v_import_review: {
         Row: {
@@ -3478,6 +3942,23 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      v_lead_card_context: {
+        Row: {
+          closed_lost_count: number | null
+          completed_count: number | null
+          deal_count: number | null
+          emailed_count: number | null
+          lead_count: number | null
+          leads: Json | null
+          live_count: number | null
+          organisation_id: string | null
+          organisation_name: string | null
+          replied_count: number | null
+          response_rate_pct: number | null
+          work: Json | null
+        }
+        Relationships: []
       }
       v_lead_funnel_summary: {
         Row: {
@@ -3835,6 +4316,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organisations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_card_context"
+            referencedColumns: ["organisation_id"]
           },
           {
             foreignKeyName: "leads_rating_band_fkey"
@@ -4211,6 +4699,7 @@ export type Database = {
           task_name: string
         }[]
       }
+      resolve_deal_stage: { Args: { p_zoho_value: string }; Returns: string }
       resolve_lead_template: {
         Args: {
           p_channel?: string
@@ -4244,6 +4733,7 @@ export type Database = {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       tt_mark_silent_leads_stale: { Args: never; Returns: number }
+      tt_purge_missing_zoho_deals: { Args: never; Returns: number }
     }
     Enums: {
       date_rule:
