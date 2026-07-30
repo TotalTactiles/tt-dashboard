@@ -408,7 +408,10 @@ export default function NewLeadsView({ operator }: { operator: string }) {
   const [history, setHistory] = useState<CompanyHistory | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [slots, setSlots] = useState<SlotState[]>([{ ...EMPTY_SLOT }, { ...EMPTY_SLOT }]);
+  const [manualOpenFor, setManualOpenFor] = useState<string | null>(null);
+  const [enrichStatusById, setEnrichStatusById] = useState<Record<string, string>>({});
   const { toast } = useToast();
+
 
   const lead = rows[idx];
   const ctx = useLeadCardContext(lead?.organisation_id ?? null);
