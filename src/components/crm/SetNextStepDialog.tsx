@@ -110,7 +110,10 @@ export default function SetNextStepDialog({
       claimed_at: null,
     }).eq("id", lead.id);
 
-    const body = { lead_id: lead.id, operator };
+    const body: any = { lead_id: lead.id, operator };
+    if (priorWorkSlots) {
+      body.prior_work = { slots: priorWorkSlots.filter((s) => !!s.project) };
+    }
 
     let result:
       | { kind: "ok"; to: string }
