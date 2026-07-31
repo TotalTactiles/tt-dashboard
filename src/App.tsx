@@ -48,6 +48,7 @@ const ManagementReport = lazyWithReload(() => import("./pages/ManagementReport")
 const TvLayout = lazyWithReload(() => import("./components/tv/TvLayout"));
 const Projects = lazyWithReload(() => import("./pages/Projects"));
 const CRM = lazyWithReload(() => import("./pages/CRM"));
+const LeadProfile = lazyWithReload(() => import("./components/crm/LeadProfile"));
 const Contacts = lazyWithReload(() => import("./pages/Contacts"));
 
 const queryClient = new QueryClient();
