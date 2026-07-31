@@ -608,6 +608,7 @@ function NewLeadsTable({
   reload: () => Promise<void> | void;
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   const sorted = useMemo(() => {
     return rows.slice().sort((a, b) => {
@@ -623,6 +624,14 @@ function NewLeadsTable({
     });
   }, [rows]);
 
+  const displayRows = showAll ? sorted : sorted.slice(0, 30);
+
+  useEffect(() => {
+    if (!showAll && expanded) {
+      const visible = sorted.slice(0, 30);
+      if (!visible.some((r) => r.id === expanded)) setExpanded(null);
+    }
+  }, [showAll, expanded, sorted]);
 
   useEffect(() => {
     if (!expanded) return;
@@ -634,7 +643,7 @@ function NewLeadsTable({
   return (
     <div className="space-y-3">
       <div className="text-xs font-mono text-muted-foreground">
-        Working as <span className="text-foreground font-semibold">{operator}</span> - {sorted.length} new lead{sorted.length === 1 ? "" : "s"}, worked in timing order
+        Working as <span className="text-foreground font-semibold">{operator}</span> - {sorted.length} new lead{sorted.length === 1 ? "" : "s"}, worked in timing order, {displayRows.length} shown
       </div>
 
       <div className="rounded-md border border-border bg-card overflow-hidden">
@@ -659,7 +668,7 @@ function NewLeadsTable({
               {!loading && sorted.length === 0 && (
                 <tr><td colSpan={8} className="text-center py-8 text-muted-foreground text-sm">All scraped leads have been actioned.</td></tr>
               )}
-              {sorted.map((l) => {
+              {displayRows.map((l) => {
                 const isOpen = expanded === l.id;
                 const t = timing[l.id];
                 const placeholder = isPlaceholderBuilder(l.company_builder);
@@ -714,6 +723,17 @@ function NewLeadsTable({
           </table>
         </div>
       </div>
+
+      {sorted.length > 30 && (
+        <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-muted-foreground">
+          <span>
+            Showing {displayRows.length} of {sorted.length}. The daily target is 30 emails.
+          </span>
+          <Button size="sm" variant="outline" onClick={() => setShowAll(!showAll)}>
+            {showAll ? "Show 30" : "Show all"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
