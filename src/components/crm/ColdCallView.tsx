@@ -482,10 +482,12 @@ function ColdCallCard({
     }
     toast({ title: "Call logged" });
     setHistoryTick((t) => t + 1);
-    // Advance to the next lead in the queue rather than staying put.
-    onLogged();
+    setLoggedOutcome(outcome);
+    // Stay on the lead when a next step is possible, otherwise move on.
+    if (stepsForOutcome(outcome).length === 0) onLogged();
     await onDone();
   }
+
 
   async function applyStep(s: NextStepRow) {
     if (busy) return;
