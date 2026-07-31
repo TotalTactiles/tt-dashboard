@@ -410,8 +410,7 @@ function ColdCallPanel({
     await onDone();
   }
 
-    await onDone();
-  }
+
 
   async function applyStep(s: NextStepRow) {
     if (busy) return;
