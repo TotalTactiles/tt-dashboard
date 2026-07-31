@@ -360,6 +360,9 @@ function ColdCallCard({
   const [busy, setBusy] = useState<string | null>(null);
   const [pictureOpen, setPictureOpen] = useState(false);
   const [lookup, setLookup] = useState<{ saved: boolean; phone: string | null; reason: string | null } | null>(null);
+  // Set only once an insert into lead_calls has succeeded for this lead.
+  const [loggedOutcome, setLoggedOutcome] = useState<string | null>(null);
+
 
   const isGatekeeper = outcome === "spoke_gatekeeper";
   const isContactOutcome = outcome === "spoke_contact";
