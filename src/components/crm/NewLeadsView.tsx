@@ -226,33 +226,75 @@ function shortCompany(name: string): string {
   return s || original;
 }
 
+const WORK_STATUS_STYLE: Record<string, string> = {
+  "contact ready": "bg-emerald-500/25 text-emerald-300",
+  "duplicate": "bg-red-500/25 text-red-300",
+  "needs a contact": "bg-yellow-400/25 text-yellow-200",
+  "no builder": "bg-yellow-400/25 text-yellow-200",
+  "check timing": "bg-yellow-400/25 text-yellow-200",
+  "not started": "bg-muted text-muted-foreground",
+};
+
+function WorkStatusChip({ status }: { status: string | null }) {
+  if (!status) return <span className="text-muted-foreground">{DASH}</span>;
+  const cls = WORK_STATUS_STYLE[status] ?? "bg-muted text-muted-foreground";
+  return (
+    <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-mono whitespace-nowrap ${cls}`}>{status}</span>
+  );
+}
+
+function WorkCell({ row }: { row: OvenNewLead }) {
+  const done = row.deals_completed ?? 0;
+  const live = row.deals_live ?? 0;
+  const priors = row.prior_leads ?? 0;
+  if (done > 0 || live > 0) {
+    return (
+      <span className="font-mono text-xs whitespace-nowrap">
+        <span className="text-emerald-400">{done}</span>
+        <span className="text-emerald-400">{"\u2713"}</span>
+        {" "}
+        <span className="text-green-300">{live}</span>
+        <span className="text-green-300">{"\u25CF"}</span>
+      </span>
+    );
+  }
+  if (priors > 0) {
+    return <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">{priors} leads</span>;
+  }
+  return <span className="font-mono text-xs text-muted-foreground/50">-</span>;
+}
+
 export function useNewLeads() {
-  const [rows, setRows] = useState<Lead[]>([]);
+  const [rows, setRows] = useState<OvenNewLead[]>([]);
   const [timing, setTiming] = useState<Record<string, TimingRow>>({});
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await db
-      .from("v_oven_leads")
-      .select("*")
-      .in("stage", ["new", "enriching"])
-      .range(0, 4999);
-    const list = (data as Lead[]) ?? [];
+    const { data } = await db.from("v_oven_new_leads").select("*").range(0, 4999);
+    const list = (data as OvenNewLead[]) ?? [];
     setRows(list);
 
-    const { data: t } = await db
-      .from("v_lead_timing")
-      .select("lead_id,due_date,date_precision,days_away,days_overdue,timing_band,guidance,date_source,source_text")
-      .range(0, 9999);
     const map: Record<string, TimingRow> = {};
-    ((t as TimingRow[]) ?? []).forEach((r) => { map[r.lead_id] = r; });
+    list.forEach((r) => {
+      map[r.id] = {
+        lead_id: r.id,
+        due_date: r.due_date ?? null,
+        date_precision: null,
+        days_away: null,
+        days_overdue: r.days_overdue ?? null,
+        timing_band: r.timing_band ?? null,
+        guidance: r.guidance ?? null,
+        date_source: r.date_source ?? null,
+      };
+    });
     setTiming(map);
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
   return { rows, timing, loading, reload: load };
+
 }
 
 /**
