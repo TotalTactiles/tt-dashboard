@@ -411,6 +411,23 @@ function ColdCallCard({
     [refs],
   );
 
+  const stepsForOutcome = useCallback(
+    (outcomeCode: string | null): NextStepRow[] => {
+      if (!outcomeCode) return [];
+      const allowed = NEXT_STEPS_BY_OUTCOME[outcomeCode];
+      if (!allowed?.length) return [];
+      const hasEmail = !!contactEmail.trim();
+      return steps.filter((s) => allowed.includes(s.code) && (!s.requires_email || hasEmail));
+    },
+    [steps, contactEmail],
+  );
+
+  const applicableSteps = useMemo(
+    () => stepsForOutcome(loggedOutcome),
+    [stepsForOutcome, loggedOutcome],
+  );
+
+
   const askFor = lead.project_contact_name || lead.reception_name || null;
 
   const opener = useMemo(() => {
