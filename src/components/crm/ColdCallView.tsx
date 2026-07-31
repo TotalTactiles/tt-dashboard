@@ -737,14 +737,12 @@ function ColdCallCard({
         </div>
       </div>
 
-      {/* next step */}
-      <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-2">
-        <div className="font-mono uppercase text-[10.5px] tracking-[0.13em] text-muted-foreground">Next step</div>
-        {steps.length === 0 ? (
-          <div className="text-sm text-muted-foreground italic">No steps available at this stage.</div>
-        ) : (
+      {/* next step - only once a call has been logged and the outcome supports one */}
+      {loggedOutcome && applicableSteps.length > 0 && (
+        <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-2">
+          <div className="font-mono uppercase text-[10.5px] tracking-[0.13em] text-muted-foreground">Next step</div>
           <div className="space-y-2">
-            {steps.map((s) => {
+            {applicableSteps.map((s) => {
               const missing = missingFor(s);
               return (
                 <div key={s.code} className="flex flex-wrap items-center gap-3">
@@ -764,8 +762,11 @@ function ColdCallCard({
               );
             })}
           </div>
-        )}
-      </div>
+          <div className="pt-1">
+            <Button size="sm" variant="ghost" onClick={onLogged}>Next lead</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
