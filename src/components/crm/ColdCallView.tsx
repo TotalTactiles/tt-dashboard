@@ -611,6 +611,9 @@ function ColdCallPanel({
           </Button>
 
           {!outcome && <span style={{ color: "#e5934b", fontSize: "11.5px" }}>Pick an outcome to log the call</span>}
+          {outcome && messageMissing && (
+            <span style={{ color: "#e5934b", fontSize: "11.5px" }}>Record what you said in the message</span>
+          )}
         </div>
       </div>
 
