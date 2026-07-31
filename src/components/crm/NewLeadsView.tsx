@@ -1,13 +1,73 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Card } from "@/components/ui/card";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+
 import { Button } from "@/components/ui/button";
-import { Mail, Phone, SkipForward, Sparkles, Loader2, Clock, ChevronRight } from "lucide-react";
+import { Mail, Phone, Sparkles, Loader2, ChevronRight, ChevronDown, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { enrichLead, Lead, useCrmRefs } from "@/hooks/useCrmLeads";
 import { useToast } from "@/hooks/use-toast";
 import SetNextStepDialog from "./SetNextStepDialog";
+import OvenTabs, { type OvenTab } from "./OvenTabs";
+import ColdCallView, { useColdCallLeads } from "./ColdCallView";
 
 const db = supabase as any;
+
+const FragmentRow = ({ children }: { children: ReactNode }) => <Fragment>{children}</Fragment>;
+
+export const DASH = "-";
+
+const WEBHOOK_BASE = "https://n8n.srv1437130.hstgr.cloud/webhook/";
+
+export interface OvenWebhookResult {
+  ok: boolean;
+  blocked: boolean;
+  reason: string;
+  body: any;
+}
+
+/** POST { lead_id, operator } to an n8n oven webhook and normalise the reply. */
+export async function postOvenWebhook(
+  path: string,
+  body: { lead_id: string; operator: string; [k: string]: any },
+  timeoutMs = 45_000,
+): Promise<OvenWebhookResult> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(WEBHOOK_BASE + path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    let json: any = null;
+    try { json = await res.json(); } catch { json = null; }
+    if (json && json.ok === false && json.blocked === true) {
+      return { ok: false, blocked: true, reason: String(json.reason ?? "This action was blocked."), body: json };
+    }
+    if (!res.ok) {
+      return { ok: false, blocked: false, reason: String(json?.reason ?? json?.error ?? `HTTP ${res.status}`), body: json };
+    }
+    if (json && json.ok === false) {
+      return { ok: false, blocked: false, reason: String(json.reason ?? json.error ?? "The workflow reported a failure."), body: json };
+    }
+    return { ok: true, blocked: false, reason: "", body: json };
+  } catch {
+    return { ok: false, blocked: false, reason: "The workflow did not respond.", body: null };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const PLACEHOLDER_BUILDERS = new Set(["-", "--", "tbc", "t.b.c", "unknown", "reception only", "n/a", "na"]);
+
+export function isPlaceholderBuilder(name: string | null | undefined): boolean {
+  const s = (name ?? "").trim().toLowerCase();
+  if (!s) return true;
+  if (PLACEHOLDER_BUILDERS.has(s)) return true;
+  if (s.startsWith("unknown")) return true;
+  if (s.includes("reception only")) return true;
+  return false;
+}
 
 interface CompanyHistory {
   total_leads: number; converted: number; ever_responded: number;
@@ -61,12 +121,20 @@ export interface PriorWorkSlot {
   stages: number;
 }
 
-function formatDate(iso?: string | null) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-AU", { month: "short", year: "numeric" });
+export interface TimingRow {
+  lead_id: string;
+  due_date: string | null;
+  date_precision: string | null;
+  days_away: number | null;
+  days_overdue: number | null;
+  timing_band: string | null;
+  guidance: string | null;
+  date_source: string | null;
+  source_text: string | null;
 }
+
 function formatTs(iso?: string | null) {
-  if (!iso) return "—";
+  if (!iso) return DASH;
   return new Date(iso).toLocaleString("en-AU");
 }
 function monthYear(iso?: string | null) {
@@ -77,8 +145,14 @@ function dayMonthYear(iso?: string | null) {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString("en-AU", { month: "short", day: "numeric", year: "numeric" });
 }
+export function fmtDay(iso?: string | null) {
+  if (!iso) return DASH;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return DASH;
+  return d.toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric" });
+}
 function money(v?: number | null) {
-  if (v == null) return "—";
+  if (v == null) return DASH;
   return "$" + Math.round(v).toLocaleString("en-AU");
 }
 
@@ -93,12 +167,33 @@ const STAGE_BADGE: Record<string, string> = {
 };
 
 function StageBadge({ label }: { label: string | null }) {
-  if (!label) return <span className="text-muted-foreground">—</span>;
+  if (!label) return <span className="text-muted-foreground">{DASH}</span>;
   const cls = STAGE_BADGE[label] ?? "bg-slate-400/15 text-slate-300";
   return (
     <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-mono whitespace-nowrap ${cls}`}>
       {label}
     </span>
+  );
+}
+
+const BAND_ORDER: Record<string, number> = { past: 0, soon: 1, far: 2, unknown: 3 };
+
+const BAND_STYLE: Record<string, string> = {
+  past: "bg-red-500/25 text-red-300",
+  soon: "bg-yellow-400/25 text-yellow-200",
+  far: "bg-slate-400/15 text-slate-300",
+  unknown: "bg-muted text-muted-foreground",
+};
+
+function TimingBadge({ t }: { t: TimingRow | undefined }) {
+  const band = t?.timing_band ?? "unknown";
+  const cls = BAND_STYLE[band] ?? BAND_STYLE.unknown;
+  let text = "no date";
+  if (band === "past") text = `${t?.days_overdue ?? 0}d overdue`;
+  else if (t?.due_date) text = `${band} - ${monthYear(t.due_date)}`;
+  else text = band;
+  return (
+    <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-mono whitespace-nowrap ${cls}`}>{text}</span>
   );
 }
 
@@ -114,37 +209,56 @@ function shortCompany(name: string): string {
 
 export function useNewLeads() {
   const [rows, setRows] = useState<Lead[]>([]);
+  const [timing, setTiming] = useState<Record<string, TimingRow>>({});
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     const { data } = await db
-      .from("leads")
-      .select("*, organisation_id")
+      .from("v_oven_leads")
+      .select("*")
       .in("stage", ["new", "enriching"])
-      .order("created_at", { ascending: true })
       .range(0, 4999);
-    setRows((data as Lead[]) ?? []);
+    const list = (data as Lead[]) ?? [];
+    setRows(list);
+
+    const { data: t } = await db
+      .from("v_lead_timing")
+      .select("lead_id,due_date,date_precision,days_away,days_overdue,timing_band,guidance,date_source,source_text")
+      .range(0, 9999);
+    const map: Record<string, TimingRow> = {};
+    ((t as TimingRow[]) ?? []).forEach((r) => { map[r.lead_id] = r; });
+    setTiming(map);
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
-  return { rows, loading, reload: load };
+  return { rows, timing, loading, reload: load };
 }
 
+/**
+ * Context for a builder. `error` is true only when the fetch itself failed,
+ * so "no history" and "we could not read the history" stay distinguishable.
+ */
 export function useLeadCardContext(organisationId: string | null) {
   const [ctx, setCtx] = useState<LeadCardContext | null>(null);
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!organisationId) { setCtx(null); return; }
+    if (!organisationId) { setCtx(null); setError(false); setLoading(false); return; }
     let cancel = false;
+    setLoading(true);
     db.from("v_lead_card_context")
       .select("*")
       .eq("organisation_id", organisationId)
       .maybeSingle()
       .then((r: any) => {
         if (cancel) return;
-        if (r?.error || !r?.data) { setCtx(null); return; }
+        setLoading(false);
+        if (r?.error) { setCtx(null); setError(true); return; }
+        setError(false);
+        if (!r?.data) { setCtx(null); return; }
         const d = r.data;
         setCtx({
           ...d,
@@ -156,7 +270,7 @@ export function useLeadCardContext(organisationId: string | null) {
     return () => { cancel = true; };
   }, [organisationId]);
 
-  return ctx;
+  return { ctx, error, loading };
 }
 
 // ---------------- Block E composer ----------------
@@ -270,13 +384,13 @@ function SlotRow({
             });
           }}
         >
-          <option value="">— none —</option>
+          <option value="">- none -</option>
           {projectOptions.map((w, i) => (
             <option key={i} value={w.project ?? ""}>
-              {w.project}{w.closing_date ? ` · ${w.is_forecast ? "due " : ""}${monthYear(w.closing_date)}` : ""}
+              {w.project}{w.closing_date ? ` - ${w.is_forecast ? "due " : ""}${monthYear(w.closing_date)}` : ""}
             </option>
           ))}
-          <option value="__custom__">Custom project…</option>
+          <option value="__custom__">Custom project...</option>
         </select>
       )}
 
@@ -297,9 +411,9 @@ function SlotRow({
             onChange({ ...slot, contact: v });
           }}
         >
-          <option value="">— no name —</option>
+          <option value="">- no name -</option>
           {contacts.map((c) => <option key={c} value={c}>{c}</option>)}
-          <option value="__custom__">Custom name…</option>
+          <option value="__custom__">Custom name...</option>
         </select>
       )}
 
@@ -396,76 +510,344 @@ function ManualContactPanel({
   );
 }
 
-
+// ---------------- shell: the two Oven sub-tabs ----------------
 
 export default function NewLeadsView({ operator }: { operator: string }) {
-  const refs = useCrmRefs();
-  const { rows, loading, reload } = useNewLeads();
-  const [idx, setIdx] = useState(0);
-  const [progress, setProgress] = useState({ done: 0, total: 0 });
-  const [busy, setBusy] = useState(false);
-  const [stepOpen, setStepOpen] = useState(false);
-  const [history, setHistory] = useState<CompanyHistory | null>(null);
-  const [expanded, setExpanded] = useState(false);
-  const [slots, setSlots] = useState<SlotState[]>([{ ...EMPTY_SLOT }, { ...EMPTY_SLOT }]);
-  const [manualOpenFor, setManualOpenFor] = useState<string | null>(null);
-  const [enrichStatusById, setEnrichStatusById] = useState<Record<string, string>>({});
-  const { toast } = useToast();
+  const [tab, setTab] = useState<OvenTab>("new");
+  const newLeads = useNewLeads();
+  const cold = useColdCallLeads();
 
+  return (
+    <div className="space-y-4">
+      <OvenTabs value={tab} onChange={setTab} newCount={newLeads.rows.length} coldCount={cold.rows.length} />
+      {tab === "new" ? (
+        <NewLeadsTable operator={operator} {...newLeads} />
+      ) : (
+        <ColdCallView
+          operator={operator}
+          rows={cold.rows}
+          calls={cold.calls}
+          loading={cold.loading}
+          reload={cold.reload}
+        />
+      )}
+    </div>
+  );
+}
 
-  const lead = rows[idx];
-  const ctx = useLeadCardContext(lead?.organisation_id ?? null);
+// ---------------- New Leads table ----------------
 
-  useEffect(() => {
-    if (rows.length && progress.total === 0) setProgress({ done: 0, total: rows.length });
-  }, [rows.length, progress.total]);
+function NewLeadsTable({
+  operator, rows, timing, loading, reload,
+}: {
+  operator: string;
+  rows: Lead[];
+  timing: Record<string, TimingRow>;
+  loading: boolean;
+  reload: () => Promise<void> | void;
+}) {
+  const [expanded, setExpanded] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!lead) { setHistory(null); return; }
-    let cancel = false;
-    db.from("v_company_history").select("*").eq("company", lead.company_builder).maybeSingle()
-      .then((r: any) => { if (!cancel) setHistory(r.data ?? null); });
-    return () => { cancel = true; };
-  }, [lead?.id, lead?.company_builder]);
-
-  useEffect(() => { setExpanded(false); }, [lead?.id]);
-
-  useEffect(() => {
-    const be = ctx?.block_e?.slots ?? [];
-    setSlots([slotFromBlockE(be[0]), slotFromBlockE(be[1])]);
-  }, [ctx]);
+  const sorted = useMemo(() => {
+    return rows.slice().sort((a, b) => {
+      const ba = BAND_ORDER[timing[a.id]?.timing_band ?? "unknown"] ?? 3;
+      const bb = BAND_ORDER[timing[b.id]?.timing_band ?? "unknown"] ?? 3;
+      if (ba !== bb) return ba - bb;
+      const oa = timing[a.id]?.days_overdue ?? 0;
+      const ob = timing[b.id]?.days_overdue ?? 0;
+      if (ba === 0 && oa !== ob) return ob - oa;
+      const da = timing[a.id]?.days_away ?? 99999;
+      const dbv = timing[b.id]?.days_away ?? 99999;
+      if (da !== dbv) return da - dbv;
+      return (a.company_builder ?? "").localeCompare(b.company_builder ?? "");
+    });
+  }, [rows, timing]);
 
   useEffect(() => {
     if (!expanded) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setExpanded(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setExpanded(null); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [expanded]);
 
-  const hasContactDetails = useMemo(() => {
-    if (!lead) return false;
-    return !!(lead.project_contact_name || lead.role || lead.direct_email || lead.phone);
-  }, [lead]);
+  return (
+    <div className="space-y-3">
+      <div className="text-xs font-mono text-muted-foreground">
+        Working as <span className="text-foreground font-semibold">{operator}</span> - {sorted.length} new lead{sorted.length === 1 ? "" : "s"}, worked in timing order
+      </div>
 
-  const hasEmail = !!lead?.direct_email;
+      <div className="rounded-md border border-border bg-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="w-6" />
+                <th className="text-left px-2 py-2">Builder</th>
+                <th className="text-left px-2 py-2">Project</th>
+                <th className="text-left px-2 py-2">Contact</th>
+                <th className="text-left px-2 py-2">St</th>
+                <th className="text-left px-2 py-2">Work</th>
+                <th className="text-left px-2 py-2">Timing</th>
+                <th className="text-left px-3 py-2">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && !sorted.length && (
+                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground text-sm">Loading new leads...</td></tr>
+              )}
+              {!loading && sorted.length === 0 && (
+                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground text-sm">All scraped leads have been actioned.</td></tr>
+              )}
+              {sorted.map((l) => {
+                const isOpen = expanded === l.id;
+                const t = timing[l.id];
+                const placeholder = isPlaceholderBuilder(l.company_builder);
+                return (
+                  <FragmentRow key={l.id}>
+                    <tr
+                      className="border-t border-border cursor-pointer hover:bg-muted/30"
+                      onClick={() => setExpanded(isOpen ? null : l.id)}
+                    >
+                      <td className="pl-3 py-2">
+                        {isOpen
+                          ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                          : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                      </td>
+                      <td className="px-2 py-2 font-medium">
+                        {placeholder
+                          ? <span style={{ color: "#e5934b" }}>{l.company_builder || "no builder"}</span>
+                          : l.company_builder}
+                      </td>
+                      <td className="px-2 py-2 text-muted-foreground">{l.project_name || DASH}</td>
+                      <td className="px-2 py-2 text-xs">
+                        {l.project_contact_name
+                          ? l.project_contact_name
+                          : l.direct_email
+                            ? l.direct_email
+                            : <span className="text-muted-foreground italic">none</span>}
+                      </td>
+                      <td className="px-2 py-2 font-mono text-xs text-muted-foreground">{l.state || DASH}</td>
+                      <td className="px-2 py-2 text-xs text-muted-foreground">
+                        {l.organisation_id ? "linked" : "new company"}
+                      </td>
+                      <td className="px-2 py-2"><TimingBadge t={t} /></td>
+                      <td className="px-3 py-2 text-xs font-mono text-muted-foreground">{l.stage}</td>
+                    </tr>
+                    {isOpen && (
+                      <tr className="border-t border-border bg-muted/10">
+                        <td />
+                        <td colSpan={7} className="py-3 pr-3">
+                          <LeadPanel
+                            key={l.id}
+                            lead={l}
+                            timing={t}
+                            operator={operator}
+                            reload={reload}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                  </FragmentRow>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
 
+// ---------------- expansion: TIMING then CONTACT then SEND ----------------
+
+function StepHeader({ n, title, hint }: { n: number; title: string; hint?: string }) {
+  return (
+    <div className="flex items-baseline gap-2 mb-2">
+      <span
+        className="font-mono text-[10px] rounded px-1.5 py-0.5"
+        style={{ background: "rgba(61,137,218,0.18)", color: "#8fb8e4" }}
+      >
+        {n}
+      </span>
+      <span className="font-mono uppercase text-[10.5px] tracking-[0.13em] text-muted-foreground">{title}</span>
+      {hint && <span className="text-[11px] text-muted-foreground">{hint}</span>}
+    </div>
+  );
+}
+
+function LeadPanel({
+  lead, timing, operator, reload,
+}: {
+  lead: Lead;
+  timing: TimingRow | undefined;
+  operator: string;
+  reload: () => Promise<void> | void;
+}) {
+  const { ctx, error: ctxError } = useLeadCardContext(lead.organisation_id ?? null);
+  const { toast } = useToast();
+
+  const [slots, setSlots] = useState<SlotState[]>([{ ...EMPTY_SLOT }, { ...EMPTY_SLOT }]);
+  const hydratedFor = useRef<string | null>(null);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [enrichStatus, setEnrichStatus] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [stepOpen, setStepOpen] = useState(false);
+  const [builderInput, setBuilderInput] = useState("");
+  const [overrideDate, setOverrideDate] = useState("");
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [history, setHistory] = useState<CompanyHistory | null>(null);
+
+  // Bug fix (a): hydrate Block E once per lead, so a context refetch never
+  // wipes edits the user has already made to the slots.
+  useEffect(() => {
+    if (!ctx) return;
+    if (hydratedFor.current === lead.id) return;
+    const be = ctx.block_e?.slots ?? [];
+    setSlots([slotFromBlockE(be[0]), slotFromBlockE(be[1])]);
+    hydratedFor.current = lead.id;
+  }, [ctx, lead.id]);
+
+  useEffect(() => {
+    let cancel = false;
+    db.from("v_company_history").select("*").eq("company", lead.company_builder).maybeSingle()
+      .then((r: any) => { if (!cancel) setHistory(r?.data ?? null); });
+    return () => { cancel = true; };
+  }, [lead.id, lead.company_builder]);
+
+  const work = ctx?.work ?? [];
+  const prevLeads = (ctx?.leads ?? []).filter((l) => l.lead_id !== lead.id);
+  const placeholder = isPlaceholderBuilder(lead.company_builder);
+  const band = timing?.timing_band ?? "unknown";
+  const hasEmail = !!lead.direct_email;
+
+  const hasContactDetails = !!(lead.project_contact_name || lead.role || lead.direct_email || lead.phone);
   const manualEligible = useMemo(() => {
-    if (!lead) return false;
     if (lead.project_contact_name && lead.direct_email) return false;
-    const st = enrichStatusById[lead.id] ?? (lead as any).enrichment_status ?? null;
-    const enrichDeadEnd = st === "no_org" || st === "no_email";
-    const bare = !lead.project_contact_name && !lead.direct_email;
-    return enrichDeadEnd || bare;
-  }, [lead, enrichStatusById]);
+    const st = enrichStatus ?? (lead as any).enrichment_status ?? null;
+    return st === "no_org" || st === "no_email" || (!lead.project_contact_name && !lead.direct_email);
+  }, [lead, enrichStatus]);
+
+  const priorWorkSlots: PriorWorkSlot[] | undefined = useMemo(() => {
+    if (!ctx?.block_e) return undefined;
+    return slots
+      .filter((s) => s.project.trim())
+      .map((s) => ({ project: s.project.trim(), contact: s.contact.trim(), state: s.state, stages: s.stages }));
+  }, [ctx, slots]);
+
+  const preview = useMemo(() => buildPreview(slots, lead.company_builder), [slots, lead.company_builder]);
+
+  function reportBlocked(r: OvenWebhookResult) {
+    toast({
+      title: r.blocked ? "Blocked" : "That did not complete",
+      description: r.reason,
+      className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+    });
+  }
+
+  async function searchBuilder() {
+    if (busy) return;
+    setBusy("builder");
+    const r = await postOvenWebhook("tt-lead-builder", { lead_id: lead.id, operator });
+    setBusy(null);
+    if (!r.ok) { reportBlocked(r); return; }
+    toast({ title: "Builder search finished", description: r.body?.detail ?? "The lead has been updated if a builder was found." });
+    await reload();
+  }
+
+  async function saveBuilder() {
+    const v = builderInput.trim();
+    if (v.length < 2) return;
+    setBusy("builder_manual");
+    const { error } = await db.from("leads").update({ company_builder: v }).eq("id", lead.id);
+    setBusy(null);
+    if (error) {
+      toast({ title: "Could not save the builder", description: error.message, className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange" });
+      return;
+    }
+    toast({ title: "Builder saved" });
+    setBuilderInput("");
+    await reload();
+  }
+
+  async function searchTiming() {
+    if (busy) return;
+    setBusy("timing");
+    const r = await postOvenWebhook("tt-lead-timing", { lead_id: lead.id, operator });
+    setBusy(null);
+    if (!r.ok) { reportBlocked(r); return; }
+    toast({ title: "Completion date search finished", description: r.body?.detail ?? "The timing has been updated if a date was found." });
+    await reload();
+  }
+
+  async function saveOverride() {
+    if (!overrideDate) return;
+    setBusy("override");
+    const { error } = await db.from("leads").update({
+      completion_estimate: overrideDate,
+      completion_precision: "month",
+      completion_source: "manual",
+      completion_checked_at: new Date().toISOString(),
+    }).eq("id", lead.id);
+    setBusy(null);
+    if (error) {
+      toast({ title: "Could not save the date", description: error.message, className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange" });
+      return;
+    }
+    toast({ title: "Completion date overridden" });
+    await reload();
+  }
+
+  async function schedule() {
+    if (!scheduleDate) return;
+    setBusy("schedule");
+    await db.from("leads").update({ follow_up_date: scheduleDate }).eq("id", lead.id);
+    setBusy(null);
+    toast({ title: `Scheduled for ${scheduleDate}` });
+    await reload();
+  }
+
+  async function removeLead() {
+    setBusy("remove");
+    await db.from("leads").update({ stage: "archived", archived_at: new Date().toISOString() }).eq("id", lead.id);
+    setBusy(null);
+    toast({ title: "Lead removed from the oven" });
+    await reload();
+  }
+
+  async function findDetails() {
+    if (busy) return;
+    setBusy("apollo");
+    try {
+      const r = await enrichLead(lead.id, operator, "full");
+      const st = (r as any).enrichment_status ?? (r as any).status ?? null;
+      if (st) setEnrichStatus(st);
+      if (r.ok && r.matched && r.draft === "created") {
+        toast({ title: `Found ${r.contact?.name?.trim() || "contact"} - draft created`, description: "Email drafted in sales@ and Zoho lead created." });
+      } else if (r.ok && r.matched) {
+        toast({
+          title: "Contact found but the draft failed",
+          description: r.detail || "Contact captured; the send workflow did not complete.",
+          className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+        });
+      } else {
+        toast({
+          title: r.ok ? "No match" : "Apollo did not respond",
+          description: r.detail || "The lead is unchanged.",
+          className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+        });
+      }
+      await reload();
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function saveManualContact(v: { name: string; email: string; role: string }) {
-    if (!lead) return;
     const name = v.name.trim();
     const email = v.email.trim().toLowerCase();
     const role = v.role.trim() || null;
 
-    const { error } = await db
-      .from("leads")
+    const { error } = await db.from("leads")
       .update({ project_contact_name: name, direct_email: email, role })
       .eq("id", lead.id);
 
@@ -492,354 +874,252 @@ export default function NewLeadsView({ operator }: { operator: string }) {
       }
     }
 
+    setManualOpen(false);
     await reload();
-    setManualOpenFor(null);
-    toast({ title: "Contact saved — you can now send an EOI" });
+    toast({ title: "Contact saved - you can now send an EOI" });
   }
-
-
-  const priorWorkSlots: PriorWorkSlot[] | undefined = useMemo(() => {
-    if (!ctx?.block_e) return undefined;
-    return slots
-      .filter((s) => s.project.trim())
-      .map((s) => ({
-        project: s.project.trim(),
-        contact: s.contact.trim(),
-        state: s.state,
-        stages: s.stages,
-      }));
-  }, [ctx, slots]);
-
-  const preview = useMemo(
-    () => (lead ? buildPreview(slots, lead.company_builder) : null),
-    [slots, lead?.company_builder],
-  );
-
-  function next(bump = true) {
-    if (bump) setProgress((p) => ({ ...p, done: p.done + 1 }));
-    setIdx((i) => i + 1);
-  }
-
-  async function findDetails() {
-    if (!lead || busy) return;
-    setBusy(true);
-    try {
-      const r = await enrichLead(lead.id, operator, "full");
-      const st = (r as any).enrichment_status ?? (r as any).status ?? null;
-      if (st === "no_org" || st === "no_email") {
-        setEnrichStatusById((p) => ({ ...p, [lead.id]: st }));
-      }
-      if (r.ok && r.matched && r.draft === "created") {
-        const name = r.contact?.name?.trim() || "contact";
-        toast({ title: `Found ${name} — draft created`, description: "Email drafted in sales@ and Zoho lead created." });
-        await reload();
-        next();
-      } else if (r.ok && r.matched && r.draft && r.draft !== "created") {
-        const name = r.contact?.name?.trim() || "contact";
-        toast({
-          title: `Found ${name} but the draft failed`,
-          description: r.detail || "Contact captured; the send workflow did not complete.",
-          className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
-        });
-        await reload();
-      } else if (r.ok && r.matched === false) {
-        toast({
-          title: "No match",
-          description: r.detail || "Apollo could not find a matching contact.",
-          className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
-        });
-        await reload();
-        next(false);
-      } else {
-        toast({
-          title: "Apollo did not respond",
-          description: r.detail || "The lead is unchanged.",
-          className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
-        });
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  if (loading && !rows.length) {
-    return <div className="p-8 text-sm text-muted-foreground font-mono">Loading new leads…</div>;
-  }
-
-  if (!lead) {
-    return (
-      <Card className="p-10 text-center">
-        <div className="text-lg font-mono uppercase tracking-wider mb-2">Nothing new</div>
-        <p className="text-sm text-muted-foreground">All scraped leads have been actioned.</p>
-        <Button variant="outline" className="mt-4" onClick={reload}>Refresh</Button>
-      </Card>
-    );
-  }
-
-  const pct = progress.total ? Math.min(100, (progress.done / progress.total) * 100) : 0;
-
-  const work = ctx?.work ?? [];
-  const prevLeads = (ctx?.leads ?? []).filter((l) => l.lead_id !== lead.id);
-  const priorBits: string[] = [];
-  if ((ctx?.completed_count ?? 0) > 0) priorBits.push(`${ctx!.completed_count} completed`);
-  if ((ctx?.live_count ?? 0) > 0) priorBits.push(`${ctx!.live_count} live`);
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-muted-foreground uppercase tracking-wider">
-        <span>Working as <span className="text-foreground font-semibold normal-case">{operator}</span></span>
-        <span>·</span>
-        <span>{rows.length} new leads</span>
-        <div className="flex-1 min-w-[120px]">
-          <div className="h-1 bg-muted rounded-full overflow-hidden">
-            <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
-          </div>
-        </div>
-        <span className="normal-case">{progress.done}/{progress.total} done</span>
-      </div>
-
-      <Card className="p-6 space-y-6">
-        <div>
-          <div className="flex items-start gap-3 flex-wrap">
-            <div className="min-w-0 flex-1">
-              <h1 className="text-2xl font-mono font-semibold tracking-tight truncate">{lead.company_builder}</h1>
-              <div className="text-base text-muted-foreground truncate">
-                {lead.project_name || <span className="italic">No project name</span>}
+      {/* STEP 1 - TIMING */}
+      <div className="rounded-md border border-border bg-muted/10 px-3 py-3">
+        <StepHeader n={1} title="Timing" hint={timing?.guidance ?? undefined} />
+        {band === "past" && (
+          <div className="space-y-2">
+            <div className="text-sm" style={{ color: "#e5934b" }}>
+              Completion was due {timing?.due_date ? monthYear(timing.due_date) : "earlier"} - {timing?.days_overdue ?? 0} days overdue.
+              This job may already be built.
+            </div>
+            <div className="flex flex-wrap items-end gap-2">
+              <Button size="sm" variant="outline" disabled={busy === "remove"} onClick={removeLead}>Remove lead</Button>
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-1">Override date</div>
+                <div className="flex gap-2">
+                  <input type="date" className={SELECT_CLS} value={overrideDate} onChange={(e) => setOverrideDate(e.target.value)} />
+                  <Button size="sm" variant="outline" disabled={!overrideDate || busy === "override"} onClick={saveOverride}>Save</Button>
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-1">Schedule for</div>
+                <div className="flex gap-2">
+                  <input type="date" className={SELECT_CLS} value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} />
+                  <Button size="sm" variant="outline" disabled={!scheduleDate || busy === "schedule"} onClick={schedule}>Set</Button>
+                </div>
               </div>
             </div>
-            {lead.state && (
-              <span className="text-[10px] font-mono uppercase tracking-widest px-2 py-1 rounded border border-border bg-muted/40">
-                {lead.state}
-              </span>
-            )}
           </div>
-        </div>
+        )}
+        {band === "unknown" && (
+          <div className="space-y-2">
+            <div className="text-sm text-muted-foreground">No completion date on record, so we cannot tell whether this is worth chasing yet.</div>
+            <Button size="sm" variant="outline" disabled={busy === "timing"} onClick={searchTiming}>
+              {busy === "timing" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Search className="w-3.5 h-3.5 mr-1" />}
+              Search for a completion date
+            </Button>
+          </div>
+        )}
+        {(band === "soon" || band === "far") && (
+          <div className="text-sm">
+            Completion {timing?.due_date ? monthYear(timing.due_date) : band}
+            {timing?.days_away != null && <span className="text-muted-foreground"> - {timing.days_away} days away</span>}
+            {timing?.source_text && <div className="text-xs text-muted-foreground mt-1">{timing.source_text}</div>}
+          </div>
+        )}
+      </div>
+
+      {/* STEP 2 - CONTACT */}
+      <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-3">
+        <StepHeader n={2} title="Contact" />
+
+        {placeholder ? (
+          <div className="space-y-2">
+            <div className="text-sm" style={{ color: "#e5934b" }}>
+              No builder recorded on this lead, so there is nobody to enrich yet.
+            </div>
+            <div className="flex flex-wrap items-end gap-2">
+              <Button size="sm" variant="outline" disabled={busy === "builder"} onClick={searchBuilder}>
+                {busy === "builder" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Search className="w-3.5 h-3.5 mr-1" />}
+                Search for the builder
+              </Button>
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-1">Or enter it</div>
+                <div className="flex gap-2">
+                  <input
+                    className={SELECT_CLS + " min-w-[200px]"}
+                    placeholder="Builder name"
+                    value={builderInput}
+                    onChange={(e) => setBuilderInput(e.target.value)}
+                  />
+                  <Button size="sm" variant="outline" disabled={builderInput.trim().length < 2 || busy === "builder_manual"} onClick={saveBuilder}>
+                    Save builder
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {hasContactDetails ? (
+              <div className="space-y-1">
+                {lead.project_contact_name && (
+                  <div className="text-sm font-semibold">
+                    {lead.project_contact_name}
+                    {lead.role && <span className="text-muted-foreground font-normal"> - {lead.role}</span>}
+                  </div>
+                )}
+                {lead.direct_email && (
+                  <a href={`mailto:${lead.direct_email}`} className="flex items-center gap-2 text-sm text-primary hover:underline">
+                    <Mail className="w-3.5 h-3.5" /> {lead.direct_email}
+                  </a>
+                )}
+                {lead.phone && (
+                  <a href={`tel:${lead.phone}`} className="flex items-center gap-2 text-sm text-primary hover:underline">
+                    <Phone className="w-3.5 h-3.5" /> {lead.phone}
+                  </a>
+                )}
+              </div>
+            ) : (
+              <div className="text-sm text-chart-orange italic">No contact details yet</div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" onClick={findDetails} disabled={busy === "apollo"}>
+                {busy === "apollo" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1" />}
+                {busy === "apollo" ? "Searching Apollo..." : "Find Details"}
+              </Button>
+              {manualEligible && !manualOpen && (
+                <Button size="sm" variant="outline" onClick={() => setManualOpen(true)}>Enter contact manually</Button>
+              )}
+            </div>
+
+            {manualOpen && (
+              <ManualContactPanel onCancel={() => setManualOpen(false)} onSave={saveManualContact} />
+            )}
+          </>
+        )}
 
         {lead.stage === "enriching" && (
           <div className="text-xs font-mono text-muted-foreground italic flex items-center gap-2">
-            <Loader2 className="w-3 h-3 animate-spin" /> Apollo is searching…
-            {(lead as any).enriched_at && <span>· since {formatTs((lead as any).enriched_at)}</span>}
+            <Loader2 className="w-3 h-3 animate-spin" /> Apollo is searching...
+            {(lead as any).enriched_at && <span>since {formatTs((lead as any).enriched_at)}</span>}
           </div>
         )}
+      </div>
 
-        <div>
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-2">Contact</div>
-          {hasContactDetails ? (
-            <div className="space-y-1">
-              {lead.project_contact_name && (
-                <div className="text-sm font-semibold">
-                  {lead.project_contact_name}
-                  {lead.role && <span className="text-muted-foreground font-normal"> · {lead.role}</span>}
-                </div>
-              )}
-              {lead.direct_email && (
-                <a href={`mailto:${lead.direct_email}`} className="flex items-center gap-2 text-sm text-primary hover:underline">
-                  <Mail className="w-3.5 h-3.5" /> {lead.direct_email}
-                </a>
-              )}
-              {lead.phone && (
-                <a href={`tel:${lead.phone}`} className="flex items-center gap-2 text-sm text-primary hover:underline">
-                  <Phone className="w-3.5 h-3.5" /> {lead.phone}
-                </a>
-              )}
+      {/* STEP 3 - SEND */}
+      <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-3">
+        <StepHeader n={3} title="Send" />
+
+        {/* Bug fix (b): a failed context read is not the same as no history. */}
+        {ctxError ? (
+          <div className="text-sm" style={{ color: "#e5934b" }}>
+            The work history for this builder could not be loaded. Do not treat this as a first approach - retry before sending.
+          </div>
+        ) : !lead.organisation_id || !ctx ? (
+          <div className="text-sm text-muted-foreground italic">First contact with this company.</div>
+        ) : (
+          <div className="space-y-3">
+            <div className="font-mono text-xs">
+              <span className="font-semibold">{ctx.lead_count}</span> previous leads
+              {", "}<span className="font-semibold">{ctx.replied_count}</span> replied
+              {ctx.response_rate_pct != null && <>, <span className="font-semibold">{Math.round(ctx.response_rate_pct)}%</span> response rate</>}
+              {", "}<span className="font-semibold">{ctx.completed_count}</span> completed, <span className="font-semibold">{ctx.live_count}</span> live
             </div>
-          ) : (
-            <div className="text-sm text-chart-orange italic">No contact details yet</div>
-          )}
 
-          {manualEligible && (
-            manualOpenFor === lead.id ? (
-              <ManualContactPanel
-                key={lead.id}
-                onCancel={() => setManualOpenFor(null)}
-                onSave={saveManualContact}
-              />
-            ) : (
-              <Button
-                size="sm"
-                variant="outline"
-                className="mt-2"
-                onClick={() => setManualOpenFor(lead.id)}
-              >
-                Enter contact manually
-              </Button>
-            )
-          )}
-        </div>
-
-
-        <div>
-          <button
-            type="button"
-            aria-expanded={expanded}
-            aria-controls="lead-card-context-panel"
-            onClick={() => setExpanded((v) => !v)}
-            className="w-full text-left rounded-md border border-border bg-muted/20 px-3 py-2 text-sm flex items-center gap-2"
-          >
-            {ctx ? (
-              <div className="font-mono text-sm flex-1 min-w-0">
-                <span className="font-semibold">{ctx.lead_count}</span> previous leads
-                {" · "}<span className="font-semibold">{ctx.replied_count}</span> replied
-                {ctx.response_rate_pct != null && (
-                  <> · <span className="font-semibold">{Math.round(ctx.response_rate_pct)}%</span> response rate</>
-                )}
-                {" · "}
-                {priorBits.length
-                  ? <>prior work: <span className="font-semibold">{priorBits.join(", ")}</span></>
-                  : <span className="text-muted-foreground">no work history</span>}
+            {work.length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs font-mono">
+                  <tbody>
+                    {work.map((w, i) => (
+                      <tr key={i} className="border-t border-border/50">
+                        <td className="py-1.5 pr-3">{w.project || DASH}</td>
+                        <td className="py-1.5 pr-3 text-muted-foreground">{w.contact || DASH}</td>
+                        <td className="py-1.5 pr-3"><StageBadge label={w.stage_label} /></td>
+                        <td className="py-1.5 pr-3 text-muted-foreground whitespace-nowrap">
+                          {w.closing_date ? `${w.is_forecast ? "due " : ""}${monthYear(w.closing_date)}` : DASH}
+                        </td>
+                        <td className="py-1.5 text-right whitespace-nowrap">{money(w.contract_value)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ) : (
-              <div className="flex-1 min-w-0 text-muted-foreground italic">First contact with this company</div>
             )}
-            <ChevronRight
-              className="w-4 h-4 shrink-0 transition-transform"
-              style={{ color: "#3D89DA", transform: expanded ? "rotate(90deg)" : "none" }}
-            />
-          </button>
 
-          {expanded && ctx && (
-            <div id="lead-card-context-panel" className="mt-2 space-y-4">
-              {/* 4a — work with this company */}
-              <div className="rounded-md border border-border bg-muted/10 px-3 py-3">
-                <div className="flex items-baseline justify-between gap-3 mb-2">
-                  <div className="font-mono uppercase text-[10.5px] tracking-[0.13em] text-muted-foreground">
-                    Work with this company
-                  </div>
-                  <div className="text-[11px] text-muted-foreground font-mono">
-                    {ctx.deal_count} projects, most recent first
-                  </div>
+            {work.length > 0 && ctx.block_e && (
+              <div
+                className="rounded-lg"
+                style={{
+                  background: "rgba(61,137,218,0.09)",
+                  border: "1px solid rgba(61,137,218,0.30)",
+                  padding: "13px 14px",
+                }}
+              >
+                <div className="font-mono uppercase text-[10.5px] tracking-[0.13em] mb-3" style={{ color: "#8fb8e4" }}>
+                  What the EOI will say
                 </div>
-                {work.length === 0 ? (
-                  <div className="text-sm text-muted-foreground italic">
-                    No projects with this company yet — this is a first approach.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs font-mono">
-                      <tbody>
-                        {work.map((w, i) => (
-                          <tr key={i} className="border-t border-border/50">
-                            <td className="py-1.5 pr-3">{w.project || "—"}</td>
-                            <td className="py-1.5 pr-3 text-muted-foreground">{w.contact || "—"}</td>
-                            <td className="py-1.5 pr-3"><StageBadge label={w.stage_label} /></td>
-                            <td className="py-1.5 pr-3 text-muted-foreground whitespace-nowrap">
-                              {w.closing_date ? `${w.is_forecast ? "due " : ""}${monthYear(w.closing_date)}` : "—"}
-                            </td>
-                            <td className="py-1.5 text-right whitespace-nowrap">{money(w.contract_value)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-              {/* 4b — block E composer */}
-              {work.length > 0 && ctx.block_e && (
+                <div className="space-y-2">
+                  <SlotRow label="Mention" slot={slots[0]} work={work} onChange={(s) => setSlots((p) => [s, p[1]])} />
+                  <SlotRow label="and" slot={slots[1]} work={work} onChange={(s) => setSlots((p) => [p[0], s])} />
+                </div>
                 <div
-                  className="rounded-lg"
-                  style={{
-                    background: "rgba(61,137,218,0.09)",
-                    border: "1px solid rgba(61,137,218,0.30)",
-                    padding: "13px 14px",
-                  }}
+                  className="mt-3 rounded-md px-3 py-2 text-sm"
+                  style={{ background: "rgba(3,8,15,0.55)", border: "1px solid rgba(61,137,218,0.22)" }}
                 >
-                  <div
-                    className="font-mono uppercase text-[10.5px] tracking-[0.13em] mb-3"
-                    style={{ color: "#8fb8e4" }}
-                  >
-                    What the EOI will say
-                  </div>
-                  <div className="space-y-2">
-                    <SlotRow label="Mention" slot={slots[0]} work={work}
-                      onChange={(s) => setSlots((p) => [s, p[1]])} />
-                    <SlotRow label="and" slot={slots[1]} work={work}
-                      onChange={(s) => setSlots((p) => [p[0], s])} />
-                  </div>
-                  <div
-                    className="mt-3 rounded-md px-3 py-2 text-sm"
-                    style={{ background: "rgba(3,8,15,0.55)", border: "1px solid rgba(61,137,218,0.22)" }}
-                  >
-                    {preview
-                      ? <span>{preview}</span>
-                      : <span className="italic text-muted-foreground">Nothing selected — the EOI goes out without this paragraph.</span>}
-                  </div>
+                  {preview
+                    ? <span>{preview}</span>
+                    : <span className="italic text-muted-foreground">Nothing selected - the EOI goes out without this paragraph.</span>}
                 </div>
-              )}
-
-              {/* 4c — previous leads */}
-              <div className="rounded-md border border-border bg-muted/10 px-3 py-3">
-                <div className="flex items-baseline justify-between gap-3 mb-2 flex-wrap">
-                  <div className="font-mono uppercase text-[10.5px] tracking-[0.13em] text-muted-foreground">
-                    Previous leads
-                  </div>
-                  <div className="text-[11px] text-muted-foreground">
-                    reply dates are real; send dates start recording from now
-                  </div>
-                </div>
-                {prevLeads.length === 0 ? (
-                  <div className="text-sm text-muted-foreground italic">No other leads for this company.</div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs font-mono">
-                      <tbody>
-                        {prevLeads.map((l) => (
-                          <tr key={l.lead_id} className="border-t border-border/50">
-                            <td className="py-1.5 pr-3">{l.project || "—"}</td>
-                            <td className="py-1.5 pr-3 whitespace-nowrap">
-                              {l.emailed_at
-                                ? `emailed ${dayMonthYear(l.emailed_at)}`
-                                : <span className="text-muted-foreground">send not recorded</span>}
-                            </td>
-                            <td className="py-1.5 pr-3"><StageBadge label={l.stage} /></td>
-                            <td className="py-1.5 whitespace-nowrap">
-                              {l.responded_at
-                                ? <span style={{ color: "#a9cbef" }}>replied {dayMonthYear(l.responded_at)}</span>
-                                : <span className="text-muted-foreground">no reply</span>}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
               </div>
-            </div>
-          )}
-        </div>
+            )}
 
-        {lead.notes && (
-          <div>
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-1">Notes</div>
-            <div className="text-sm whitespace-pre-wrap">{lead.notes}</div>
+            {prevLeads.length > 0 && (
+              <div className="overflow-x-auto">
+                <div className="font-mono uppercase text-[10.5px] tracking-[0.13em] text-muted-foreground mb-1">Previous leads</div>
+                <table className="w-full text-xs font-mono">
+                  <tbody>
+                    {prevLeads.map((l) => (
+                      <tr key={l.lead_id} className="border-t border-border/50">
+                        <td className="py-1.5 pr-3">{l.project || DASH}</td>
+                        <td className="py-1.5 pr-3 whitespace-nowrap">
+                          {l.emailed_at ? `emailed ${dayMonthYear(l.emailed_at)}` : <span className="text-muted-foreground">send not recorded</span>}
+                        </td>
+                        <td className="py-1.5 pr-3"><StageBadge label={l.stage} /></td>
+                        <td className="py-1.5 whitespace-nowrap">
+                          {l.responded_at
+                            ? <span style={{ color: "#a9cbef" }}>replied {dayMonthYear(l.responded_at)}</span>
+                            : <span className="text-muted-foreground">no reply</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pt-2">
-          <Button size="lg" className="min-h-[44px]" onClick={findDetails} disabled={busy}>
-            {busy ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
-            {busy ? "Searching Apollo…" : "Find Details"}
+        <div className="flex flex-wrap items-center gap-3">
+          <Button size="sm" disabled={!hasEmail || placeholder} onClick={() => setStepOpen(true)}>
+            Set next step
           </Button>
-          {hasEmail && (
-            <Button size="lg" variant="secondary" className="min-h-[44px]" onClick={() => setStepOpen(true)} disabled={busy}>
-              <Clock className="w-4 h-4 mr-1" /> Set Next Step
-            </Button>
+          {(!hasEmail || placeholder) && (
+            <span style={{ color: "#e5934b", fontSize: "11.5px" }}>
+              {placeholder ? "Confirm the builder first" : "An email address is required before sending"}
+            </span>
           )}
-          <Button
-            size="lg"
-            variant="outline"
-            className={`min-h-[44px] ${hasEmail ? "" : "md:col-start-3"}`}
-            onClick={() => next()}
-            disabled={busy}
-          >
-            <SkipForward className="w-4 h-4 mr-1" /> Skip
-          </Button>
+          {history?.last_contacted && (
+            <span className="text-[11px] text-muted-foreground">last contacted {monthYear(history.last_contacted)}</span>
+          )}
         </div>
+      </div>
 
-        <div className="flex justify-end pt-2">
-          <Button variant="outline" onClick={() => next(false)} disabled={busy}>Next lead →</Button>
+      {lead.notes && (
+        <div className="rounded-md border border-border bg-muted/10 px-3 py-3">
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-1">Notes</div>
+          <div className="text-sm whitespace-pre-wrap">{lead.notes}</div>
         </div>
-      </Card>
+      )}
 
       <SetNextStepDialog
         open={stepOpen}
@@ -847,7 +1127,7 @@ export default function NewLeadsView({ operator }: { operator: string }) {
         lead={lead}
         operator={operator}
         priorWorkSlots={priorWorkSlots}
-        onSaved={() => { setStepOpen(false); reload(); next(); }}
+        onSaved={() => { setStepOpen(false); reload(); }}
       />
     </div>
   );
