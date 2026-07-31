@@ -979,240 +979,284 @@ function LeadPanel({
     toast({ title: "Contact saved - you can now send an EOI" });
   }
 
+  // One decision on screen at a time, resolved in a fixed priority order so a
+  // step cannot be jumped and the downstream automations stay in sequence.
+  const activePanel: "builder" | "timing_unknown" | "timing_past" | "contact" | "send" =
+    placeholder
+      ? "builder"
+      : band === "unknown" && !skipTiming
+        ? "timing_unknown"
+        : band === "past" && !skipTiming
+          ? "timing_past"
+          : !hasEmail
+            ? "contact"
+            : "send";
+
+  const stepperCurrent: "timing" | "contact" | "send" =
+    activePanel === "builder" || activePanel === "timing_unknown" || activePanel === "timing_past"
+      ? "timing"
+      : activePanel === "contact"
+        ? "contact"
+        : "send";
+
   return (
     <div className="space-y-4">
-      {/* STEP 1 - TIMING */}
-      <div className="rounded-md border border-border bg-muted/10 px-3 py-3">
-        <StepHeader n={1} title="Timing" hint={timing?.guidance ?? undefined} />
-        {band === "past" && (
-          <div className="space-y-2">
-            <div className="text-sm" style={{ color: "#e5934b" }}>
-              Completion was due {timing?.due_date ? monthYear(timing.due_date) : "earlier"} - {timing?.days_overdue ?? 0} days overdue.
-              This job may already be built.
-            </div>
-            <div className="flex flex-wrap items-end gap-2">
-              <Button size="sm" variant="outline" disabled={busy === "remove"} onClick={removeLead}>Remove lead</Button>
-              <div>
-                <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-1">Override date</div>
-                <div className="flex gap-2">
-                  <input type="date" className={SELECT_CLS} value={overrideDate} onChange={(e) => setOverrideDate(e.target.value)} />
-                  <Button size="sm" variant="outline" disabled={!overrideDate || busy === "override"} onClick={saveOverride}>Save</Button>
-                </div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-1">Schedule for</div>
-                <div className="flex gap-2">
-                  <input type="date" className={SELECT_CLS} value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} />
-                  <Button size="sm" variant="outline" disabled={!scheduleDate || busy === "schedule"} onClick={schedule}>Set</Button>
-                </div>
+      <Stepper current={stepperCurrent} />
+
+      {activePanel === "builder" && (
+        <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-2">
+          <PanelHeader title="Which builder is this?" />
+          <div className="text-sm" style={{ color: "#e5934b" }}>
+            No builder recorded on this lead. Nothing can proceed without a company.
+          </div>
+          <div className="flex flex-wrap items-end gap-2">
+            <Button size="sm" variant="outline" disabled={busy === "builder"} onClick={searchBuilder}>
+              {busy === "builder" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Search className="w-3.5 h-3.5 mr-1" />}
+              Search for the builder
+            </Button>
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-1">Or enter it</div>
+              <div className="flex gap-2">
+                <input
+                  className={SELECT_CLS + " min-w-[200px]"}
+                  placeholder="Builder name"
+                  value={builderInput}
+                  onChange={(e) => setBuilderInput(e.target.value)}
+                />
+                <Button size="sm" variant="outline" disabled={builderInput.trim().length < 2 || busy === "builder_manual"} onClick={saveBuilder}>
+                  Save builder
+                </Button>
               </div>
             </div>
           </div>
-        )}
-        {band === "unknown" && (
-          <div className="space-y-2">
-            <div className="text-sm text-muted-foreground">No completion date on record, so we cannot tell whether this is worth chasing yet.</div>
+        </div>
+      )}
+
+      {activePanel === "timing_unknown" && (
+        <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-2">
+          <PanelHeader title="When does this project finish?" hint={timing?.guidance ?? undefined} />
+          <div className="text-sm text-muted-foreground">No completion date on record, so we cannot tell whether this is worth chasing yet.</div>
+          <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" variant="outline" disabled={busy === "timing"} onClick={searchTiming}>
               {busy === "timing" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Search className="w-3.5 h-3.5 mr-1" />}
               Search for a completion date
             </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSkipTiming(true)}>Skip, find a contact anyway</Button>
           </div>
-        )}
-        {(band === "soon" || band === "far") && (
-          <div className="text-sm">
-            Completion {timing?.due_date ? monthYear(timing.due_date) : band}
-            {timing?.days_away != null && <span className="text-muted-foreground"> - {timing.days_away} days away</span>}
-            {timing?.source_text && <div className="text-xs text-muted-foreground mt-1">{timing.source_text}</div>}
+        </div>
+      )}
+
+      {activePanel === "timing_past" && (
+        <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-2">
+          <PanelHeader
+            title={`This project finished ${timing?.days_overdue ?? 0} days ago`}
+            hint={timing?.guidance ?? undefined}
+          />
+          <div className="text-sm" style={{ color: "#e5934b" }}>
+            Completion was due {timing?.due_date ? monthYear(timing.due_date) : "earlier"}. This job may already be built.
           </div>
-        )}
-      </div>
-
-      {/* STEP 2 - CONTACT */}
-      <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-3">
-        <StepHeader n={2} title="Contact" />
-
-        {placeholder ? (
-          <div className="space-y-2">
-            <div className="text-sm" style={{ color: "#e5934b" }}>
-              No builder recorded on this lead, so there is nobody to enrich yet.
+          <div className="flex flex-wrap items-end gap-2">
+            <Button size="sm" variant="outline" disabled={busy === "remove"} onClick={removeLead}>Remove lead</Button>
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-1">Override date</div>
+              <div className="flex gap-2">
+                <input type="date" className={SELECT_CLS} value={overrideDate} onChange={(e) => setOverrideDate(e.target.value)} />
+                <Button size="sm" variant="outline" disabled={!overrideDate || busy === "override"} onClick={saveOverride}>Save</Button>
+              </div>
             </div>
-            <div className="flex flex-wrap items-end gap-2">
-              <Button size="sm" variant="outline" disabled={busy === "builder"} onClick={searchBuilder}>
-                {busy === "builder" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Search className="w-3.5 h-3.5 mr-1" />}
-                Search for the builder
-              </Button>
-              <div>
-                <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-1">Or enter it</div>
-                <div className="flex gap-2">
-                  <input
-                    className={SELECT_CLS + " min-w-[200px]"}
-                    placeholder="Builder name"
-                    value={builderInput}
-                    onChange={(e) => setBuilderInput(e.target.value)}
-                  />
-                  <Button size="sm" variant="outline" disabled={builderInput.trim().length < 2 || busy === "builder_manual"} onClick={saveBuilder}>
-                    Save builder
-                  </Button>
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-1">Schedule for</div>
+              <div className="flex gap-2">
+                <input type="date" className={SELECT_CLS} value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} />
+                <Button size="sm" variant="outline" disabled={!scheduleDate || busy === "schedule"} onClick={schedule}>Set</Button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <Button size="sm" variant="ghost" onClick={() => setSkipTiming(true)}>It is delayed, find a contact</Button>
+          </div>
+        </div>
+      )}
+
+      {activePanel === "contact" && (
+        <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-3">
+          <PanelHeader title="Who do we email?" />
+
+          {hasContactDetails ? (
+            <div className="space-y-1">
+              {lead.project_contact_name && (
+                <div className="text-sm font-semibold">
+                  {lead.project_contact_name}
+                  {lead.role && <span className="text-muted-foreground font-normal"> - {lead.role}</span>}
                 </div>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <>
-            {hasContactDetails ? (
-              <div className="space-y-1">
-                {lead.project_contact_name && (
-                  <div className="text-sm font-semibold">
-                    {lead.project_contact_name}
-                    {lead.role && <span className="text-muted-foreground font-normal"> - {lead.role}</span>}
-                  </div>
-                )}
-                {lead.direct_email && (
-                  <a href={`mailto:${lead.direct_email}`} className="flex items-center gap-2 text-sm text-primary hover:underline">
-                    <Mail className="w-3.5 h-3.5" /> {lead.direct_email}
-                  </a>
-                )}
-                {lead.phone && (
-                  <a href={`tel:${lead.phone}`} className="flex items-center gap-2 text-sm text-primary hover:underline">
-                    <Phone className="w-3.5 h-3.5" /> {lead.phone}
-                  </a>
-                )}
-              </div>
-            ) : (
-              <div className="text-sm text-chart-orange italic">No contact details yet</div>
-            )}
-
-            <div className="flex flex-wrap items-center gap-2">
-              <Button size="sm" onClick={findDetails} disabled={busy === "apollo"}>
-                {busy === "apollo" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1" />}
-                {busy === "apollo" ? "Searching Apollo..." : "Find Details"}
-              </Button>
-              {manualEligible && !manualOpen && (
-                <Button size="sm" variant="outline" onClick={() => setManualOpen(true)}>Enter contact manually</Button>
+              )}
+              {lead.phone && (
+                <a href={`tel:${lead.phone}`} className="flex items-center gap-2 text-sm text-primary hover:underline">
+                  <Phone className="w-3.5 h-3.5" /> {lead.phone}
+                </a>
               )}
             </div>
-
-            {manualOpen && (
-              <ManualContactPanel onCancel={() => setManualOpen(false)} onSave={saveManualContact} />
-            )}
-          </>
-        )}
-
-        {lead.stage === "enriching" && (
-          <div className="text-xs font-mono text-muted-foreground italic flex items-center gap-2">
-            <Loader2 className="w-3 h-3 animate-spin" /> Apollo is searching...
-            {(lead as any).enriched_at && <span>since {formatTs((lead as any).enriched_at)}</span>}
-          </div>
-        )}
-      </div>
-
-      {/* STEP 3 - SEND */}
-      <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-3">
-        <StepHeader n={3} title="Send" />
-
-        {/* Bug fix (b): a failed context read is not the same as no history. */}
-        {ctxError ? (
-          <div className="text-sm" style={{ color: "#e5934b" }}>
-            The work history for this builder could not be loaded. Do not treat this as a first approach - retry before sending.
-          </div>
-        ) : !lead.organisation_id || !ctx ? (
-          <div className="text-sm text-muted-foreground italic">First contact with this company.</div>
-        ) : (
-          <div className="space-y-3">
-            <div className="font-mono text-xs">
-              <span className="font-semibold">{ctx.lead_count}</span> previous leads
-              {", "}<span className="font-semibold">{ctx.replied_count}</span> replied
-              {ctx.response_rate_pct != null && <>, <span className="font-semibold">{Math.round(ctx.response_rate_pct)}%</span> response rate</>}
-              {", "}<span className="font-semibold">{ctx.completed_count}</span> completed, <span className="font-semibold">{ctx.live_count}</span> live
-            </div>
-
-            {work.length > 0 && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs font-mono">
-                  <tbody>
-                    {work.map((w, i) => (
-                      <tr key={i} className="border-t border-border/50">
-                        <td className="py-1.5 pr-3">{w.project || DASH}</td>
-                        <td className="py-1.5 pr-3 text-muted-foreground">{w.contact || DASH}</td>
-                        <td className="py-1.5 pr-3"><StageBadge label={w.stage_label} /></td>
-                        <td className="py-1.5 pr-3 text-muted-foreground whitespace-nowrap">
-                          {w.closing_date ? `${w.is_forecast ? "due " : ""}${monthYear(w.closing_date)}` : DASH}
-                        </td>
-                        <td className="py-1.5 text-right whitespace-nowrap">{money(w.contract_value)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {work.length > 0 && ctx.block_e && (
-              <div
-                className="rounded-lg"
-                style={{
-                  background: "rgba(61,137,218,0.09)",
-                  border: "1px solid rgba(61,137,218,0.30)",
-                  padding: "13px 14px",
-                }}
-              >
-                <div className="font-mono uppercase text-[10.5px] tracking-[0.13em] mb-3" style={{ color: "#8fb8e4" }}>
-                  What the EOI will say
-                </div>
-                <div className="space-y-2">
-                  <SlotRow label="Mention" slot={slots[0]} work={work} onChange={(s) => setSlots((p) => [s, p[1]])} />
-                  <SlotRow label="and" slot={slots[1]} work={work} onChange={(s) => setSlots((p) => [p[0], s])} />
-                </div>
-                <div
-                  className="mt-3 rounded-md px-3 py-2 text-sm"
-                  style={{ background: "rgba(3,8,15,0.55)", border: "1px solid rgba(61,137,218,0.22)" }}
-                >
-                  {preview
-                    ? <span>{preview}</span>
-                    : <span className="italic text-muted-foreground">Nothing selected - the EOI goes out without this paragraph.</span>}
-                </div>
-              </div>
-            )}
-
-            {prevLeads.length > 0 && (
-              <div className="overflow-x-auto">
-                <div className="font-mono uppercase text-[10.5px] tracking-[0.13em] text-muted-foreground mb-1">Previous leads</div>
-                <table className="w-full text-xs font-mono">
-                  <tbody>
-                    {prevLeads.map((l) => (
-                      <tr key={l.lead_id} className="border-t border-border/50">
-                        <td className="py-1.5 pr-3">{l.project || DASH}</td>
-                        <td className="py-1.5 pr-3 whitespace-nowrap">
-                          {l.emailed_at ? `emailed ${dayMonthYear(l.emailed_at)}` : <span className="text-muted-foreground">send not recorded</span>}
-                        </td>
-                        <td className="py-1.5 pr-3"><StageBadge label={l.stage} /></td>
-                        <td className="py-1.5 whitespace-nowrap">
-                          {l.responded_at
-                            ? <span style={{ color: "#a9cbef" }}>replied {dayMonthYear(l.responded_at)}</span>
-                            : <span className="text-muted-foreground">no reply</span>}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="flex flex-wrap items-center gap-3">
-          <Button size="sm" disabled={!hasEmail || placeholder} onClick={() => setStepOpen(true)}>
-            Set next step
-          </Button>
-          {(!hasEmail || placeholder) && (
-            <span style={{ color: "#e5934b", fontSize: "11.5px" }}>
-              {placeholder ? "Confirm the builder first" : "An email address is required before sending"}
-            </span>
+          ) : (
+            <div className="text-sm text-chart-orange italic">No contact details yet</div>
           )}
-          {history?.last_contacted && (
-            <span className="text-[11px] text-muted-foreground">last contacted {monthYear(history.last_contacted)}</span>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" onClick={findDetails} disabled={busy === "apollo"}>
+              {busy === "apollo" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1" />}
+              {busy === "apollo" ? "Searching Apollo..." : "Find Details"}
+            </Button>
+            {(manualEligible || noMatchDetail) && !manualOpen && !noMatchDetail && (
+              <Button size="sm" variant="outline" onClick={() => setManualOpen(true)}>Enter contact manually</Button>
+            )}
+          </div>
+
+          {noMatchDetail && !manualOpen && (
+            <div className="space-y-2">
+              <div className="text-sm" style={{ color: "#e5934b" }}>{noMatchDetail}</div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  style={{ backgroundColor: "#3D89DA", color: "#fff" }}
+                  onClick={() => setManualOpen(true)}
+                >
+                  Enter contact manually
+                </Button>
+                <Button size="sm" variant="outline" disabled={busy === "cold"} onClick={sendToColdCall}>
+                  {busy === "cold" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+                  Send to Cold Call
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {manualOpen && (
+            <ManualContactPanel onCancel={() => setManualOpen(false)} onSave={saveManualContact} />
+          )}
+
+          {lead.stage === "enriching" && (
+            <div className="text-xs font-mono text-muted-foreground italic flex items-center gap-2">
+              <Loader2 className="w-3 h-3 animate-spin" /> Apollo is searching...
+              {(lead as any).enriched_at && <span>since {formatTs((lead as any).enriched_at)}</span>}
+            </div>
           )}
         </div>
-      </div>
+      )}
+
+      {activePanel === "send" && (
+        <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-3">
+          <PanelHeader title="Which email?" />
+
+          <div className="space-y-1">
+            {lead.project_contact_name && (
+              <div className="text-sm font-semibold">
+                {lead.project_contact_name}
+                {lead.role && <span className="text-muted-foreground font-normal"> - {lead.role}</span>}
+              </div>
+            )}
+            {lead.direct_email && (
+              <a href={`mailto:${lead.direct_email}`} className="flex items-center gap-2 text-sm text-primary hover:underline">
+                <Mail className="w-3.5 h-3.5" /> {lead.direct_email}
+              </a>
+            )}
+          </div>
+
+          {/* A failed context read is not the same as no history. */}
+          {ctxError ? (
+            <div className="text-sm" style={{ color: "#e5934b" }}>
+              The work history for this builder could not be loaded. Do not treat this as a first approach - retry before sending.
+            </div>
+          ) : !lead.organisation_id || !ctx ? (
+            <div className="text-sm text-muted-foreground italic">First contact with this company.</div>
+          ) : (
+            <div className="space-y-3">
+              <div className="font-mono text-xs">
+                <span className="font-semibold">{ctx.lead_count}</span> previous leads
+                {", "}<span className="font-semibold">{ctx.replied_count}</span> replied
+                {ctx.response_rate_pct != null && <>, <span className="font-semibold">{Math.round(ctx.response_rate_pct)}%</span> response rate</>}
+                {", "}<span className="font-semibold">{ctx.completed_count}</span> completed, <span className="font-semibold">{ctx.live_count}</span> live
+              </div>
+
+              {work.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs font-mono">
+                    <tbody>
+                      {work.map((w, i) => (
+                        <tr key={i} className="border-t border-border/50">
+                          <td className="py-1.5 pr-3">{w.project || DASH}</td>
+                          <td className="py-1.5 pr-3 text-muted-foreground">{w.contact || DASH}</td>
+                          <td className="py-1.5 pr-3"><StageBadge label={w.stage_label} /></td>
+                          <td className="py-1.5 pr-3 text-muted-foreground whitespace-nowrap">
+                            {w.closing_date ? `${w.is_forecast ? "due " : ""}${monthYear(w.closing_date)}` : DASH}
+                          </td>
+                          <td className="py-1.5 text-right whitespace-nowrap">{money(w.contract_value)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {work.length > 0 && ctx.block_e && (
+                <div
+                  className="rounded-lg"
+                  style={{
+                    background: "rgba(61,137,218,0.09)",
+                    border: "1px solid rgba(61,137,218,0.30)",
+                    padding: "13px 14px",
+                  }}
+                >
+                  <div className="font-mono uppercase text-[10.5px] tracking-[0.13em] mb-3" style={{ color: "#8fb8e4" }}>
+                    What the EOI will say
+                  </div>
+                  <div className="space-y-2">
+                    <SlotRow label="Mention" slot={slots[0]} work={work} onChange={(s) => setSlots((p) => [s, p[1]])} />
+                    <SlotRow label="and" slot={slots[1]} work={work} onChange={(s) => setSlots((p) => [p[0], s])} />
+                  </div>
+                  <div
+                    className="mt-3 rounded-md px-3 py-2 text-sm"
+                    style={{ background: "rgba(3,8,15,0.55)", border: "1px solid rgba(61,137,218,0.22)" }}
+                  >
+                    {preview
+                      ? <span>{preview}</span>
+                      : <span className="italic text-muted-foreground">Nothing selected - the EOI goes out without this paragraph.</span>}
+                  </div>
+                </div>
+              )}
+
+              {prevLeads.length > 0 && (
+                <div className="overflow-x-auto">
+                  <div className="font-mono uppercase text-[10.5px] tracking-[0.13em] text-muted-foreground mb-1">Previous leads</div>
+                  <table className="w-full text-xs font-mono">
+                    <tbody>
+                      {prevLeads.map((l) => (
+                        <tr key={l.lead_id} className="border-t border-border/50">
+                          <td className="py-1.5 pr-3">{l.project || DASH}</td>
+                          <td className="py-1.5 pr-3 whitespace-nowrap">
+                            {l.emailed_at ? `emailed ${dayMonthYear(l.emailed_at)}` : <span className="text-muted-foreground">send not recorded</span>}
+                          </td>
+                          <td className="py-1.5 pr-3"><StageBadge label={l.stage} /></td>
+                          <td className="py-1.5 whitespace-nowrap">
+                            {l.responded_at
+                              ? <span style={{ color: "#a9cbef" }}>replied {dayMonthYear(l.responded_at)}</span>
+                              : <span className="text-muted-foreground">no reply</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button size="sm" onClick={() => setStepOpen(true)}>Set next step</Button>
+            {history?.last_contacted && (
+              <span className="text-[11px] text-muted-foreground">last contacted {monthYear(history.last_contacted)}</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {lead.notes && (
         <div className="rounded-md border border-border bg-muted/10 px-3 py-3">
