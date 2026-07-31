@@ -1,14 +1,21 @@
 import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronRight, Phone, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Phone, Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useCrmRefs, type NextStepRow } from "@/hooks/useCrmLeads";
 import { useToast } from "@/hooks/use-toast";
-import { postOvenWebhook, isPlaceholderBuilder, DASH, fmtDay, useLeadCardContext } from "./NewLeadsView";
+import {
+  postOvenWebhook,
+  isPlaceholderBuilder,
+  DASH,
+  fmtDay,
+  useLeadCardContext,
+} from "./NewLeadsView";
 
 const db = supabase as any;
 
 const FragmentRow = ({ children }: { children: ReactNode }) => <Fragment>{children}</Fragment>;
+
 
 export interface ColdLead {
   id: string;
