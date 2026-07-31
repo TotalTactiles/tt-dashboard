@@ -87,6 +87,7 @@ const App = () => (
                   <Route path="/management-report" element={<Protected><ManagementReport /></Protected>} />
                   <Route path="/projects" element={<Protected><Projects /></Protected>} />
                   <Route path="/crm" element={<Protected><CRM /></Protected>} />
+                  <Route path="/crm/lead/:id" element={<Protected><LeadProfile /></Protected>} />
                   <Route path="/contacts" element={<Protected><Contacts /></Protected>} />
                   {/* ── TV / Wallboard mode ── */}
                   <Route path="/tv" element={<Protected><TvLayout><Index /></TvLayout></Protected>} />
