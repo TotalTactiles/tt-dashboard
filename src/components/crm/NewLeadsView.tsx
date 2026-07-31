@@ -718,18 +718,33 @@ function NewLeadsTable({
   );
 }
 
-// ---------------- expansion: TIMING then CONTACT then SEND ----------------
+// ---------------- expansion: one step on screen at a time ----------------
 
-function StepHeader({ n, title, hint }: { n: number; title: string; hint?: string }) {
+/** Progress indicator only. Deliberately not clickable, so a step cannot be jumped. */
+function Stepper({ current }: { current: "timing" | "contact" | "send" }) {
+  const steps: { key: "timing" | "contact" | "send"; label: string }[] = [
+    { key: "timing", label: "Timing" },
+    { key: "contact", label: "Contact" },
+    { key: "send", label: "Send" },
+  ];
+  return (
+    <div className="flex items-center gap-2 font-mono uppercase text-[10.5px] tracking-[0.13em]">
+      {steps.map((s, i) => (
+        <Fragment key={s.key}>
+          {i > 0 && <span className="text-muted-foreground/40">/</span>}
+          <span style={s.key === current ? { color: "#3D89DA" } : undefined} className={s.key === current ? "font-semibold" : "text-muted-foreground/60"}>
+            {s.label}
+          </span>
+        </Fragment>
+      ))}
+    </div>
+  );
+}
+
+function PanelHeader({ title, hint }: { title: string; hint?: string }) {
   return (
     <div className="flex items-baseline gap-2 mb-2">
-      <span
-        className="font-mono text-[10px] rounded px-1.5 py-0.5"
-        style={{ background: "rgba(61,137,218,0.18)", color: "#8fb8e4" }}
-      >
-        {n}
-      </span>
-      <span className="font-mono uppercase text-[10.5px] tracking-[0.13em] text-muted-foreground">{title}</span>
+      <span className="text-sm font-semibold">{title}</span>
       {hint && <span className="text-[11px] text-muted-foreground">{hint}</span>}
     </div>
   );
@@ -738,7 +753,7 @@ function StepHeader({ n, title, hint }: { n: number; title: string; hint?: strin
 function LeadPanel({
   lead, timing, operator, reload,
 }: {
-  lead: Lead;
+  lead: Lead & Partial<OvenNewLead>;
   timing: TimingRow | undefined;
   operator: string;
   reload: () => Promise<void> | void;
@@ -755,6 +770,10 @@ function LeadPanel({
   const [builderInput, setBuilderInput] = useState("");
   const [overrideDate, setOverrideDate] = useState("");
   const [scheduleDate, setScheduleDate] = useState("");
+  // Session-only forward moves. LeadPanel is keyed by lead id, so these reset
+  // when the row is closed or a different lead is opened.
+  const [skipTiming, setSkipTiming] = useState(false);
+  const [noMatchDetail, setNoMatchDetail] = useState<string | null>(null);
   const [history, setHistory] = useState<CompanyHistory | null>(null);
 
   // Bug fix (a): hydrate Block E once per lead, so a context refetch never
