@@ -1,14 +1,21 @@
 import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronRight, Phone, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Phone, Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useCrmRefs, type NextStepRow } from "@/hooks/useCrmLeads";
 import { useToast } from "@/hooks/use-toast";
-import { postOvenWebhook, isPlaceholderBuilder, DASH, fmtDay, useLeadCardContext } from "./NewLeadsView";
+import {
+  postOvenWebhook,
+  isPlaceholderBuilder,
+  DASH,
+  fmtDay,
+  useLeadCardContext,
+} from "./NewLeadsView";
 
 const db = supabase as any;
 
 const FragmentRow = ({ children }: { children: ReactNode }) => <Fragment>{children}</Fragment>;
+
 
 export interface ColdLead {
   id: string;
@@ -102,6 +109,84 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
     </div>
   );
 }
+
+/**
+ * The full picture for a builder: deals, contacts on file and previous leads.
+ * Mounted only when the dropdown is opened, so the fetch happens on open and
+ * only for the open row, the same way CompanyList expands a company.
+ */
+function LeadHistoryStrip({ organisationId, leadId }: { organisationId: string | null; leadId: string }) {
+  const { ctx, error, loading } = useLeadCardContext(organisationId);
+
+  if (loading) return <div className="text-xs font-mono text-muted-foreground italic">Loading the full picture...</div>;
+  if (error) {
+    return (
+      <div className="text-xs font-mono" style={{ color: "#e5934b" }}>
+        The history for this builder could not be loaded. Do not treat this as a first approach.
+      </div>
+    );
+  }
+  if (!organisationId || !ctx) {
+    return <div className="text-xs font-mono text-muted-foreground italic">First contact with this company.</div>;
+  }
+
+  const work = ctx.work ?? [];
+  const prevLeads = (ctx.leads ?? []).filter((l) => l.lead_id !== leadId);
+
+  return (
+    <div className="space-y-3">
+      <div className="font-mono text-xs">
+        <span className="font-semibold">{ctx.deal_count}</span> deals
+        {", "}<span className="font-semibold">{ctx.completed_count}</span> completed
+        {", "}<span className="font-semibold">{ctx.live_count}</span> live
+        {", "}<span className="font-semibold">{ctx.lead_count}</span> previous leads
+        {", "}<span className="font-semibold">{ctx.replied_count}</span> replied
+      </div>
+
+      {work.length > 0 && (
+        <div className="overflow-x-auto">
+          <div className="font-mono uppercase text-[10.5px] tracking-[0.13em] text-muted-foreground mb-1">Deals and contacts on file</div>
+          <table className="w-full text-xs font-mono">
+            <tbody>
+              {work.map((w, i) => (
+                <tr key={i} className="border-t border-border/50">
+                  <td className="py-1.5 pr-3">{w.project || DASH}</td>
+                  <td className="py-1.5 pr-3 text-muted-foreground">{w.contact || DASH}</td>
+                  <td className="py-1.5 pr-3 text-muted-foreground">{w.stage_label || DASH}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {prevLeads.length > 0 && (
+        <div className="overflow-x-auto">
+          <div className="font-mono uppercase text-[10.5px] tracking-[0.13em] text-muted-foreground mb-1">Previous leads</div>
+          <table className="w-full text-xs font-mono">
+            <tbody>
+              {prevLeads.map((l) => (
+                <tr key={l.lead_id} className="border-t border-border/50">
+                  <td className="py-1.5 pr-3">{l.project || DASH}</td>
+                  <td className="py-1.5 pr-3 text-muted-foreground">{l.stage || DASH}</td>
+                  <td className="py-1.5 whitespace-nowrap text-muted-foreground">
+                    {l.responded_at ? `replied ${fmtDay(l.responded_at)}` : l.emailed_at ? `emailed ${fmtDay(l.emailed_at)}` : "no contact recorded"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {work.length === 0 && prevLeads.length === 0 && (
+        <div className="text-xs font-mono text-muted-foreground italic">Nothing else on file for this builder.</div>
+      )}
+    </div>
+  );
+}
+
+
 
 export default function ColdCallView({
   operator, rows, calls, loading, reload,
@@ -217,10 +302,51 @@ function ColdCallPanel({
   const [callbackAt, setCallbackAt] = useState("");
   const [followUp, setFollowUp] = useState("");
   const [notes, setNotes] = useState("");
+  const [messageLeft, setMessageLeft] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [pictureOpen, setPictureOpen] = useState(false);
+  const [orgPhone, setOrgPhone] = useState<string | null>(null);
+  const [lookup, setLookup] = useState<{ saved: boolean; phone: string | null; reason: string | null } | null>(null);
 
   const selectedOutcome = outcomes.find((o) => o.code === outcome);
   const spokeToSomeone = !!selectedOutcome?.is_contact || outcome === "spoke_gatekeeper";
+  const needsMessage = outcome === "left_message";
+  const messageMissing = needsMessage && !messageLeft.trim();
+
+  // Fall back to the organisation's switchboard when the lead has no number.
+  useEffect(() => {
+    if (lead.phone || !lead.organisation_id) { setOrgPhone(null); return; }
+    let cancel = false;
+    db.from("organisations").select("phone").eq("id", lead.organisation_id).maybeSingle()
+      .then((r: any) => { if (!cancel) setOrgPhone(r?.data?.phone ?? null); });
+    return () => { cancel = true; };
+  }, [lead.phone, lead.organisation_id]);
+
+  // Only ever a company switchboard, never a personal number, and only a number
+  // the workflow actually saved.
+  const savedLookupPhone = lookup?.saved ? lookup.phone : null;
+  const displayPhone = lead.phone || orgPhone || savedLookupPhone || null;
+  const offerLookup = !displayPhone || outcome === "wrong_number";
+
+  async function findCompanyLine() {
+    if (busy) return;
+    setBusy("company_phone");
+    const r = await postOvenWebhook("tt-company-phone", { lead_id: lead.id, operator });
+    setBusy(null);
+    const body: any = r.body ?? {};
+    if (r.blocked || (!r.ok && !body.reason)) {
+      toast({
+        title: "Blocked",
+        description: r.reason,
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+      return;
+    }
+    const saved = !!body.saved;
+    setLookup({ saved, phone: saved ? (body.phone ?? null) : null, reason: body.reason ?? r.reason ?? null });
+    if (saved) await onDone();
+  }
+
 
   const steps: NextStepRow[] = useMemo(
     () => (refs?.nextSteps ?? []).filter((s) => !s.is_system && s.applies_to_stage === "ready_to_call"),
@@ -244,18 +370,22 @@ function ColdCallPanel({
     if ((s as any).requires_follow_up_date && !followUp) gaps.push("follow-up date");
     if ((s as any).requires_note && !notes.trim()) gaps.push("a note");
     if (s.requires_state && !lead.state) gaps.push("state");
+    if (messageMissing) gaps.push("what you said in the message");
     return gaps;
   }
 
   async function logCall() {
-    if (!outcome || busy) return;
+    if (!outcome || busy || messageMissing) return;
     setBusy("call");
+    const parts: string[] = [];
+    if (needsMessage && messageLeft.trim()) parts.push(`Message: ${messageLeft.trim()}`);
+    if (notes.trim()) parts.push(notes.trim());
     const payload: any = {
       lead_id: lead.id,
       called_at: new Date().toISOString(),
       outcome_code: outcome,
       spoke_with: spokeToSomeone ? contactName.trim() || null : null,
-      notes: notes.trim() || null,
+      notes: parts.length ? parts.join("\n") : null,
       created_by: operator,
       contact_name: contactName.trim() || null,
       contact_role: contactRole.trim() || null,
@@ -276,8 +406,11 @@ function ColdCallPanel({
     toast({ title: "Call logged" });
     setOutcome("");
     setNotes("");
+    setMessageLeft("");
     await onDone();
   }
+
+
 
   async function applyStep(s: NextStepRow) {
     if (busy) return;
@@ -314,12 +447,12 @@ function ColdCallPanel({
     <div className="space-y-4">
       {/* call it */}
       <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-2">
-        {lead.phone ? (
+        {displayPhone ? (
           <a
-            href={`tel:${lead.phone}`}
+            href={`tel:${displayPhone}`}
             className="inline-flex items-center gap-2 text-2xl font-mono font-semibold text-primary hover:underline"
           >
-            <Phone className="w-5 h-5" /> {lead.phone}
+            <Phone className="w-5 h-5" /> {displayPhone}
           </a>
         ) : (
           <div className="text-sm text-chart-orange italic">No phone number on this lead.</div>
@@ -329,6 +462,34 @@ function ColdCallPanel({
           {askFor ? <span className="font-semibold">{askFor}{lead.role ? ` - ${lead.role}` : ""}</span>
                   : <span className="text-muted-foreground italic">whoever handles the tender</span>}
         </div>
+
+        {/* Company switchboard only. Never an individual's mobile or direct line. */}
+        {offerLookup && (
+          <div className="space-y-2 pt-1">
+            <Button size="sm" variant="outline" disabled={busy === "company_phone"} onClick={findCompanyLine}>
+              {busy === "company_phone"
+                ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                : <Search className="w-3.5 h-3.5 mr-1" />}
+              Find the company main line
+            </Button>
+            <div className="text-[11px] font-mono text-muted-foreground">
+              Publicly listed switchboard for the builder only. It returns nothing rather than guess.
+            </div>
+            {lookup && (
+              lookup.saved && lookup.phone ? (
+                <div className="text-xs font-mono space-y-1">
+                  <a href={`tel:${lookup.phone}`} className="text-primary hover:underline text-base font-semibold">{lookup.phone}</a>
+                  {lookup.reason && <div className="text-muted-foreground">{lookup.reason}</div>}
+                </div>
+              ) : (
+                <div className="text-xs font-mono" style={{ color: "#e5934b" }}>
+                  {lookup.reason || "No company main line could be verified."}
+                </div>
+              )
+            )}
+          </div>
+        )}
+
         {isPlaceholderBuilder(lead.company_builder) && (
           <div className="text-xs font-mono" style={{ color: "#e5934b" }}>
             The builder is still a placeholder - confirm who you are speaking to.
@@ -346,7 +507,24 @@ function ColdCallPanel({
             {opener}
           </div>
         ) : null}
+
+        {/* the full picture - collapsed by default, fetched only when opened */}
+        <div className="pt-1">
+          <button
+            className="inline-flex items-center gap-1 text-[11px] font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground"
+            onClick={() => setPictureOpen((v) => !v)}
+          >
+            {pictureOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            The full picture
+          </button>
+          {pictureOpen && (
+            <div className="mt-2 rounded-md border border-border/60 px-3 py-2">
+              <LeadHistoryStrip organisationId={lead.organisation_id} leadId={lead.id} />
+            </div>
+          )}
+        </div>
       </div>
+
 
       {/* previous calls */}
       <div className="rounded-md border border-border bg-muted/10 px-3 py-3">
@@ -398,7 +576,7 @@ function ColdCallPanel({
           <Field label="Email">
             <input className={INPUT_CLS} value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
           </Field>
-          <Field label="Direct phone">
+          <Field label="Phone as given on the call">
             <input className={INPUT_CLS} value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
           </Field>
           {outcome === "callback_requested" && (
@@ -411,16 +589,31 @@ function ColdCallPanel({
           </Field>
         </div>
 
+        {needsMessage && (
+          <Field label="Message left">
+            <input
+              className={INPUT_CLS}
+              placeholder="What you actually said, e.g. asked reception to pass on that we tender tactiles for Stage 2"
+              value={messageLeft}
+              onChange={(e) => setMessageLeft(e.target.value)}
+            />
+          </Field>
+        )}
+
         <Field label="Notes">
           <textarea className={INPUT_CLS} rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Field>
 
         <div className="flex items-center gap-3">
-          <Button size="sm" disabled={!outcome || busy === "call"} onClick={logCall}>
+          <Button size="sm" disabled={!outcome || messageMissing || busy === "call"} onClick={logCall}>
             {busy === "call" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
-            Log call
+            Log it and move on
           </Button>
+
           {!outcome && <span style={{ color: "#e5934b", fontSize: "11.5px" }}>Pick an outcome to log the call</span>}
+          {outcome && messageMissing && (
+            <span style={{ color: "#e5934b", fontSize: "11.5px" }}>Record what you said in the message</span>
+          )}
         </div>
       </div>
 
