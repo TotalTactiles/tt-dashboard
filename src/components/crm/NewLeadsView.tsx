@@ -896,6 +896,7 @@ function LeadPanel({
   async function findDetails() {
     if (busy) return;
     setBusy("apollo");
+    setNoMatchDetail(null);
     try {
       const r = await enrichLead(lead.id, operator, "full");
       const st = (r as any).enrichment_status ?? (r as any).status ?? null;
@@ -908,9 +909,13 @@ function LeadPanel({
           description: r.detail || "Contact captured; the send workflow did not complete.",
           className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
         });
+      } else if (r.ok) {
+        // A search that found nothing is a normal outcome, so the choices stay
+        // on screen instead of disappearing in a toast.
+        setNoMatchDetail(r.detail || "Apollo found nobody with an email at this company.");
       } else {
         toast({
-          title: r.ok ? "No match" : "Apollo did not respond",
+          title: "Apollo did not respond",
           description: r.detail || "The lead is unchanged.",
           className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
         });
@@ -919,6 +924,22 @@ function LeadPanel({
     } finally {
       setBusy(null);
     }
+  }
+
+  async function sendToColdCall() {
+    setBusy("cold");
+    const { error } = await db.from("leads").update({ stage: "ready_to_call" }).eq("id", lead.id);
+    setBusy(null);
+    if (error) {
+      toast({
+        title: "Could not send to Cold Call",
+        description: error.message,
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+      return;
+    }
+    toast({ title: "Sent to Cold Call" });
+    await reload();
   }
 
   async function saveManualContact(v: { name: string; email: string; role: string }) {
