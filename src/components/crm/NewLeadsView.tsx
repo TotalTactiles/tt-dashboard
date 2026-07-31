@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Card } from "@/components/ui/card";
+
 import { Button } from "@/components/ui/button";
 import { Mail, Phone, Sparkles, Loader2, ChevronRight, ChevronDown, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
