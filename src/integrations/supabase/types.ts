@@ -5830,6 +5830,7 @@ export type Database = {
           ok: boolean
         }[]
       }
+      tt_is_switchboard: { Args: { p_raw: string }; Returns: boolean }
       tt_last_email_message_id: { Args: { p_lead_id: string }; Returns: string }
       tt_lead_gate: {
         Args: { p_lead_id: string; p_operator: string }
@@ -5861,6 +5862,7 @@ export type Database = {
         Args: { p_actor_id: string; p_lead_id: string }
         Returns: boolean
       }
+      tt_normalise_au_phone: { Args: { p_raw: string }; Returns: string }
       tt_purge_missing_zoho_deals: { Args: never; Returns: number }
       tt_release_lead: {
         Args: { p_actor_id: string; p_lead_id: string }
@@ -5869,6 +5871,16 @@ export type Database = {
       tt_restart_follow_ups: {
         Args: { p_created_by?: string; p_from: string; p_lead_id: string }
         Returns: string
+      }
+      tt_save_company_phone: {
+        Args: { p_lead_id: string; p_phone: string; p_source?: string }
+        Returns: {
+          phone: string
+          reason: string
+          saved: boolean
+          wrote_lead: boolean
+          wrote_org: boolean
+        }[]
       }
       tt_schedule_task: {
         Args: {
