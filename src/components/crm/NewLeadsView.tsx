@@ -582,7 +582,7 @@ export default function NewLeadsView({ operator }: { operator: string }) {
     <div className="space-y-4">
       <OvenTabs value={tab} onChange={setTab} newCount={newLeads.rows.length} coldCount={cold.rows.length} />
       {tab === "new" ? (
-        <NewLeadsTable operator={operator} {...newLeads} />
+        <NewLeadsQueue operator={operator} {...newLeads} />
       ) : (
         <ColdCallView
           operator={operator}
