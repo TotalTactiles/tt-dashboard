@@ -795,7 +795,7 @@ function LeadPanel({
 
   const work = ctx?.work ?? [];
   const prevLeads = (ctx?.leads ?? []).filter((l) => l.lead_id !== lead.id);
-  const placeholder = isPlaceholderBuilder(lead.company_builder);
+  const placeholder = lead.is_placeholder_builder === true || isPlaceholderBuilder(lead.company_builder);
   const band = timing?.timing_band ?? "unknown";
   const hasEmail = !!lead.direct_email;
 
