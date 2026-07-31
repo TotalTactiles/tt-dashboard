@@ -447,12 +447,12 @@ function ColdCallPanel({
     <div className="space-y-4">
       {/* call it */}
       <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-2">
-        {lead.phone ? (
+        {displayPhone ? (
           <a
-            href={`tel:${lead.phone}`}
+            href={`tel:${displayPhone}`}
             className="inline-flex items-center gap-2 text-2xl font-mono font-semibold text-primary hover:underline"
           >
-            <Phone className="w-5 h-5" /> {lead.phone}
+            <Phone className="w-5 h-5" /> {displayPhone}
           </a>
         ) : (
           <div className="text-sm text-chart-orange italic">No phone number on this lead.</div>
@@ -462,6 +462,34 @@ function ColdCallPanel({
           {askFor ? <span className="font-semibold">{askFor}{lead.role ? ` - ${lead.role}` : ""}</span>
                   : <span className="text-muted-foreground italic">whoever handles the tender</span>}
         </div>
+
+        {/* Company switchboard only. Never an individual's mobile or direct line. */}
+        {offerLookup && (
+          <div className="space-y-2 pt-1">
+            <Button size="sm" variant="outline" disabled={busy === "company_phone"} onClick={findCompanyLine}>
+              {busy === "company_phone"
+                ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                : <Search className="w-3.5 h-3.5 mr-1" />}
+              Find the company main line
+            </Button>
+            <div className="text-[11px] font-mono text-muted-foreground">
+              Publicly listed switchboard for the builder only. It returns nothing rather than guess.
+            </div>
+            {lookup && (
+              lookup.saved && lookup.phone ? (
+                <div className="text-xs font-mono space-y-1">
+                  <a href={`tel:${lookup.phone}`} className="text-primary hover:underline text-base font-semibold">{lookup.phone}</a>
+                  {lookup.reason && <div className="text-muted-foreground">{lookup.reason}</div>}
+                </div>
+              ) : (
+                <div className="text-xs font-mono" style={{ color: "#e5934b" }}>
+                  {lookup.reason || "No company main line could be verified."}
+                </div>
+              )
+            )}
+          </div>
+        )}
+
         {isPlaceholderBuilder(lead.company_builder) && (
           <div className="text-xs font-mono" style={{ color: "#e5934b" }}>
             The builder is still a placeholder - confirm who you are speaking to.
@@ -479,7 +507,24 @@ function ColdCallPanel({
             {opener}
           </div>
         ) : null}
+
+        {/* the full picture - collapsed by default, fetched only when opened */}
+        <div className="pt-1">
+          <button
+            className="inline-flex items-center gap-1 text-[11px] font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground"
+            onClick={() => setPictureOpen((v) => !v)}
+          >
+            {pictureOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            The full picture
+          </button>
+          {pictureOpen && (
+            <div className="mt-2 rounded-md border border-border/60 px-3 py-2">
+              <LeadHistoryStrip organisationId={lead.organisation_id} leadId={lead.id} />
+            </div>
+          )}
+        </div>
       </div>
+
 
       {/* previous calls */}
       <div className="rounded-md border border-border bg-muted/10 px-3 py-3">
