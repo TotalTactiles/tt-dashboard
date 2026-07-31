@@ -130,8 +130,27 @@ export interface TimingRow {
   timing_band: string | null;
   guidance: string | null;
   date_source: string | null;
-  source_text: string | null;
+  source_text?: string | null;
 }
+
+/** A row from v_oven_new_leads: lead columns plus timing, prior work and status. */
+export interface OvenNewLead extends Lead {
+  timing_band: string | null;
+  days_overdue: number | null;
+  due_date: string | null;
+  guidance: string | null;
+  date_source: string | null;
+  deals_completed: number | null;
+  deals_live: number | null;
+  deals_lost: number | null;
+  prior_leads: number | null;
+  prior_emailed: number | null;
+  prior_replied: number | null;
+  is_placeholder_builder: boolean | null;
+  work_status: string | null;
+  band_rank: number | null;
+}
+
 
 function formatTs(iso?: string | null) {
   if (!iso) return DASH;
@@ -207,33 +226,75 @@ function shortCompany(name: string): string {
   return s || original;
 }
 
+const WORK_STATUS_STYLE: Record<string, string> = {
+  "contact ready": "bg-emerald-500/25 text-emerald-300",
+  "duplicate": "bg-red-500/25 text-red-300",
+  "needs a contact": "bg-yellow-400/25 text-yellow-200",
+  "no builder": "bg-yellow-400/25 text-yellow-200",
+  "check timing": "bg-yellow-400/25 text-yellow-200",
+  "not started": "bg-muted text-muted-foreground",
+};
+
+function WorkStatusChip({ status }: { status: string | null }) {
+  if (!status) return <span className="text-muted-foreground">{DASH}</span>;
+  const cls = WORK_STATUS_STYLE[status] ?? "bg-muted text-muted-foreground";
+  return (
+    <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-mono whitespace-nowrap ${cls}`}>{status}</span>
+  );
+}
+
+function WorkCell({ row }: { row: OvenNewLead }) {
+  const done = row.deals_completed ?? 0;
+  const live = row.deals_live ?? 0;
+  const priors = row.prior_leads ?? 0;
+  if (done > 0 || live > 0) {
+    return (
+      <span className="font-mono text-xs whitespace-nowrap">
+        <span className="text-emerald-400">{done}</span>
+        <span className="text-emerald-400">{"\u2713"}</span>
+        {" "}
+        <span className="text-green-300">{live}</span>
+        <span className="text-green-300">{"\u25CF"}</span>
+      </span>
+    );
+  }
+  if (priors > 0) {
+    return <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">{priors} leads</span>;
+  }
+  return <span className="font-mono text-xs text-muted-foreground/50">-</span>;
+}
+
 export function useNewLeads() {
-  const [rows, setRows] = useState<Lead[]>([]);
+  const [rows, setRows] = useState<OvenNewLead[]>([]);
   const [timing, setTiming] = useState<Record<string, TimingRow>>({});
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await db
-      .from("v_oven_leads")
-      .select("*")
-      .in("stage", ["new", "enriching"])
-      .range(0, 4999);
-    const list = (data as Lead[]) ?? [];
+    const { data } = await db.from("v_oven_new_leads").select("*").range(0, 4999);
+    const list = (data as OvenNewLead[]) ?? [];
     setRows(list);
 
-    const { data: t } = await db
-      .from("v_lead_timing")
-      .select("lead_id,due_date,date_precision,days_away,days_overdue,timing_band,guidance,date_source,source_text")
-      .range(0, 9999);
     const map: Record<string, TimingRow> = {};
-    ((t as TimingRow[]) ?? []).forEach((r) => { map[r.lead_id] = r; });
+    list.forEach((r) => {
+      map[r.id] = {
+        lead_id: r.id,
+        due_date: r.due_date ?? null,
+        date_precision: null,
+        days_away: null,
+        days_overdue: r.days_overdue ?? null,
+        timing_band: r.timing_band ?? null,
+        guidance: r.guidance ?? null,
+        date_source: r.date_source ?? null,
+      };
+    });
     setTiming(map);
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
   return { rows, timing, loading, reload: load };
+
 }
 
 /**
@@ -541,7 +602,7 @@ function NewLeadsTable({
   operator, rows, timing, loading, reload,
 }: {
   operator: string;
-  rows: Lead[];
+  rows: OvenNewLead[];
   timing: Record<string, TimingRow>;
   loading: boolean;
   reload: () => Promise<void> | void;
@@ -550,18 +611,18 @@ function NewLeadsTable({
 
   const sorted = useMemo(() => {
     return rows.slice().sort((a, b) => {
-      const ba = BAND_ORDER[timing[a.id]?.timing_band ?? "unknown"] ?? 3;
-      const bb = BAND_ORDER[timing[b.id]?.timing_band ?? "unknown"] ?? 3;
+      const ba = a.band_rank ?? 99;
+      const bb = b.band_rank ?? 99;
       if (ba !== bb) return ba - bb;
-      const oa = timing[a.id]?.days_overdue ?? 0;
-      const ob = timing[b.id]?.days_overdue ?? 0;
-      if (ba === 0 && oa !== ob) return ob - oa;
-      const da = timing[a.id]?.days_away ?? 99999;
-      const dbv = timing[b.id]?.days_away ?? 99999;
-      if (da !== dbv) return da - dbv;
+      const oa = a.days_overdue;
+      const ob = b.days_overdue;
+      if (oa == null && ob != null) return 1;
+      if (ob == null && oa != null) return -1;
+      if (oa != null && ob != null && oa !== ob) return ob - oa;
       return (a.company_builder ?? "").localeCompare(b.company_builder ?? "");
     });
-  }, [rows, timing]);
+  }, [rows]);
+
 
   useEffect(() => {
     if (!expanded) return;
@@ -627,11 +688,10 @@ function NewLeadsTable({
                             : <span className="text-muted-foreground italic">none</span>}
                       </td>
                       <td className="px-2 py-2 font-mono text-xs text-muted-foreground">{l.state || DASH}</td>
-                      <td className="px-2 py-2 text-xs text-muted-foreground">
-                        {l.organisation_id ? "linked" : "new company"}
-                      </td>
+                      <td className="px-2 py-2 text-xs"><WorkCell row={l} /></td>
                       <td className="px-2 py-2"><TimingBadge t={t} /></td>
-                      <td className="px-3 py-2 text-xs font-mono text-muted-foreground">{l.stage}</td>
+                      <td className="px-3 py-2"><WorkStatusChip status={l.work_status} /></td>
+
                     </tr>
                     {isOpen && (
                       <tr className="border-t border-border bg-muted/10">

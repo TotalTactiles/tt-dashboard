@@ -759,6 +759,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "deals_converted_from_lead_id_fkey"
+            columns: ["converted_from_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_new_leads"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "deals_organisation_id_fkey"
             columns: ["organisation_id"]
             isOneToOne: false
@@ -1275,6 +1282,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_new_leads"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lead_calls_outcome_code_fkey"
             columns: ["outcome_code"]
             isOneToOne: false
@@ -1385,6 +1399,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: true
             referencedRelation: "v_oven_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_claims_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_oven_new_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -1527,6 +1548,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "v_oven_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_new_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -1720,6 +1748,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lead_import_rows_dup_lead_id_fkey"
+            columns: ["dup_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_new_leads"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lead_import_rows_imported_lead_id_fkey"
             columns: ["imported_lead_id"]
             isOneToOne: false
@@ -1794,6 +1829,13 @@ export type Database = {
             columns: ["imported_lead_id"]
             isOneToOne: false
             referencedRelation: "v_oven_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_import_rows_imported_lead_id_fkey"
+            columns: ["imported_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_new_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -2076,6 +2118,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "v_oven_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_new_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -2394,6 +2443,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "v_oven_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_new_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -4162,6 +4218,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_new_leads"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lead_calls_outcome_code_fkey"
             columns: ["outcome_code"]
             isOneToOne: false
@@ -4609,6 +4672,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_new_leads"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lead_calls_outcome_code_fkey"
             columns: ["outcome_code"]
             isOneToOne: false
@@ -4824,6 +4894,13 @@ export type Database = {
             referencedRelation: "v_oven_leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_new_leads"
+            referencedColumns: ["id"]
+          },
         ]
       }
       v_lead_silence: {
@@ -4996,6 +5073,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "v_oven_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_new_leads"
             referencedColumns: ["id"]
           },
           {
@@ -5482,6 +5566,77 @@ export type Database = {
           },
         ]
       }
+      v_oven_new_leads: {
+        Row: {
+          band_rank: number | null
+          claim_active: boolean | null
+          claim_actor_id: string | null
+          claim_holder: string | null
+          company_builder: string | null
+          completion_checked_at: string | null
+          date_source: string | null
+          days_overdue: number | null
+          deals_completed: number | null
+          deals_live: number | null
+          deals_lost: number | null
+          direct_email: string | null
+          due_date: string | null
+          enrichment_status: string | null
+          guidance: string | null
+          id: string | null
+          is_placeholder_builder: boolean | null
+          next_step_code: string | null
+          notes: string | null
+          organisation_id: string | null
+          prior_emailed: number | null
+          prior_leads: number | null
+          prior_replied: number | null
+          project_contact_name: string | null
+          project_name: string | null
+          role: string | null
+          stage: string | null
+          state: string | null
+          timing_band: string | null
+          work_status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_claims_actor_id_fkey"
+            columns: ["claim_actor_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_next_step_code_fkey"
+            columns: ["next_step_code"]
+            isOneToOne: false
+            referencedRelation: "lead_next_steps"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_next_step_code_fkey"
+            columns: ["next_step_code"]
+            isOneToOne: false
+            referencedRelation: "v_lead_step_options"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_card_context"
+            referencedColumns: ["organisation_id"]
+          },
+        ]
+      }
       v_pending_stock_movements: {
         Row: {
           movement_count: number | null
@@ -5830,6 +5985,7 @@ export type Database = {
           ok: boolean
         }[]
       }
+      tt_is_placeholder_builder: { Args: { p_name: string }; Returns: boolean }
       tt_is_switchboard: { Args: { p_raw: string }; Returns: boolean }
       tt_last_email_message_id: { Args: { p_lead_id: string }; Returns: string }
       tt_lead_gate: {
