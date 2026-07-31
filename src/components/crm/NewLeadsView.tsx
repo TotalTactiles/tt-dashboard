@@ -596,9 +596,9 @@ export default function NewLeadsView({ operator }: { operator: string }) {
   );
 }
 
-// ---------------- New Leads table ----------------
+// ---------------- New Leads queue: one lead at a time ----------------
 
-function NewLeadsTable({
+function NewLeadsQueue({
   operator, rows, timing, loading, reload,
 }: {
   operator: string;
@@ -607,8 +607,13 @@ function NewLeadsTable({
   loading: boolean;
   reload: () => Promise<void> | void;
 }) {
-  const [expanded, setExpanded] = useState<string | null>(null);
+  // Leads dealt with in this session. The order is the point, so there is no
+  // jumping around it. Skipped leads come back on the next load.
+  const [actioned, setActioned] = useState<string[]>([]);
+  const [skipped, setSkipped] = useState<string[]>([]);
   const [showAll, setShowAll] = useState(false);
+
+  const seen = useMemo(() => new Set([...actioned, ...skipped]), [actioned, skipped]);
 
   const sorted = useMemo(() => {
     return rows.slice().sort((a, b) => {
@@ -624,111 +629,116 @@ function NewLeadsTable({
     });
   }, [rows]);
 
-  const displayRows = showAll ? sorted : sorted.slice(0, 30);
+  const current = useMemo(() => sorted.find((l) => !seen.has(l.id)) ?? null, [sorted, seen]);
+  const upcoming = useMemo(() => {
+    if (!current) return [];
+    const i = sorted.findIndex((l) => l.id === current.id);
+    return sorted.slice(i + 1).filter((l) => !seen.has(l.id));
+  }, [sorted, current, seen]);
 
-  useEffect(() => {
-    if (!showAll && expanded) {
-      const visible = sorted.slice(0, 30);
-      if (!visible.some((r) => r.id === expanded)) setExpanded(null);
-    }
-  }, [showAll, expanded, sorted]);
+  const displayUpcoming = showAll ? upcoming : upcoming.slice(0, 30);
 
-  useEffect(() => {
-    if (!expanded) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setExpanded(null); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [expanded]);
+  const done = actioned.length;
+  const total = sorted.length;
+
+  const placeholder = current ? isPlaceholderBuilder(current.company_builder) : false;
 
   return (
     <div className="space-y-3">
-      <div className="text-xs font-mono text-muted-foreground">
-        Working as <span className="text-foreground font-semibold">{operator}</span> - {sorted.length} new lead{sorted.length === 1 ? "" : "s"}, worked in timing order, {displayRows.length} shown
+      <div className="text-xs font-mono text-muted-foreground tabular-nums">
+        Working as <span className="text-foreground font-semibold">{operator}</span> - {done} of {total} worked
       </div>
 
+      {loading && !sorted.length && (
+        <div className="rounded-md border border-border bg-card px-3 py-8 text-center text-sm text-muted-foreground">
+          Loading new leads...
+        </div>
+      )}
+
+      {!loading && !current && (
+        <div className="rounded-md border border-border bg-card px-3 py-8 text-center text-sm text-muted-foreground">
+          {total === 0 ? "All scraped leads have been actioned." : "Every new lead has been worked or skipped this session."}
+        </div>
+      )}
+
+      {current && (
+        <div className="rounded-md border border-border bg-card px-3 py-3 space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="text-lg font-semibold leading-tight">
+                {placeholder
+                  ? <span style={{ color: "#e5934b" }}>{current.company_builder || "no builder"}</span>
+                  : current.company_builder}
+              </div>
+              <div className="text-sm text-muted-foreground">{current.project_name || DASH}</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">
+                {current.state || DASH}
+              </span>
+              <WorkStatusChip status={current.work_status} />
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setSkipped((s) => (s.includes(current.id) ? s : [...s, current.id]))}
+              >
+                Skip for now
+              </Button>
+            </div>
+          </div>
+
+          <LeadPanel
+            key={current.id}
+            lead={current}
+            timing={timing[current.id]}
+            operator={operator}
+            reload={async () => {
+              setActioned((a) => (a.includes(current.id) ? a : [...a, current.id]));
+              await reload();
+            }}
+          />
+        </div>
+      )}
+
+      {/* Read only. The order is deliberate, so clicking a row does nothing. */}
       <div className="rounded-md border border-border bg-card overflow-hidden">
+        <div className="px-3 py-2 border-b border-border font-mono uppercase text-[10.5px] tracking-[0.13em] text-muted-foreground">
+          Coming up
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
               <tr>
-                <th className="w-6" />
+                <th className="text-right px-3 py-2 w-10">#</th>
                 <th className="text-left px-2 py-2">Builder</th>
                 <th className="text-left px-2 py-2">Project</th>
-                <th className="text-left px-2 py-2">Contact</th>
-                <th className="text-left px-2 py-2">St</th>
                 <th className="text-left px-2 py-2">Work</th>
                 <th className="text-left px-2 py-2">Timing</th>
                 <th className="text-left px-3 py-2">Status</th>
               </tr>
             </thead>
             <tbody>
-              {loading && !sorted.length && (
-                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground text-sm">Loading new leads...</td></tr>
+              {displayUpcoming.length === 0 && (
+                <tr><td colSpan={6} className="text-center py-6 text-muted-foreground text-sm">Nothing else queued.</td></tr>
               )}
-              {!loading && sorted.length === 0 && (
-                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground text-sm">All scraped leads have been actioned.</td></tr>
-              )}
-              {displayRows.map((l) => {
-                const isOpen = expanded === l.id;
-                const t = timing[l.id];
-                const placeholder = isPlaceholderBuilder(l.company_builder);
-                return (
-                  <FragmentRow key={l.id}>
-                    <tr
-                      className="border-t border-border cursor-pointer hover:bg-muted/30"
-                      onClick={() => setExpanded(isOpen ? null : l.id)}
-                    >
-                      <td className="pl-3 py-2">
-                        {isOpen
-                          ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                          : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                      </td>
-                      <td className="px-2 py-2 font-medium">
-                        {placeholder
-                          ? <span style={{ color: "#e5934b" }}>{l.company_builder || "no builder"}</span>
-                          : l.company_builder}
-                      </td>
-                      <td className="px-2 py-2 text-muted-foreground">{l.project_name || DASH}</td>
-                      <td className="px-2 py-2 text-xs">
-                        {l.project_contact_name
-                          ? l.project_contact_name
-                          : l.direct_email
-                            ? l.direct_email
-                            : <span className="text-muted-foreground italic">none</span>}
-                      </td>
-                      <td className="px-2 py-2 font-mono text-xs text-muted-foreground">{l.state || DASH}</td>
-                      <td className="px-2 py-2 text-xs"><WorkCell row={l} /></td>
-                      <td className="px-2 py-2"><TimingBadge t={t} /></td>
-                      <td className="px-3 py-2"><WorkStatusChip status={l.work_status} /></td>
-
-                    </tr>
-                    {isOpen && (
-                      <tr className="border-t border-border bg-muted/10">
-                        <td />
-                        <td colSpan={7} className="py-3 pr-3">
-                          <LeadPanel
-                            key={l.id}
-                            lead={l}
-                            timing={t}
-                            operator={operator}
-                            reload={reload}
-                          />
-                        </td>
-                      </tr>
-                    )}
-                  </FragmentRow>
-                );
-              })}
+              {displayUpcoming.map((l, i) => (
+                <tr key={l.id} className="border-t border-border">
+                  <td className="px-3 py-2 text-right font-mono tabular-nums text-muted-foreground">{i + 2}</td>
+                  <td className="px-2 py-2">{l.company_builder || DASH}</td>
+                  <td className="px-2 py-2 text-muted-foreground">{l.project_name || DASH}</td>
+                  <td className="px-2 py-2 text-xs"><WorkCell row={l} /></td>
+                  <td className="px-2 py-2"><TimingBadge t={timing[l.id]} /></td>
+                  <td className="px-3 py-2"><WorkStatusChip status={l.work_status} /></td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       </div>
 
-      {sorted.length > 30 && (
+      {upcoming.length > 30 && (
         <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-muted-foreground">
-          <span>
-            Showing {displayRows.length} of {sorted.length}. The daily target is 30 emails.
-          </span>
+          <span>Showing {displayUpcoming.length} of {upcoming.length} still to work.</span>
           <Button size="sm" variant="outline" onClick={() => setShowAll(!showAll)}>
             {showAll ? "Show 30" : "Show all"}
           </Button>
@@ -737,6 +747,7 @@ function NewLeadsTable({
     </div>
   );
 }
+
 
 // ---------------- expansion: one step on screen at a time ----------------
 
