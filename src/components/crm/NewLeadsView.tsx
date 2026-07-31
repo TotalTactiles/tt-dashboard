@@ -602,7 +602,7 @@ function NewLeadsTable({
   operator, rows, timing, loading, reload,
 }: {
   operator: string;
-  rows: Lead[];
+  rows: OvenNewLead[];
   timing: Record<string, TimingRow>;
   loading: boolean;
   reload: () => Promise<void> | void;
@@ -611,18 +611,18 @@ function NewLeadsTable({
 
   const sorted = useMemo(() => {
     return rows.slice().sort((a, b) => {
-      const ba = BAND_ORDER[timing[a.id]?.timing_band ?? "unknown"] ?? 3;
-      const bb = BAND_ORDER[timing[b.id]?.timing_band ?? "unknown"] ?? 3;
+      const ba = a.band_rank ?? 99;
+      const bb = b.band_rank ?? 99;
       if (ba !== bb) return ba - bb;
-      const oa = timing[a.id]?.days_overdue ?? 0;
-      const ob = timing[b.id]?.days_overdue ?? 0;
-      if (ba === 0 && oa !== ob) return ob - oa;
-      const da = timing[a.id]?.days_away ?? 99999;
-      const dbv = timing[b.id]?.days_away ?? 99999;
-      if (da !== dbv) return da - dbv;
+      const oa = a.days_overdue;
+      const ob = b.days_overdue;
+      if (oa == null && ob != null) return 1;
+      if (ob == null && oa != null) return -1;
+      if (oa != null && ob != null && oa !== ob) return ob - oa;
       return (a.company_builder ?? "").localeCompare(b.company_builder ?? "");
     });
-  }, [rows, timing]);
+  }, [rows]);
+
 
   useEffect(() => {
     if (!expanded) return;
