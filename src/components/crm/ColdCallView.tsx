@@ -110,6 +110,84 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+/**
+ * The full picture for a builder: deals, contacts on file and previous leads.
+ * Mounted only when the dropdown is opened, so the fetch happens on open and
+ * only for the open row, the same way CompanyList expands a company.
+ */
+function LeadHistoryStrip({ organisationId, leadId }: { organisationId: string | null; leadId: string }) {
+  const { ctx, error, loading } = useLeadCardContext(organisationId);
+
+  if (loading) return <div className="text-xs font-mono text-muted-foreground italic">Loading the full picture...</div>;
+  if (error) {
+    return (
+      <div className="text-xs font-mono" style={{ color: "#e5934b" }}>
+        The history for this builder could not be loaded. Do not treat this as a first approach.
+      </div>
+    );
+  }
+  if (!organisationId || !ctx) {
+    return <div className="text-xs font-mono text-muted-foreground italic">First contact with this company.</div>;
+  }
+
+  const work = ctx.work ?? [];
+  const prevLeads = (ctx.leads ?? []).filter((l) => l.lead_id !== leadId);
+
+  return (
+    <div className="space-y-3">
+      <div className="font-mono text-xs">
+        <span className="font-semibold">{ctx.deal_count}</span> deals
+        {", "}<span className="font-semibold">{ctx.completed_count}</span> completed
+        {", "}<span className="font-semibold">{ctx.live_count}</span> live
+        {", "}<span className="font-semibold">{ctx.lead_count}</span> previous leads
+        {", "}<span className="font-semibold">{ctx.replied_count}</span> replied
+      </div>
+
+      {work.length > 0 && (
+        <div className="overflow-x-auto">
+          <div className="font-mono uppercase text-[10.5px] tracking-[0.13em] text-muted-foreground mb-1">Deals and contacts on file</div>
+          <table className="w-full text-xs font-mono">
+            <tbody>
+              {work.map((w, i) => (
+                <tr key={i} className="border-t border-border/50">
+                  <td className="py-1.5 pr-3">{w.project || DASH}</td>
+                  <td className="py-1.5 pr-3 text-muted-foreground">{w.contact || DASH}</td>
+                  <td className="py-1.5 pr-3 text-muted-foreground">{w.stage_label || DASH}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {prevLeads.length > 0 && (
+        <div className="overflow-x-auto">
+          <div className="font-mono uppercase text-[10.5px] tracking-[0.13em] text-muted-foreground mb-1">Previous leads</div>
+          <table className="w-full text-xs font-mono">
+            <tbody>
+              {prevLeads.map((l) => (
+                <tr key={l.lead_id} className="border-t border-border/50">
+                  <td className="py-1.5 pr-3">{l.project || DASH}</td>
+                  <td className="py-1.5 pr-3 text-muted-foreground">{l.stage || DASH}</td>
+                  <td className="py-1.5 whitespace-nowrap text-muted-foreground">
+                    {l.responded_at ? `replied ${fmtDay(l.responded_at)}` : l.emailed_at ? `emailed ${fmtDay(l.emailed_at)}` : "no contact recorded"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {work.length === 0 && prevLeads.length === 0 && (
+        <div className="text-xs font-mono text-muted-foreground italic">Nothing else on file for this builder.</div>
+      )}
+    </div>
+  );
+}
+
+
+
 export default function ColdCallView({
   operator, rows, calls, loading, reload,
 }: {
