@@ -688,11 +688,10 @@ function NewLeadsTable({
                             : <span className="text-muted-foreground italic">none</span>}
                       </td>
                       <td className="px-2 py-2 font-mono text-xs text-muted-foreground">{l.state || DASH}</td>
-                      <td className="px-2 py-2 text-xs text-muted-foreground">
-                        {l.organisation_id ? "linked" : "new company"}
-                      </td>
+                      <td className="px-2 py-2 text-xs"><WorkCell row={l} /></td>
                       <td className="px-2 py-2"><TimingBadge t={t} /></td>
-                      <td className="px-3 py-2 text-xs font-mono text-muted-foreground">{l.stage}</td>
+                      <td className="px-3 py-2"><WorkStatusChip status={l.work_status} /></td>
+
                     </tr>
                     {isOpen && (
                       <tr className="border-t border-border bg-muted/10">
