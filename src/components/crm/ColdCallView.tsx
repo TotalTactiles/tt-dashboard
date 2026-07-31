@@ -110,7 +110,7 @@ function useOutcomes() {
 }
 
 /** Full call history for one lead, fetched only while its row is open. */
-function useLeadCalls(leadId: string | null) {
+function useLeadCalls(leadId: string | null, tick: number) {
   const [rows, setRows] = useState<CallRow[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -128,7 +128,7 @@ function useLeadCalls(leadId: string | null) {
         setLoading(false);
       });
     return () => { cancel = true; };
-  }, [leadId]);
+  }, [leadId, tick]);
 
   return { rows, loading };
 }
@@ -326,8 +326,7 @@ function ColdCallPanel({
   const { toast } = useToast();
 
   const [historyTick, setHistoryTick] = useState(0);
-  const { rows: history } = useLeadCalls(`${lead.id}`);
-  void historyTick;
+  const { rows: history } = useLeadCalls(lead.id, historyTick);
 
   const [outcome, setOutcome] = useState<string>("");
   const [spokeTo, setSpokeTo] = useState("");
