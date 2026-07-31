@@ -370,18 +370,22 @@ function ColdCallPanel({
     if ((s as any).requires_follow_up_date && !followUp) gaps.push("follow-up date");
     if ((s as any).requires_note && !notes.trim()) gaps.push("a note");
     if (s.requires_state && !lead.state) gaps.push("state");
+    if (messageMissing) gaps.push("what you said in the message");
     return gaps;
   }
 
   async function logCall() {
-    if (!outcome || busy) return;
+    if (!outcome || busy || messageMissing) return;
     setBusy("call");
+    const parts: string[] = [];
+    if (needsMessage && messageLeft.trim()) parts.push(`Message: ${messageLeft.trim()}`);
+    if (notes.trim()) parts.push(notes.trim());
     const payload: any = {
       lead_id: lead.id,
       called_at: new Date().toISOString(),
       outcome_code: outcome,
       spoke_with: spokeToSomeone ? contactName.trim() || null : null,
-      notes: notes.trim() || null,
+      notes: parts.length ? parts.join("\n") : null,
       created_by: operator,
       contact_name: contactName.trim() || null,
       contact_role: contactRole.trim() || null,
@@ -402,6 +406,10 @@ function ColdCallPanel({
     toast({ title: "Call logged" });
     setOutcome("");
     setNotes("");
+    setMessageLeft("");
+    await onDone();
+  }
+
     await onDone();
   }
 
