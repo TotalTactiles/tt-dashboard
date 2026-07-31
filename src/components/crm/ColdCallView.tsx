@@ -256,8 +256,12 @@ export default function ColdCallView({
     return rows.slice(i + 1).filter((l) => !workedSet.has(l.id));
   }, [rows, current, workedSet]);
 
+  const [showAll, setShowAll] = useState(false);
+  const displayUpcoming = showAll ? upcoming : upcoming.slice(0, 30);
+
   const done = worked.length;
   const total = rows.length;
+
 
   return (
     <div className="space-y-3">
