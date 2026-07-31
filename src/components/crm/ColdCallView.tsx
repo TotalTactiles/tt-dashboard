@@ -256,8 +256,12 @@ export default function ColdCallView({
     return rows.slice(i + 1).filter((l) => !workedSet.has(l.id));
   }, [rows, current, workedSet]);
 
+  const [showAll, setShowAll] = useState(false);
+  const displayUpcoming = showAll ? upcoming : upcoming.slice(0, 30);
+
   const done = worked.length;
   const total = rows.length;
+
 
   return (
     <div className="space-y-3">
@@ -304,10 +308,10 @@ export default function ColdCallView({
               </tr>
             </thead>
             <tbody>
-              {upcoming.length === 0 && (
+              {displayUpcoming.length === 0 && (
                 <tr><td colSpan={5} className="text-center py-6 text-muted-foreground text-sm">Nothing else queued.</td></tr>
               )}
-              {upcoming.map((l, i) => (
+              {displayUpcoming.map((l, i) => (
                 <tr key={l.id} className="border-t border-border">
                   <td className="px-3 py-2 text-right font-mono tabular-nums text-muted-foreground">{i + 2}</td>
                   <td className="px-2 py-2">{l.company_builder || DASH}</td>
@@ -326,9 +330,19 @@ export default function ColdCallView({
           </table>
         </div>
       </div>
+
+      {upcoming.length > 30 && (
+        <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-muted-foreground">
+          <span>Showing {displayUpcoming.length} of {upcoming.length} still to call.</span>
+          <Button size="sm" variant="outline" onClick={() => setShowAll(!showAll)}>
+            {showAll ? "Show 30" : "Show all"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
+
 
 function ColdCallCard({
   lead, operator, onDone, onLogged,
