@@ -576,7 +576,7 @@ function ColdCallPanel({
           <Field label="Email">
             <input className={INPUT_CLS} value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />
           </Field>
-          <Field label="Direct phone">
+          <Field label="Phone as given on the call">
             <input className={INPUT_CLS} value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />
           </Field>
           {outcome === "callback_requested" && (
@@ -589,15 +589,27 @@ function ColdCallPanel({
           </Field>
         </div>
 
+        {needsMessage && (
+          <Field label="Message left">
+            <input
+              className={INPUT_CLS}
+              placeholder="What you actually said, e.g. asked reception to pass on that we tender tactiles for Stage 2"
+              value={messageLeft}
+              onChange={(e) => setMessageLeft(e.target.value)}
+            />
+          </Field>
+        )}
+
         <Field label="Notes">
           <textarea className={INPUT_CLS} rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Field>
 
         <div className="flex items-center gap-3">
-          <Button size="sm" disabled={!outcome || busy === "call"} onClick={logCall}>
+          <Button size="sm" disabled={!outcome || messageMissing || busy === "call"} onClick={logCall}>
             {busy === "call" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
-            Log call
+            Log it and move on
           </Button>
+
           {!outcome && <span style={{ color: "#e5934b", fontSize: "11.5px" }}>Pick an outcome to log the call</span>}
         </div>
       </div>
