@@ -713,6 +713,13 @@ export type Database = {
             foreignKeyName: "deals_converted_from_lead_id_fkey"
             columns: ["converted_from_lead_id"]
             isOneToOne: false
+            referencedRelation: "v_lead_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_converted_from_lead_id_fkey"
+            columns: ["converted_from_lead_id"]
+            isOneToOne: false
             referencedRelation: "v_lead_silence"
             referencedColumns: ["id"]
           },
@@ -1243,6 +1250,13 @@ export type Database = {
             foreignKeyName: "lead_calls_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "v_lead_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
             referencedRelation: "v_lead_silence"
             referencedColumns: ["id"]
           },
@@ -1364,6 +1378,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: true
             referencedRelation: "v_lead_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_claims_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_lead_profile"
             referencedColumns: ["id"]
           },
           {
@@ -1520,6 +1541,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "v_lead_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_profile"
             referencedColumns: ["id"]
           },
           {
@@ -1730,6 +1758,13 @@ export type Database = {
             foreignKeyName: "lead_import_rows_dup_lead_id_fkey"
             columns: ["dup_lead_id"]
             isOneToOne: false
+            referencedRelation: "v_lead_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_import_rows_dup_lead_id_fkey"
+            columns: ["dup_lead_id"]
+            isOneToOne: false
             referencedRelation: "v_lead_silence"
             referencedColumns: ["id"]
           },
@@ -1815,6 +1850,13 @@ export type Database = {
             columns: ["imported_lead_id"]
             isOneToOne: false
             referencedRelation: "v_lead_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_import_rows_imported_lead_id_fkey"
+            columns: ["imported_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_profile"
             referencedColumns: ["id"]
           },
           {
@@ -2111,6 +2153,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "v_lead_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_profile"
             referencedColumns: ["id"]
           },
           {
@@ -2443,6 +2492,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "v_lead_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_profile"
             referencedColumns: ["id"]
           },
           {
@@ -4228,6 +4284,13 @@ export type Database = {
             foreignKeyName: "lead_calls_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "v_lead_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
             referencedRelation: "v_lead_silence"
             referencedColumns: ["id"]
           },
@@ -4689,6 +4752,13 @@ export type Database = {
             foreignKeyName: "lead_calls_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "v_lead_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
             referencedRelation: "v_lead_silence"
             referencedColumns: ["id"]
           },
@@ -4864,6 +4934,95 @@ export type Database = {
           },
         ]
       }
+      v_lead_profile: {
+        Row: {
+          apollo_contact_id: string | null
+          apollo_org_id: string | null
+          call_count: number | null
+          claim_active: boolean | null
+          claim_actor_id: string | null
+          claim_holder: string | null
+          company_builder: string | null
+          completion_checked_at: string | null
+          completion_estimate: string | null
+          completion_source: string | null
+          created_at: string | null
+          date_source: string | null
+          days_overdue: number | null
+          deals_completed: number | null
+          deals_live: number | null
+          deals_lost: number | null
+          direct_email: string | null
+          due_date: string | null
+          email_sent_at: string | null
+          enriched_at: string | null
+          enrichment_status: string | null
+          event_count: number | null
+          follow_up_date: string | null
+          guidance: string | null
+          id: string | null
+          last_called_at: string | null
+          lead_timezone: string | null
+          next_step_code: string | null
+          notes: string | null
+          org_emailed: number | null
+          org_leads: number | null
+          org_phone: string | null
+          org_replied: number | null
+          org_website: string | null
+          organisation_id: string | null
+          organisation_name: string | null
+          owner_email: string | null
+          phone: string | null
+          project_contact_name: string | null
+          project_name: string | null
+          reception_name: string | null
+          responded_at: string | null
+          response_rate_pct: number | null
+          role: string | null
+          stage: string | null
+          state: string | null
+          timing_band: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_claims_actor_id_fkey"
+            columns: ["claim_actor_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_next_step_code_fkey"
+            columns: ["next_step_code"]
+            isOneToOne: false
+            referencedRelation: "lead_next_steps"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_next_step_code_fkey"
+            columns: ["next_step_code"]
+            isOneToOne: false
+            referencedRelation: "v_lead_step_options"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_card_context"
+            referencedColumns: ["organisation_id"]
+          },
+        ]
+      }
       v_lead_rating_trend: {
         Row: {
           band: string | null
@@ -4913,6 +5072,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "v_lead_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_profile"
             referencedColumns: ["id"]
           },
           {
@@ -5107,6 +5273,13 @@ export type Database = {
             foreignKeyName: "lead_tasks_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "v_lead_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
             referencedRelation: "v_lead_silence"
             referencedColumns: ["id"]
           },
@@ -5202,6 +5375,20 @@ export type Database = {
             referencedColumns: ["code"]
           },
         ]
+      }
+      v_lead_timeline: {
+        Row: {
+          actor: string | null
+          at: string | null
+          detail: string | null
+          kind: string | null
+          label: string | null
+          lead_id: string | null
+          ref: string | null
+          source: string | null
+          who: string | null
+        }
+        Relationships: []
       }
       v_lead_timing: {
         Row: {
