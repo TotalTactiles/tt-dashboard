@@ -73,6 +73,15 @@ const NO_EMAIL_OUTCOMES = new Set([
   "wrong_number",
 ]);
 
+// Which next steps a logged outcome can honestly support. This exists to stop a
+// caller selecting a step the conversation does not support, which would corrupt
+// the downstream email chain. Outcomes absent from this map get no next steps.
+const NEXT_STEPS_BY_OUTCOME: Record<string, string[]> = {
+  spoke_contact: ["eoi_sent", "ready_to_award", "nry_follow_up_later", "already_completed_future_work"],
+  // No award decision comes from reception, so READY TO AWARD is not offered here.
+  spoke_gatekeeper: ["eoi_sent", "nry_follow_up_later", "already_completed_future_work"],
+};
+
 const QUEUE_COLS =
   "id,company_builder,project_name,state,organisation_id,phone,call_number,callable,direct_email," +
   "project_contact_name,role,reception_name,notes,next_step_code,stage,attempts,last_called_at," +
