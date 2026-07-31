@@ -73,6 +73,15 @@ const NO_EMAIL_OUTCOMES = new Set([
   "wrong_number",
 ]);
 
+// Which next steps a logged outcome can honestly support. This exists to stop a
+// caller selecting a step the conversation does not support, which would corrupt
+// the downstream email chain. Outcomes absent from this map get no next steps.
+const NEXT_STEPS_BY_OUTCOME: Record<string, string[]> = {
+  spoke_contact: ["eoi_sent", "ready_to_award", "nry_follow_up_later", "already_completed_future_work"],
+  // No award decision comes from reception, so READY TO AWARD is not offered here.
+  spoke_gatekeeper: ["eoi_sent", "nry_follow_up_later", "already_completed_future_work"],
+};
+
 const QUEUE_COLS =
   "id,company_builder,project_name,state,organisation_id,phone,call_number,callable,direct_email," +
   "project_contact_name,role,reception_name,notes,next_step_code,stage,attempts,last_called_at," +
@@ -351,6 +360,9 @@ function ColdCallCard({
   const [busy, setBusy] = useState<string | null>(null);
   const [pictureOpen, setPictureOpen] = useState(false);
   const [lookup, setLookup] = useState<{ saved: boolean; phone: string | null; reason: string | null } | null>(null);
+  // Set only once an insert into lead_calls has succeeded for this lead.
+  const [loggedOutcome, setLoggedOutcome] = useState<string | null>(null);
+
 
   const isGatekeeper = outcome === "spoke_gatekeeper";
   const isContactOutcome = outcome === "spoke_contact";
@@ -398,6 +410,23 @@ function ColdCallCard({
     () => (refs?.nextSteps ?? []).filter((s) => !s.is_system && s.applies_to_stage === "ready_to_call"),
     [refs],
   );
+
+  const stepsForOutcome = useCallback(
+    (outcomeCode: string | null): NextStepRow[] => {
+      if (!outcomeCode) return [];
+      const allowed = NEXT_STEPS_BY_OUTCOME[outcomeCode];
+      if (!allowed?.length) return [];
+      const hasEmail = !!contactEmail.trim();
+      return steps.filter((s) => allowed.includes(s.code) && (!s.requires_email || hasEmail));
+    },
+    [steps, contactEmail],
+  );
+
+  const applicableSteps = useMemo(
+    () => stepsForOutcome(loggedOutcome),
+    [stepsForOutcome, loggedOutcome],
+  );
+
 
   const askFor = lead.project_contact_name || lead.reception_name || null;
 
@@ -453,10 +482,12 @@ function ColdCallCard({
     }
     toast({ title: "Call logged" });
     setHistoryTick((t) => t + 1);
-    // Advance to the next lead in the queue rather than staying put.
-    onLogged();
+    setLoggedOutcome(outcome);
+    // Stay on the lead when a next step is possible, otherwise move on.
+    if (stepsForOutcome(outcome).length === 0) onLogged();
     await onDone();
   }
+
 
   async function applyStep(s: NextStepRow) {
     if (busy) return;
@@ -706,14 +737,12 @@ function ColdCallCard({
         </div>
       </div>
 
-      {/* next step */}
-      <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-2">
-        <div className="font-mono uppercase text-[10.5px] tracking-[0.13em] text-muted-foreground">Next step</div>
-        {steps.length === 0 ? (
-          <div className="text-sm text-muted-foreground italic">No steps available at this stage.</div>
-        ) : (
+      {/* next step - only once a call has been logged and the outcome supports one */}
+      {loggedOutcome && applicableSteps.length > 0 && (
+        <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-2">
+          <div className="font-mono uppercase text-[10.5px] tracking-[0.13em] text-muted-foreground">Next step</div>
           <div className="space-y-2">
-            {steps.map((s) => {
+            {applicableSteps.map((s) => {
               const missing = missingFor(s);
               return (
                 <div key={s.code} className="flex flex-wrap items-center gap-3">
@@ -733,8 +762,11 @@ function ColdCallCard({
               );
             })}
           </div>
-        )}
-      </div>
+          <div className="pt-1">
+            <Button size="sm" variant="ghost" onClick={onLogged}>Next lead</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
