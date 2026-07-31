@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronRight, Phone, Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,23 +14,35 @@ import {
 
 const db = supabase as any;
 
-const FragmentRow = ({ children }: { children: ReactNode }) => <Fragment>{children}</Fragment>;
-
 export interface ColdLead {
   id: string;
   company_builder: string;
   project_name: string | null;
   state: string | null;
+  organisation_id: string | null;
   phone: string | null;
+  call_number: string | null;
+  callable: boolean | null;
   direct_email: string | null;
   project_contact_name: string | null;
   role: string | null;
   reception_name: string | null;
-  organisation_id: string | null;
-  stage: string;
-  next_step_code: string | null;
   notes: string | null;
-  created_at: string;
+  next_step_code: string | null;
+  stage: string;
+  attempts: number | null;
+  last_called_at: string | null;
+  last_outcome: string | null;
+  next_callback_at: string | null;
+  deals_completed: number | null;
+  deals_live: number | null;
+  prior_leads: number | null;
+  claim_actor_id: string | null;
+  claim_holder: string | null;
+  claim_active: boolean | null;
+  pass_no: number | null;
+  bucket: number | null;
+  lead_timezone: string | null;
 }
 
 export interface CallRow {
@@ -61,41 +73,35 @@ const NO_EMAIL_OUTCOMES = new Set([
   "wrong_number",
 ]);
 
+const QUEUE_COLS =
+  "id,company_builder,project_name,state,organisation_id,phone,call_number,callable,direct_email," +
+  "project_contact_name,role,reception_name,notes,next_step_code,stage,attempts,last_called_at," +
+  "last_outcome,next_callback_at,deals_completed,deals_live,prior_leads,claim_actor_id,claim_holder," +
+  "claim_active,pass_no,bucket,lead_timezone";
+
 export function useColdCallLeads() {
   const [rows, setRows] = useState<ColdLead[]>([]);
-  const [calls, setCalls] = useState<Record<string, CallRow[]>>({});
   const [loading, setLoading] = useState(false);
   const [tick, setTick] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
     const { data } = await db
-      .from("v_oven_leads")
-      .select(
-        "id,company_builder,project_name,state,phone,direct_email,project_contact_name,role,reception_name,organisation_id,stage,next_step_code,notes,created_at",
-      )
-      .eq("stage", "ready_to_call")
+      .from("v_oven_call_queue")
+      .select(QUEUE_COLS)
+      .order("bucket")
+      .order("pass_no")
+      .order("id")
       .range(0, 4999);
     setRows((data as ColdLead[]) ?? []);
-
-    // Slim summary only: attempt count and last outcome for the table.
-    // Full call detail is fetched lazily by the open row.
-    const { data: summary } = await db
-      .from("v_lead_calls")
-      .select("id,lead_id,called_at,outcome_label")
-      .order("called_at", { ascending: false })
-      .range(0, 9999);
-    const map: Record<string, CallRow[]> = {};
-    ((summary as any[]) ?? []).forEach((c) => {
-      (map[c.lead_id] ||= []).push(c as CallRow);
-    });
-    setCalls(map);
     setLoading(false);
     setTick((t) => t + 1);
   }, []);
 
   useEffect(() => { load(); }, [load]);
-  return { rows, calls, loading, reload: load, tick };
+  // calls is kept for the existing call signature; call detail is now fetched
+  // lazily for the current lead only.
+  return { rows, calls: {} as Record<string, CallRow[]>, loading, reload: load, tick };
 }
 
 function useOutcomes() {
@@ -109,7 +115,7 @@ function useOutcomes() {
   return rows;
 }
 
-/** Full call history for one lead, fetched only while its row is open. */
+/** Full call history for one lead, fetched only for the current lead. */
 function useLeadCalls(leadId: string | null, tick: number) {
   const [rows, setRows] = useState<CallRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -147,8 +153,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 
 /**
  * The full picture for a builder: deals, contacts on file and previous leads.
- * Mounted only when the dropdown is opened, so the fetch happens on open and
- * only for the open row, the same way CompanyList expands a company.
+ * Mounted only when the dropdown is opened, so the fetch happens on open.
  */
 function LeadHistoryStrip({ organisationId, leadId }: { organisationId: string | null; leadId: string }) {
   const { ctx, error, loading } = useLeadCardContext(organisationId);
@@ -222,89 +227,92 @@ function LeadHistoryStrip({ organisationId, leadId }: { organisationId: string |
 }
 
 export default function ColdCallView({
-  operator, rows, calls, loading, reload,
+  operator, rows, loading, reload,
 }: {
   operator: string;
   rows: ColdLead[];
-  calls: Record<string, CallRow[]>;
+  calls?: Record<string, CallRow[]>;
   loading: boolean;
   reload: () => Promise<void> | void;
 }) {
-  const [expanded, setExpanded] = useState<string | null>(null);
+  // Leads the operator has logged a call against in this session. The queue
+  // order is the point, so there is no jumping around it.
+  const [worked, setWorked] = useState<string[]>([]);
+  const workedSet = useMemo(() => new Set(worked), [worked]);
 
-  const sorted = useMemo(
-    () => rows.slice().sort((a, b) => (a.company_builder ?? "").localeCompare(b.company_builder ?? "")),
-    [rows],
-  );
+  const current = useMemo(() => rows.find((l) => !workedSet.has(l.id)) ?? null, [rows, workedSet]);
+  const upcoming = useMemo(() => {
+    if (!current) return [];
+    const i = rows.findIndex((l) => l.id === current.id);
+    return rows.slice(i + 1).filter((l) => !workedSet.has(l.id));
+  }, [rows, current, workedSet]);
+
+  const done = worked.length;
+  const total = rows.length;
 
   return (
     <div className="space-y-3">
-      <div className="text-xs font-mono text-muted-foreground">
-        {sorted.length} lead{sorted.length === 1 ? "" : "s"} ready to call
+      <div className="text-xs font-mono text-muted-foreground tabular-nums">
+        {done} of {total} worked
       </div>
 
+      {loading && !rows.length && (
+        <div className="rounded-md border border-border bg-card px-3 py-8 text-center text-sm text-muted-foreground">
+          Loading cold call queue...
+        </div>
+      )}
+
+      {!loading && !current && (
+        <div className="rounded-md border border-border bg-card px-3 py-8 text-center text-sm text-muted-foreground">
+          {total === 0 ? "Nothing to call." : "Every lead in the queue has been worked this session."}
+        </div>
+      )}
+
+      {current && (
+        <ColdCallCard
+          key={current.id}
+          lead={current}
+          operator={operator}
+          onLogged={() => setWorked((w) => (w.includes(current.id) ? w : [...w, current.id]))}
+          onDone={async () => { await reload(); }}
+        />
+      )}
+
+      {/* Read only. The order is deliberate, so clicking a row does nothing. */}
       <div className="rounded-md border border-border bg-card overflow-hidden">
+        <div className="px-3 py-2 border-b border-border font-mono uppercase text-[10.5px] tracking-[0.13em] text-muted-foreground">
+          Coming up
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/40 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
               <tr>
-                <th className="w-6" />
+                <th className="text-right px-3 py-2 w-10">#</th>
                 <th className="text-left px-2 py-2">Builder</th>
                 <th className="text-left px-2 py-2">Project</th>
                 <th className="text-left px-2 py-2">Phone</th>
-                <th className="text-left px-2 py-2">St</th>
-                <th className="text-right px-2 py-2">Attempts</th>
-                <th className="text-left px-2 py-2">Last outcome</th>
-                <th className="text-left px-3 py-2">Status</th>
+                <th className="text-left px-3 py-2">Last outcome</th>
               </tr>
             </thead>
             <tbody>
-              {loading && !sorted.length && (
-                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground text-sm">Loading cold call queue...</td></tr>
+              {upcoming.length === 0 && (
+                <tr><td colSpan={5} className="text-center py-6 text-muted-foreground text-sm">Nothing else queued.</td></tr>
               )}
-              {!loading && sorted.length === 0 && (
-                <tr><td colSpan={8} className="text-center py-8 text-muted-foreground text-sm">Nothing to call.</td></tr>
-              )}
-              {sorted.map((l) => {
-                const isOpen = expanded === l.id;
-                const summary = calls[l.id] ?? [];
-                const last = summary[0];
-                return (
-                  <FragmentRow key={l.id}>
-                    <tr
-                      className="border-t border-border cursor-pointer hover:bg-muted/30"
-                      onClick={() => setExpanded(isOpen ? null : l.id)}
-                    >
-                      <td className="pl-3 py-2">
-                        {isOpen
-                          ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                          : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                      </td>
-                      <td className="px-2 py-2 font-medium">{l.company_builder || DASH}</td>
-                      <td className="px-2 py-2 text-muted-foreground">{l.project_name || DASH}</td>
-                      <td className="px-2 py-2 font-mono text-xs">{l.phone || <span className="text-muted-foreground">no phone</span>}</td>
-                      <td className="px-2 py-2 font-mono text-xs text-muted-foreground">{l.state || DASH}</td>
-                      <td className="px-2 py-2 text-right font-mono tabular-nums">{summary.length}</td>
-                      <td className="px-2 py-2 text-xs text-muted-foreground">
-                        {last ? `${last.outcome_label ?? "call"} - ${fmtDay(last.called_at)}` : "not called yet"}
-                      </td>
-                      <td className="px-3 py-2 text-xs font-mono text-muted-foreground">{l.next_step_code || "ready to call"}</td>
-                    </tr>
-                    {isOpen && (
-                      <tr className="border-t border-border bg-muted/10">
-                        <td />
-                        <td colSpan={7} className="py-3 pr-3">
-                          <ColdCallPanel
-                            lead={l}
-                            operator={operator}
-                            onDone={async () => { await reload(); }}
-                          />
-                        </td>
-                      </tr>
-                    )}
-                  </FragmentRow>
-                );
-              })}
+              {upcoming.map((l, i) => (
+                <tr key={l.id} className="border-t border-border">
+                  <td className="px-3 py-2 text-right font-mono tabular-nums text-muted-foreground">{i + 2}</td>
+                  <td className="px-2 py-2">{l.company_builder || DASH}</td>
+                  <td className="px-2 py-2 text-muted-foreground">{l.project_name || DASH}</td>
+                  <td className="px-2 py-2 font-mono text-xs">
+                    {l.call_number || <span className="text-muted-foreground">no number</span>}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-muted-foreground">
+                    {l.last_outcome
+                      ? `${l.last_outcome}${l.last_called_at ? ` - ${fmtDay(l.last_called_at)}` : ""}`
+                      : "not called yet"}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -313,12 +321,13 @@ export default function ColdCallView({
   );
 }
 
-function ColdCallPanel({
-  lead, operator, onDone,
+function ColdCallCard({
+  lead, operator, onDone, onLogged,
 }: {
   lead: ColdLead;
   operator: string;
   onDone: () => Promise<void>;
+  onLogged: () => void;
 }) {
   const outcomes = useOutcomes();
   const refs = useCrmRefs();
@@ -341,7 +350,6 @@ function ColdCallPanel({
   const [messageLeft, setMessageLeft] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [pictureOpen, setPictureOpen] = useState(false);
-  const [orgPhone, setOrgPhone] = useState<string | null>(null);
   const [lookup, setLookup] = useState<{ saved: boolean; phone: string | null; reason: string | null } | null>(null);
 
   const isGatekeeper = outcome === "spoke_gatekeeper";
@@ -359,20 +367,13 @@ function ColdCallPanel({
   if (needsMessage && !messageLeft.trim()) gaps.push("what you said in the message");
   const captureIncomplete = gaps.length > 0;
 
-  // Fall back to the organisation's switchboard when the lead has no number.
-  useEffect(() => {
-    if (lead.phone || !lead.organisation_id) { setOrgPhone(null); return; }
-    let cancel = false;
-    db.from("organisations").select("phone").eq("id", lead.organisation_id).maybeSingle()
-      .then((r: any) => { if (!cancel) setOrgPhone(r?.data?.phone ?? null); });
-    return () => { cancel = true; };
-  }, [lead.phone, lead.organisation_id]);
-
   // Only ever a company switchboard, never a personal number, and only a number
   // the workflow actually saved.
   const savedLookupPhone = lookup?.saved ? lookup.phone : null;
-  const displayPhone = lead.phone || orgPhone || savedLookupPhone || null;
-  const offerLookup = !displayPhone || outcome === "wrong_number";
+  const callable = lead.callable !== false && !!lead.call_number;
+  const displayPhone = callable ? lead.call_number : savedLookupPhone;
+  const attempts = Number(lead.attempts ?? 0);
+  const attemptChip = attempts === 0 ? "first call" : `attempt ${attempts + 1}`;
 
   async function findCompanyLine() {
     if (busy) return;
@@ -390,7 +391,7 @@ function ColdCallPanel({
     }
     const saved = !!body.saved;
     setLookup({ saved, phone: saved ? (body.phone ?? null) : null, reason: body.reason ?? body.note ?? r.reason ?? null });
-    if (saved) await onDone();
+    await onDone();
   }
 
   const steps: NextStepRow[] = useMemo(
@@ -451,12 +452,9 @@ function ColdCallPanel({
       return;
     }
     toast({ title: "Call logged" });
-    setOutcome("");
-    setNotes("");
-    setMessageLeft("");
-    setSpokeTo("");
-    setBestTime("");
     setHistoryTick((t) => t + 1);
+    // Advance to the next lead in the queue rather than staying put.
+    onLogged();
     await onDone();
   }
 
@@ -491,7 +489,29 @@ function ColdCallPanel({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="rounded-md border border-border bg-card p-4 space-y-4">
+      {/* who and where */}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-xl font-semibold leading-tight">
+            {isPlaceholderBuilder(lead.company_builder)
+              ? <span style={{ color: "#e5934b" }}>{lead.company_builder || "no builder"}</span>
+              : (lead.company_builder || DASH)}
+          </div>
+          <div className="text-sm text-muted-foreground">{lead.project_name || DASH}</div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {lead.state && (
+            <span className="rounded border border-border px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">
+              {lead.state}
+            </span>
+          )}
+          <span className="rounded border border-border px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">
+            {attemptChip}
+          </span>
+        </div>
+      </div>
+
       {/* call it */}
       <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-2">
         {displayPhone ? (
@@ -502,17 +522,9 @@ function ColdCallPanel({
             <Phone className="w-5 h-5" /> {displayPhone}
           </a>
         ) : (
-          <div className="text-sm text-chart-orange italic">No phone number on this lead.</div>
-        )}
-        <div className="text-sm">
-          <span className="text-muted-foreground font-mono text-[10.5px] uppercase tracking-widest mr-2">Ask for</span>
-          {askFor ? <span className="font-semibold">{askFor}{lead.role ? ` - ${lead.role}` : ""}</span>
-                  : <span className="text-muted-foreground italic">whoever handles the tender</span>}
-        </div>
-
-        {/* Company switchboard only. Never an individual's mobile or direct line. */}
-        {offerLookup && (
-          <div className="space-y-2 pt-1">
+          <div className="space-y-2">
+            <div className="text-sm italic" style={{ color: "#e5934b" }}>no number on file</div>
+            {/* Company switchboard only. Never an individual's mobile or direct line. */}
             <Button size="sm" variant="outline" disabled={busy === "company_phone"} onClick={findCompanyLine}>
               {busy === "company_phone"
                 ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
@@ -522,26 +534,23 @@ function ColdCallPanel({
             <div className="text-[11px] font-mono text-muted-foreground">
               Publicly listed switchboard for the builder only. It returns nothing rather than guess.
             </div>
-            {lookup && (
-              lookup.saved && lookup.phone ? (
-                <div className="text-xs font-mono space-y-1">
-                  <a href={`tel:${lookup.phone}`} className="text-primary hover:underline text-base font-semibold">{lookup.phone}</a>
-                  {lookup.reason && <div className="text-muted-foreground">{lookup.reason}</div>}
-                </div>
-              ) : (
-                <div className="text-xs font-mono" style={{ color: "#e5934b" }}>
-                  {lookup.reason || "No company main line could be verified."}
-                </div>
-              )
+            {lookup && !lookup.saved && (
+              <div className="text-xs font-mono" style={{ color: "#e5934b" }}>
+                {lookup.reason || "No company main line could be verified."}
+              </div>
             )}
           </div>
         )}
-
-        {isPlaceholderBuilder(lead.company_builder) && (
-          <div className="text-xs font-mono" style={{ color: "#e5934b" }}>
-            The builder is still a placeholder - confirm who you are speaking to.
-          </div>
+        {displayPhone && lookup?.saved && lookup.reason && (
+          <div className="text-xs font-mono text-muted-foreground">{lookup.reason}</div>
         )}
+
+        <div className="text-sm">
+          <span className="text-muted-foreground font-mono text-[10.5px] uppercase tracking-widest mr-2">Ask for</span>
+          {askFor ? <span className="font-semibold">{askFor}{lead.role ? ` - ${lead.role}` : ""}</span>
+                  : <span className="text-muted-foreground italic">whoever handles the tender</span>}
+        </div>
+
         {ctxError ? (
           <div className="text-xs font-mono" style={{ color: "#e5934b" }}>
             Prior work could not be loaded, so this opener may be incomplete.
