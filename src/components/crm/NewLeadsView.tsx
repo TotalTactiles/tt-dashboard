@@ -130,8 +130,27 @@ export interface TimingRow {
   timing_band: string | null;
   guidance: string | null;
   date_source: string | null;
-  source_text: string | null;
+  source_text?: string | null;
 }
+
+/** A row from v_oven_new_leads: lead columns plus timing, prior work and status. */
+export interface OvenNewLead extends Lead {
+  timing_band: string | null;
+  days_overdue: number | null;
+  due_date: string | null;
+  guidance: string | null;
+  date_source: string | null;
+  deals_completed: number | null;
+  deals_live: number | null;
+  deals_lost: number | null;
+  prior_leads: number | null;
+  prior_emailed: number | null;
+  prior_replied: number | null;
+  is_placeholder_builder: boolean | null;
+  work_status: string | null;
+  band_rank: number | null;
+}
+
 
 function formatTs(iso?: string | null) {
   if (!iso) return DASH;
