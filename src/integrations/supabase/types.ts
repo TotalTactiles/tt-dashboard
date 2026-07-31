@@ -115,6 +115,42 @@ export type Database = {
           },
         ]
       }
+      app_users: {
+        Row: {
+          auth_user_id: string | null
+          can_call: boolean
+          created_at: string
+          display_name: string
+          email: string | null
+          handle: string
+          id: string
+          is_active: boolean
+          timezone: string
+        }
+        Insert: {
+          auth_user_id?: string | null
+          can_call?: boolean
+          created_at?: string
+          display_name: string
+          email?: string | null
+          handle: string
+          id?: string
+          is_active?: boolean
+          timezone?: string
+        }
+        Update: {
+          auth_user_id?: string | null
+          can_call?: boolean
+          created_at?: string
+          display_name?: string
+          email?: string | null
+          handle?: string
+          id?: string
+          is_active?: boolean
+          timezone?: string
+        }
+        Relationships: []
+      }
       attachments: {
         Row: {
           comment_id: string | null
@@ -716,6 +752,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "deals_converted_from_lead_id_fkey"
+            columns: ["converted_from_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_leads"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "deals_organisation_id_fkey"
             columns: ["organisation_id"]
             isOneToOne: false
@@ -1090,7 +1133,14 @@ export type Database = {
       }
       lead_calls: {
         Row: {
+          actor_id: string | null
+          addressing_variant: string | null
+          callback_at: string | null
           called_at: string
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          contact_role: string | null
           created_at: string
           created_by: string | null
           duration_seconds: number | null
@@ -1102,7 +1152,14 @@ export type Database = {
           spoke_with: string | null
         }
         Insert: {
+          actor_id?: string | null
+          addressing_variant?: string | null
+          callback_at?: string | null
           called_at?: string
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          contact_role?: string | null
           created_at?: string
           created_by?: string | null
           duration_seconds?: number | null
@@ -1114,7 +1171,14 @@ export type Database = {
           spoke_with?: string | null
         }
         Update: {
+          actor_id?: string | null
+          addressing_variant?: string | null
+          callback_at?: string | null
           called_at?: string
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          contact_role?: string | null
           created_at?: string
           created_by?: string | null
           duration_seconds?: number | null
@@ -1126,6 +1190,13 @@ export type Database = {
           spoke_with?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "lead_calls_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lead_calls_lead_id_fkey"
             columns: ["lead_id"]
@@ -1197,11 +1268,124 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_leads"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lead_calls_outcome_code_fkey"
             columns: ["outcome_code"]
             isOneToOne: false
             referencedRelation: "lead_call_outcomes"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      lead_claims: {
+        Row: {
+          actor_id: string
+          claimed_at: string
+          heartbeat_at: string
+          lead_id: string
+        }
+        Insert: {
+          actor_id: string
+          claimed_at?: string
+          heartbeat_at?: string
+          lead_id: string
+        }
+        Update: {
+          actor_id?: string
+          claimed_at?: string
+          heartbeat_at?: string
+          lead_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_claims_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_claims_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_claims_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_import_review"
+            referencedColumns: ["existing_lead_id"]
+          },
+          {
+            foreignKeyName: "lead_claims_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_lead_duplicates"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "lead_claims_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_lead_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_claims_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_lead_silence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_claims_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_lead_timing"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "lead_claims_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_leads_incomplete"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_claims_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_leads_needing_rating"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_claims_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_leads_unroutable"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_claims_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_leads_zoho_pending"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_claims_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_oven_leads"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1228,6 +1412,7 @@ export type Database = {
       }
       lead_events: {
         Row: {
+          actor_id: string | null
           created_by: string | null
           detail: string | null
           external_id: string | null
@@ -1238,6 +1423,7 @@ export type Database = {
           recipient_email: string | null
         }
         Insert: {
+          actor_id?: string | null
           created_by?: string | null
           detail?: string | null
           external_id?: string | null
@@ -1248,6 +1434,7 @@ export type Database = {
           recipient_email?: string | null
         }
         Update: {
+          actor_id?: string | null
           created_by?: string | null
           detail?: string | null
           external_id?: string | null
@@ -1258,6 +1445,13 @@ export type Database = {
           recipient_email?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "lead_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lead_events_lead_id_fkey"
             columns: ["lead_id"]
@@ -1326,6 +1520,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "v_leads_zoho_pending"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -1512,6 +1713,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lead_import_rows_dup_lead_id_fkey"
+            columns: ["dup_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_leads"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lead_import_rows_imported_lead_id_fkey"
             columns: ["imported_lead_id"]
             isOneToOne: false
@@ -1579,6 +1787,13 @@ export type Database = {
             columns: ["imported_lead_id"]
             isOneToOne: false
             referencedRelation: "v_leads_zoho_pending"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_import_rows_imported_lead_id_fkey"
+            columns: ["imported_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -1854,6 +2069,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "v_leads_zoho_pending"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -2167,6 +2389,13 @@ export type Database = {
             referencedRelation: "v_leads_zoho_pending"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_leads"
+            referencedColumns: ["id"]
+          },
         ]
       }
       lead_templates: {
@@ -2273,6 +2502,10 @@ export type Database = {
           claimed_at: string | null
           claimed_by: string | null
           company_builder: string
+          completion_checked_at: string | null
+          completion_estimate: string | null
+          completion_precision: string | null
+          completion_source: string | null
           converted_at: string | null
           converted_in_zoho_at: string | null
           converted_to_contact_id: string | null
@@ -2337,6 +2570,10 @@ export type Database = {
           claimed_at?: string | null
           claimed_by?: string | null
           company_builder: string
+          completion_checked_at?: string | null
+          completion_estimate?: string | null
+          completion_precision?: string | null
+          completion_source?: string | null
           converted_at?: string | null
           converted_in_zoho_at?: string | null
           converted_to_contact_id?: string | null
@@ -2401,6 +2638,10 @@ export type Database = {
           claimed_at?: string | null
           claimed_by?: string | null
           company_builder?: string
+          completion_checked_at?: string | null
+          completion_estimate?: string | null
+          completion_precision?: string | null
+          completion_source?: string | null
           converted_at?: string | null
           converted_in_zoho_at?: string | null
           converted_to_contact_id?: string | null
@@ -3806,6 +4047,129 @@ export type Database = {
           },
         ]
       }
+      v_callbacks_due: {
+        Row: {
+          actor_id: string | null
+          actor_name: string | null
+          addressing_variant: string | null
+          callback_actor_local: string | null
+          callback_at: string | null
+          callback_lead_local: string | null
+          called_at: string | null
+          company_builder: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          contact_role: string | null
+          created_at: string | null
+          created_by: string | null
+          duration_seconds: number | null
+          id: string | null
+          is_contact: boolean | null
+          lead_id: string | null
+          lead_timezone: string | null
+          notes: string | null
+          outcome_code: string | null
+          outcome_label: string | null
+          project_name: string | null
+          sentiment: string | null
+          spoke_with: string | null
+          state: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_calls_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_import_review"
+            referencedColumns: ["existing_lead_id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_duplicates"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_silence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_timing"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_incomplete"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_needing_rating"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_unroutable"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_zoho_pending"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_outcome_code_fkey"
+            columns: ["outcome_code"]
+            isOneToOne: false
+            referencedRelation: "lead_call_outcomes"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       v_company_contacts_summary: {
         Row: {
           company: string | null
@@ -4130,6 +4494,129 @@ export type Database = {
           },
         ]
       }
+      v_lead_calls: {
+        Row: {
+          actor_id: string | null
+          actor_name: string | null
+          addressing_variant: string | null
+          callback_actor_local: string | null
+          callback_at: string | null
+          callback_lead_local: string | null
+          called_at: string | null
+          company_builder: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          contact_role: string | null
+          created_at: string | null
+          created_by: string | null
+          duration_seconds: number | null
+          id: string | null
+          is_contact: boolean | null
+          lead_id: string | null
+          lead_timezone: string | null
+          notes: string | null
+          outcome_code: string | null
+          outcome_label: string | null
+          project_name: string | null
+          sentiment: string | null
+          spoke_with: string | null
+          state: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_calls_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_import_review"
+            referencedColumns: ["existing_lead_id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_duplicates"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_silence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_timing"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_incomplete"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_needing_rating"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_unroutable"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_zoho_pending"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_outcome_code_fkey"
+            columns: ["outcome_code"]
+            isOneToOne: false
+            referencedRelation: "lead_call_outcomes"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       v_lead_card_context: {
         Row: {
           block_e: Json | null
@@ -4330,6 +4817,13 @@ export type Database = {
             referencedRelation: "v_leads_zoho_pending"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_leads"
+            referencedColumns: ["id"]
+          },
         ]
       }
       v_lead_silence: {
@@ -4498,6 +4992,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_leads"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "leads_next_step_code_fkey"
             columns: ["next_step_code"]
             isOneToOne: false
@@ -4537,9 +5038,13 @@ export type Database = {
       v_lead_timing: {
         Row: {
           company: string | null
+          completion_checked_at: string | null
           date_precision: string | null
+          date_source: string | null
           days_away: number | null
+          days_overdue: number | null
           due_date: string | null
+          guidance: string | null
           lead_id: string | null
           project_name: string | null
           source_text: string | null
@@ -4781,6 +5286,198 @@ export type Database = {
             columns: ["status_code"]
             isOneToOne: false
             referencedRelation: "lead_statuses"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      v_oven_leads: {
+        Row: {
+          apollo_contact_id: string | null
+          apollo_org_id: string | null
+          archived_at: string | null
+          category: string | null
+          cc_bcc: string | null
+          claim_active: boolean | null
+          claim_actor_id: string | null
+          claim_expires_at: string | null
+          claim_holder: string | null
+          claimed_at: string | null
+          claimed_by: string | null
+          company_builder: string | null
+          converted_at: string | null
+          converted_in_zoho_at: string | null
+          converted_to_contact_id: string | null
+          converted_to_deal_id: string | null
+          converted_to_org_id: string | null
+          created_at: string | null
+          direct_email: string | null
+          email_sent_at: string | null
+          enriched_at: string | null
+          enrichment_status: string | null
+          follow_up_date: string | null
+          id: string | null
+          lead_number: string | null
+          lead_timezone: string | null
+          message_id: string | null
+          next_best_action: string | null
+          next_step_code: string | null
+          notes: string | null
+          organisation_id: string | null
+          owner_email: string | null
+          phone: string | null
+          project_contact_name: string | null
+          project_name: string | null
+          rated_at: string | null
+          rating_band: string | null
+          rating_model: string | null
+          rating_reason: string | null
+          rating_score: number | null
+          rating_stale: boolean | null
+          rating_stale_since: string | null
+          reception_email: string | null
+          reception_name: string | null
+          responded_at: string | null
+          role: string | null
+          secondary_contact: string | null
+          secondary_email: string | null
+          site_address: string | null
+          source: string | null
+          source_code: string | null
+          source_row_key: string | null
+          source_system: string | null
+          source_tab: string | null
+          stage: Database["public"]["Enums"]["lead_stage"] | null
+          state: string | null
+          status_code: string | null
+          tags: string[] | null
+          updated_at: string | null
+          who_spoke_code: string | null
+          who_spoke_with: string | null
+          zoho_converted_deal_id: string | null
+          zoho_id: string | null
+          zoho_push_count: number | null
+          zoho_sync_error: string | null
+          zoho_sync_status: string | null
+          zoho_synced_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_claims_actor_id_fkey"
+            columns: ["claim_actor_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_converted_to_contact_id_fkey"
+            columns: ["converted_to_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_converted_to_contact_id_fkey"
+            columns: ["converted_to_contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_converted_to_deal_fkey"
+            columns: ["converted_to_deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_converted_to_deal_fkey"
+            columns: ["converted_to_deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deals_board"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_converted_to_deal_fkey"
+            columns: ["converted_to_deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deals_missing_from_zoho"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_converted_to_deal_fkey"
+            columns: ["converted_to_deal_id"]
+            isOneToOne: false
+            referencedRelation: "v_deals_stale"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_converted_to_org_id_fkey"
+            columns: ["converted_to_org_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_converted_to_org_id_fkey"
+            columns: ["converted_to_org_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_card_context"
+            referencedColumns: ["organisation_id"]
+          },
+          {
+            foreignKeyName: "leads_next_step_code_fkey"
+            columns: ["next_step_code"]
+            isOneToOne: false
+            referencedRelation: "lead_next_steps"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_next_step_code_fkey"
+            columns: ["next_step_code"]
+            isOneToOne: false
+            referencedRelation: "v_lead_step_options"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_card_context"
+            referencedColumns: ["organisation_id"]
+          },
+          {
+            foreignKeyName: "leads_rating_band_fkey"
+            columns: ["rating_band"]
+            isOneToOne: false
+            referencedRelation: "lead_rating_bands"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_source_code_fkey"
+            columns: ["source_code"]
+            isOneToOne: false
+            referencedRelation: "lead_sources"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_status_code_fkey"
+            columns: ["status_code"]
+            isOneToOne: false
+            referencedRelation: "lead_statuses"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_who_spoke_code_fkey"
+            columns: ["who_spoke_code"]
+            isOneToOne: false
+            referencedRelation: "lead_who_spoke"
             referencedColumns: ["code"]
           },
         ]
@@ -5081,12 +5778,37 @@ export type Database = {
         Returns: string
       }
       tt_check_allowed_values: { Args: { p_def: string }; Returns: string[] }
+      tt_claim_lead: {
+        Args: { p_actor_id: string; p_lead_id: string }
+        Returns: {
+          expires_at: string
+          held_by: string
+          held_by_name: string
+          ok: boolean
+        }[]
+      }
+      tt_claim_ttl: { Args: never; Returns: string }
       tt_extract_completion: {
         Args: { p_notes: string }
         Returns: {
           date_precision: string
           due_date: string
           raw: string
+        }[]
+      }
+      tt_fetch_lead_gated: {
+        Args: { p_lead_id: string; p_operator: string }
+        Returns: {
+          actor_id: string
+          actor_name: string
+          company_builder: string
+          gate_reason: string
+          held_by: string
+          id: string
+          may_act: boolean
+          organisation_id: string
+          project_name: string
+          state: string
         }[]
       }
       tt_find_duplicate_lead: {
@@ -5101,9 +5823,49 @@ export type Database = {
           stage: string
         }[]
       }
+      tt_heartbeat_lead: {
+        Args: { p_actor_id: string; p_lead_id: string }
+        Returns: {
+          expires_at: string
+          ok: boolean
+        }[]
+      }
       tt_last_email_message_id: { Args: { p_lead_id: string }; Returns: string }
+      tt_lead_gate: {
+        Args: { p_lead_id: string; p_operator: string }
+        Returns: {
+          actor_id: string
+          actor_name: string
+          held_by: string
+          may_act: boolean
+          reason: string
+        }[]
+      }
+      tt_local_to_utc: {
+        Args: { p_local: string; p_state: string }
+        Returns: string
+      }
       tt_mark_silent_leads_stale: { Args: never; Returns: number }
+      tt_match_organisation: {
+        Args: { p_name: string }
+        Returns: {
+          contacts_count: number
+          deals_count: number
+          matched: boolean
+          near_matches: Json
+          org_name: string
+          organisation_id: string
+        }[]
+      }
+      tt_may_action_lead: {
+        Args: { p_actor_id: string; p_lead_id: string }
+        Returns: boolean
+      }
       tt_purge_missing_zoho_deals: { Args: never; Returns: number }
+      tt_release_lead: {
+        Args: { p_actor_id: string; p_lead_id: string }
+        Returns: boolean
+      }
       tt_restart_follow_ups: {
         Args: { p_created_by?: string; p_from: string; p_lead_id: string }
         Returns: string
@@ -5118,6 +5880,7 @@ export type Database = {
         }
         Returns: string
       }
+      tt_state_timezone: { Args: { p_state: string }; Returns: string }
     }
     Enums: {
       date_rule:
