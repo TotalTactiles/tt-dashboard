@@ -539,9 +539,11 @@ function ColdCallCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-xl font-semibold leading-tight">
-            {isPlaceholderBuilder(lead.company_builder)
-              ? <span style={{ color: "#e5934b" }}>{lead.company_builder || "no builder"}</span>
-              : (lead.company_builder || DASH)}
+            <Link to={`/crm/lead/${lead.id}`} className="hover:underline">
+              {isPlaceholderBuilder(lead.company_builder)
+                ? <span style={{ color: "#e5934b" }}>{lead.company_builder || "no builder"}</span>
+                : (lead.company_builder || DASH)}
+            </Link>
           </div>
           <div className="text-sm text-muted-foreground">{lead.project_name || DASH}</div>
         </div>
