@@ -302,10 +302,51 @@ function ColdCallPanel({
   const [callbackAt, setCallbackAt] = useState("");
   const [followUp, setFollowUp] = useState("");
   const [notes, setNotes] = useState("");
+  const [messageLeft, setMessageLeft] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [pictureOpen, setPictureOpen] = useState(false);
+  const [orgPhone, setOrgPhone] = useState<string | null>(null);
+  const [lookup, setLookup] = useState<{ saved: boolean; phone: string | null; reason: string | null } | null>(null);
 
   const selectedOutcome = outcomes.find((o) => o.code === outcome);
   const spokeToSomeone = !!selectedOutcome?.is_contact || outcome === "spoke_gatekeeper";
+  const needsMessage = outcome === "left_message";
+  const messageMissing = needsMessage && !messageLeft.trim();
+
+  // Fall back to the organisation's switchboard when the lead has no number.
+  useEffect(() => {
+    if (lead.phone || !lead.organisation_id) { setOrgPhone(null); return; }
+    let cancel = false;
+    db.from("organisations").select("phone").eq("id", lead.organisation_id).maybeSingle()
+      .then((r: any) => { if (!cancel) setOrgPhone(r?.data?.phone ?? null); });
+    return () => { cancel = true; };
+  }, [lead.phone, lead.organisation_id]);
+
+  // Only ever a company switchboard, never a personal number, and only a number
+  // the workflow actually saved.
+  const savedLookupPhone = lookup?.saved ? lookup.phone : null;
+  const displayPhone = lead.phone || orgPhone || savedLookupPhone || null;
+  const offerLookup = !displayPhone || outcome === "wrong_number";
+
+  async function findCompanyLine() {
+    if (busy) return;
+    setBusy("company_phone");
+    const r = await postOvenWebhook("tt-company-phone", { lead_id: lead.id, operator });
+    setBusy(null);
+    const body: any = r.body ?? {};
+    if (r.blocked || (!r.ok && !body.reason)) {
+      toast({
+        title: "Blocked",
+        description: r.reason,
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+      return;
+    }
+    const saved = !!body.saved;
+    setLookup({ saved, phone: saved ? (body.phone ?? null) : null, reason: body.reason ?? r.reason ?? null });
+    if (saved) await onDone();
+  }
+
 
   const steps: NextStepRow[] = useMemo(
     () => (refs?.nextSteps ?? []).filter((s) => !s.is_system && s.applies_to_stage === "ready_to_call"),
