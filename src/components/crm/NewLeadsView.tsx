@@ -1566,6 +1566,9 @@ function LeadPanel({
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setSkipTiming(true)}>Skip, find a contact anyway</Button>
           </div>
+          {earlyDaysRow}
+          <div className="hidden">
+          </div>
         </div>
       )}
 
