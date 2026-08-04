@@ -956,7 +956,7 @@ function FoundOnePanel({
   const check = useMemo(() => {
     if (!shaped) return { ok: false, tone: "muted" as const, message: "" };
     if (isFreeMail(dom)) return { ok: false, tone: "amber" as const, message: "Personal mailbox - not a company address." };
-    if (!orgDomain) return { ok: true, tone: "green" as const, message: "Accepted - no company domain on file to check against." };
+    if (!orgDomain) return { ok: true, tone: "amber" as const, message: "No company domain on file - this address cannot be checked." };
     if (domainRoot(dom) === domainRoot(orgDomain)) return { ok: true, tone: "green" as const, message: `OK - domain matches ${dom}.` };
     return { ok: false, tone: "amber" as const, message: `${dom} does not belong to ${orgDomain}.` };
   }, [shaped, dom, orgDomain]);
