@@ -1021,14 +1021,17 @@ function FoundOnePanel({
                 border: canSend ? "none" : "1px solid #26303d",
               }}
             >
-              Send EOI
+              Use this address
             </button>
             <div className="font-mono" style={{ fontSize: "11px", color: "#6e7681", marginTop: "6px" }}>
               {check.ok
-                ? `Saves to the contact directory for the next ${company || "company"} lead when valid`
+                ? (name.trim().length >= 2
+                  ? "Saves the contact and unlocks Send EOI on the next step"
+                  : "Add a name for the greeting")
                 : `Blocked until the address belongs to ${orgDomain || "this company"}`}
             </div>
           </div>
+
         </div>
       )}
     </div>
