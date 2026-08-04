@@ -1452,6 +1452,144 @@ export type Database = {
           },
         ]
       }
+      lead_email_threads: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_eoi: boolean
+          lead_id: string
+          provider: string
+          provider_message_id: string
+          rfc_message_id: string | null
+          sent_at: string
+          subject: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          is_eoi?: boolean
+          lead_id: string
+          provider: string
+          provider_message_id: string
+          rfc_message_id?: string | null
+          sent_at?: string
+          subject?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_eoi?: boolean
+          lead_id?: string
+          provider?: string
+          provider_message_id?: string
+          rfc_message_id?: string | null
+          sent_at?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_email_threads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_email_threads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_import_review"
+            referencedColumns: ["existing_lead_id"]
+          },
+          {
+            foreignKeyName: "lead_email_threads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_duplicates"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "lead_email_threads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_email_threads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_email_threads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_silence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_email_threads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_timing"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "lead_email_threads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_incomplete"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_email_threads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_needing_rating"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_email_threads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_unroutable"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_email_threads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_leads_zoho_pending"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_email_threads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_call_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_email_threads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_email_threads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_new_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_event_kinds: {
         Row: {
           is_metric: boolean
@@ -2674,6 +2812,7 @@ export type Database = {
           completion_estimate: string | null
           completion_precision: string | null
           completion_source: string | null
+          contact_id: string | null
           converted_at: string | null
           converted_in_zoho_at: string | null
           converted_to_contact_id: string | null
@@ -2742,6 +2881,7 @@ export type Database = {
           completion_estimate?: string | null
           completion_precision?: string | null
           completion_source?: string | null
+          contact_id?: string | null
           converted_at?: string | null
           converted_in_zoho_at?: string | null
           converted_to_contact_id?: string | null
@@ -2810,6 +2950,7 @@ export type Database = {
           completion_estimate?: string | null
           completion_precision?: string | null
           completion_source?: string | null
+          contact_id?: string | null
           converted_at?: string | null
           converted_in_zoho_at?: string | null
           converted_to_contact_id?: string | null
@@ -2866,6 +3007,20 @@ export type Database = {
           zoho_synced_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "leads_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "v_contacts_directory"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leads_converted_to_contact_id_fkey"
             columns: ["converted_to_contact_id"]
@@ -5645,6 +5800,17 @@ export type Database = {
           },
         ]
       }
+      v_organisation_merge_candidates: {
+        Row: {
+          candidates: Json | null
+          merge_key: string | null
+          total_contacts: number | null
+          total_deals: number | null
+          total_leads: number | null
+          variants: number | null
+        }
+        Relationships: []
+      }
       v_oven_call_queue: {
         Row: {
           attempts: number | null
@@ -6253,6 +6419,7 @@ export type Database = {
           body_html: string
           id: string
           send_mode: string
+          send_to: string
           specificity: number
           subject: string
         }[]
@@ -6338,6 +6505,14 @@ export type Database = {
       tt_is_placeholder_builder: { Args: { p_name: string }; Returns: boolean }
       tt_is_switchboard: { Args: { p_raw: string }; Returns: boolean }
       tt_last_email_message_id: { Args: { p_lead_id: string }; Returns: string }
+      tt_last_email_ref: {
+        Args: { p_lead_id: string }
+        Returns: {
+          channel: string
+          message_ref: string
+          occurred_at: string
+        }[]
+      }
       tt_lead_gate: {
         Args: { p_lead_id: string; p_operator: string }
         Returns: {
@@ -6427,6 +6602,7 @@ export type Database = {
         | "needs_attention"
         | "converted"
         | "archived"
+        | "early_days"
       org_type: "customer" | "trade_customer" | "supplier" | "subcontractor"
       project_status: "active" | "awaiting_signoff" | "completed" | "cancelled"
       task_status: "open" | "done"
@@ -6586,6 +6762,7 @@ export const Constants = {
         "needs_attention",
         "converted",
         "archived",
+        "early_days",
       ],
       org_type: ["customer", "trade_customer", "supplier", "subcontractor"],
       project_status: ["active", "awaiting_signoff", "completed", "cancelled"],
