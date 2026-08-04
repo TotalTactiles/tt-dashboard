@@ -1000,6 +1000,7 @@ function LeadPanel({
   const [heldContacts, setHeldContacts] = useState<HeldContact[] | null>(null);
   const [orgDomain, setOrgDomain] = useState<string | null>(null);
   const [earlyDate, setEarlyDate] = useState("");
+  const [searchErrored, setSearchErrored] = useState(false);
 
   // One query for the company's contacts. It feeds the Known at this company
   // list and the domain the hand-found address must match, because the
