@@ -837,15 +837,20 @@ function PanelHeader({ title, hint }: { title: string; hint?: string }) {
 }
 
 function LeadPanel({
-  lead, timing, operator, reload,
+  lead, timing, operator, reload, refresh,
 }: {
   lead: Lead & Partial<OvenNewLead>;
   timing: TimingRow | undefined;
   operator: string;
+  /** The lead left New Leads. Advance the queue. */
   reload: () => Promise<void> | void;
+  /** A marker was recorded. Reload data but keep this lead on screen. */
+  refresh?: () => Promise<void> | void;
 }) {
   const { ctx, error: ctxError } = useLeadCardContext(lead.organisation_id ?? null);
   const { toast } = useToast();
+
+  const stay = refresh ?? reload;
 
   const [slots, setSlots] = useState<SlotState[]>([{ ...EMPTY_SLOT }, { ...EMPTY_SLOT }]);
   const hydratedFor = useRef<string | null>(null);
@@ -861,6 +866,8 @@ function LeadPanel({
   const [skipTiming, setSkipTiming] = useState(false);
   const [noMatchDetail, setNoMatchDetail] = useState<string | null>(null);
   const [history, setHistory] = useState<CompanyHistory | null>(null);
+  const [enrichedDetail, setEnrichedDetail] = useState<string | null>(null);
+
 
   // Bug fix (a): hydrate Block E once per lead, so a context refetch never
   // wipes edits the user has already made to the slots.
