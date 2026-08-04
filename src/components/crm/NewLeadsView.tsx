@@ -1271,6 +1271,7 @@ function LeadPanel({
 
   async function findDetails() {
     if (busy) return;
+    setSearchErrored(false);
     setBusy("apollo");
     
     try {
@@ -1291,6 +1292,7 @@ function LeadPanel({
         toast({ title: r.detail || "Apollo found nobody with an email at this company." });
 
       } else {
+        setSearchErrored(true);
         toast({
           title: "Apollo did not respond",
           description: r.detail || "The lead is unchanged.",
