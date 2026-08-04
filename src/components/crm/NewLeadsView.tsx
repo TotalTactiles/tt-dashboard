@@ -16,6 +16,8 @@ const FragmentRow = ({ children }: { children: ReactNode }) => <Fragment>{childr
 
 export const DASH = "-";
 
+const SKIP_TIMING_STATUSES = ["no_email", "no_org", "all_known", "duplicate"] as const;
+
 const WEBHOOK_BASE = "https://n8n.srv1437130.hstgr.cloud/webhook/";
 
 export interface OvenWebhookResult {
