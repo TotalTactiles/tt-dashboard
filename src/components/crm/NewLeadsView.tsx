@@ -1355,7 +1355,7 @@ function LeadPanel({
   async function findDetails() {
     if (busy) return;
     setBusy("apollo");
-    setNoMatchDetail(null);
+    
     try {
       const r = await enrichLead(lead.id, operator, "full");
       const st = (r as any).enrichment_status ?? (r as any).status ?? null;
