@@ -829,6 +829,213 @@ function LadderNotice({
   );
 }
 
+// ---------------- Part 2: held contacts, hand-found address ----------------
+
+interface HeldContact {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  role: string | null;
+  email: string | null;
+}
+
+/** Lists the addresses already held for this company, with a Use button each. */
+function KnownAtCompany({
+  organisationId, disabled, onUse,
+}: {
+  organisationId: string | null;
+  disabled: boolean;
+  onUse: (c: HeldContact) => void;
+}) {
+  const [rows, setRows] = useState<HeldContact[] | null>(null);
+
+  useEffect(() => {
+    if (!organisationId) { setRows(null); return; }
+    let cancel = false;
+    db.from("contacts")
+      .select("id, first_name, last_name, role, email")
+      .eq("organisation_id", organisationId)
+      .then((r: any) => {
+        if (cancel) return;
+        const list: HeldContact[] = (r?.data ?? []).filter((c: HeldContact) => (c.email ?? "").trim());
+        setRows(list);
+      });
+    return () => { cancel = true; };
+  }, [organisationId]);
+
+  const muted = { padding: "10px 12px", fontSize: "11.5px", color: "#6e7681" };
+
+  return (
+    <div style={{ border: "1px solid #26303d", borderRadius: "7px", overflow: "hidden" }}>
+      <div
+        className="font-mono uppercase"
+        style={{ background: "#11161d", padding: "7px 12px", fontSize: "10px", letterSpacing: ".07em", color: "#6e7681" }}
+      >
+        Known at this company
+      </div>
+      {!organisationId ? (
+        <div className="font-mono" style={muted}>No organisation linked to this lead yet.</div>
+      ) : rows === null ? (
+        <div className="font-mono" style={muted}>Loading...</div>
+      ) : rows.length === 0 ? (
+        <div className="font-mono" style={muted}>Nothing held for this company yet.</div>
+      ) : (
+        rows.map((c, i) => {
+          const name = [c.first_name, c.last_name].filter(Boolean).join(" ").trim() || "Unnamed";
+          const sub = [c.role, c.email].filter(Boolean).join(" \u00b7 ");
+          return (
+            <div
+              key={c.id}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px",
+                padding: "9px 12px", borderTop: i === 0 ? undefined : "1px solid #1d242e",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: "13px" }}>{name}</div>
+                <div className="font-mono" style={{ fontSize: "11.5px", color: "#6e7681" }}>{sub}</div>
+              </div>
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => onUse(c)}
+                style={{
+                  fontSize: "11.5px", padding: "5px 11px", borderRadius: "6px",
+                  background: "transparent", border: "1px solid #3D89DA", color: "#3D89DA",
+                  opacity: disabled ? 0.6 : 1,
+                }}
+              >
+                Use
+              </button>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+const FREE_MAIL_ROOTS = [
+  "gmail", "googlemail", "hotmail", "outlook", "yahoo", "icloud", "me", "mac", "live",
+  "aol", "msn", "protonmail", "proton", "gmx", "bigpond", "optusnet", "iinet", "tpg",
+  "internode", "westnet", "dodo", "ozemail",
+];
+
+/** The part of a domain before the first dot, so .com and .com.au compare equal. */
+function domainRoot(domain: string): string {
+  return (domain || "").trim().toLowerCase().replace(/^www\./, "").split(".")[0] ?? "";
+}
+
+function emailDomain(email: string): string {
+  const at = email.indexOf("@");
+  return at < 0 ? "" : email.slice(at + 1).trim().toLowerCase();
+}
+
+function isFreeMail(domain: string): boolean {
+  return FREE_MAIL_ROOTS.includes(domainRoot(domain));
+}
+
+/** Collapsed by default, on every rung: an address the operator found by hand. */
+function FoundOnePanel({
+  orgDomain, company, busy, onSave,
+}: {
+  orgDomain: string | null;
+  company: string;
+  busy: boolean;
+  onSave: (v: { name: string; email: string; role: string }) => Promise<void> | void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [role, setRole] = useState("");
+
+  const trimmed = email.trim().toLowerCase();
+  const dom = emailDomain(trimmed);
+  const shaped = EMAIL_RE.test(trimmed);
+
+  const check = useMemo(() => {
+    if (!shaped) return { ok: false, tone: "muted" as const, message: "" };
+    if (isFreeMail(dom)) return { ok: false, tone: "amber" as const, message: "Personal mailbox - not a company address." };
+    if (!orgDomain) return { ok: true, tone: "green" as const, message: "Accepted - no company domain on file to check against." };
+    if (domainRoot(dom) === domainRoot(orgDomain)) return { ok: true, tone: "green" as const, message: `OK - domain matches ${dom}.` };
+    return { ok: false, tone: "amber" as const, message: `${dom} does not belong to ${orgDomain}.` };
+  }, [shaped, dom, orgDomain]);
+
+  const canSend = check.ok && name.trim().length >= 2 && !busy;
+
+  return (
+    <div style={{ borderTop: "1px dashed #26303d", paddingTop: "10px" }}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        style={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "12.5px", color: "#8b949e" }}
+      >
+        <span style={{ color: "#3D89DA", fontWeight: 700 }}>{open ? "-" : "+"}</span>
+        I found one
+      </button>
+
+      {open && (
+        <div style={{ border: "1px solid #2b6cb0", background: "#111c28", borderRadius: "7px", padding: "13px", marginTop: "9px" }}>
+          <div className="font-mono" style={{ fontSize: "11px", color: "#8b949e", marginBottom: "6px" }}>
+            Address found by hand
+          </div>
+          <input
+            className={MANUAL_INPUT_CLS + " border-border"}
+            placeholder="name@company.com.au"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <div className="grid grid-cols-2 gap-2" style={{ marginTop: "8px" }}>
+            <input
+              className={MANUAL_INPUT_CLS + " border-border"}
+              placeholder="Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <input
+              className={MANUAL_INPUT_CLS + " border-border"}
+              placeholder="Role"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+            />
+          </div>
+
+          {check.message && (
+            <div
+              className="font-mono"
+              style={{ fontSize: "11.5px", marginTop: "8px", color: check.tone === "green" ? "#3fb950" : "#e3b341" }}
+            >
+              {check.message}
+            </div>
+          )}
+
+          <div style={{ marginTop: "10px" }}>
+            <button
+              type="button"
+              disabled={!canSend}
+              onClick={() => onSave({ name, email: trimmed, role })}
+              style={{
+                width: "100%", padding: "10px", borderRadius: "7px", fontWeight: 600,
+                background: canSend ? "#3D89DA" : "#1c2430",
+                color: canSend ? "#fff" : "#6e7681",
+                border: canSend ? "none" : "1px solid #26303d",
+              }}
+            >
+              Send EOI
+            </button>
+            <div className="font-mono" style={{ fontSize: "11px", color: "#6e7681", marginTop: "6px" }}>
+              {check.ok
+                ? `Saves to the contact directory for the next ${company || "company"} lead when valid`
+                : `Blocked until the address belongs to ${orgDomain || "this company"}`}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 
 function PanelHeader({ title, hint }: { title: string; hint?: string }) {
   return (
@@ -870,6 +1077,29 @@ function LeadPanel({
   const [noMatchDetail, setNoMatchDetail] = useState<string | null>(null);
   const [history, setHistory] = useState<CompanyHistory | null>(null);
   const [enrichedDetail, setEnrichedDetail] = useState<string | null>(null);
+  const [orgDomain, setOrgDomain] = useState<string | null>(null);
+  const [earlyDate, setEarlyDate] = useState("");
+
+  // The organisation record carries the domain the hand-found address must match.
+  useEffect(() => {
+    if (!lead.organisation_id) { setOrgDomain(null); return; }
+    let cancel = false;
+    db.from("organisations")
+      .select("website,email")
+      .eq("id", lead.organisation_id)
+      .maybeSingle()
+      .then((r: any) => {
+        if (cancel) return;
+        const site = (r?.data?.website ?? "").trim();
+        const mail = (r?.data?.email ?? "").trim();
+        let d = "";
+        if (site) d = site.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0].toLowerCase();
+        if (!d && mail) d = emailDomain(mail.toLowerCase());
+        setOrgDomain(d || null);
+      });
+    return () => { cancel = true; };
+  }, [lead.organisation_id]);
+
 
 
   // Bug fix (a): hydrate Block E once per lead, so a context refetch never
@@ -1187,6 +1417,55 @@ function LeadPanel({
     toast({ title: "Contact saved - you can now send an EOI" });
   }
 
+  /** Use an address we already hold. Unlocks Send EOI, never advances the lead. */
+  async function useHeldContact(c: HeldContact) {
+    if (busy) return;
+    setBusy("use_held");
+    const name = [c.first_name, c.last_name].filter(Boolean).join(" ").trim();
+    const { error } = await db.from("leads")
+      .update({ project_contact_name: name || null, direct_email: (c.email ?? "").trim().toLowerCase(), role: c.role ?? null })
+      .eq("id", lead.id);
+    setBusy(null);
+    if (error) {
+      toast({
+        title: "Could not use that contact",
+        description: error.message,
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+      return;
+    }
+    toast({ title: "Contact set - you can now send an EOI" });
+    await stay();
+  }
+
+  const projectMissing = !((lead.project_name ?? "").trim());
+
+  /** Early Days leaves New Leads, so the queue advances. */
+  async function earlyDays() {
+    if (busy || projectMissing) return;
+    setBusy("early_days");
+    const { error } = await db.from("leads")
+      .update({
+        next_step_code: "nl_early_days",
+        stage: "early_days",
+        follow_up_date: earlyDate ? earlyDate : null,
+      })
+      .eq("id", lead.id);
+    setBusy(null);
+    if (error) {
+      toast({
+        title: "Could not set Early Days",
+        description: error.message,
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+      return;
+    }
+    toast({ title: earlyDate ? `Early Days - EOI due ${earlyDate}` : "Early Days" });
+    await reload();
+  }
+
+
+
   // One decision on screen at a time, resolved in a fixed priority order so a
   // step cannot be jumped and the downstream automations stay in sequence.
   const activePanel: "builder" | "timing_unknown" | "timing_past" | "contact" | "send" =
@@ -1210,7 +1489,40 @@ function LeadPanel({
           : "send";
 
 
+  // Early Days leaves New Leads and sends no email. The project name guard is a
+  // hard requirement, since the early_days stage will not accept a blank one.
+  const earlyDaysRow = (
+    <div className="space-y-1">
+      <div className="flex flex-wrap items-end gap-2">
+        <button
+          type="button"
+          disabled={busy !== null || projectMissing}
+          onClick={earlyDays}
+          style={{
+            padding: "7px 13px", borderRadius: "7px", fontSize: "13px",
+            background: "#1c2430", border: "1px solid #26303d", color: "#c9d1d9",
+            opacity: busy !== null || projectMissing ? 0.5 : 1,
+          }}
+        >
+          Early Days
+        </button>
+        <div>
+          <div className="font-mono uppercase" style={{ fontSize: "11px", color: "#6e7681", marginBottom: "3px" }}>
+            When to send the EOI
+          </div>
+          <input type="date" className={SELECT_CLS} value={earlyDate} onChange={(e) => setEarlyDate(e.target.value)} />
+        </div>
+      </div>
+      {projectMissing && (
+        <div className="font-mono" style={{ fontSize: "11.5px", color: "#e3b341" }}>
+          Add a project name first - an EOI cannot be sent without one.
+        </div>
+      )}
+    </div>
+  );
+
   return (
+
     <div className="space-y-4">
       <Stepper current={stepperCurrent} />
 
@@ -1254,6 +1566,7 @@ function LeadPanel({
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setSkipTiming(true)}>Skip, find a contact anyway</Button>
           </div>
+          {earlyDaysRow}
         </div>
       )}
 
@@ -1285,6 +1598,9 @@ function LeadPanel({
           </div>
           <div>
             <Button size="sm" variant="ghost" onClick={() => setSkipTiming(true)}>It is delayed, find a contact</Button>
+          </div>
+          <div>
+            {earlyDaysRow}
           </div>
         </div>
       )}
@@ -1355,6 +1671,16 @@ function LeadPanel({
                 )}
 
                 {rung === 2 && (
+                  <div style={{ marginBottom: "9px" }}>
+                    <KnownAtCompany
+                      organisationId={lead.organisation_id ?? null}
+                      disabled={busy !== null}
+                      onUse={useHeldContact}
+                    />
+                  </div>
+                )}
+
+                {rung === 2 && (
                   <button
                     type="button"
                     disabled={busy !== null}
@@ -1395,6 +1721,17 @@ function LeadPanel({
               </div>
             </div>
           )}
+
+          {/* Present on every rung, collapsed by default. */}
+          {!isDuplicate && (
+            <FoundOnePanel
+              orgDomain={orgDomain}
+              company={lead.company_builder}
+              busy={busy !== null}
+              onSave={saveManualContact}
+            />
+          )}
+
 
           {!isDuplicate && rung === null && (
             <>
