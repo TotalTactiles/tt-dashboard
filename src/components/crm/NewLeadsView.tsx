@@ -1434,8 +1434,8 @@ function LeadPanel({
       }
     }
 
-    setManualOpen(false);
     await stay();
+
     toast({ title: "Contact saved - you can now send an EOI" });
   }
 
