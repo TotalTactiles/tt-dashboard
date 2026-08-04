@@ -500,79 +500,6 @@ const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const MANUAL_INPUT_CLS =
   "w-full bg-transparent border rounded px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary";
 
-function ManualContactPanel({
-  onCancel, onSave,
-}: {
-  onCancel: () => void;
-  onSave: (v: { name: string; email: string; role: string }) => Promise<void>;
-}) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState("");
-  const [nameTouched, setNameTouched] = useState(false);
-  const [emailTouched, setEmailTouched] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const nameOk = name.trim().length >= 2;
-  const emailOk = EMAIL_RE.test(email.trim());
-  const canSave = nameOk && emailOk && !saving;
-
-  const nameBad = nameTouched && name.length > 0 && !nameOk;
-  const emailBad = emailTouched && email.length > 0 && !emailOk;
-
-  return (
-    <div className="mt-3 rounded-md border border-border bg-muted/10 px-3 py-3 space-y-3">
-      <div>
-        <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-1">Name</div>
-        <input
-          className={MANUAL_INPUT_CLS + (nameBad ? " border-red-500" : " border-border")}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={() => setNameTouched(true)}
-        />
-      </div>
-      <div>
-        <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-1">Email</div>
-        <input
-          className={MANUAL_INPUT_CLS + (emailBad ? " border-red-500" : " border-border")}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          onBlur={() => setEmailTouched(true)}
-        />
-      </div>
-      <div>
-        <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-1">Role</div>
-        <input
-          className={MANUAL_INPUT_CLS + " border-border"}
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-        />
-      </div>
-      <div className="flex flex-wrap items-center gap-3 pt-1">
-        <Button
-          size="sm"
-          disabled={!canSave}
-          style={canSave ? { backgroundColor: "#3D89DA", color: "#fff" } : undefined}
-          onClick={async () => {
-            setSaving(true);
-            try {
-              await onSave({ name, email, role });
-            } finally {
-              setSaving(false);
-            }
-          }}
-        >
-          {saving ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
-          Save contact
-        </Button>
-        <Button size="sm" variant="ghost" onClick={onCancel} disabled={saving}>Cancel</Button>
-        {!(nameOk && emailOk) && (
-          <span style={{ color: "#e5934b", fontSize: "11.5px" }}>Name and a valid email are required</span>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ---------------- shell: the two Oven sub-tabs ----------------
 
@@ -841,29 +768,16 @@ interface HeldContact {
 
 /** Lists the addresses already held for this company, with a Use button each. */
 function KnownAtCompany({
-  organisationId, disabled, onUse,
+  organisationId, rows, disabled, onUse,
 }: {
   organisationId: string | null;
+  /** Fetched once by LeadPanel, so this table is never queried twice. */
+  rows: HeldContact[] | null;
   disabled: boolean;
   onUse: (c: HeldContact) => void;
 }) {
-  const [rows, setRows] = useState<HeldContact[] | null>(null);
-
-  useEffect(() => {
-    if (!organisationId) { setRows(null); return; }
-    let cancel = false;
-    db.from("contacts")
-      .select("id, first_name, last_name, role, email")
-      .eq("organisation_id", organisationId)
-      .then((r: any) => {
-        if (cancel) return;
-        const list: HeldContact[] = (r?.data ?? []).filter((c: HeldContact) => (c.email ?? "").trim());
-        setRows(list);
-      });
-    return () => { cancel = true; };
-  }, [organisationId]);
-
   const muted = { padding: "10px 12px", fontSize: "11.5px", color: "#6e7681" };
+
 
   return (
     <div style={{ border: "1px solid #26303d", borderRadius: "7px", overflow: "hidden" }}>
@@ -956,7 +870,7 @@ function FoundOnePanel({
   const check = useMemo(() => {
     if (!shaped) return { ok: false, tone: "muted" as const, message: "" };
     if (isFreeMail(dom)) return { ok: false, tone: "amber" as const, message: "Personal mailbox - not a company address." };
-    if (!orgDomain) return { ok: true, tone: "green" as const, message: "Accepted - no company domain on file to check against." };
+    if (!orgDomain) return { ok: true, tone: "amber" as const, message: "No company domain on file - this address cannot be checked." };
     if (domainRoot(dom) === domainRoot(orgDomain)) return { ok: true, tone: "green" as const, message: `OK - domain matches ${dom}.` };
     return { ok: false, tone: "amber" as const, message: `${dom} does not belong to ${orgDomain}.` };
   }, [shaped, dom, orgDomain]);
@@ -1021,14 +935,17 @@ function FoundOnePanel({
                 border: canSend ? "none" : "1px solid #26303d",
               }}
             >
-              Send EOI
+              Use this address
             </button>
             <div className="font-mono" style={{ fontSize: "11px", color: "#6e7681", marginTop: "6px" }}>
               {check.ok
-                ? `Saves to the contact directory for the next ${company || "company"} lead when valid`
+                ? (name.trim().length >= 2
+                  ? "Saves the contact and unlocks Send EOI on the next step"
+                  : "Add a name for the greeting")
                 : `Blocked until the address belongs to ${orgDomain || "this company"}`}
             </div>
           </div>
+
         </div>
       )}
     </div>
@@ -1064,41 +981,63 @@ function LeadPanel({
 
   const [slots, setSlots] = useState<SlotState[]>([{ ...EMPTY_SLOT }, { ...EMPTY_SLOT }]);
   const hydratedFor = useRef<string | null>(null);
-  const [manualOpen, setManualOpen] = useState(false);
   const [enrichStatus, setEnrichStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [stepOpen, setStepOpen] = useState(false);
   const [builderInput, setBuilderInput] = useState("");
   const [overrideDate, setOverrideDate] = useState("");
   const [scheduleDate, setScheduleDate] = useState("");
-  // Session-only forward moves. LeadPanel is keyed by lead id, so these reset
-  // when the row is closed or a different lead is opened.
-  const [skipTiming, setSkipTiming] = useState(false);
-  const [noMatchDetail, setNoMatchDetail] = useState<string | null>(null);
+  // A lead that already carries an enrichment_status has been through timing, so
+  // the ladder survives a page refresh instead of hiding behind timing again.
+  const [skipTiming, setSkipTiming] = useState<boolean>(
+    ((lead as any).enrichment_status ?? null) !== null,
+  );
   const [history, setHistory] = useState<CompanyHistory | null>(null);
   const [enrichedDetail, setEnrichedDetail] = useState<string | null>(null);
+  const [heldContacts, setHeldContacts] = useState<HeldContact[] | null>(null);
   const [orgDomain, setOrgDomain] = useState<string | null>(null);
   const [earlyDate, setEarlyDate] = useState("");
 
-  // The organisation record carries the domain the hand-found address must match.
+  // One query for the company's contacts. It feeds the Known at this company
+  // list and the domain the hand-found address must match, because the
+  // organisations table carries no domain on any row today.
   useEffect(() => {
-    if (!lead.organisation_id) { setOrgDomain(null); return; }
+    if (!lead.organisation_id) { setHeldContacts(null); setOrgDomain(null); return; }
     let cancel = false;
-    db.from("organisations")
-      .select("website,email")
-      .eq("id", lead.organisation_id)
-      .maybeSingle()
-      .then((r: any) => {
-        if (cancel) return;
-        const site = (r?.data?.website ?? "").trim();
-        const mail = (r?.data?.email ?? "").trim();
-        let d = "";
-        if (site) d = site.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0].toLowerCase();
-        if (!d && mail) d = emailDomain(mail.toLowerCase());
-        setOrgDomain(d || null);
+    const orgId = lead.organisation_id;
+    (async () => {
+      const r: any = await db
+        .from("contacts")
+        .select("id, first_name, last_name, role, email")
+        .eq("organisation_id", orgId);
+      if (cancel) return;
+      const list: HeldContact[] = (r?.data ?? []).filter((c: HeldContact) => (c.email ?? "").trim());
+      setHeldContacts(list);
+
+      // The most common domain wins, since some companies hold more than one.
+      const counts = new Map<string, number>();
+      list.forEach((c) => {
+        const d = emailDomain((c.email ?? "").trim().toLowerCase());
+        if (d) counts.set(d, (counts.get(d) ?? 0) + 1);
       });
+      let best = "";
+      let bestN = 0;
+      counts.forEach((n, d) => { if (n > bestN) { best = d; bestN = n; } });
+      if (best) { setOrgDomain(best); return; }
+
+      // Fallbacks, in case the organisation record is ever populated.
+      const o: any = await db.from("organisations").select("website,email").eq("id", orgId).maybeSingle();
+      if (cancel) return;
+      const site = (o?.data?.website ?? "").trim();
+      const mail = (o?.data?.email ?? "").trim();
+      let d = "";
+      if (site) d = site.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0].toLowerCase();
+      if (!d && mail) d = emailDomain(mail.toLowerCase());
+      setOrgDomain(d || null);
+    })();
     return () => { cancel = true; };
   }, [lead.organisation_id]);
+
 
 
 
@@ -1146,11 +1085,7 @@ function LeadPanel({
   const hasEmail = !!lead.direct_email;
 
   const hasContactDetails = !!(lead.project_contact_name || lead.role || lead.direct_email || lead.phone);
-  const manualEligible = useMemo(() => {
-    if (lead.project_contact_name && lead.direct_email) return false;
-    const st = enrichStatus ?? (lead as any).enrichment_status ?? null;
-    return st === "no_org" || st === "no_email" || (!lead.project_contact_name && !lead.direct_email);
-  }, [lead, enrichStatus]);
+
 
   const priorWorkSlots: PriorWorkSlot[] | undefined = useMemo(() => {
     if (!ctx?.block_e) return undefined;
@@ -1177,7 +1112,7 @@ function LeadPanel({
     return null;
   }, [isDuplicate, nextStepCode, enrichmentStatus]);
 
-  const rungTwoViaTracker = rung === 2 && nextStepCode === "nl_manual_attempt";
+  const rungTwoAfterManualAttempt = rung === 2 && nextStepCode === "nl_manual_attempt";
 
   const notice = useMemo(() => {
     if (rung === 1) {
@@ -1187,14 +1122,14 @@ function LeadPanel({
         detail: enrichedDetail ?? "Automation found nobody with an email at this company.",
       };
     }
-    if (rung === 2 && !rungTwoViaTracker) {
+    if (rung === 2 && !rungTwoAfterManualAttempt) {
       return {
         tone: "amber" as const,
         title: "Everyone here is already in the directory",
         detail: enrichedDetail ?? "Every qualified person at this company is already held, so the answer is in the tracker.",
       };
     }
-    if (rung === 2 && rungTwoViaTracker) {
+    if (rung === 2 && rungTwoAfterManualAttempt) {
       return {
         tone: "amber" as const,
         title: "Manual attempt logged",
@@ -1209,7 +1144,7 @@ function LeadPanel({
       };
     }
     return null;
-  }, [rung, rungTwoViaTracker, enrichedDetail]);
+  }, [rung, rungTwoAfterManualAttempt, enrichedDetail]);
 
   /** Records a rung marker and keeps the lead on screen. */
   async function markRung(code: "nl_manual_attempt" | "nl_company_tracker", label: string) {
@@ -1333,7 +1268,7 @@ function LeadPanel({
   async function findDetails() {
     if (busy) return;
     setBusy("apollo");
-    setNoMatchDetail(null);
+    
     try {
       const r = await enrichLead(lead.id, operator, "full");
       const st = (r as any).enrichment_status ?? (r as any).status ?? null;
@@ -1347,9 +1282,10 @@ function LeadPanel({
           className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
         });
       } else if (r.ok) {
-        // A search that found nothing is a normal outcome, so the choices stay
-        // on screen instead of disappearing in a toast.
-        setNoMatchDetail(r.detail || "Apollo found nobody with an email at this company.");
+        // A search that found nothing is a normal outcome. The enrichment status
+        // gives the lead its rung, and the ladder banner carries the detail.
+        toast({ title: r.detail || "Apollo found nobody with an email at this company." });
+
       } else {
         toast({
           title: "Apollo did not respond",
@@ -1412,8 +1348,8 @@ function LeadPanel({
       }
     }
 
-    setManualOpen(false);
     await stay();
+
     toast({ title: "Contact saved - you can now send an EOI" });
   }
 
@@ -1526,6 +1462,21 @@ function LeadPanel({
     <div className="space-y-4">
       <Stepper current={stepperCurrent} />
 
+      {/* A duplicate has no rung, and the warning must show on every panel. */}
+      {isDuplicate && (
+        <div className="space-y-2">
+          <LadderNotice
+            tone="amber"
+            title="Duplicate - review"
+            detail={enrichedDetail ?? "This lead matches one we already hold."}
+          />
+          <div className="font-mono" style={{ fontSize: "11.5px", color: "#6e7681" }}>
+            No next step. Stays here until the merge screen exists.
+          </div>
+        </div>
+      )}
+
+
       {activePanel === "builder" && (
         <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-2">
           <PanelHeader title="Which builder is this?" />
@@ -1627,19 +1578,6 @@ function LeadPanel({
             <div className="text-sm text-chart-orange italic">No contact details yet</div>
           )}
 
-          {/* A duplicate has no rung. It stays here until the merge screen exists. */}
-          {isDuplicate && (
-            <div className="space-y-2">
-              <LadderNotice
-                tone="amber"
-                title="Duplicate - review"
-                detail={enrichedDetail ?? "This lead matches one we already hold."}
-              />
-              <div className="font-mono" style={{ fontSize: "11.5px", color: "#6e7681" }}>
-                No next step. Stays here until the merge screen exists.
-              </div>
-            </div>
-          )}
 
           {/* The escalating ladder: exactly one next step, never skipped forward. */}
           {!isDuplicate && rung !== null && (
@@ -1674,11 +1612,13 @@ function LeadPanel({
                   <div style={{ marginBottom: "9px" }}>
                     <KnownAtCompany
                       organisationId={lead.organisation_id ?? null}
+                      rows={heldContacts}
                       disabled={busy !== null}
                       onUse={useHeldContact}
                     />
                   </div>
                 )}
+
 
                 {rung === 2 && (
                   <button
@@ -1734,41 +1674,18 @@ function LeadPanel({
 
 
           {!isDuplicate && rung === null && (
-            <>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button size="sm" onClick={findDetails} disabled={busy !== null}>
-                  {busy === "apollo" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1" />}
-                  {busy === "apollo" ? "Searching Apollo..." : "Find Details"}
-                </Button>
-                {manualEligible && !manualOpen && !noMatchDetail && (
-                  <Button size="sm" variant="outline" onClick={() => setManualOpen(true)}>Enter contact manually</Button>
-                )}
-              </div>
-
-              {noMatchDetail && !manualOpen && (
-                <div className="space-y-2">
-                  <div className="text-sm" style={{ color: "#e5934b" }}>{noMatchDetail}</div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      size="sm"
-                      style={{ backgroundColor: "#3D89DA", color: "#fff" }}
-                      onClick={() => setManualOpen(true)}
-                    >
-                      Enter contact manually
-                    </Button>
-                    <Button size="sm" variant="outline" disabled={busy !== null} onClick={sendToColdCall}>
-                      {busy === "cold" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
-                      Send to Cold Call
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {manualOpen && (
-                <ManualContactPanel onCancel={() => setManualOpen(false)} onSave={saveManualContact} />
-              )}
-            </>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" onClick={findDetails} disabled={busy !== null}>
+                {busy === "apollo" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1" />}
+                {busy === "apollo" ? "Searching Apollo..." : "Find Details"}
+              </Button>
+              <Button size="sm" variant="outline" disabled={busy !== null} onClick={sendToColdCall}>
+                {busy === "cold" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+                Send to Cold Call
+              </Button>
+            </div>
           )}
+
 
 
           {lead.stage === "enriching" && (
@@ -1888,11 +1805,17 @@ function LeadPanel({
           )}
 
           <div className="flex flex-wrap items-center gap-3">
-            <Button size="sm" onClick={() => setStepOpen(true)}>Set next step</Button>
+            <Button size="sm" onClick={() => setStepOpen(true)} disabled={isDuplicate}>Set next step</Button>
+            {isDuplicate && (
+              <span className="font-mono" style={{ fontSize: "11.5px", color: "#e3b341" }}>
+                Resolve the duplicate before sending.
+              </span>
+            )}
             {history?.last_contacted && (
               <span className="text-[11px] text-muted-foreground">last contacted {monthYear(history.last_contacted)}</span>
             )}
           </div>
+
         </div>
       )}
 
