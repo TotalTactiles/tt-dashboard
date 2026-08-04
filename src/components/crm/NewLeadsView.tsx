@@ -993,7 +993,7 @@ function LeadPanel({
   // ladder survives a page refresh instead of hiding behind timing again.
   const initialStatus = ((lead as any).enrichment_status as string | null) ?? null;
   const [skipTiming, setSkipTiming] = useState<boolean>(
-    initialStatus !== null && SKIP_TIMING_STATUSES.indexOf(initialStatus) !== -1,
+    initialStatus !== null && SKIP_TIMING_STATUSES.includes(initialStatus as any),
   );
   const [history, setHistory] = useState<CompanyHistory | null>(null);
   const [enrichedDetail, setEnrichedDetail] = useState<string | null>(null);
