@@ -1675,6 +1675,17 @@ function LeadPanel({
             </div>
           )}
 
+          {/* Present on every rung, collapsed by default. */}
+          {!isDuplicate && (
+            <FoundOnePanel
+              orgDomain={orgDomain}
+              company={lead.company_builder}
+              busy={busy !== null}
+              onSave={saveManualContact}
+            />
+          )}
+
+
           {!isDuplicate && rung === null && (
             <>
               <div className="flex flex-wrap items-center gap-2">
