@@ -1064,41 +1064,63 @@ function LeadPanel({
 
   const [slots, setSlots] = useState<SlotState[]>([{ ...EMPTY_SLOT }, { ...EMPTY_SLOT }]);
   const hydratedFor = useRef<string | null>(null);
-  const [manualOpen, setManualOpen] = useState(false);
   const [enrichStatus, setEnrichStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [stepOpen, setStepOpen] = useState(false);
   const [builderInput, setBuilderInput] = useState("");
   const [overrideDate, setOverrideDate] = useState("");
   const [scheduleDate, setScheduleDate] = useState("");
-  // Session-only forward moves. LeadPanel is keyed by lead id, so these reset
-  // when the row is closed or a different lead is opened.
-  const [skipTiming, setSkipTiming] = useState(false);
-  const [noMatchDetail, setNoMatchDetail] = useState<string | null>(null);
+  // A lead that already carries an enrichment_status has been through timing, so
+  // the ladder survives a page refresh instead of hiding behind timing again.
+  const [skipTiming, setSkipTiming] = useState<boolean>(
+    ((lead as any).enrichment_status ?? null) !== null,
+  );
   const [history, setHistory] = useState<CompanyHistory | null>(null);
   const [enrichedDetail, setEnrichedDetail] = useState<string | null>(null);
+  const [heldContacts, setHeldContacts] = useState<HeldContact[] | null>(null);
   const [orgDomain, setOrgDomain] = useState<string | null>(null);
   const [earlyDate, setEarlyDate] = useState("");
 
-  // The organisation record carries the domain the hand-found address must match.
+  // One query for the company's contacts. It feeds the Known at this company
+  // list and the domain the hand-found address must match, because the
+  // organisations table carries no domain on any row today.
   useEffect(() => {
-    if (!lead.organisation_id) { setOrgDomain(null); return; }
+    if (!lead.organisation_id) { setHeldContacts(null); setOrgDomain(null); return; }
     let cancel = false;
-    db.from("organisations")
-      .select("website,email")
-      .eq("id", lead.organisation_id)
-      .maybeSingle()
-      .then((r: any) => {
-        if (cancel) return;
-        const site = (r?.data?.website ?? "").trim();
-        const mail = (r?.data?.email ?? "").trim();
-        let d = "";
-        if (site) d = site.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0].toLowerCase();
-        if (!d && mail) d = emailDomain(mail.toLowerCase());
-        setOrgDomain(d || null);
+    const orgId = lead.organisation_id;
+    (async () => {
+      const r: any = await db
+        .from("contacts")
+        .select("id, first_name, last_name, role, email")
+        .eq("organisation_id", orgId);
+      if (cancel) return;
+      const list: HeldContact[] = (r?.data ?? []).filter((c: HeldContact) => (c.email ?? "").trim());
+      setHeldContacts(list);
+
+      // The most common domain wins, since some companies hold more than one.
+      const counts = new Map<string, number>();
+      list.forEach((c) => {
+        const d = emailDomain((c.email ?? "").trim().toLowerCase());
+        if (d) counts.set(d, (counts.get(d) ?? 0) + 1);
       });
+      let best = "";
+      let bestN = 0;
+      counts.forEach((n, d) => { if (n > bestN) { best = d; bestN = n; } });
+      if (best) { setOrgDomain(best); return; }
+
+      // Fallbacks, in case the organisation record is ever populated.
+      const o: any = await db.from("organisations").select("website,email").eq("id", orgId).maybeSingle();
+      if (cancel) return;
+      const site = (o?.data?.website ?? "").trim();
+      const mail = (o?.data?.email ?? "").trim();
+      let d = "";
+      if (site) d = site.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0].toLowerCase();
+      if (!d && mail) d = emailDomain(mail.toLowerCase());
+      setOrgDomain(d || null);
+    })();
     return () => { cancel = true; };
   }, [lead.organisation_id]);
+
 
 
 
