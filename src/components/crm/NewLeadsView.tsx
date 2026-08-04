@@ -1369,9 +1369,10 @@ function LeadPanel({
           className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
         });
       } else if (r.ok) {
-        // A search that found nothing is a normal outcome, so the choices stay
-        // on screen instead of disappearing in a toast.
-        setNoMatchDetail(r.detail || "Apollo found nobody with an email at this company.");
+        // A search that found nothing is a normal outcome. The enrichment status
+        // gives the lead its rung, and the ladder banner carries the detail.
+        toast({ title: r.detail || "Apollo found nobody with an email at this company." });
+
       } else {
         toast({
           title: "Apollo did not respond",
