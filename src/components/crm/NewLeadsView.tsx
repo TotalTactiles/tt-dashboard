@@ -841,29 +841,16 @@ interface HeldContact {
 
 /** Lists the addresses already held for this company, with a Use button each. */
 function KnownAtCompany({
-  organisationId, disabled, onUse,
+  organisationId, rows, disabled, onUse,
 }: {
   organisationId: string | null;
+  /** Fetched once by LeadPanel, so this table is never queried twice. */
+  rows: HeldContact[] | null;
   disabled: boolean;
   onUse: (c: HeldContact) => void;
 }) {
-  const [rows, setRows] = useState<HeldContact[] | null>(null);
-
-  useEffect(() => {
-    if (!organisationId) { setRows(null); return; }
-    let cancel = false;
-    db.from("contacts")
-      .select("id, first_name, last_name, role, email")
-      .eq("organisation_id", organisationId)
-      .then((r: any) => {
-        if (cancel) return;
-        const list: HeldContact[] = (r?.data ?? []).filter((c: HeldContact) => (c.email ?? "").trim());
-        setRows(list);
-      });
-    return () => { cancel = true; };
-  }, [organisationId]);
-
   const muted = { padding: "10px 12px", fontSize: "11.5px", color: "#6e7681" };
+
 
   return (
     <div style={{ border: "1px solid #26303d", borderRadius: "7px", overflow: "hidden" }}>
