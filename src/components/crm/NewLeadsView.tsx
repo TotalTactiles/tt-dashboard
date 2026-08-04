@@ -150,6 +150,8 @@ export interface OvenNewLead extends Lead {
   is_placeholder_builder: boolean | null;
   work_status: string | null;
   band_rank: number | null;
+  enrichment_status: string | null;
+  claim_active: boolean | null;
 }
 
 
@@ -699,6 +701,7 @@ function NewLeadsQueue({
               setActioned((a) => (a.includes(current.id) ? a : [...a, current.id]));
               await reload();
             }}
+            refresh={async () => { await reload(); }}
           />
         </div>
       )}
@@ -1079,6 +1082,7 @@ function LeadPanel({
   }
 
   async function schedule() {
+    if (busy) return;
     if (!scheduleDate) return;
     setBusy("schedule");
     await db.from("leads").update({ follow_up_date: scheduleDate }).eq("id", lead.id);
@@ -1088,6 +1092,7 @@ function LeadPanel({
   }
 
   async function removeLead() {
+    if (busy) return;
     setBusy("remove");
     await db.from("leads").update({ stage: "archived", archived_at: new Date().toISOString() }).eq("id", lead.id);
     setBusy(null);
@@ -1129,6 +1134,7 @@ function LeadPanel({
   }
 
   async function sendToColdCall() {
+    if (busy) return;
     setBusy("cold");
     const { error } = await db.from("leads").update({ stage: "ready_to_call" }).eq("id", lead.id);
     setBusy(null);
