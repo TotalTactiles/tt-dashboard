@@ -989,10 +989,11 @@ function LeadPanel({
   const [builderInput, setBuilderInput] = useState("");
   const [overrideDate, setOverrideDate] = useState("");
   const [scheduleDate, setScheduleDate] = useState("");
-  // A lead that already carries an enrichment_status has been through timing, so
-  // the ladder survives a page refresh instead of hiding behind timing again.
+  // A lead that has already failed timing has been through that step, so the
+  // ladder survives a page refresh instead of hiding behind timing again.
+  const initialStatus = ((lead as any).enrichment_status as string | null) ?? null;
   const [skipTiming, setSkipTiming] = useState<boolean>(
-    ((lead as any).enrichment_status ?? null) !== null,
+    initialStatus !== null && SKIP_TIMING_STATUSES.indexOf(initialStatus) !== -1,
   );
   const [history, setHistory] = useState<CompanyHistory | null>(null);
   const [enrichedDetail, setEnrichedDetail] = useState<string | null>(null);
