@@ -1177,7 +1177,7 @@ function LeadPanel({
     }
 
     setManualOpen(false);
-    await reload();
+    await stay();
     toast({ title: "Contact saved - you can now send an EOI" });
   }
 
@@ -1194,12 +1194,15 @@ function LeadPanel({
             ? "contact"
             : "send";
 
-  const stepperCurrent: "timing" | "contact" | "send" =
-    activePanel === "builder" || activePanel === "timing_unknown" || activePanel === "timing_past"
-      ? "timing"
-      : activePanel === "contact"
-        ? "contact"
-        : "send";
+  const stepperCurrent: "builder" | "timing" | "contact" | "send" =
+    activePanel === "builder"
+      ? "builder"
+      : activePanel === "timing_unknown" || activePanel === "timing_past"
+        ? "timing"
+        : activePanel === "contact"
+          ? "contact"
+          : "send";
+
 
   return (
     <div className="space-y-4">
