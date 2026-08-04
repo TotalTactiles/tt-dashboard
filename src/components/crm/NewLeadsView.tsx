@@ -1627,19 +1627,6 @@ function LeadPanel({
             <div className="text-sm text-chart-orange italic">No contact details yet</div>
           )}
 
-          {/* A duplicate has no rung. It stays here until the merge screen exists. */}
-          {isDuplicate && (
-            <div className="space-y-2">
-              <LadderNotice
-                tone="amber"
-                title="Duplicate - review"
-                detail={enrichedDetail ?? "This lead matches one we already hold."}
-              />
-              <div className="font-mono" style={{ fontSize: "11.5px", color: "#6e7681" }}>
-                No next step. Stays here until the merge screen exists.
-              </div>
-            </div>
-          )}
 
           {/* The escalating ladder: exactly one next step, never skipped forward. */}
           {!isDuplicate && rung !== null && (
