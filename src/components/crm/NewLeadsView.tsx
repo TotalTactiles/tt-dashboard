@@ -1888,11 +1888,17 @@ function LeadPanel({
           )}
 
           <div className="flex flex-wrap items-center gap-3">
-            <Button size="sm" onClick={() => setStepOpen(true)}>Set next step</Button>
+            <Button size="sm" onClick={() => setStepOpen(true)} disabled={isDuplicate}>Set next step</Button>
+            {isDuplicate && (
+              <span className="font-mono" style={{ fontSize: "11.5px", color: "#e3b341" }}>
+                Resolve the duplicate before sending.
+              </span>
+            )}
             {history?.last_contacted && (
               <span className="text-[11px] text-muted-foreground">last contacted {monthYear(history.last_contacted)}</span>
             )}
           </div>
+
         </div>
       )}
 
