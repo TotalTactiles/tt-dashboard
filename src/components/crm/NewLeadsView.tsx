@@ -1680,15 +1680,24 @@ function LeadPanel({
 
 
           {!isDuplicate && rung === null && (
-            <div className="flex flex-wrap items-center gap-2">
-              <Button size="sm" onClick={findDetails} disabled={busy !== null}>
-                {busy === "apollo" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1" />}
-                {busy === "apollo" ? "Searching Apollo..." : "Find Details"}
-              </Button>
-              <Button size="sm" variant="outline" disabled={busy !== null} onClick={sendToColdCall}>
-                {busy === "cold" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
-                Send to Cold Call
-              </Button>
+            <div className="space-y-2">
+              {searchErrored && (
+                <div style={{ fontSize: "12px", color: "#e5934b" }}>
+                  Apollo did not respond, so this lead has no next step yet. Try again, or send it to Cold Call.
+                </div>
+              )}
+              <div className="flex flex-wrap items-center gap-2">
+                <Button size="sm" onClick={findDetails} disabled={busy !== null}>
+                  {busy === "apollo" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1" />}
+                  {busy === "apollo" ? "Searching Apollo..." : "Find Details"}
+                </Button>
+                {searchErrored && (
+                  <Button size="sm" variant="outline" disabled={busy !== null} onClick={sendToColdCall}>
+                    {busy === "cold" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+                    Send to Cold Call
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 
