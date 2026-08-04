@@ -1195,7 +1195,7 @@ function LeadPanel({
     return null;
   }, [isDuplicate, nextStepCode, enrichmentStatus]);
 
-  const rungTwoViaTracker = rung === 2 && nextStepCode === "nl_manual_attempt";
+  const rungTwoAfterManualAttempt = rung === 2 && nextStepCode === "nl_manual_attempt";
 
   const notice = useMemo(() => {
     if (rung === 1) {
@@ -1205,14 +1205,14 @@ function LeadPanel({
         detail: enrichedDetail ?? "Automation found nobody with an email at this company.",
       };
     }
-    if (rung === 2 && !rungTwoViaTracker) {
+    if (rung === 2 && !rungTwoAfterManualAttempt) {
       return {
         tone: "amber" as const,
         title: "Everyone here is already in the directory",
         detail: enrichedDetail ?? "Every qualified person at this company is already held, so the answer is in the tracker.",
       };
     }
-    if (rung === 2 && rungTwoViaTracker) {
+    if (rung === 2 && rungTwoAfterManualAttempt) {
       return {
         tone: "amber" as const,
         title: "Manual attempt logged",
@@ -1227,7 +1227,7 @@ function LeadPanel({
       };
     }
     return null;
-  }, [rung, rungTwoViaTracker, enrichedDetail]);
+  }, [rung, rungTwoAfterManualAttempt, enrichedDetail]);
 
   /** Records a rung marker and keeps the lead on screen. */
   async function markRung(code: "nl_manual_attempt" | "nl_company_tracker", label: string) {
