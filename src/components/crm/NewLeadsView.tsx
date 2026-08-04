@@ -1674,11 +1674,13 @@ function LeadPanel({
                   <div style={{ marginBottom: "9px" }}>
                     <KnownAtCompany
                       organisationId={lead.organisation_id ?? null}
+                      rows={heldContacts}
                       disabled={busy !== null}
                       onUse={useHeldContact}
                     />
                   </div>
                 )}
+
 
                 {rung === 2 && (
                   <button
