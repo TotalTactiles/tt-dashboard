@@ -16,6 +16,8 @@ const FragmentRow = ({ children }: { children: ReactNode }) => <Fragment>{childr
 
 export const DASH = "-";
 
+const SKIP_TIMING_STATUSES = ["no_email", "no_org", "all_known", "duplicate"] as const;
+
 const WEBHOOK_BASE = "https://n8n.srv1437130.hstgr.cloud/webhook/";
 
 export interface OvenWebhookResult {
@@ -987,16 +989,18 @@ function LeadPanel({
   const [builderInput, setBuilderInput] = useState("");
   const [overrideDate, setOverrideDate] = useState("");
   const [scheduleDate, setScheduleDate] = useState("");
-  // A lead that already carries an enrichment_status has been through timing, so
-  // the ladder survives a page refresh instead of hiding behind timing again.
+  // A lead that has already failed timing has been through that step, so the
+  // ladder survives a page refresh instead of hiding behind timing again.
+  const initialStatus = ((lead as any).enrichment_status as string | null) ?? null;
   const [skipTiming, setSkipTiming] = useState<boolean>(
-    ((lead as any).enrichment_status ?? null) !== null,
+    initialStatus !== null && SKIP_TIMING_STATUSES.includes(initialStatus as any),
   );
   const [history, setHistory] = useState<CompanyHistory | null>(null);
   const [enrichedDetail, setEnrichedDetail] = useState<string | null>(null);
   const [heldContacts, setHeldContacts] = useState<HeldContact[] | null>(null);
   const [orgDomain, setOrgDomain] = useState<string | null>(null);
   const [earlyDate, setEarlyDate] = useState("");
+  const [searchErrored, setSearchErrored] = useState(false);
 
   // One query for the company's contacts. It feeds the Known at this company
   // list and the domain the hand-found address must match, because the
@@ -1267,6 +1271,7 @@ function LeadPanel({
 
   async function findDetails() {
     if (busy) return;
+    setSearchErrored(false);
     setBusy("apollo");
     
     try {
@@ -1287,6 +1292,7 @@ function LeadPanel({
         toast({ title: r.detail || "Apollo found nobody with an email at this company." });
 
       } else {
+        setSearchErrored(true);
         toast({
           title: "Apollo did not respond",
           description: r.detail || "The lead is unchanged.",
@@ -1674,15 +1680,24 @@ function LeadPanel({
 
 
           {!isDuplicate && rung === null && (
-            <div className="flex flex-wrap items-center gap-2">
-              <Button size="sm" onClick={findDetails} disabled={busy !== null}>
-                {busy === "apollo" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1" />}
-                {busy === "apollo" ? "Searching Apollo..." : "Find Details"}
-              </Button>
-              <Button size="sm" variant="outline" disabled={busy !== null} onClick={sendToColdCall}>
-                {busy === "cold" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
-                Send to Cold Call
-              </Button>
+            <div className="space-y-2">
+              {searchErrored && (
+                <div style={{ fontSize: "12px", color: "#e5934b" }}>
+                  Apollo did not respond, so this lead has no next step yet. Try again, or send it to Cold Call.
+                </div>
+              )}
+              <div className="flex flex-wrap items-center gap-2">
+                <Button size="sm" onClick={findDetails} disabled={busy !== null}>
+                  {busy === "apollo" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1" />}
+                  {busy === "apollo" ? "Searching Apollo..." : "Find Details"}
+                </Button>
+                {searchErrored && (
+                  <Button size="sm" variant="outline" disabled={busy !== null} onClick={sendToColdCall}>
+                    {busy === "cold" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+                    Send to Cold Call
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 
