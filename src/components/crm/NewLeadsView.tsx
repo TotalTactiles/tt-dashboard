@@ -1305,38 +1305,128 @@ function LeadPanel({
             <div className="text-sm text-chart-orange italic">No contact details yet</div>
           )}
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" onClick={findDetails} disabled={busy === "apollo"}>
-              {busy === "apollo" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1" />}
-              {busy === "apollo" ? "Searching Apollo..." : "Find Details"}
-            </Button>
-            {(manualEligible || noMatchDetail) && !manualOpen && !noMatchDetail && (
-              <Button size="sm" variant="outline" onClick={() => setManualOpen(true)}>Enter contact manually</Button>
-            )}
-          </div>
-
-          {noMatchDetail && !manualOpen && (
+          {/* A duplicate has no rung. It stays here until the merge screen exists. */}
+          {isDuplicate && (
             <div className="space-y-2">
-              <div className="text-sm" style={{ color: "#e5934b" }}>{noMatchDetail}</div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  size="sm"
-                  style={{ backgroundColor: "#3D89DA", color: "#fff" }}
-                  onClick={() => setManualOpen(true)}
-                >
-                  Enter contact manually
-                </Button>
-                <Button size="sm" variant="outline" disabled={busy === "cold"} onClick={sendToColdCall}>
-                  {busy === "cold" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
-                  Send to Cold Call
-                </Button>
+              <LadderNotice
+                tone="amber"
+                title="Duplicate - review"
+                detail={enrichedDetail ?? "This lead matches one we already hold."}
+              />
+              <div className="font-mono" style={{ fontSize: "11.5px", color: "#6e7681" }}>
+                No next step. Stays here until the merge screen exists.
               </div>
             </div>
           )}
 
-          {manualOpen && (
-            <ManualContactPanel onCancel={() => setManualOpen(false)} onSave={saveManualContact} />
+          {/* The escalating ladder: exactly one next step, never skipped forward. */}
+          {!isDuplicate && rung !== null && (
+            <div className="space-y-2">
+              {notice && <LadderNotice tone={notice.tone} title={notice.title} detail={notice.detail} />}
+
+              <div>
+                <div
+                  className="font-mono uppercase"
+                  style={{ fontSize: "10px", letterSpacing: ".08em", color: "#6e7681" }}
+                >
+                  Next step - {rung} of 3
+                </div>
+                <RungPips rung={rung} />
+
+                {rung === 1 && (
+                  <button
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={() => markRung("nl_manual_attempt", "Manual attempt logged")}
+                    style={{
+                      width: "100%", padding: "11px", borderRadius: "7px",
+                      background: "#3D89DA", color: "#fff", fontWeight: 600,
+                      opacity: busy !== null ? 0.6 : 1,
+                    }}
+                  >
+                    Manual Attempt
+                  </button>
+                )}
+
+                {rung === 2 && (
+                  <button
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={() => markRung("nl_company_tracker", "Company tracker step logged")}
+                    style={{
+                      width: "100%", padding: "11px", borderRadius: "7px",
+                      background: "#3D89DA", color: "#fff", fontWeight: 600,
+                      opacity: busy !== null ? 0.6 : 1,
+                    }}
+                  >
+                    See Company Tracker
+                  </button>
+                )}
+
+                {rung === 3 && (
+                  <button
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={noEmail}
+                    style={{
+                      width: "100%", padding: "11px", borderRadius: "7px",
+                      background: "transparent", border: "1px solid #4a2020",
+                      color: "#f0837f", fontWeight: 600,
+                      opacity: busy !== null ? 0.6 : 1,
+                    }}
+                  >
+                    NO EMAIL
+                  </button>
+                )}
+
+                <div className="text-center" style={{ fontSize: "11.5px", color: "#6e7681", marginTop: "6px" }}>
+                  {rung === 1
+                    ? "Search LinkedIn and Apollo by hand, then come back"
+                    : rung === 2
+                      ? "Pick an address we already hold, or hand the lead on"
+                      : "Moves this lead to Cold Call. It leaves New Leads."}
+                </div>
+              </div>
+            </div>
           )}
+
+          {!isDuplicate && rung === null && (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button size="sm" onClick={findDetails} disabled={busy !== null}>
+                  {busy === "apollo" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1" />}
+                  {busy === "apollo" ? "Searching Apollo..." : "Find Details"}
+                </Button>
+                {manualEligible && !manualOpen && !noMatchDetail && (
+                  <Button size="sm" variant="outline" onClick={() => setManualOpen(true)}>Enter contact manually</Button>
+                )}
+              </div>
+
+              {noMatchDetail && !manualOpen && (
+                <div className="space-y-2">
+                  <div className="text-sm" style={{ color: "#e5934b" }}>{noMatchDetail}</div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      size="sm"
+                      style={{ backgroundColor: "#3D89DA", color: "#fff" }}
+                      onClick={() => setManualOpen(true)}
+                    >
+                      Enter contact manually
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={busy !== null} onClick={sendToColdCall}>
+                      {busy === "cold" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+                      Send to Cold Call
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {manualOpen && (
+                <ManualContactPanel onCancel={() => setManualOpen(false)} onSave={saveManualContact} />
+              )}
+            </>
+          )}
+
 
           {lead.stage === "enriching" && (
             <div className="text-xs font-mono text-muted-foreground italic flex items-center gap-2">
