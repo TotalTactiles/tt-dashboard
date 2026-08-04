@@ -886,6 +886,26 @@ function LeadPanel({
     return () => { cancel = true; };
   }, [lead.id, lead.company_builder]);
 
+  // The backend writes an accurate sentence on the newest 'enriched' event, so
+  // the ladder banner prefers it over the static copy.
+  useEffect(() => {
+    let cancel = false;
+    db.from("lead_events")
+      .select("detail,occurred_at")
+      .eq("lead_id", lead.id)
+      .eq("kind", "enriched")
+      .order("occurred_at", { ascending: false })
+      .limit(1)
+      .then((r: any) => {
+        if (cancel) return;
+        const d = r?.data?.[0]?.detail;
+        setEnrichedDetail(typeof d === "string" && d.trim() ? d.trim() : null);
+      });
+    return () => { cancel = true; };
+  }, [lead.id, lead.next_step_code, (lead as any).enrichment_status]);
+
+
+
   const work = ctx?.work ?? [];
   const prevLeads = (ctx?.leads ?? []).filter((l) => l.lead_id !== lead.id);
   const placeholder = lead.is_placeholder_builder === true || isPlaceholderBuilder(lead.company_builder);
