@@ -1168,11 +1168,7 @@ function LeadPanel({
   const hasEmail = !!lead.direct_email;
 
   const hasContactDetails = !!(lead.project_contact_name || lead.role || lead.direct_email || lead.phone);
-  const manualEligible = useMemo(() => {
-    if (lead.project_contact_name && lead.direct_email) return false;
-    const st = enrichStatus ?? (lead as any).enrichment_status ?? null;
-    return st === "no_org" || st === "no_email" || (!lead.project_contact_name && !lead.direct_email);
-  }, [lead, enrichStatus]);
+
 
   const priorWorkSlots: PriorWorkSlot[] | undefined = useMemo(() => {
     if (!ctx?.block_e) return undefined;
