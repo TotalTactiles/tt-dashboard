@@ -1526,6 +1526,21 @@ function LeadPanel({
     <div className="space-y-4">
       <Stepper current={stepperCurrent} />
 
+      {/* A duplicate has no rung, and the warning must show on every panel. */}
+      {isDuplicate && (
+        <div className="space-y-2">
+          <LadderNotice
+            tone="amber"
+            title="Duplicate - review"
+            detail={enrichedDetail ?? "This lead matches one we already hold."}
+          />
+          <div className="font-mono" style={{ fontSize: "11.5px", color: "#6e7681" }}>
+            No next step. Stays here until the merge screen exists.
+          </div>
+        </div>
+      )}
+
+
       {activePanel === "builder" && (
         <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-2">
           <PanelHeader title="Which builder is this?" />
