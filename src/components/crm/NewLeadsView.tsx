@@ -928,6 +928,95 @@ function LeadPanel({
 
   const preview = useMemo(() => buildPreview(slots, lead.company_builder), [slots, lead.company_builder]);
 
+  // ---- the escalating ladder ----
+  // Derived from enrichment_status and next_step_code only, never work_status,
+  // and strictly sequential so a rung can never be skipped forward.
+  const enrichmentStatus = enrichStatus ?? ((lead as any).enrichment_status as string | null) ?? null;
+  const isDuplicate = enrichmentStatus === "duplicate";
+  const nextStepCode = lead.next_step_code ?? null;
+
+  const rung: Rung | null = useMemo(() => {
+    if (isDuplicate) return null;
+    if (nextStepCode === "nl_company_tracker") return 3;
+    if (nextStepCode === "nl_manual_attempt") return 2;
+    if (!nextStepCode && enrichmentStatus === "all_known") return 2;
+    if (!nextStepCode && (enrichmentStatus === "no_email" || enrichmentStatus === "no_org")) return 1;
+    return null;
+  }, [isDuplicate, nextStepCode, enrichmentStatus]);
+
+  const rungTwoViaTracker = rung === 2 && nextStepCode === "nl_manual_attempt";
+
+  const notice = useMemo(() => {
+    if (rung === 1) {
+      return {
+        tone: "amber" as const,
+        title: "No contact found",
+        detail: enrichedDetail ?? "Automation found nobody with an email at this company.",
+      };
+    }
+    if (rung === 2 && !rungTwoViaTracker) {
+      return {
+        tone: "amber" as const,
+        title: "Everyone here is already in the directory",
+        detail: enrichedDetail ?? "Every qualified person at this company is already held, so the answer is in the tracker.",
+      };
+    }
+    if (rung === 2 && rungTwoViaTracker) {
+      return {
+        tone: "amber" as const,
+        title: "Manual attempt logged",
+        detail: "Tried by hand, still no address. One rung left before this goes to the call queue.",
+      };
+    }
+    if (rung === 3) {
+      return {
+        tone: "red" as const,
+        title: "Company tracker exhausted",
+        detail: "Nothing usable by automation, by hand, or in the directory. Email is not the route for this lead.",
+      };
+    }
+    return null;
+  }, [rung, rungTwoViaTracker, enrichedDetail]);
+
+  /** Records a rung marker and keeps the lead on screen. */
+  async function markRung(code: "nl_manual_attempt" | "nl_company_tracker", label: string) {
+    if (busy) return;
+    setBusy(code);
+    const { error } = await db.from("leads").update({ next_step_code: code }).eq("id", lead.id);
+    setBusy(null);
+    if (error) {
+      toast({
+        title: "Could not record that step",
+        description: error.message,
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+      return;
+    }
+    toast({ title: label });
+    await stay();
+  }
+
+  /** Rung 3. The lead leaves New Leads for the call queue, so the queue advances. */
+  async function noEmail() {
+    if (busy) return;
+    setBusy("nl_no_email");
+    const { error } = await db.from("leads")
+      .update({ stage: "ready_to_call", next_step_code: "nl_no_email" })
+      .eq("id", lead.id);
+    setBusy(null);
+    if (error) {
+      toast({
+        title: "Could not move this lead to Cold Call",
+        description: error.message,
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+      return;
+    }
+    toast({ title: "Moved to Cold Call" });
+    await reload();
+  }
+
+
   function reportBlocked(r: OvenWebhookResult) {
     toast({
       title: r.blocked ? "Blocked" : "That did not complete",
