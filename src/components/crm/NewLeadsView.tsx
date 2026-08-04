@@ -150,6 +150,8 @@ export interface OvenNewLead extends Lead {
   is_placeholder_builder: boolean | null;
   work_status: string | null;
   band_rank: number | null;
+  enrichment_status: string | null;
+  claim_active: boolean | null;
 }
 
 
@@ -699,6 +701,7 @@ function NewLeadsQueue({
               setActioned((a) => (a.includes(current.id) ? a : [...a, current.id]));
               await reload();
             }}
+            refresh={async () => { await reload(); }}
           />
         </div>
       )}
@@ -754,26 +757,78 @@ function NewLeadsQueue({
 
 // ---------------- expansion: one step on screen at a time ----------------
 
-/** Progress indicator only. Deliberately not clickable, so a step cannot be jumped. */
-function Stepper({ current }: { current: "timing" | "contact" | "send" }) {
-  const steps: { key: "timing" | "contact" | "send"; label: string }[] = [
+/** Progress bar only. Deliberately not clickable, so a step cannot be jumped. */
+function Stepper({ current }: { current: "builder" | "timing" | "contact" | "send" }) {
+  const steps: { key: "builder" | "timing" | "contact" | "send"; label: string }[] = [
+    { key: "builder", label: "Builder" },
     { key: "timing", label: "Timing" },
     { key: "contact", label: "Contact" },
     { key: "send", label: "Send" },
   ];
+  const currentIdx = steps.findIndex((s) => s.key === current);
   return (
     <div className="flex items-center gap-2 font-mono uppercase text-[10.5px] tracking-[0.13em]">
-      {steps.map((s, i) => (
-        <Fragment key={s.key}>
-          {i > 0 && <span className="text-muted-foreground/40">/</span>}
-          <span style={s.key === current ? { color: "#3D89DA" } : undefined} className={s.key === current ? "font-semibold" : "text-muted-foreground/60"}>
-            {s.label}
-          </span>
-        </Fragment>
+      {steps.map((s, i) => {
+        const state = i < currentIdx ? "done" : i === currentIdx ? "active" : "future";
+        const style =
+          state === "done"
+            ? { color: "#3fb950", borderBottom: "2px solid #3fb950" }
+            : state === "active"
+              ? { color: "#3D89DA", fontWeight: 600, borderBottom: "2px solid #3D89DA" }
+              : { color: "#6e7681", borderBottom: "2px solid #1d242e" };
+        return (
+          <Fragment key={s.key}>
+            {i > 0 && <span className="text-muted-foreground/40">/</span>}
+            <span style={{ ...style, paddingBottom: "2px" }}>{s.label}</span>
+          </Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+type Rung = 1 | 2 | 3;
+
+/** Three pips: passed, current and future rungs of the escalating ladder. */
+function RungPips({ rung }: { rung: Rung }) {
+  return (
+    <div style={{ display: "flex", gap: "4px", marginTop: "4px", marginBottom: "9px" }}>
+      {[1, 2, 3].map((p) => (
+        <span
+          key={p}
+          style={{
+            flex: 1,
+            height: "3px",
+            borderRadius: "2px",
+            background: p < rung ? "#2b4a6b" : p === rung ? "#3D89DA" : "#26303d",
+          }}
+        />
       ))}
     </div>
   );
 }
+
+function LadderNotice({
+  tone, title, detail,
+}: {
+  tone: "amber" | "red";
+  title: string;
+  detail: string;
+}) {
+  const s = tone === "amber"
+    ? { background: "#2a2112", border: "1px solid #4a3a14", color: "#e3b341", icon: "!" }
+    : { background: "#2a1616", border: "1px solid #4a2020", color: "#f0837f", icon: "x" };
+  return (
+    <div style={{ background: s.background, border: s.border, color: s.color, borderRadius: "7px", padding: "11px 13px", display: "flex", gap: "10px" }}>
+      <span className="font-mono font-bold" style={{ lineHeight: 1.4 }}>{s.icon}</span>
+      <div>
+        <div className="text-sm font-semibold">{title}</div>
+        {detail && <div style={{ color: "#8b949e", fontSize: "11.5px", marginTop: "3px" }}>{detail}</div>}
+      </div>
+    </div>
+  );
+}
+
 
 function PanelHeader({ title, hint }: { title: string; hint?: string }) {
   return (
@@ -785,15 +840,20 @@ function PanelHeader({ title, hint }: { title: string; hint?: string }) {
 }
 
 function LeadPanel({
-  lead, timing, operator, reload,
+  lead, timing, operator, reload, refresh,
 }: {
   lead: Lead & Partial<OvenNewLead>;
   timing: TimingRow | undefined;
   operator: string;
+  /** The lead left New Leads. Advance the queue. */
   reload: () => Promise<void> | void;
+  /** A marker was recorded. Reload data but keep this lead on screen. */
+  refresh?: () => Promise<void> | void;
 }) {
   const { ctx, error: ctxError } = useLeadCardContext(lead.organisation_id ?? null);
   const { toast } = useToast();
+
+  const stay = refresh ?? reload;
 
   const [slots, setSlots] = useState<SlotState[]>([{ ...EMPTY_SLOT }, { ...EMPTY_SLOT }]);
   const hydratedFor = useRef<string | null>(null);
@@ -809,6 +869,8 @@ function LeadPanel({
   const [skipTiming, setSkipTiming] = useState(false);
   const [noMatchDetail, setNoMatchDetail] = useState<string | null>(null);
   const [history, setHistory] = useState<CompanyHistory | null>(null);
+  const [enrichedDetail, setEnrichedDetail] = useState<string | null>(null);
+
 
   // Bug fix (a): hydrate Block E once per lead, so a context refetch never
   // wipes edits the user has already made to the slots.
@@ -826,6 +888,26 @@ function LeadPanel({
       .then((r: any) => { if (!cancel) setHistory(r?.data ?? null); });
     return () => { cancel = true; };
   }, [lead.id, lead.company_builder]);
+
+  // The backend writes an accurate sentence on the newest 'enriched' event, so
+  // the ladder banner prefers it over the static copy.
+  useEffect(() => {
+    let cancel = false;
+    db.from("lead_events")
+      .select("detail,occurred_at")
+      .eq("lead_id", lead.id)
+      .eq("kind", "enriched")
+      .order("occurred_at", { ascending: false })
+      .limit(1)
+      .then((r: any) => {
+        if (cancel) return;
+        const d = r?.data?.[0]?.detail;
+        setEnrichedDetail(typeof d === "string" && d.trim() ? d.trim() : null);
+      });
+    return () => { cancel = true; };
+  }, [lead.id, lead.next_step_code, (lead as any).enrichment_status]);
+
+
 
   const work = ctx?.work ?? [];
   const prevLeads = (ctx?.leads ?? []).filter((l) => l.lead_id !== lead.id);
@@ -849,6 +931,95 @@ function LeadPanel({
 
   const preview = useMemo(() => buildPreview(slots, lead.company_builder), [slots, lead.company_builder]);
 
+  // ---- the escalating ladder ----
+  // Derived from enrichment_status and next_step_code only, never work_status,
+  // and strictly sequential so a rung can never be skipped forward.
+  const enrichmentStatus = enrichStatus ?? ((lead as any).enrichment_status as string | null) ?? null;
+  const isDuplicate = enrichmentStatus === "duplicate";
+  const nextStepCode = lead.next_step_code ?? null;
+
+  const rung: Rung | null = useMemo(() => {
+    if (isDuplicate) return null;
+    if (nextStepCode === "nl_company_tracker") return 3;
+    if (nextStepCode === "nl_manual_attempt") return 2;
+    if (!nextStepCode && enrichmentStatus === "all_known") return 2;
+    if (!nextStepCode && (enrichmentStatus === "no_email" || enrichmentStatus === "no_org")) return 1;
+    return null;
+  }, [isDuplicate, nextStepCode, enrichmentStatus]);
+
+  const rungTwoViaTracker = rung === 2 && nextStepCode === "nl_manual_attempt";
+
+  const notice = useMemo(() => {
+    if (rung === 1) {
+      return {
+        tone: "amber" as const,
+        title: "No contact found",
+        detail: enrichedDetail ?? "Automation found nobody with an email at this company.",
+      };
+    }
+    if (rung === 2 && !rungTwoViaTracker) {
+      return {
+        tone: "amber" as const,
+        title: "Everyone here is already in the directory",
+        detail: enrichedDetail ?? "Every qualified person at this company is already held, so the answer is in the tracker.",
+      };
+    }
+    if (rung === 2 && rungTwoViaTracker) {
+      return {
+        tone: "amber" as const,
+        title: "Manual attempt logged",
+        detail: "Tried by hand, still no address. One rung left before this goes to the call queue.",
+      };
+    }
+    if (rung === 3) {
+      return {
+        tone: "red" as const,
+        title: "Company tracker exhausted",
+        detail: "Nothing usable by automation, by hand, or in the directory. Email is not the route for this lead.",
+      };
+    }
+    return null;
+  }, [rung, rungTwoViaTracker, enrichedDetail]);
+
+  /** Records a rung marker and keeps the lead on screen. */
+  async function markRung(code: "nl_manual_attempt" | "nl_company_tracker", label: string) {
+    if (busy) return;
+    setBusy(code);
+    const { error } = await db.from("leads").update({ next_step_code: code }).eq("id", lead.id);
+    setBusy(null);
+    if (error) {
+      toast({
+        title: "Could not record that step",
+        description: error.message,
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+      return;
+    }
+    toast({ title: label });
+    await stay();
+  }
+
+  /** Rung 3. The lead leaves New Leads for the call queue, so the queue advances. */
+  async function noEmail() {
+    if (busy) return;
+    setBusy("nl_no_email");
+    const { error } = await db.from("leads")
+      .update({ stage: "ready_to_call", next_step_code: "nl_no_email" })
+      .eq("id", lead.id);
+    setBusy(null);
+    if (error) {
+      toast({
+        title: "Could not move this lead to Cold Call",
+        description: error.message,
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+      return;
+    }
+    toast({ title: "Moved to Cold Call" });
+    await reload();
+  }
+
+
   function reportBlocked(r: OvenWebhookResult) {
     toast({
       title: r.blocked ? "Blocked" : "That did not complete",
@@ -864,7 +1035,7 @@ function LeadPanel({
     setBusy(null);
     if (!r.ok) { reportBlocked(r); return; }
     toast({ title: "Builder search finished", description: r.body?.detail ?? "The lead has been updated if a builder was found." });
-    await reload();
+    await stay();
   }
 
   async function saveBuilder() {
@@ -879,7 +1050,7 @@ function LeadPanel({
     }
     toast({ title: "Builder saved" });
     setBuilderInput("");
-    await reload();
+    await stay();
   }
 
   async function searchTiming() {
@@ -889,7 +1060,7 @@ function LeadPanel({
     setBusy(null);
     if (!r.ok) { reportBlocked(r); return; }
     toast({ title: "Completion date search finished", description: r.body?.detail ?? "The timing has been updated if a date was found." });
-    await reload();
+    await stay();
   }
 
   async function saveOverride() {
@@ -907,10 +1078,11 @@ function LeadPanel({
       return;
     }
     toast({ title: "Completion date overridden" });
-    await reload();
+    await stay();
   }
 
   async function schedule() {
+    if (busy) return;
     if (!scheduleDate) return;
     setBusy("schedule");
     await db.from("leads").update({ follow_up_date: scheduleDate }).eq("id", lead.id);
@@ -920,6 +1092,7 @@ function LeadPanel({
   }
 
   async function removeLead() {
+    if (busy) return;
     setBusy("remove");
     await db.from("leads").update({ stage: "archived", archived_at: new Date().toISOString() }).eq("id", lead.id);
     setBusy(null);
@@ -954,13 +1127,14 @@ function LeadPanel({
           className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
         });
       }
-      await reload();
+      await stay();
     } finally {
       setBusy(null);
     }
   }
 
   async function sendToColdCall() {
+    if (busy) return;
     setBusy("cold");
     const { error } = await db.from("leads").update({ stage: "ready_to_call" }).eq("id", lead.id);
     setBusy(null);
@@ -1009,7 +1183,7 @@ function LeadPanel({
     }
 
     setManualOpen(false);
-    await reload();
+    await stay();
     toast({ title: "Contact saved - you can now send an EOI" });
   }
 
@@ -1026,12 +1200,15 @@ function LeadPanel({
             ? "contact"
             : "send";
 
-  const stepperCurrent: "timing" | "contact" | "send" =
-    activePanel === "builder" || activePanel === "timing_unknown" || activePanel === "timing_past"
-      ? "timing"
-      : activePanel === "contact"
-        ? "contact"
-        : "send";
+  const stepperCurrent: "builder" | "timing" | "contact" | "send" =
+    activePanel === "builder"
+      ? "builder"
+      : activePanel === "timing_unknown" || activePanel === "timing_past"
+        ? "timing"
+        : activePanel === "contact"
+          ? "contact"
+          : "send";
+
 
   return (
     <div className="space-y-4">
@@ -1134,38 +1311,128 @@ function LeadPanel({
             <div className="text-sm text-chart-orange italic">No contact details yet</div>
           )}
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" onClick={findDetails} disabled={busy === "apollo"}>
-              {busy === "apollo" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1" />}
-              {busy === "apollo" ? "Searching Apollo..." : "Find Details"}
-            </Button>
-            {(manualEligible || noMatchDetail) && !manualOpen && !noMatchDetail && (
-              <Button size="sm" variant="outline" onClick={() => setManualOpen(true)}>Enter contact manually</Button>
-            )}
-          </div>
-
-          {noMatchDetail && !manualOpen && (
+          {/* A duplicate has no rung. It stays here until the merge screen exists. */}
+          {isDuplicate && (
             <div className="space-y-2">
-              <div className="text-sm" style={{ color: "#e5934b" }}>{noMatchDetail}</div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  size="sm"
-                  style={{ backgroundColor: "#3D89DA", color: "#fff" }}
-                  onClick={() => setManualOpen(true)}
-                >
-                  Enter contact manually
-                </Button>
-                <Button size="sm" variant="outline" disabled={busy === "cold"} onClick={sendToColdCall}>
-                  {busy === "cold" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
-                  Send to Cold Call
-                </Button>
+              <LadderNotice
+                tone="amber"
+                title="Duplicate - review"
+                detail={enrichedDetail ?? "This lead matches one we already hold."}
+              />
+              <div className="font-mono" style={{ fontSize: "11.5px", color: "#6e7681" }}>
+                No next step. Stays here until the merge screen exists.
               </div>
             </div>
           )}
 
-          {manualOpen && (
-            <ManualContactPanel onCancel={() => setManualOpen(false)} onSave={saveManualContact} />
+          {/* The escalating ladder: exactly one next step, never skipped forward. */}
+          {!isDuplicate && rung !== null && (
+            <div className="space-y-2">
+              {notice && <LadderNotice tone={notice.tone} title={notice.title} detail={notice.detail} />}
+
+              <div>
+                <div
+                  className="font-mono uppercase"
+                  style={{ fontSize: "10px", letterSpacing: ".08em", color: "#6e7681" }}
+                >
+                  Next step - {rung} of 3
+                </div>
+                <RungPips rung={rung} />
+
+                {rung === 1 && (
+                  <button
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={() => markRung("nl_manual_attempt", "Manual attempt logged")}
+                    style={{
+                      width: "100%", padding: "11px", borderRadius: "7px",
+                      background: "#3D89DA", color: "#fff", fontWeight: 600,
+                      opacity: busy !== null ? 0.6 : 1,
+                    }}
+                  >
+                    Manual Attempt
+                  </button>
+                )}
+
+                {rung === 2 && (
+                  <button
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={() => markRung("nl_company_tracker", "Company tracker step logged")}
+                    style={{
+                      width: "100%", padding: "11px", borderRadius: "7px",
+                      background: "#3D89DA", color: "#fff", fontWeight: 600,
+                      opacity: busy !== null ? 0.6 : 1,
+                    }}
+                  >
+                    See Company Tracker
+                  </button>
+                )}
+
+                {rung === 3 && (
+                  <button
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={noEmail}
+                    style={{
+                      width: "100%", padding: "11px", borderRadius: "7px",
+                      background: "transparent", border: "1px solid #4a2020",
+                      color: "#f0837f", fontWeight: 600,
+                      opacity: busy !== null ? 0.6 : 1,
+                    }}
+                  >
+                    NO EMAIL
+                  </button>
+                )}
+
+                <div className="text-center" style={{ fontSize: "11.5px", color: "#6e7681", marginTop: "6px" }}>
+                  {rung === 1
+                    ? "Search LinkedIn and Apollo by hand, then come back"
+                    : rung === 2
+                      ? "Pick an address we already hold, or hand the lead on"
+                      : "Moves this lead to Cold Call. It leaves New Leads."}
+                </div>
+              </div>
+            </div>
           )}
+
+          {!isDuplicate && rung === null && (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button size="sm" onClick={findDetails} disabled={busy !== null}>
+                  {busy === "apollo" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1" />}
+                  {busy === "apollo" ? "Searching Apollo..." : "Find Details"}
+                </Button>
+                {manualEligible && !manualOpen && !noMatchDetail && (
+                  <Button size="sm" variant="outline" onClick={() => setManualOpen(true)}>Enter contact manually</Button>
+                )}
+              </div>
+
+              {noMatchDetail && !manualOpen && (
+                <div className="space-y-2">
+                  <div className="text-sm" style={{ color: "#e5934b" }}>{noMatchDetail}</div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      size="sm"
+                      style={{ backgroundColor: "#3D89DA", color: "#fff" }}
+                      onClick={() => setManualOpen(true)}
+                    >
+                      Enter contact manually
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={busy !== null} onClick={sendToColdCall}>
+                      {busy === "cold" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+                      Send to Cold Call
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {manualOpen && (
+                <ManualContactPanel onCancel={() => setManualOpen(false)} onSave={saveManualContact} />
+              )}
+            </>
+          )}
+
 
           {lead.stage === "enriching" && (
             <div className="text-xs font-mono text-muted-foreground italic flex items-center gap-2">
