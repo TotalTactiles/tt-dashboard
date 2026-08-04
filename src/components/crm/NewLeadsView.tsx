@@ -754,26 +754,78 @@ function NewLeadsQueue({
 
 // ---------------- expansion: one step on screen at a time ----------------
 
-/** Progress indicator only. Deliberately not clickable, so a step cannot be jumped. */
-function Stepper({ current }: { current: "timing" | "contact" | "send" }) {
-  const steps: { key: "timing" | "contact" | "send"; label: string }[] = [
+/** Progress bar only. Deliberately not clickable, so a step cannot be jumped. */
+function Stepper({ current }: { current: "builder" | "timing" | "contact" | "send" }) {
+  const steps: { key: "builder" | "timing" | "contact" | "send"; label: string }[] = [
+    { key: "builder", label: "Builder" },
     { key: "timing", label: "Timing" },
     { key: "contact", label: "Contact" },
     { key: "send", label: "Send" },
   ];
+  const currentIdx = steps.findIndex((s) => s.key === current);
   return (
     <div className="flex items-center gap-2 font-mono uppercase text-[10.5px] tracking-[0.13em]">
-      {steps.map((s, i) => (
-        <Fragment key={s.key}>
-          {i > 0 && <span className="text-muted-foreground/40">/</span>}
-          <span style={s.key === current ? { color: "#3D89DA" } : undefined} className={s.key === current ? "font-semibold" : "text-muted-foreground/60"}>
-            {s.label}
-          </span>
-        </Fragment>
+      {steps.map((s, i) => {
+        const state = i < currentIdx ? "done" : i === currentIdx ? "active" : "future";
+        const style =
+          state === "done"
+            ? { color: "#3fb950", borderBottom: "2px solid #3fb950" }
+            : state === "active"
+              ? { color: "#3D89DA", fontWeight: 600, borderBottom: "2px solid #3D89DA" }
+              : { color: "#6e7681", borderBottom: "2px solid #1d242e" };
+        return (
+          <Fragment key={s.key}>
+            {i > 0 && <span className="text-muted-foreground/40">/</span>}
+            <span style={{ ...style, paddingBottom: "2px" }}>{s.label}</span>
+          </Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+type Rung = 1 | 2 | 3;
+
+/** Three pips: passed, current and future rungs of the escalating ladder. */
+function RungPips({ rung }: { rung: Rung }) {
+  return (
+    <div style={{ display: "flex", gap: "4px", marginTop: "4px", marginBottom: "9px" }}>
+      {[1, 2, 3].map((p) => (
+        <span
+          key={p}
+          style={{
+            flex: 1,
+            height: "3px",
+            borderRadius: "2px",
+            background: p < rung ? "#2b4a6b" : p === rung ? "#3D89DA" : "#26303d",
+          }}
+        />
       ))}
     </div>
   );
 }
+
+function LadderNotice({
+  tone, title, detail,
+}: {
+  tone: "amber" | "red";
+  title: string;
+  detail: string;
+}) {
+  const s = tone === "amber"
+    ? { background: "#2a2112", border: "1px solid #4a3a14", color: "#e3b341", icon: "!" }
+    : { background: "#2a1616", border: "1px solid #4a2020", color: "#f0837f", icon: "x" };
+  return (
+    <div style={{ background: s.background, border: s.border, color: s.color, borderRadius: "7px", padding: "11px 13px", display: "flex", gap: "10px" }}>
+      <span className="font-mono font-bold" style={{ lineHeight: 1.4 }}>{s.icon}</span>
+      <div>
+        <div className="text-sm font-semibold">{title}</div>
+        {detail && <div style={{ color: "#8b949e", fontSize: "11.5px", marginTop: "3px" }}>{detail}</div>}
+      </div>
+    </div>
+  );
+}
+
 
 function PanelHeader({ title, hint }: { title: string; hint?: string }) {
   return (
