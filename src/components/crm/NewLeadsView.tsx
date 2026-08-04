@@ -1489,7 +1489,40 @@ function LeadPanel({
           : "send";
 
 
+  // Early Days leaves New Leads and sends no email. The project name guard is a
+  // hard requirement, since the early_days stage will not accept a blank one.
+  const earlyDaysRow = (
+    <div className="space-y-1">
+      <div className="flex flex-wrap items-end gap-2">
+        <button
+          type="button"
+          disabled={busy !== null || projectMissing}
+          onClick={earlyDays}
+          style={{
+            padding: "7px 13px", borderRadius: "7px", fontSize: "13px",
+            background: "#1c2430", border: "1px solid #26303d", color: "#c9d1d9",
+            opacity: busy !== null || projectMissing ? 0.5 : 1,
+          }}
+        >
+          Early Days
+        </button>
+        <div>
+          <div className="font-mono uppercase" style={{ fontSize: "11px", color: "#6e7681", marginBottom: "3px" }}>
+            When to send the EOI
+          </div>
+          <input type="date" className={SELECT_CLS} value={earlyDate} onChange={(e) => setEarlyDate(e.target.value)} />
+        </div>
+      </div>
+      {projectMissing && (
+        <div className="font-mono" style={{ fontSize: "11.5px", color: "#e3b341" }}>
+          Add a project name first - an EOI cannot be sent without one.
+        </div>
+      )}
+    </div>
+  );
+
   return (
+
     <div className="space-y-4">
       <Stepper current={stepperCurrent} />
 
