@@ -1417,6 +1417,55 @@ function LeadPanel({
     toast({ title: "Contact saved - you can now send an EOI" });
   }
 
+  /** Use an address we already hold. Unlocks Send EOI, never advances the lead. */
+  async function useHeldContact(c: HeldContact) {
+    if (busy) return;
+    setBusy("use_held");
+    const name = [c.first_name, c.last_name].filter(Boolean).join(" ").trim();
+    const { error } = await db.from("leads")
+      .update({ project_contact_name: name || null, direct_email: (c.email ?? "").trim().toLowerCase(), role: c.role ?? null })
+      .eq("id", lead.id);
+    setBusy(null);
+    if (error) {
+      toast({
+        title: "Could not use that contact",
+        description: error.message,
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+      return;
+    }
+    toast({ title: "Contact set - you can now send an EOI" });
+    await stay();
+  }
+
+  const projectMissing = !((lead.project_name ?? "").trim());
+
+  /** Early Days leaves New Leads, so the queue advances. */
+  async function earlyDays() {
+    if (busy || projectMissing) return;
+    setBusy("early_days");
+    const { error } = await db.from("leads")
+      .update({
+        next_step_code: "nl_early_days",
+        stage: "early_days",
+        follow_up_date: earlyDate ? earlyDate : null,
+      })
+      .eq("id", lead.id);
+    setBusy(null);
+    if (error) {
+      toast({
+        title: "Could not set Early Days",
+        description: error.message,
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+      return;
+    }
+    toast({ title: earlyDate ? `Early Days - EOI due ${earlyDate}` : "Early Days" });
+    await reload();
+  }
+
+
+
   // One decision on screen at a time, resolved in a fixed priority order so a
   // step cannot be jumped and the downstream automations stay in sequence.
   const activePanel: "builder" | "timing_unknown" | "timing_past" | "contact" | "send" =
