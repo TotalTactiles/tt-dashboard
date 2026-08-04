@@ -1032,7 +1032,7 @@ function LeadPanel({
     setBusy(null);
     if (!r.ok) { reportBlocked(r); return; }
     toast({ title: "Builder search finished", description: r.body?.detail ?? "The lead has been updated if a builder was found." });
-    await reload();
+    await stay();
   }
 
   async function saveBuilder() {
@@ -1047,7 +1047,7 @@ function LeadPanel({
     }
     toast({ title: "Builder saved" });
     setBuilderInput("");
-    await reload();
+    await stay();
   }
 
   async function searchTiming() {
@@ -1057,7 +1057,7 @@ function LeadPanel({
     setBusy(null);
     if (!r.ok) { reportBlocked(r); return; }
     toast({ title: "Completion date search finished", description: r.body?.detail ?? "The timing has been updated if a date was found." });
-    await reload();
+    await stay();
   }
 
   async function saveOverride() {
@@ -1075,7 +1075,7 @@ function LeadPanel({
       return;
     }
     toast({ title: "Completion date overridden" });
-    await reload();
+    await stay();
   }
 
   async function schedule() {
@@ -1122,7 +1122,7 @@ function LeadPanel({
           className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
         });
       }
-      await reload();
+      await stay();
     } finally {
       setBusy(null);
     }
