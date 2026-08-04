@@ -1734,41 +1734,18 @@ function LeadPanel({
 
 
           {!isDuplicate && rung === null && (
-            <>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button size="sm" onClick={findDetails} disabled={busy !== null}>
-                  {busy === "apollo" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1" />}
-                  {busy === "apollo" ? "Searching Apollo..." : "Find Details"}
-                </Button>
-                {manualEligible && !manualOpen && !noMatchDetail && (
-                  <Button size="sm" variant="outline" onClick={() => setManualOpen(true)}>Enter contact manually</Button>
-                )}
-              </div>
-
-              {noMatchDetail && !manualOpen && (
-                <div className="space-y-2">
-                  <div className="text-sm" style={{ color: "#e5934b" }}>{noMatchDetail}</div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      size="sm"
-                      style={{ backgroundColor: "#3D89DA", color: "#fff" }}
-                      onClick={() => setManualOpen(true)}
-                    >
-                      Enter contact manually
-                    </Button>
-                    <Button size="sm" variant="outline" disabled={busy !== null} onClick={sendToColdCall}>
-                      {busy === "cold" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
-                      Send to Cold Call
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {manualOpen && (
-                <ManualContactPanel onCancel={() => setManualOpen(false)} onSave={saveManualContact} />
-              )}
-            </>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" onClick={findDetails} disabled={busy !== null}>
+                {busy === "apollo" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 mr-1" />}
+                {busy === "apollo" ? "Searching Apollo..." : "Find Details"}
+              </Button>
+              <Button size="sm" variant="outline" disabled={busy !== null} onClick={sendToColdCall}>
+                {busy === "cold" ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+                Send to Cold Call
+              </Button>
+            </div>
           )}
+
 
 
           {lead.stage === "enriching" && (
