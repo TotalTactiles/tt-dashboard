@@ -1077,6 +1077,29 @@ function LeadPanel({
   const [noMatchDetail, setNoMatchDetail] = useState<string | null>(null);
   const [history, setHistory] = useState<CompanyHistory | null>(null);
   const [enrichedDetail, setEnrichedDetail] = useState<string | null>(null);
+  const [orgDomain, setOrgDomain] = useState<string | null>(null);
+  const [earlyDate, setEarlyDate] = useState("");
+
+  // The organisation record carries the domain the hand-found address must match.
+  useEffect(() => {
+    if (!lead.organisation_id) { setOrgDomain(null); return; }
+    let cancel = false;
+    db.from("organisations")
+      .select("website,email")
+      .eq("id", lead.organisation_id)
+      .maybeSingle()
+      .then((r: any) => {
+        if (cancel) return;
+        const site = (r?.data?.website ?? "").trim();
+        const mail = (r?.data?.email ?? "").trim();
+        let d = "";
+        if (site) d = site.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0].toLowerCase();
+        if (!d && mail) d = emailDomain(mail.toLowerCase());
+        setOrgDomain(d || null);
+      });
+    return () => { cancel = true; };
+  }, [lead.organisation_id]);
+
 
 
   // Bug fix (a): hydrate Block E once per lead, so a context refetch never
