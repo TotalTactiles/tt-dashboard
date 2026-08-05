@@ -8,12 +8,13 @@ import {
   BrainCircuit,
   FunctionSquare,
   Hammer,
-  PhoneCall,
   Contact,
   Settings } from
 "lucide-react";
+import { OvenIcon } from "@/components/icons/OvenIcon";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
+
 import {
   Sidebar,
   SidebarContent,

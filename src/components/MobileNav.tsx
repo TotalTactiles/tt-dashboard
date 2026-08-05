@@ -1,4 +1,5 @@
-import { LayoutDashboard, Activity, HeartPulse, CalendarDays, Users, Target, BrainCircuit, FunctionSquare, Hammer, PhoneCall, Contact, Settings } from "lucide-react";
+import { LayoutDashboard, Activity, HeartPulse, CalendarDays, Users, Target, BrainCircuit, FunctionSquare, Hammer, Contact, Settings } from "lucide-react";
+import { OvenIcon } from "@/components/icons/OvenIcon";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
