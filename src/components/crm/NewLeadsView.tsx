@@ -269,14 +269,14 @@ function WorkCell({ row }: { row: OvenNewLead }) {
   return <span className="font-mono text-xs text-muted-foreground/50">-</span>;
 }
 
-export function useNewLeads() {
+export function useNewLeads(viewName: string = "v_oven_new_leads") {
   const [rows, setRows] = useState<OvenNewLead[]>([]);
   const [timing, setTiming] = useState<Record<string, TimingRow>>({});
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await db.from("v_oven_new_leads").select("*").range(0, 4999);
+    const { data } = await db.from(viewName).select("*").range(0, 4999);
     const list = (data as OvenNewLead[]) ?? [];
     setRows(list);
 
@@ -295,7 +295,7 @@ export function useNewLeads() {
     });
     setTiming(map);
     setLoading(false);
-  }, []);
+  }, [viewName]);
 
   useEffect(() => { load(); }, [load]);
   return { rows, timing, loading, reload: load };
@@ -508,13 +508,22 @@ const MANUAL_INPUT_CLS =
 export default function NewLeadsView({ operator }: { operator: string }) {
   const [tab, setTab] = useState<OvenTab>("new");
   const newLeads = useNewLeads();
+  const test = useNewLeads("v_oven_test_leads");
   const cold = useColdCallLeads();
 
   return (
     <div className="space-y-4">
-      <OvenTabs value={tab} onChange={setTab} newCount={newLeads.rows.length} coldCount={cold.rows.length} />
+      <OvenTabs
+        value={tab}
+        onChange={setTab}
+        newCount={newLeads.rows.length}
+        coldCount={cold.rows.length}
+        testCount={test.rows.length}
+      />
       {tab === "new" ? (
         <NewLeadsQueue operator={operator} {...newLeads} />
+      ) : tab === "test" ? (
+        <NewLeadsQueue operator={operator} {...test} />
       ) : (
         <ColdCallView
           operator={operator}

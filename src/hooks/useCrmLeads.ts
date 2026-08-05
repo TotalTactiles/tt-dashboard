@@ -343,9 +343,9 @@ export async function enrichLead(
     return (body ?? { ok: false, detail: "Empty response from Apollo" }) as EnrichResponse;
   } catch (err: any) {
     if (err?.name === "AbortError") {
-      return { ok: false, detail: "Apollo did not respond — the lead is unchanged" };
+      return { ok: false, detail: "Apollo did not respond - the lead is unchanged" };
     }
-    return { ok: false, detail: err?.message ?? "Apollo did not respond — the lead is unchanged" };
+    return { ok: false, detail: err?.message ?? "Apollo did not respond - the lead is unchanged" };
   } finally {
     clearTimeout(timer);
   }
