@@ -8,12 +8,13 @@ import {
   BrainCircuit,
   FunctionSquare,
   Hammer,
-  PhoneCall,
   Contact,
   Settings } from
 "lucide-react";
+import { OvenIcon } from "@/components/icons/OvenIcon";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
+
 import {
   Sidebar,
   SidebarContent,
@@ -28,7 +29,7 @@ import {
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "The Oven", url: "/crm", icon: PhoneCall },
+  { title: "The Oven", url: "/crm", icon: OvenIcon },
   { title: "Contacts", url: "/contacts", icon: Contact },
   { title: "Deal Flow", url: "/deals", icon: Activity },
   { title: "Financial Health", url: "/financial-health", icon: HeartPulse },
