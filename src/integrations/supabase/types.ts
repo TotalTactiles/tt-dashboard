@@ -3494,6 +3494,140 @@ export type Database = {
           },
         ]
       }
+      oven_test_restore: {
+        Row: {
+          borrowed_at: string
+          lead_id: string
+          note: string | null
+          snapshot: Json
+        }
+        Insert: {
+          borrowed_at?: string
+          lead_id: string
+          note?: string | null
+          snapshot: Json
+        }
+        Update: {
+          borrowed_at?: string
+          lead_id?: string
+          note?: string | null
+          snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oven_test_restore_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oven_test_restore_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_import_review"
+            referencedColumns: ["existing_lead_id"]
+          },
+          {
+            foreignKeyName: "oven_test_restore_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_lead_duplicates"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "oven_test_restore_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_lead_metrics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oven_test_restore_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_lead_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oven_test_restore_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_lead_silence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oven_test_restore_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_lead_timing"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "oven_test_restore_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_leads_incomplete"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oven_test_restore_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_leads_needing_rating"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oven_test_restore_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_leads_unroutable"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oven_test_restore_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_leads_zoho_pending"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oven_test_restore_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_oven_call_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oven_test_restore_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_oven_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oven_test_restore_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_oven_new_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oven_test_restore_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_oven_new_leads_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oven_test_restore_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_oven_test_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           active: boolean
@@ -7025,6 +7159,11 @@ export type Database = {
         Returns: boolean
       }
       tt_normalise_au_phone: { Args: { p_raw: string }; Returns: string }
+      tt_oven_test_borrow: {
+        Args: { p_lead_id: string; p_test_number: number; p_title: string }
+        Returns: string
+      }
+      tt_oven_test_return: { Args: { p_lead_id: string }; Returns: string }
       tt_purge_missing_zoho_deals: { Args: never; Returns: number }
       tt_release_lead: {
         Args: { p_actor_id: string; p_lead_id: string }
