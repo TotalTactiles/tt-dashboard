@@ -146,6 +146,7 @@ export interface OvenNewLead extends Lead {
   days_overdue: number | null;
   days_overdue_max: number | null;
   due_date: string | null;
+  date_precision: string | null;
   guidance: string | null;
   date_source: string | null;
   period_label: string | null;
