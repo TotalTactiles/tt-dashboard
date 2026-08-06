@@ -6002,13 +6002,18 @@ export type Database = {
         Row: {
           company: string | null
           completion_checked_at: string | null
+          completion_year: number | null
           date_precision: string | null
           date_source: string | null
           days_away: number | null
           days_overdue: number | null
+          days_overdue_max: number | null
           due_date: string | null
           guidance: string | null
           lead_id: string | null
+          period_end: string | null
+          period_label: string | null
+          period_start: string | null
           project_name: string | null
           source_text: string | null
           stage: string | null
@@ -6533,11 +6538,13 @@ export type Database = {
           claim_holder: string | null
           company_builder: string | null
           completion_checked_at: string | null
+          completion_year: number | null
           created_at: string | null
           date_precision: string | null
           date_source: string | null
           days_away: number | null
           days_overdue: number | null
+          days_overdue_max: number | null
           deals_completed: number | null
           deals_live: number | null
           deals_lost: number | null
@@ -6554,6 +6561,8 @@ export type Database = {
           notes: string | null
           organisation_id: string | null
           owner_email: string | null
+          period_end: string | null
+          period_label: string | null
           phone: string | null
           prior_emailed: number | null
           prior_leads: number | null
@@ -6614,11 +6623,13 @@ export type Database = {
           claim_holder: string | null
           company_builder: string | null
           completion_checked_at: string | null
+          completion_year: number | null
           created_at: string | null
           date_precision: string | null
           date_source: string | null
           days_away: number | null
           days_overdue: number | null
+          days_overdue_max: number | null
           deals_completed: number | null
           deals_live: number | null
           deals_lost: number | null
@@ -6635,6 +6646,8 @@ export type Database = {
           notes: string | null
           organisation_id: string | null
           owner_email: string | null
+          period_end: string | null
+          period_label: string | null
           phone: string | null
           prior_emailed: number | null
           prior_leads: number | null
@@ -6695,11 +6708,13 @@ export type Database = {
           claim_holder: string | null
           company_builder: string | null
           completion_checked_at: string | null
+          completion_year: number | null
           created_at: string | null
           date_precision: string | null
           date_source: string | null
           days_away: number | null
           days_overdue: number | null
+          days_overdue_max: number | null
           deals_completed: number | null
           deals_live: number | null
           deals_lost: number | null
@@ -6716,6 +6731,8 @@ export type Database = {
           notes: string | null
           organisation_id: string | null
           owner_email: string | null
+          period_end: string | null
+          period_label: string | null
           phone: string | null
           prior_emailed: number | null
           prior_leads: number | null
