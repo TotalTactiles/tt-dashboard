@@ -130,9 +130,13 @@ export interface TimingRow {
   date_precision: string | null;
   days_away: number | null;
   days_overdue: number | null;
+  days_overdue_max: number | null;
   timing_band: string | null;
   guidance: string | null;
   date_source: string | null;
+  period_label: string | null;
+  period_end: string | null;
+  completion_year: number | null;
   source_text?: string | null;
 }
 
@@ -140,9 +144,14 @@ export interface TimingRow {
 export interface OvenNewLead extends Lead {
   timing_band: string | null;
   days_overdue: number | null;
+  days_overdue_max: number | null;
   due_date: string | null;
+  date_precision: string | null;
   guidance: string | null;
   date_source: string | null;
+  period_label: string | null;
+  period_end: string | null;
+  completion_year: number | null;
   deals_completed: number | null;
   deals_live: number | null;
   deals_lost: number | null;
@@ -214,7 +223,7 @@ function TimingBadge({ t }: { t: TimingRow | undefined }) {
   const cls = BAND_STYLE[band] ?? BAND_STYLE.unknown;
   let text = "no date";
   if (band === "past") text = `${t?.days_overdue ?? 0}d overdue`;
-  else if (t?.due_date) text = `${band} - ${monthYear(t.due_date)}`;
+  else if (t?.period_label) text = `${band} - ${t.period_label}`;
   else text = band;
   return (
     <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-mono whitespace-nowrap ${cls}`}>{text}</span>
@@ -285,12 +294,16 @@ export function useNewLeads(viewName: string = "v_oven_new_leads") {
       map[r.id] = {
         lead_id: r.id,
         due_date: r.due_date ?? null,
-        date_precision: null,
+        date_precision: r.date_precision ?? null,
         days_away: null,
         days_overdue: r.days_overdue ?? null,
+        days_overdue_max: r.days_overdue_max ?? null,
         timing_band: r.timing_band ?? null,
         guidance: r.guidance ?? null,
         date_source: r.date_source ?? null,
+        period_label: r.period_label ?? null,
+        period_end: r.period_end ?? null,
+        completion_year: r.completion_year ?? null,
       };
     });
     setTiming(map);
@@ -1539,11 +1552,11 @@ function LeadPanel({
       {activePanel === "timing_past" && (
         <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-2">
           <PanelHeader
-            title={`This project finished ${timing?.days_overdue ?? 0} days ago`}
+            title={`Stated completion was ${timing?.period_label ?? "earlier"}`}
             hint={timing?.guidance ?? undefined}
           />
           <div className="text-sm" style={{ color: "#e5934b" }}>
-            Completion was due {timing?.due_date ? monthYear(timing.due_date) : "earlier"}. This job may already be built.
+            That window closed {timing?.days_overdue ?? 0} days ago. This job may already be built.
           </div>
           <div className="flex flex-wrap items-end gap-2">
             <Button size="sm" variant="outline" disabled={busy === "remove"} onClick={removeLead}>Remove lead</Button>
