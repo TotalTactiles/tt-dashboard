@@ -3,9 +3,13 @@ import DashboardLayout from "@/components/DashboardLayout";
 import SectionHeader from "@/components/dashboard/SectionHeader";
 import WorkingAsGate, { getStoredOperator, setStoredOperator } from "@/components/crm/WorkingAsGate";
 import NewLeadsView from "@/components/crm/NewLeadsView";
+import TestLaneControls from "@/components/crm/TestLaneControls";
+import type { OvenTab } from "@/components/crm/OvenTabs";
 
 export default function CRM() {
   const [operator, setOperator] = useState<string | null>(null);
+  const [tab, setTab] = useState<OvenTab>("new");
+  const [resetNonce, setResetNonce] = useState(0);
 
   useEffect(() => { setOperator(getStoredOperator()); }, []);
 
@@ -34,9 +38,14 @@ export default function CRM() {
           </div>
         </SectionHeader>
 
-        {/* The only tab bar in the Oven lives inside NewLeadsView: New Leads | Cold Call */}
-        <NewLeadsView operator={operator} />
+        {tab === "test" && (
+          <TestLaneControls onResetComplete={() => setResetNonce((n) => n + 1)} />
+        )}
+
+        {/* The only tab bar in the Oven lives inside NewLeadsView: New Leads | Cold Call | Test */}
+        <NewLeadsView operator={operator} tab={tab} onTabChange={setTab} resetNonce={resetNonce} />
       </div>
     </DashboardLayout>
   );
 }
+

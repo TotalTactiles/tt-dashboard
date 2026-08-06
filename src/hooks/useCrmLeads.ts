@@ -337,10 +337,14 @@ export async function enrichLead(
     });
     let body: any = null;
     try { body = await res.json(); } catch { body = null; }
+    if (body?.blocked === true) {
+      return { ...body, detail: body.reason ?? body.detail } as EnrichResponse;
+    }
     if (!res.ok) {
       return { ok: false, detail: body?.detail ?? `Apollo request failed (${res.status})` };
     }
     return (body ?? { ok: false, detail: "Empty response from Apollo" }) as EnrichResponse;
+
   } catch (err: any) {
     if (err?.name === "AbortError") {
       return { ok: false, detail: "Apollo did not respond - the lead is unchanged" };

@@ -518,11 +518,28 @@ const MANUAL_INPUT_CLS =
 
 // ---------------- shell: the two Oven sub-tabs ----------------
 
-export default function NewLeadsView({ operator }: { operator: string }) {
-  const [tab, setTab] = useState<OvenTab>("new");
+export default function NewLeadsView({
+  operator, tab: tabProp, onTabChange, resetNonce = 0,
+}: {
+  operator: string;
+  tab?: OvenTab;
+  onTabChange?: (t: OvenTab) => void;
+  resetNonce?: number;
+}) {
+  const [tabState, setTabState] = useState<OvenTab>("new");
+  const tab = tabProp ?? tabState;
+  const setTab = onTabChange ?? setTabState;
   const newLeads = useNewLeads();
   const test = useNewLeads("v_oven_test_leads");
   const cold = useColdCallLeads();
+
+  useEffect(() => {
+    if (!resetNonce) return;
+    newLeads.reload();
+    test.reload();
+    cold.reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetNonce]);
 
   return (
     <div className="space-y-4">
@@ -536,7 +553,8 @@ export default function NewLeadsView({ operator }: { operator: string }) {
       {tab === "new" ? (
         <NewLeadsQueue operator={operator} {...newLeads} />
       ) : tab === "test" ? (
-        <NewLeadsQueue operator={operator} {...test} />
+        <NewLeadsQueue key={resetNonce} operator={operator} {...test} />
+
       ) : (
         <ColdCallView
           operator={operator}
@@ -1330,7 +1348,7 @@ function LeadPanel({
   async function sendToColdCall() {
     if (busy) return;
     setBusy("cold");
-    const { error } = await db.from("leads").update({ stage: "ready_to_call" }).eq("id", lead.id);
+    const { error } = await db.from("leads").update({ stage: "ready_to_call", next_step_code: "nl_no_email" }).eq("id", lead.id);
     setBusy(null);
     if (error) {
       toast({

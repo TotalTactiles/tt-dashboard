@@ -769,6 +769,13 @@ export type Database = {
             foreignKeyName: "deals_converted_from_lead_id_fkey"
             columns: ["converted_from_lead_id"]
             isOneToOne: false
+            referencedRelation: "v_oven_call_queue_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_converted_from_lead_id_fkey"
+            columns: ["converted_from_lead_id"]
+            isOneToOne: false
             referencedRelation: "v_oven_leads"
             referencedColumns: ["id"]
           },
@@ -784,6 +791,13 @@ export type Database = {
             columns: ["converted_from_lead_id"]
             isOneToOne: false
             referencedRelation: "v_oven_new_leads_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_converted_from_lead_id_fkey"
+            columns: ["converted_from_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_test_call_queue"
             referencedColumns: ["id"]
           },
           {
@@ -1320,6 +1334,13 @@ export type Database = {
             foreignKeyName: "lead_calls_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "v_oven_call_queue_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
             referencedRelation: "v_oven_leads"
             referencedColumns: ["id"]
           },
@@ -1335,6 +1356,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "v_oven_new_leads_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_test_call_queue"
             referencedColumns: ["id"]
           },
           {
@@ -1468,6 +1496,13 @@ export type Database = {
             foreignKeyName: "lead_claims_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: true
+            referencedRelation: "v_oven_call_queue_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_claims_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
             referencedRelation: "v_oven_leads"
             referencedColumns: ["id"]
           },
@@ -1483,6 +1518,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: true
             referencedRelation: "v_oven_new_leads_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_claims_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_oven_test_call_queue"
             referencedColumns: ["id"]
           },
           {
@@ -1620,6 +1662,13 @@ export type Database = {
             foreignKeyName: "lead_email_threads_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "v_oven_call_queue_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_email_threads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
             referencedRelation: "v_oven_leads"
             referencedColumns: ["id"]
           },
@@ -1635,6 +1684,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "v_oven_new_leads_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_email_threads_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_test_call_queue"
             referencedColumns: ["id"]
           },
           {
@@ -1797,6 +1853,13 @@ export type Database = {
             foreignKeyName: "lead_events_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "v_oven_call_queue_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
             referencedRelation: "v_oven_leads"
             referencedColumns: ["id"]
           },
@@ -1812,6 +1875,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "v_oven_new_leads_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_test_call_queue"
             referencedColumns: ["id"]
           },
           {
@@ -2022,6 +2092,13 @@ export type Database = {
             foreignKeyName: "lead_import_rows_dup_lead_id_fkey"
             columns: ["dup_lead_id"]
             isOneToOne: false
+            referencedRelation: "v_oven_call_queue_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_import_rows_dup_lead_id_fkey"
+            columns: ["dup_lead_id"]
+            isOneToOne: false
             referencedRelation: "v_oven_leads"
             referencedColumns: ["id"]
           },
@@ -2037,6 +2114,13 @@ export type Database = {
             columns: ["dup_lead_id"]
             isOneToOne: false
             referencedRelation: "v_oven_new_leads_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_import_rows_dup_lead_id_fkey"
+            columns: ["dup_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_test_call_queue"
             referencedColumns: ["id"]
           },
           {
@@ -2134,6 +2218,13 @@ export type Database = {
             foreignKeyName: "lead_import_rows_imported_lead_id_fkey"
             columns: ["imported_lead_id"]
             isOneToOne: false
+            referencedRelation: "v_oven_call_queue_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_import_rows_imported_lead_id_fkey"
+            columns: ["imported_lead_id"]
+            isOneToOne: false
             referencedRelation: "v_oven_leads"
             referencedColumns: ["id"]
           },
@@ -2149,6 +2240,13 @@ export type Database = {
             columns: ["imported_lead_id"]
             isOneToOne: false
             referencedRelation: "v_oven_new_leads_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_import_rows_imported_lead_id_fkey"
+            columns: ["imported_lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_test_call_queue"
             referencedColumns: ["id"]
           },
           {
@@ -2451,6 +2549,13 @@ export type Database = {
             foreignKeyName: "lead_rating_history_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "v_oven_call_queue_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
             referencedRelation: "v_oven_leads"
             referencedColumns: ["id"]
           },
@@ -2466,6 +2571,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "v_oven_new_leads_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_test_call_queue"
             referencedColumns: ["id"]
           },
           {
@@ -2804,6 +2916,13 @@ export type Database = {
             foreignKeyName: "lead_tasks_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "v_oven_call_queue_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
             referencedRelation: "v_oven_leads"
             referencedColumns: ["id"]
           },
@@ -2819,6 +2938,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "v_oven_new_leads_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_test_call_queue"
             referencedColumns: ["id"]
           },
           {
@@ -3362,6 +3488,7 @@ export type Database = {
           created_at: string
           is_clone: boolean
           lead_id: string
+          setup_patch: Json | null
           test_number: number
           title: string
         }
@@ -3369,6 +3496,7 @@ export type Database = {
           created_at?: string
           is_clone?: boolean
           lead_id: string
+          setup_patch?: Json | null
           test_number: number
           title: string
         }
@@ -3376,6 +3504,7 @@ export type Database = {
           created_at?: string
           is_clone?: boolean
           lead_id?: string
+          setup_patch?: Json | null
           test_number?: number
           title?: string
         }
@@ -3468,6 +3597,13 @@ export type Database = {
             foreignKeyName: "oven_test_cases_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: true
+            referencedRelation: "v_oven_call_queue_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oven_test_cases_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
             referencedRelation: "v_oven_leads"
             referencedColumns: ["id"]
           },
@@ -3483,6 +3619,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: true
             referencedRelation: "v_oven_new_leads_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oven_test_cases_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_oven_test_call_queue"
             referencedColumns: ["id"]
           },
           {
@@ -3602,6 +3745,13 @@ export type Database = {
             foreignKeyName: "oven_test_restore_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: true
+            referencedRelation: "v_oven_call_queue_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oven_test_restore_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
             referencedRelation: "v_oven_leads"
             referencedColumns: ["id"]
           },
@@ -3617,6 +3767,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: true
             referencedRelation: "v_oven_new_leads_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oven_test_restore_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "v_oven_test_call_queue"
             referencedColumns: ["id"]
           },
           {
@@ -4892,6 +5049,13 @@ export type Database = {
             foreignKeyName: "lead_calls_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "v_oven_call_queue_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
             referencedRelation: "v_oven_leads"
             referencedColumns: ["id"]
           },
@@ -4907,6 +5071,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "v_oven_new_leads_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_test_call_queue"
             referencedColumns: ["id"]
           },
           {
@@ -5374,6 +5545,13 @@ export type Database = {
             foreignKeyName: "lead_calls_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "v_oven_call_queue_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
             referencedRelation: "v_oven_leads"
             referencedColumns: ["id"]
           },
@@ -5389,6 +5567,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "v_oven_new_leads_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_test_call_queue"
             referencedColumns: ["id"]
           },
           {
@@ -5714,6 +5899,13 @@ export type Database = {
             foreignKeyName: "lead_rating_history_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "v_oven_call_queue_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
             referencedRelation: "v_oven_leads"
             referencedColumns: ["id"]
           },
@@ -5729,6 +5921,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "v_oven_new_leads_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_rating_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_test_call_queue"
             referencedColumns: ["id"]
           },
           {
@@ -5923,6 +6122,13 @@ export type Database = {
             foreignKeyName: "lead_tasks_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "v_oven_call_queue_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
             referencedRelation: "v_oven_leads"
             referencedColumns: ["id"]
           },
@@ -5938,6 +6144,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "v_oven_new_leads_base"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_oven_test_call_queue"
             referencedColumns: ["id"]
           },
           {
@@ -6338,6 +6551,75 @@ export type Database = {
           },
         ]
       }
+      v_oven_call_queue_base: {
+        Row: {
+          attempts: number | null
+          bucket: number | null
+          call_number: string | null
+          callable: boolean | null
+          claim_active: boolean | null
+          claim_actor_id: string | null
+          claim_holder: string | null
+          company_builder: string | null
+          deals_completed: number | null
+          deals_live: number | null
+          direct_email: string | null
+          id: string | null
+          last_called_at: string | null
+          last_outcome: string | null
+          lead_timezone: string | null
+          next_callback_at: string | null
+          next_step_code: string | null
+          notes: string | null
+          organisation_id: string | null
+          pass_no: number | null
+          phone: string | null
+          prior_leads: number | null
+          project_contact_name: string | null
+          project_name: string | null
+          reception_name: string | null
+          role: string | null
+          stage: string | null
+          state: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_claims_actor_id_fkey"
+            columns: ["claim_actor_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_next_step_code_fkey"
+            columns: ["next_step_code"]
+            isOneToOne: false
+            referencedRelation: "lead_next_steps"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_next_step_code_fkey"
+            columns: ["next_step_code"]
+            isOneToOne: false
+            referencedRelation: "v_lead_step_options"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_card_context"
+            referencedColumns: ["organisation_id"]
+          },
+        ]
+      }
       v_oven_leads: {
         Row: {
           apollo_contact_id: string | null
@@ -6661,6 +6943,75 @@ export type Database = {
           state: string | null
           timing_band: string | null
           work_status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_claims_actor_id_fkey"
+            columns: ["claim_actor_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_next_step_code_fkey"
+            columns: ["next_step_code"]
+            isOneToOne: false
+            referencedRelation: "lead_next_steps"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_next_step_code_fkey"
+            columns: ["next_step_code"]
+            isOneToOne: false
+            referencedRelation: "v_lead_step_options"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "v_lead_card_context"
+            referencedColumns: ["organisation_id"]
+          },
+        ]
+      }
+      v_oven_test_call_queue: {
+        Row: {
+          attempts: number | null
+          bucket: number | null
+          call_number: string | null
+          callable: boolean | null
+          claim_active: boolean | null
+          claim_actor_id: string | null
+          claim_holder: string | null
+          company_builder: string | null
+          deals_completed: number | null
+          deals_live: number | null
+          direct_email: string | null
+          id: string | null
+          last_called_at: string | null
+          last_outcome: string | null
+          lead_timezone: string | null
+          next_callback_at: string | null
+          next_step_code: string | null
+          notes: string | null
+          organisation_id: string | null
+          pass_no: number | null
+          phone: string | null
+          prior_leads: number | null
+          project_contact_name: string | null
+          project_name: string | null
+          reception_name: string | null
+          role: string | null
+          stage: string | null
+          state: string | null
         }
         Relationships: [
           {
@@ -7180,6 +7531,11 @@ export type Database = {
         Args: { p_lead_id: string; p_test_number: number; p_title: string }
         Returns: string
       }
+      tt_oven_test_forget_draft: {
+        Args: { p_external_id: string }
+        Returns: string
+      }
+      tt_oven_test_reset: { Args: never; Returns: Json }
       tt_oven_test_return: { Args: { p_lead_id: string }; Returns: string }
       tt_purge_missing_zoho_deals: { Args: never; Returns: number }
       tt_release_lead: {
