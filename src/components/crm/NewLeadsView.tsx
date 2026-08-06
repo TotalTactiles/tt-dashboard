@@ -1651,20 +1651,22 @@ function LeadPanel({
                 </div>
                 <RungPips rung={rung} />
 
-                {rung === 1 && (
-                  <button
-                    type="button"
-                    disabled={busy !== null}
-                    onClick={() => markRung("nl_manual_attempt", "Manual attempt logged")}
-                    style={{
-                      width: "100%", padding: "11px", borderRadius: "7px",
-                      background: "#3D89DA", color: "#fff", fontWeight: 600,
-                      opacity: busy !== null ? 0.6 : 1,
-                    }}
-                  >
-                    Manual Attempt
-                  </button>
-                )}
+                <div style={{ marginTop: "8px" }}>
+                  <div className="text-sm font-semibold text-foreground">
+                    {rung === 1
+                      ? "Step 1 of 3: Manual attempt"
+                      : rung === 2
+                        ? "Step 2 of 3: See company tracker"
+                        : "Step 3 of 3: No email"}
+                  </div>
+                  <div style={{ fontSize: "11.5px", color: "#6e7681", marginTop: "3px", marginBottom: "9px" }}>
+                    {rung === 1
+                      ? "Search LinkedIn and Apollo by hand. If you find an address, use I found one below."
+                      : rung === 2
+                        ? "These are the contacts we already hold at this company. Use one, or log that none of them fit."
+                        : "No address could be found for this lead. This hands it to the Cold Call queue."}
+                  </div>
+                </div>
 
                 {rung === 2 && (
                   <div style={{ marginBottom: "9px" }}>
@@ -1677,20 +1679,28 @@ function LeadPanel({
                   </div>
                 )}
 
+                {rung === 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={busy !== null}
+                    onClick={() => markRung("nl_manual_attempt", "Manual attempt logged")}
+                  >
+                    Log the attempt, move to step 2
+                  </Button>
+                )}
 
                 {rung === 2 && (
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    className="w-full"
                     disabled={busy !== null}
                     onClick={() => markRung("nl_company_tracker", "Company tracker step logged")}
-                    style={{
-                      width: "100%", padding: "11px", borderRadius: "7px",
-                      background: "#3D89DA", color: "#fff", fontWeight: 600,
-                      opacity: busy !== null ? 0.6 : 1,
-                    }}
                   >
-                    See Company Tracker
-                  </button>
+                    Log that none fit, move to step 3
+                  </Button>
                 )}
 
                 {rung === 3 && (
@@ -1705,17 +1715,17 @@ function LeadPanel({
                       opacity: busy !== null ? 0.6 : 1,
                     }}
                   >
-                    NO EMAIL
+                    NO EMAIL, hand to Cold Call
                   </button>
                 )}
 
-                <div className="text-center" style={{ fontSize: "11.5px", color: "#6e7681", marginTop: "6px" }}>
-                  {rung === 1
-                    ? "Search LinkedIn and Apollo by hand, then come back"
-                    : rung === 2
-                      ? "Pick an address we already hold, or hand the lead on"
-                      : "Moves this lead to Cold Call. It leaves New Leads."}
-                </div>
+                {rung !== 3 && (
+                  <div className="text-center" style={{ fontSize: "11.5px", color: "#6e7681", marginTop: "6px" }}>
+                    {rung === 1
+                      ? "Next if this fails: See company tracker"
+                      : "Next if this fails: NO EMAIL, which hands the lead to Cold Call"}
+                  </div>
+                )}
               </div>
             </div>
           )}
