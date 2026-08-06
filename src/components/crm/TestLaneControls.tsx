@@ -121,10 +121,9 @@ export default function TestLaneControls({
             </AlertDialogContent>
           </AlertDialog>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-2">
           <Tile label="Leads in lane" value={leadsInLane == null ? "-" : String(leadsInLane)} />
           <Tile label="Snapshots held" value={snapshotsHeld == null ? "-" : String(snapshotsHeld)} />
-          <Tile label="Worked this session" value={String(workedThisSession)} />
           <Tile label="Last reset" value={lastReset ? new Date(lastReset).toLocaleString() : "not this session"} />
         </CardContent>
       </Card>
