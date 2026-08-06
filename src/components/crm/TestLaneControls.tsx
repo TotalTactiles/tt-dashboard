@@ -39,10 +39,8 @@ function Tile({ label, value }: { label: string; value: string }) {
 
 export default function TestLaneControls({
   onResetComplete,
-  workedThisSession = 0,
 }: {
   onResetComplete: () => void;
-  workedThisSession?: number;
 }) {
   const [leadsInLane, setLeadsInLane] = useState<number | null>(null);
   const [snapshotsHeld, setSnapshotsHeld] = useState<number | null>(null);
