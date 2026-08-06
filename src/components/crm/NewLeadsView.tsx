@@ -1348,7 +1348,7 @@ function LeadPanel({
   async function sendToColdCall() {
     if (busy) return;
     setBusy("cold");
-    const { error } = await db.from("leads").update({ stage: "ready_to_call" }).eq("id", lead.id);
+    const { error } = await db.from("leads").update({ stage: "ready_to_call", next_step_code: "nl_no_email" }).eq("id", lead.id);
     setBusy(null);
     if (error) {
       toast({
