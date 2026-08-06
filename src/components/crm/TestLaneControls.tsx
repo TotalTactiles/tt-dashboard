@@ -39,10 +39,8 @@ function Tile({ label, value }: { label: string; value: string }) {
 
 export default function TestLaneControls({
   onResetComplete,
-  workedThisSession = 0,
 }: {
   onResetComplete: () => void;
-  workedThisSession?: number;
 }) {
   const [leadsInLane, setLeadsInLane] = useState<number | null>(null);
   const [snapshotsHeld, setSnapshotsHeld] = useState<number | null>(null);
@@ -99,7 +97,7 @@ export default function TestLaneControls({
           <div>
             <CardTitle className="text-sm font-mono uppercase tracking-wide">Test lane</CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">
-              6 borrowed leads, one per route. Reset returns every one to the state it was in before the lane borrowed it.
+              Borrowed leads are returned to the state they were in before the lane took them. Fabricated fixtures are left alone.
             </p>
           </div>
           <AlertDialog>
@@ -123,10 +121,9 @@ export default function TestLaneControls({
             </AlertDialogContent>
           </AlertDialog>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-2">
           <Tile label="Leads in lane" value={leadsInLane == null ? "-" : String(leadsInLane)} />
           <Tile label="Snapshots held" value={snapshotsHeld == null ? "-" : String(snapshotsHeld)} />
-          <Tile label="Worked this session" value={String(workedThisSession)} />
           <Tile label="Last reset" value={lastReset ? new Date(lastReset).toLocaleString() : "not this session"} />
         </CardContent>
       </Card>
