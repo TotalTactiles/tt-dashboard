@@ -1041,6 +1041,9 @@ function LeadPanel({
   const [orgDomain, setOrgDomain] = useState<string | null>(null);
   const [earlyDate, setEarlyDate] = useState("");
   const [searchErrored, setSearchErrored] = useState(false);
+  // A containment refusal never reached Apollo, so it is not an errored search
+  // and it offers no actions.
+  const [blockedReason, setBlockedReason] = useState<string | null>(null);
 
   // One query for the company's contacts. It feeds the Known at this company
   // list and the domain the hand-found address must match, because the
