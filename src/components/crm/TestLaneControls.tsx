@@ -97,7 +97,7 @@ export default function TestLaneControls({
           <div>
             <CardTitle className="text-sm font-mono uppercase tracking-wide">Test lane</CardTitle>
             <p className="mt-1 text-xs text-muted-foreground">
-              6 borrowed leads, one per route. Reset returns every one to the state it was in before the lane borrowed it.
+              Borrowed leads are returned to the state they were in before the lane took them. Fabricated fixtures are left alone.
             </p>
           </div>
           <AlertDialog>
