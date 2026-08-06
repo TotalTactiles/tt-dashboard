@@ -1741,7 +1741,13 @@ function LeadPanel({
           )}
 
 
-          {!isDuplicate && rung === null && (
+          {!isDuplicate && rung === null && blockedReason !== null && (
+            <div style={{ fontSize: "12px", color: "#e5934b" }}>
+              {blockedReason}
+            </div>
+          )}
+
+          {!isDuplicate && rung === null && blockedReason === null && (
             <div className="space-y-2">
               {searchErrored && (
                 <div style={{ fontSize: "12px", color: "#e5934b" }}>
