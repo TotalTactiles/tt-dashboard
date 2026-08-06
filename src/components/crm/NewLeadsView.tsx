@@ -1315,6 +1315,8 @@ function LeadPanel({
   async function findDetails() {
     if (busy) return;
     setSearchErrored(false);
+    setSearchErrored(false);
+    setBlockedReason(null);
     setBusy("apollo");
     
     try {
@@ -1334,6 +1336,14 @@ function LeadPanel({
         // gives the lead its rung, and the ladder banner carries the detail.
         toast({ title: r.detail || "Apollo found nobody with an email at this company." });
 
+      } else if ((r as any).blocked === true) {
+        const reason = (r as any).reason || r.detail || "This lead was refused before Apollo was called.";
+        setBlockedReason(String(reason));
+        toast({
+          title: "Refused before Apollo was called",
+          description: r.detail || String(reason),
+          className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+        });
       } else {
         setSearchErrored(true);
         toast({
