@@ -1315,7 +1315,6 @@ function LeadPanel({
   async function findDetails() {
     if (busy) return;
     setSearchErrored(false);
-    setSearchErrored(false);
     setBlockedReason(null);
     setBusy("apollo");
     
