@@ -157,25 +157,11 @@ export default function AddLeadDialog({
       onCreated(lead.id);
       onOpenChange(false);
     } catch (err: any) {
-      if (err instanceof DuplicateLeadError) {
-        // race: re-fetch and lock UI
-        try {
-          const rows = await findSimilarLeads(projectName.trim(), companyBuilder.trim() || null);
-          const exact = rows.find((r) => r.exact_project && r.stage !== "archived");
-          if (exact) setDupRaceExact(exact as SimilarLead); else setDupRows(rows as SimilarLead[]);
-        } catch { /* ignore */ }
-        toast({
-          title: "This project already exists",
-          description: "A live lead with the same project name was just created.",
-          className: "border-destructive/40 bg-destructive/10 text-destructive",
-        });
-      } else {
-        toast({
-          title: "Could not create lead",
-          description: err?.message ?? "Try again",
-          className: "border-destructive/40 bg-destructive/10 text-destructive",
-        });
-      }
+      toast({
+        title: "Could not create lead",
+        description: err?.message ?? "Try again",
+        className: "border-destructive/40 bg-destructive/10 text-destructive",
+      });
     } finally {
       setSaving(false);
     }
