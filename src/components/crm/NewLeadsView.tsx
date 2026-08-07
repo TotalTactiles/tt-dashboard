@@ -53,6 +53,20 @@ export async function postOvenWebhook(
     if (json && json.ok === false) {
       return { ok: false, blocked: false, reason: String(json.reason ?? json.error ?? "The workflow reported a failure."), body: json };
     }
+    // The send workflow uses responseMode "responseNode", and EVERY Respond node
+    // on it emits an explicit ok field. So a 2xx whose body carries no ok means no
+    // Respond node was reached, which means the run threw part-way through and
+    // nothing downstream of the throw happened. Absence of a failure signal is not
+    // success. Only tt-lead-send is held to this, because only its Respond nodes
+    // have been read; the search webhooks keep the old behaviour until theirs are.
+    if (path === "tt-lead-send" && !(json && json.ok === true)) {
+      return {
+        ok: false,
+        blocked: false,
+        reason: String(json?.message ?? json?.reason ?? json?.error ?? "The send workflow did not reach a response, so nothing after the failure ran."),
+        body: json,
+      };
+    }
     return { ok: true, blocked: false, reason: "", body: json };
   } catch {
     return { ok: false, blocked: false, reason: "The workflow did not respond.", body: null };
