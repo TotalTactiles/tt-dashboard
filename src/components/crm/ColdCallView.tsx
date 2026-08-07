@@ -382,6 +382,9 @@ function ColdCallCard({
   const [contactName, setContactName] = useState(lead.project_contact_name ?? "");
   const [contactRole, setContactRole] = useState(lead.role ?? "");
   const [contactEmail, setContactEmail] = useState(lead.direct_email ?? "");
+  const initialContactName = (lead.project_contact_name ?? "").trim();
+  const initialContactRole = (lead.role ?? "").trim();
+  const initialContactEmail = (lead.direct_email ?? "").trim().toLowerCase();
   const [contactPhone, setContactPhone] = useState("");
   const [callbackAt, setCallbackAt] = useState("");
   const [bestTime, setBestTime] = useState("");
