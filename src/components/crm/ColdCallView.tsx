@@ -407,6 +407,7 @@ function ColdCallCard({
     if (!contactEmail.trim()) gaps.push("email");
   }
   if (isGatekeeper && !spokeTo.trim()) gaps.push("who you spoke to");
+  if (isGatekeeper && !contactName.trim() && !contactEmail.trim()) gaps.push("a contact name or an email");
   if (needsCallback && !callbackAt) gaps.push("a callback time");
   if (needsMessage && !messageLeft.trim()) gaps.push("what you said in the message");
   const captureIncomplete = gaps.length > 0;
