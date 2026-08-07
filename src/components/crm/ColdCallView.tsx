@@ -393,6 +393,7 @@ function ColdCallCard({
   const [lookup, setLookup] = useState<{ saved: boolean; phone: string | null; reason: string | null } | null>(null);
   // Set only once an insert into lead_calls has succeeded for this lead.
   const [loggedOutcome, setLoggedOutcome] = useState<string | null>(null);
+  const [loggedAddressing, setLoggedAddressing] = useState<string | null>(null);
 
 
   const isGatekeeper = outcome === "spoke_gatekeeper";
@@ -406,6 +407,7 @@ function ColdCallCard({
     if (!contactEmail.trim()) gaps.push("email");
   }
   if (isGatekeeper && !spokeTo.trim()) gaps.push("who you spoke to");
+  if (isGatekeeper && !contactName.trim() && !contactEmail.trim()) gaps.push("a contact name or an email");
   if (needsCallback && !callbackAt) gaps.push("a callback time");
   if (needsMessage && !messageLeft.trim()) gaps.push("what you said in the message");
   const captureIncomplete = gaps.length > 0;
@@ -486,6 +488,7 @@ function ColdCallCard({
     if (needsMessage && messageLeft.trim()) parts.push(`Message: ${messageLeft.trim()}`);
     if (needsCallback && bestTime.trim()) parts.push(`Best time: ${bestTime.trim()}`);
     if (notes.trim()) parts.push(notes.trim());
+    const captured = isGatekeeper || isContactOutcome;
     // spoke_with is the person who answered the phone (the receptionist), which
     // renders as {{receptionist}} in the EOI. It is never the contact name.
     const payload: any = {
@@ -495,13 +498,13 @@ function ColdCallCard({
       spoke_with: isGatekeeper ? spokeTo.trim() || null : null,
       notes: parts.length ? parts.join("\n") : null,
       created_by: operator,
-      contact_name: contactName.trim() || null,
-      contact_role: contactRole.trim() || null,
-      contact_email: contactEmail.trim() || null,
-      contact_phone: contactPhone.trim() || null,
-      callback_at: callbackAt ? new Date(callbackAt).toISOString() : null,
+      contact_name: captured ? contactName.trim() || null : null,
+      contact_role: captured ? contactRole.trim() || null : null,
+      contact_email: captured ? contactEmail.trim() || null : null,
+      contact_phone: captured ? contactPhone.trim() || null : null,
+      callback_at: needsCallback && callbackAt ? new Date(callbackAt).toISOString() : null,
     };
-    const { error } = await db.from("lead_calls").insert(payload);
+    const { data: logged, error } = await db.from("lead_calls").insert(payload).select("addressing_variant").maybeSingle();
     setBusy(null);
     if (error) {
       toast({
@@ -511,15 +514,18 @@ function ColdCallCard({
       });
       return;
     }
-    if (isGatekeeper && spokeTo.trim()) {
-      const { error: updateError } = await db.from("leads").update({ reception_name: spokeTo.trim() }).eq("id", lead.id);
+    const variant = (logged?.addressing_variant as string | null) ?? null;
+    setLoggedAddressing(variant);
+    const leadPatch: any = {};
+    if (isGatekeeper && spokeTo.trim()) leadPatch.reception_name = spokeTo.trim();
+    if (variant) leadPatch.who_spoke_code = variant;
+    if (Object.keys(leadPatch).length) {
+      const { error: updateError } = await db.from("leads").update(leadPatch).eq("id", lead.id);
       if (updateError) {
-        toast({
-          title: "Could not update reception name",
-          description: updateError.message,
-          className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
-        });
+        toast({ title: "Call logged, but the lead was not updated", description: updateError.message, className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange" });
       }
+    } else if (captured) {
+      toast({ title: "Call logged, but addressing was not recorded", description: "The email for this lead will guess who was spoken to.", className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange" });
     }
     toast({ title: "Call logged" });
     setHistoryTick((t) => t + 1);
