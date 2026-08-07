@@ -273,10 +273,6 @@ export interface NewLeadInput {
   source_code?: string | null;
 }
 
-export class DuplicateLeadError extends Error {
-  constructor() { super("A live lead with this project name already exists."); }
-}
-
 export async function createLead(input: NewLeadInput): Promise<Lead> {
   const payload: any = {
     project_name: input.project_name.trim(),
@@ -297,13 +293,7 @@ export async function createLead(input: NewLeadInput): Promise<Lead> {
     source_row_key: null,
   };
   const { data, error } = await db.from("leads").insert(payload).select("*").single();
-  if (error) {
-    const msg = `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
-    if (msg.includes("leads_project_unique") || (error.code === "23505" && msg.includes("project"))) {
-      throw new DuplicateLeadError();
-    }
-    throw error;
-  }
+  if (error) throw error;
   return data as Lead;
 }
 
