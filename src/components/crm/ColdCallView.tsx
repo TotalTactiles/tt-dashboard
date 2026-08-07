@@ -512,7 +512,16 @@ function ColdCallCard({
     if (contactRole.trim()) patch.role = contactRole.trim();
     if (contactEmail.trim()) patch.direct_email = contactEmail.trim().toLowerCase();
     if (followUp) patch.follow_up_date = followUp;
-    await db.from("leads").update(patch).eq("id", lead.id);
+    const { error } = await db.from("leads").update(patch).eq("id", lead.id);
+    if (error) {
+      toast({
+        title: "Could not save the next step",
+        description: error.message,
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+      setBusy(null);
+      return;
+    }
 
     const r = await postOvenWebhook("tt-lead-send", { lead_id: lead.id, operator });
     setBusy(null);
