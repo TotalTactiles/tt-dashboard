@@ -59,7 +59,7 @@ export default function AddLeadDialog({
     setState(""); setSource("");
     setContactName(""); setRole(""); setPhone(""); setDirectEmail("");
     setReceptionName(""); setReceptionEmail(""); setSiteAddress(""); setNotes("");
-    setDupRows([]); setDupConfirmed(false); setDupRaceExact(null);
+    setDupRows([]); setDupConfirmed(false);
     fetchLeadStates().then(setStates).catch(() => {});
   }, [open]);
 
