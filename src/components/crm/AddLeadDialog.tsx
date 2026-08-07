@@ -49,7 +49,7 @@ export default function AddLeadDialog({
   const [dupRows, setDupRows] = useState<SimilarLead[]>([]);
   const [dupChecking, setDupChecking] = useState(false);
   const [dupConfirmed, setDupConfirmed] = useState(false);
-  const [dupRaceExact, setDupRaceExact] = useState<SimilarLead | null>(null);
+  
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
