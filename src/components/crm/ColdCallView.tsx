@@ -250,9 +250,20 @@ export default function ColdCallView({
   // Leads the operator has logged a call against in this session. The queue
   // order is the point, so there is no jumping around it.
   const [worked, setWorked] = useState<string[]>([]);
+  const [pinned, setPinned] = useState<string | null>(null);
   const workedSet = useMemo(() => new Set(worked), [worked]);
 
-  const current = useMemo(() => rows.find((l) => !workedSet.has(l.id)) ?? null, [rows, workedSet]);
+  const current = useMemo(() => {
+    if (pinned) {
+      const p = rows.find((l) => l.id === pinned && !workedSet.has(l.id));
+      if (p) return p;
+    }
+    return rows.find((l) => !workedSet.has(l.id)) ?? null;
+  }, [rows, workedSet, pinned]);
+
+  useEffect(() => {
+    if (current && current.id !== pinned) setPinned(current.id);
+  }, [current, pinned]);
   const upcoming = useMemo(() => {
     if (!current) return [];
     const i = rows.findIndex((l) => l.id === current.id);
@@ -289,7 +300,10 @@ export default function ColdCallView({
           key={current.id}
           lead={current}
           operator={operator}
-          onLogged={() => setWorked((w) => (w.includes(current.id) ? w : [...w, current.id]))}
+          onLogged={() => {
+            setWorked((w) => (w.includes(current.id) ? w : [...w, current.id]));
+            setPinned(null);
+          }}
           onDone={async () => { await reload(); }}
         />
       )}
