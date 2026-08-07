@@ -12,7 +12,6 @@ import {
   searchOrganisations,
   fetchLeadStates,
   createLead,
-  DuplicateLeadError,
   type OrgSuggestion,
   type SimilarLeadRow,
 } from "@/hooks/useCrmLeads";
