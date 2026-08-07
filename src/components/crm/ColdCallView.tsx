@@ -495,6 +495,16 @@ function ColdCallCard({
       });
       return;
     }
+    if (isGatekeeper && spokeTo.trim()) {
+      const { error: updateError } = await db.from("leads").update({ reception_name: spokeTo.trim() }).eq("id", lead.id);
+      if (updateError) {
+        toast({
+          title: "Could not update reception name",
+          description: updateError.message,
+          className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+        });
+      }
+    }
     toast({ title: "Call logged" });
     setHistoryTick((t) => t + 1);
     setLoggedOutcome(outcome);
@@ -512,7 +522,16 @@ function ColdCallCard({
     if (contactRole.trim()) patch.role = contactRole.trim();
     if (contactEmail.trim()) patch.direct_email = contactEmail.trim().toLowerCase();
     if (followUp) patch.follow_up_date = followUp;
-    await db.from("leads").update(patch).eq("id", lead.id);
+    const { error } = await db.from("leads").update(patch).eq("id", lead.id);
+    if (error) {
+      toast({
+        title: "Could not save the next step",
+        description: error.message,
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+      setBusy(null);
+      return;
+    }
 
     const r = await postOvenWebhook("tt-lead-send", { lead_id: lead.id, operator });
     setBusy(null);
