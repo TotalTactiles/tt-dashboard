@@ -495,6 +495,16 @@ function ColdCallCard({
       });
       return;
     }
+    if (isGatekeeper && spokeTo.trim()) {
+      const { error: updateError } = await db.from("leads").update({ reception_name: spokeTo.trim() }).eq("id", lead.id);
+      if (updateError) {
+        toast({
+          title: "Could not update reception name",
+          description: updateError.message,
+          className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+        });
+      }
+    }
     toast({ title: "Call logged" });
     setHistoryTick((t) => t + 1);
     setLoggedOutcome(outcome);
