@@ -87,10 +87,7 @@ export default function AddLeadDialog({
     return () => clearTimeout(t);
   }, [open, projectName, companyBuilder]);
 
-  const dupState: DupState = useMemo(() => {
-    if (dupRaceExact) return { kind: "exact_live", row: dupRaceExact };
-    return classifyDuplicates(dupRows);
-  }, [dupRows, dupRaceExact]);
+  const dupState: DupState = useMemo(() => classifyDuplicates(dupRows), [dupRows]);
 
   // -------- company autocomplete --------
   const companySeq = useRef(0);
