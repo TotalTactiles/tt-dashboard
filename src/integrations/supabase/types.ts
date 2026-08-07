@@ -7528,7 +7528,12 @@ export type Database = {
       }
       tt_normalise_au_phone: { Args: { p_raw: string }; Returns: string }
       tt_oven_test_borrow: {
-        Args: { p_lead_id: string; p_test_number: number; p_title: string }
+        Args: {
+          p_lead_id: string
+          p_stage?: string
+          p_test_number: number
+          p_title: string
+        }
         Returns: string
       }
       tt_oven_test_forget_draft: {

@@ -532,12 +532,15 @@ export default function NewLeadsView({
   const newLeads = useNewLeads();
   const test = useNewLeads("v_oven_test_leads");
   const cold = useColdCallLeads();
+  const coldTest = useColdCallLeads("v_oven_test_call_queue");
+  const [testSub, setTestSub] = useState<"new" | "cold">("new");
 
   useEffect(() => {
     if (!resetNonce) return;
     newLeads.reload();
     test.reload();
     cold.reload();
+    coldTest.reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetNonce]);
 
@@ -548,13 +551,45 @@ export default function NewLeadsView({
         onChange={setTab}
         newCount={newLeads.rows.length}
         coldCount={cold.rows.length}
-        testCount={test.rows.length}
+        testCount={test.rows.length + coldTest.rows.length}
       />
       {tab === "new" ? (
         <NewLeadsQueue operator={operator} {...newLeads} />
       ) : tab === "test" ? (
-        <NewLeadsQueue key={resetNonce} operator={operator} {...test} />
-
+        <div className="space-y-4">
+          <div className="inline-flex rounded-md border border-border bg-muted/30 p-1">
+            <Button
+              variant={testSub === "new" ? "default" : "ghost"}
+              size="sm"
+              className="font-mono"
+              onClick={() => setTestSub("new")}
+            >
+              New Leads
+              <span className="ml-2 text-[10px] opacity-70 tabular-nums">{test.rows.length}</span>
+            </Button>
+            <Button
+              variant={testSub === "cold" ? "default" : "ghost"}
+              size="sm"
+              className="font-mono"
+              onClick={() => setTestSub("cold")}
+            >
+              Cold Call
+              <span className="ml-2 text-[10px] opacity-70 tabular-nums">{coldTest.rows.length}</span>
+            </Button>
+          </div>
+          {testSub === "new" ? (
+            <NewLeadsQueue key={resetNonce} operator={operator} {...test} />
+          ) : (
+            <ColdCallView
+              key={resetNonce}
+              operator={operator}
+              rows={coldTest.rows}
+              calls={coldTest.calls}
+              loading={coldTest.loading}
+              reload={coldTest.reload}
+            />
+          )}
+        </div>
       ) : (
         <ColdCallView
           operator={operator}

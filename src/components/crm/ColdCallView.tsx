@@ -91,7 +91,7 @@ const QUEUE_COLS =
   "last_outcome,next_callback_at,deals_completed,deals_live,prior_leads,claim_actor_id,claim_holder," +
   "claim_active,pass_no,bucket,lead_timezone";
 
-export function useColdCallLeads() {
+export function useColdCallLeads(viewName: string = "v_oven_call_queue") {
   const [rows, setRows] = useState<ColdLead[]>([]);
   const [loading, setLoading] = useState(false);
   const [tick, setTick] = useState(0);
@@ -99,7 +99,7 @@ export function useColdCallLeads() {
   const load = useCallback(async () => {
     setLoading(true);
     const { data } = await db
-      .from("v_oven_call_queue")
+      .from(viewName)
       .select(QUEUE_COLS)
       .order("bucket")
       .order("pass_no")
@@ -108,7 +108,7 @@ export function useColdCallLeads() {
     setRows((data as ColdLead[]) ?? []);
     setLoading(false);
     setTick((t) => t + 1);
-  }, []);
+  }, [viewName]);
 
   useEffect(() => { load(); }, [load]);
   // calls is kept for the existing call signature; call detail is now fetched
