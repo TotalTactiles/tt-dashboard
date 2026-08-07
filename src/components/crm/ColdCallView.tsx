@@ -393,6 +393,7 @@ function ColdCallCard({
   const [lookup, setLookup] = useState<{ saved: boolean; phone: string | null; reason: string | null } | null>(null);
   // Set only once an insert into lead_calls has succeeded for this lead.
   const [loggedOutcome, setLoggedOutcome] = useState<string | null>(null);
+  const [loggedAddressing, setLoggedAddressing] = useState<string | null>(null);
 
 
   const isGatekeeper = outcome === "spoke_gatekeeper";
