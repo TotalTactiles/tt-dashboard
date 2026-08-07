@@ -18,11 +18,15 @@ export type DupState =
   | { kind: "similar"; rows: SimilarLead[] };
 
 export function classifyDuplicates(rows: SimilarLead[]): DupState {
-  const exactLive = rows.find((r) => r.exact_project && r.stage !== "archived");
+  // A matching project name only counts as "this project" when it belongs to the
+  // same builder: two builders can each legitimately have a project called "Stage 2".
+  const exactLive = rows.find((r) => r.exact_project && r.same_company && r.stage !== "archived");
   if (exactLive) return { kind: "exact_live", row: exactLive };
-  const exactArch = rows.find((r) => r.exact_project && r.stage === "archived");
+  const exactArch = rows.find((r) => r.exact_project && r.same_company && r.stage === "archived");
   if (exactArch) return { kind: "exact_archived", row: exactArch };
-  const similar = rows.filter((r) => !r.exact_project && r.score >= 0.55).slice(0, 3);
+  // No same-builder exact match exists by this point, so any remaining exact-name row
+  // belongs to a different builder and should be confirmable rather than hidden.
+  const similar = rows.filter((r) => r.score >= 0.55).slice(0, 3);
   if (similar.length) return { kind: "similar", rows: similar };
   return { kind: "none" };
 }
