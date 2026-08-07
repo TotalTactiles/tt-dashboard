@@ -78,9 +78,11 @@ const NO_EMAIL_OUTCOMES = new Set([
 // caller selecting a step the conversation does not support, which would corrupt
 // the downstream email chain. Outcomes absent from this map get no next steps.
 const NEXT_STEPS_BY_OUTCOME: Record<string, string[]> = {
-  spoke_contact: ["eoi_sent", "ready_to_award", "nry_follow_up_later", "already_completed_future_work"],
+  spoke_contact: ["eoi_sent", "ready_to_award", "nry_follow_up_later", "already_completed_future_work", "cc_not_interested"],
   // No award decision comes from reception, so READY TO AWARD is not offered here.
-  spoke_gatekeeper: ["eoi_sent", "nry_follow_up_later", "already_completed_future_work"],
+  spoke_gatekeeper: ["eoi_sent", "nry_follow_up_later", "already_completed_future_work", "cc_not_interested"],
+  not_interested: ["cc_not_interested"],
+  wrong_number: ["cc_wrong_number"],
 };
 
 const QUEUE_COLS =
@@ -517,11 +519,13 @@ function ColdCallCard({
   async function applyStep(s: NextStepRow) {
     if (busy) return;
     setBusy(s.code);
+    const sendsEmail = (s as any).sends_email !== false;
     const patch: any = { next_step_code: s.code };
     if (contactName.trim()) patch.project_contact_name = contactName.trim();
     if (contactRole.trim()) patch.role = contactRole.trim();
     if (contactEmail.trim()) patch.direct_email = contactEmail.trim().toLowerCase();
     if (followUp) patch.follow_up_date = followUp;
+    if (!sendsEmail) patch.stage = "archived";
     const { error } = await db.from("leads").update(patch).eq("id", lead.id);
     if (error) {
       toast({
@@ -530,6 +534,13 @@ function ColdCallCard({
         className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
       });
       setBusy(null);
+      return;
+    }
+    if (!sendsEmail) {
+      toast({ title: `${s.label} recorded` });
+      setBusy(null);
+      onLogged();
+      await onDone();
       return;
     }
 
