@@ -544,9 +544,13 @@ function ColdCallCard({
     setBusy(s.code);
     const sendsEmail = (s as any).sends_email !== false;
     const patch: any = { next_step_code: s.code };
-    if (contactName.trim()) patch.project_contact_name = contactName.trim();
-    if (contactRole.trim()) patch.role = contactRole.trim();
-    if (contactEmail.trim()) patch.direct_email = contactEmail.trim().toLowerCase();
+    if (contactName.trim() && contactName.trim() !== initialContactName) patch.project_contact_name = contactName.trim();
+    if (contactRole.trim() && contactRole.trim() !== initialContactRole) patch.role = contactRole.trim();
+    const email = contactEmail.trim().toLowerCase();
+    if (email && email !== initialContactEmail) {
+      if (loggedAddressing === "reception_only") patch.reception_email = email;
+      else patch.direct_email = email;
+    }
     if (followUp) patch.follow_up_date = followUp;
     if (!sendsEmail) patch.stage = "archived";
     const { error } = await db.from("leads").update(patch).eq("id", lead.id);
