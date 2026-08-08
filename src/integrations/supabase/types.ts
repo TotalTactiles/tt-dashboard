@@ -6012,8 +6012,11 @@ export type Database = {
           days_overdue: number | null
           direct_email: string | null
           due_date: string | null
+          is_clone_lead: boolean | null
+          is_test_lead: boolean | null
           kind: string | null
           kind_label: string | null
+          last_message_id: string | null
           lead_id: string | null
           lead_stage: string | null
           next_step_code: string | null

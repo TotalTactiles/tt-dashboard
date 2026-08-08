@@ -1346,8 +1346,19 @@ function LeadPanel({
     if (busy) return;
     if (!scheduleDate) return;
     setBusy("schedule");
-    await db.from("leads").update({ follow_up_date: scheduleDate }).eq("id", lead.id);
+    const { data, error } = await db.from("leads")
+      .update({ follow_up_date: scheduleDate })
+      .eq("id", lead.id)
+      .select("id");
     setBusy(null);
+    if (error || !data || data.length !== 1) {
+      toast({
+        title: "Could not schedule this lead",
+        description: error?.message ?? "The lead was not updated.",
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+      return;
+    }
     toast({ title: `Scheduled for ${scheduleDate}` });
     await reload();
   }
@@ -1355,8 +1366,19 @@ function LeadPanel({
   async function removeLead() {
     if (busy) return;
     setBusy("remove");
-    await db.from("leads").update({ stage: "archived", archived_at: new Date().toISOString() }).eq("id", lead.id);
+    const { data, error } = await db.from("leads")
+      .update({ stage: "archived", archived_at: new Date().toISOString() })
+      .eq("id", lead.id)
+      .select("id");
     setBusy(null);
+    if (error || !data || data.length !== 1) {
+      toast({
+        title: "Could not remove this lead",
+        description: error?.message ?? "The lead was not updated.",
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+      return;
+    }
     toast({ title: "Lead removed from the oven" });
     await reload();
   }
