@@ -820,30 +820,34 @@ function ColdCallCard({
       {loggedOutcome && applicableSteps.length > 0 && (
         <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-2">
           <div className="font-mono uppercase text-[10.5px] tracking-[0.13em] text-muted-foreground">Next step</div>
-          <div className="space-y-2">
-            {applicableSteps.map((s) => {
-              const missing = missingFor(s);
-              return (
-                <div key={s.code} className="flex flex-wrap items-center gap-3">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={missing.length > 0 || busy === s.code}
-                    onClick={() => applyStep(s)}
-                  >
-                    {busy === s.code ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
-                    {s.label}
-                  </Button>
-                  {missing.length > 0 && (
-                    <span style={{ color: "#e5934b", fontSize: "11.5px" }}>Needs {missing.join(", ")}</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <div className="pt-1">
-            <Button size="sm" variant="ghost" onClick={onLogged}>Next lead</Button>
-          </div>
+          {!stepApplied && (
+            <div className="space-y-2">
+              {applicableSteps.map((s) => {
+                const missing = missingFor(s);
+                return (
+                  <div key={s.code} className="flex flex-wrap items-center gap-3">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={missing.length > 0 || busy === s.code}
+                      onClick={() => applyStep(s)}
+                    >
+                      {busy === s.code ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+                      {s.label}
+                    </Button>
+                    {missing.length > 0 && (
+                      <span style={{ color: "#e5934b", fontSize: "11.5px" }}>Needs {missing.join(", ")}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {stepApplied && (
+            <div className="pt-1">
+              <Button size="sm" variant="ghost" onClick={onLogged}>Next lead</Button>
+            </div>
+          )}
         </div>
       )}
     </div>
