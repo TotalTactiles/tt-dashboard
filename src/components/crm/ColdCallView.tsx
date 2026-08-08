@@ -397,6 +397,7 @@ function ColdCallCard({
   // Set only once an insert into lead_calls has succeeded for this lead.
   const [loggedOutcome, setLoggedOutcome] = useState<string | null>(null);
   const [loggedAddressing, setLoggedAddressing] = useState<string | null>(null);
+  const [stepApplied, setStepApplied] = useState(false);
 
 
   const isGatekeeper = outcome === "spoke_gatekeeper";
@@ -479,7 +480,10 @@ function ColdCallCard({
     if ((s as any).requires_contact_name && !contactName.trim()) missing.push("contact name");
     if ((s as any).requires_conversation && !(isContactOutcome || isGatekeeper)) missing.push("a logged conversation");
     if ((s as any).requires_follow_up_date && !followUp) missing.push("follow-up date");
-    if ((s as any).requires_note && !notes.trim()) missing.push("a note");
+    // requires_note is deliberately NOT enforced. Krishan's decision, session 021:
+    // a note is evidence, not a gate, and blocking Not interested for lacking one
+    // stops a caller recording the truth. lead_next_steps.requires_note now has no
+    // reader in this card.
     if (s.requires_state && !lead.state) missing.push("state");
     return missing;
   }
