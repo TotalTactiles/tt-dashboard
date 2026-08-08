@@ -380,7 +380,7 @@ function ColdCallCard({
   const [outcome, setOutcome] = useState<string>("");
   const [spokeTo, setSpokeTo] = useState("");
   const [contactName, setContactName] = useState(lead.project_contact_name ?? "");
-  const [contactRole, setContactRole] = useState(lead.role ?? "");
+  const [contactRole, setContactRole] = useState("");
   const [contactEmail, setContactEmail] = useState(lead.direct_email ?? "");
   const initialContactName = (lead.project_contact_name ?? "").trim();
   const initialContactRole = (lead.role ?? "").trim();
@@ -397,6 +397,7 @@ function ColdCallCard({
   // Set only once an insert into lead_calls has succeeded for this lead.
   const [loggedOutcome, setLoggedOutcome] = useState<string | null>(null);
   const [loggedAddressing, setLoggedAddressing] = useState<string | null>(null);
+  const [stepApplied, setStepApplied] = useState(false);
 
 
   const isGatekeeper = outcome === "spoke_gatekeeper";
@@ -479,7 +480,10 @@ function ColdCallCard({
     if ((s as any).requires_contact_name && !contactName.trim()) missing.push("contact name");
     if ((s as any).requires_conversation && !(isContactOutcome || isGatekeeper)) missing.push("a logged conversation");
     if ((s as any).requires_follow_up_date && !followUp) missing.push("follow-up date");
-    if ((s as any).requires_note && !notes.trim()) missing.push("a note");
+    // requires_note is deliberately NOT enforced. Krishan's decision, session 021:
+    // a note is evidence, not a gate, and blocking Not interested for lacking one
+    // stops a caller recording the truth. lead_next_steps.requires_note now has no
+    // reader in this card.
     if (s.requires_state && !lead.state) missing.push("state");
     return missing;
   }
@@ -563,6 +567,7 @@ function ColdCallCard({
       setBusy(null);
       return;
     }
+    setStepApplied(true);
     if (!sendsEmail) {
       toast({ title: `${s.label} recorded` });
       setBusy(null);
@@ -815,30 +820,34 @@ function ColdCallCard({
       {loggedOutcome && applicableSteps.length > 0 && (
         <div className="rounded-md border border-border bg-muted/10 px-3 py-3 space-y-2">
           <div className="font-mono uppercase text-[10.5px] tracking-[0.13em] text-muted-foreground">Next step</div>
-          <div className="space-y-2">
-            {applicableSteps.map((s) => {
-              const missing = missingFor(s);
-              return (
-                <div key={s.code} className="flex flex-wrap items-center gap-3">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={missing.length > 0 || busy === s.code}
-                    onClick={() => applyStep(s)}
-                  >
-                    {busy === s.code ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
-                    {s.label}
-                  </Button>
-                  {missing.length > 0 && (
-                    <span style={{ color: "#e5934b", fontSize: "11.5px" }}>Needs {missing.join(", ")}</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <div className="pt-1">
-            <Button size="sm" variant="ghost" onClick={onLogged}>Next lead</Button>
-          </div>
+          {!stepApplied && (
+            <div className="space-y-2">
+              {applicableSteps.map((s) => {
+                const missing = missingFor(s);
+                return (
+                  <div key={s.code} className="flex flex-wrap items-center gap-3">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={missing.length > 0 || busy === s.code}
+                      onClick={() => applyStep(s)}
+                    >
+                      {busy === s.code ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+                      {s.label}
+                    </Button>
+                    {missing.length > 0 && (
+                      <span style={{ color: "#e5934b", fontSize: "11.5px" }}>Needs {missing.join(", ")}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {stepApplied && (
+            <div className="pt-1">
+              <Button size="sm" variant="ghost" onClick={onLogged}>Next lead</Button>
+            </div>
+          )}
         </div>
       )}
     </div>
