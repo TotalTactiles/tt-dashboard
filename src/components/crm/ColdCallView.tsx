@@ -380,7 +380,7 @@ function ColdCallCard({
   const [outcome, setOutcome] = useState<string>("");
   const [spokeTo, setSpokeTo] = useState("");
   const [contactName, setContactName] = useState(lead.project_contact_name ?? "");
-  const [contactRole, setContactRole] = useState(lead.role ?? "");
+  const [contactRole, setContactRole] = useState("");
   const [contactEmail, setContactEmail] = useState(lead.direct_email ?? "");
   const initialContactName = (lead.project_contact_name ?? "").trim();
   const initialContactRole = (lead.role ?? "").trim();
