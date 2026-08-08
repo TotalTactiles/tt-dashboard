@@ -567,6 +567,7 @@ function ColdCallCard({
       setBusy(null);
       return;
     }
+    setStepApplied(true);
     if (!sendsEmail) {
       toast({ title: `${s.label} recorded` });
       setBusy(null);
