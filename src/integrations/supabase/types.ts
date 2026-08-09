@@ -7489,6 +7489,7 @@ export type Database = {
         }[]
       }
       tt_is_placeholder_builder: { Args: { p_name: string }; Returns: boolean }
+      tt_is_placeholder_project: { Args: { p_name: string }; Returns: boolean }
       tt_is_switchboard: { Args: { p_raw: string }; Returns: boolean }
       tt_last_email_message_id: { Args: { p_lead_id: string }; Returns: string }
       tt_last_email_ref: {
