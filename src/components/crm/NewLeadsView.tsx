@@ -27,6 +27,8 @@ export interface OvenWebhookResult {
   body: any;
 }
 
+const OK_ENFORCED_PATHS = new Set(["tt-lead-send", "tt-lead-builder", "tt-lead-timing", "tt-company-phone"]);
+
 /** POST { lead_id, operator } to an n8n oven webhook and normalise the reply. */
 export async function postOvenWebhook(
   path: string,
@@ -53,17 +55,16 @@ export async function postOvenWebhook(
     if (json && json.ok === false) {
       return { ok: false, blocked: false, reason: String(json.reason ?? json.error ?? "The workflow reported a failure."), body: json };
     }
-    // The send workflow uses responseMode "responseNode", and EVERY Respond node
-    // on it emits an explicit ok field. So a 2xx whose body carries no ok means no
-    // Respond node was reached, which means the run threw part-way through and
-    // nothing downstream of the throw happened. Absence of a failure signal is not
-    // success. Only tt-lead-send is held to this, because only its Respond nodes
-    // have been read; the search webhooks keep the old behaviour until theirs are.
-    if (path === "tt-lead-send" && !(json && json.ok === true)) {
+    // These four workflows use responseMode "responseNode", and every Respond node
+    // on each of them has now been read and emits an explicit ok field. So a 2xx whose
+    // body carries no ok: true means no Respond node was reached, which means the run
+    // threw part-way through and nothing downstream of the throw happened. Absence of
+    // a failure signal is not success.
+    if (OK_ENFORCED_PATHS.has(path) && !(json && json.ok === true)) {
       return {
         ok: false,
         blocked: false,
-        reason: String(json?.message ?? json?.reason ?? json?.error ?? "The send workflow did not reach a response, so nothing after the failure ran."),
+        reason: String(json?.message ?? json?.reason ?? json?.error ?? "The workflow did not reach a response, so nothing after the failure ran."),
         body: json,
       };
     }
