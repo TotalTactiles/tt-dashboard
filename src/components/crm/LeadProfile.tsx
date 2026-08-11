@@ -130,7 +130,7 @@ export default function LeadProfile() {
     <DashboardLayout>
       <div className="p-4 md:p-6 space-y-4 max-w-5xl mx-auto">
         <SectionHeader title="LEAD PROFILE">
-          <Link to="/crm" className="flex items-center gap-1 font-mono text-xs text-primary hover:underline">
+          <Link to="/oven" className="flex items-center gap-1 font-mono text-xs text-primary hover:underline">
             <ArrowLeft className="h-3.5 w-3.5" /> back to the Oven
           </Link>
         </SectionHeader>
