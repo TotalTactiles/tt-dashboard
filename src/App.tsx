@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import Index from "./pages/Index";
 import InvestmentMemorandum from "./pages/InvestmentMemorandum";
@@ -14,7 +14,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Loader2 } from "lucide-react";
 
-// Lazy-load non-index pages — reduces initial bundle size.
+// Lazy-load non-index pages - reduces initial bundle size.
 // Wrap dynamic imports so a stale chunk hash (after redeploy) triggers a
 // one-time hard reload instead of a blank-screen "Failed to fetch dynamically
 // imported module" error.
@@ -86,8 +86,9 @@ const App = () => (
                   <Route path="/financial-health" element={<Protected><FinancialHealth /></Protected>} />
                   <Route path="/management-report" element={<Protected><ManagementReport /></Protected>} />
                   <Route path="/projects" element={<Protected><Projects /></Protected>} />
-                  <Route path="/crm" element={<Protected><CRM /></Protected>} />
+                  <Route path="/oven" element={<Protected><CRM /></Protected>} />
                   <Route path="/crm/lead/:id" element={<Protected><LeadProfile /></Protected>} />
+                  <Route path="/crm" element={<Navigate to="/oven" replace />} />
                   <Route path="/contacts" element={<Protected><Contacts /></Protected>} />
                   {/* ── TV / Wallboard mode ── */}
                   <Route path="/tv" element={<Protected><TvLayout><Index /></TvLayout></Protected>} />

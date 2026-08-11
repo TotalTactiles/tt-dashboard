@@ -10,7 +10,6 @@ import {
   Hammer,
   Contact,
   Settings,
-  Inbox,
   Briefcase,
   Code2 } from
 "lucide-react";
@@ -27,9 +26,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   useSidebar } from
 "@/components/ui/sidebar";
 
