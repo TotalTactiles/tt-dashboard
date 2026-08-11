@@ -115,20 +115,43 @@ export default function LeadProfile() {
   const [timeline, setTimeline] = useState<TimelineRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [timelineError, setTimelineError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
     let cancel = false;
     (async () => {
       setLoading(true);
+      setLoadError(null);
+      setTimelineError(null);
       const [p, t] = await Promise.all([
         db.from("v_lead_profile").select("*").eq("id", id).maybeSingle(),
         db.from("v_lead_timeline").select("*").eq("lead_id", id).order("at", { ascending: false }),
       ]);
       if (cancel) return;
-      setProfile((p.data as Profile) ?? null);
-      setNotFound(!p.data);
-      setTimeline((t.data as TimelineRow[]) ?? []);
+
+      if (p.error) {
+        setLoadError(p.error.message || "The lead could not be loaded.");
+        setProfile(null);
+        setNotFound(false);
+      } else if (!p.data) {
+        setProfile(null);
+        setNotFound(true);
+        setLoadError(null);
+      } else {
+        setProfile(p.data as Profile);
+        setNotFound(false);
+        setLoadError(null);
+      }
+
+      if (t.error) {
+        setTimelineError(t.error.message || "The timeline could not be loaded.");
+        setTimeline([]);
+      } else {
+        setTimeline((t.data as TimelineRow[]) ?? []);
+      }
+
       setLoading(false);
     })();
     return () => { cancel = true; };
