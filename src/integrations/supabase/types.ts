@@ -5710,10 +5710,13 @@ export type Database = {
           company_builder: string | null
           completion_checked_at: string | null
           completion_estimate: string | null
+          completion_precision: string | null
           completion_source: string | null
           created_at: string | null
+          date_precision: string | null
           date_source: string | null
           days_overdue: number | null
+          days_overdue_max: number | null
           deals_completed: number | null
           deals_live: number | null
           deals_lost: number | null
@@ -5726,6 +5729,7 @@ export type Database = {
           follow_up_date: string | null
           guidance: string | null
           id: string | null
+          is_placeholder_project: boolean | null
           last_called_at: string | null
           lead_timezone: string | null
           next_step_code: string | null
@@ -5738,6 +5742,8 @@ export type Database = {
           organisation_id: string | null
           organisation_name: string | null
           owner_email: string | null
+          period_end: string | null
+          period_label: string | null
           phone: string | null
           project_contact_name: string | null
           project_name: string | null
