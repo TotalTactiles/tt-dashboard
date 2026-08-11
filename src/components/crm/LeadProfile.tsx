@@ -115,20 +115,43 @@ export default function LeadProfile() {
   const [timeline, setTimeline] = useState<TimelineRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [timelineError, setTimelineError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
     let cancel = false;
     (async () => {
       setLoading(true);
+      setLoadError(null);
+      setTimelineError(null);
       const [p, t] = await Promise.all([
         db.from("v_lead_profile").select("*").eq("id", id).maybeSingle(),
         db.from("v_lead_timeline").select("*").eq("lead_id", id).order("at", { ascending: false }),
       ]);
       if (cancel) return;
-      setProfile((p.data as Profile) ?? null);
-      setNotFound(!p.data);
-      setTimeline((t.data as TimelineRow[]) ?? []);
+
+      if (p.error) {
+        setLoadError(p.error.message || "The lead could not be loaded.");
+        setProfile(null);
+        setNotFound(false);
+      } else if (!p.data) {
+        setProfile(null);
+        setNotFound(true);
+        setLoadError(null);
+      } else {
+        setProfile(p.data as Profile);
+        setNotFound(false);
+        setLoadError(null);
+      }
+
+      if (t.error) {
+        setTimelineError(t.error.message || "The timeline could not be loaded.");
+        setTimeline([]);
+      } else {
+        setTimeline((t.data as TimelineRow[]) ?? []);
+      }
+
       setLoading(false);
     })();
     return () => { cancel = true; };
@@ -151,7 +174,14 @@ export default function LeadProfile() {
           </div>
         )}
 
-        {!loading && notFound && (
+        {!loading && loadError && (
+          <div className="rounded-md border border-border bg-card px-3 py-8 text-center text-sm text-muted-foreground">
+            <div>That lead could not be loaded.</div>
+            <div className="mt-1 text-xs text-muted-foreground/80">{loadError}</div>
+          </div>
+        )}
+
+        {!loading && !loadError && notFound && (
           <div className="rounded-md border border-border bg-card px-3 py-8 text-center text-sm text-muted-foreground">
             That lead could not be found.
           </div>
@@ -272,7 +302,12 @@ export default function LeadProfile() {
               <div className="mb-3 font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">
                 Timeline
               </div>
-              {timeline.length === 0 ? (
+              {timelineError ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  <div>The timeline could not be loaded.</div>
+                  <div className="mt-1 text-xs text-muted-foreground/80">{timelineError}</div>
+                </div>
+              ) : timeline.length === 0 ? (
                 <div className="py-8 text-center text-sm text-muted-foreground">No activity recorded yet</div>
               ) : (
                 <div className="space-y-2">
