@@ -40,6 +40,10 @@ interface Profile {
   response_rate_pct: number | null;
   claim_holder: string | null;
   claim_active: boolean | null;
+  date_precision: string | null;
+  period_label: string | null;
+  period_end: string | null;
+  days_overdue_max: number | null;
 }
 
 interface TimelineRow {
@@ -82,6 +86,12 @@ function sourceLine(src: string | null) {
   if (src === "search") return "from a search";
   if (src === "manual") return "entered by hand";
   return null;
+}
+
+function fmtPeriodEnd(raw: string) {
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return raw;
+  return d.toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 function fmtWhen(iso: string, tz: string | null) {
@@ -235,13 +245,25 @@ export default function LeadProfile() {
             <div className="rounded-md border border-border bg-card px-4 py-3 space-y-1.5">
               <div className="font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">Timing</div>
               <Row label="band">{profile.timing_band || <Dim />}</Row>
-              <Row label="due">{profile.due_date || <Dim />}</Row>
+              <Row label="due">{profile.period_label || <Dim />}</Row>
+              {profile.period_label && profile.period_end && profile.date_precision !== "day" && (
+                <Row label="period">{`any time up to ${fmtPeriodEnd(profile.period_end)}`}</Row>
+              )}
               <Row label="overdue">
-                {profile.days_overdue != null ? `${profile.days_overdue} days` : <Dim />}
+                {profile.days_overdue == null
+                  ? <Dim />
+                  : profile.days_overdue_max != null && profile.days_overdue_max !== profile.days_overdue
+                    ? `${profile.days_overdue} to ${profile.days_overdue_max} days`
+                    : `${profile.days_overdue} days`}
               </Row>
               <Row label="date source">{sourceLine(profile.date_source) || <Dim />}</Row>
               {profile.guidance && (
                 <div className="pt-1 text-sm text-muted-foreground">{profile.guidance}</div>
+              )}
+              {profile.date_precision && profile.date_precision !== "day" && (
+                <div className="pt-1 text-sm text-muted-foreground">
+                  {`Stated to ${profile.date_precision} precision, so this is a range rather than a date.`}
+                </div>
               )}
             </div>
 
