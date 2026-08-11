@@ -5,15 +5,15 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "The Oven", url: "/crm", icon: OvenIcon },
-  { title: "Contacts", url: "/contacts", icon: Contact },
   { title: "Deal Flow", url: "/deals", icon: Activity },
   { title: "Fin. Health", url: "/financial-health", icon: HeartPulse },
+  { title: "Goals", url: "/goals", icon: Target },
+  { title: "Consulting", url: "/consulting", icon: BrainCircuit },
+  { title: "Contacts", url: "/contacts", icon: Contact },
+  { title: "The Oven", url: "/crm", icon: OvenIcon },
   { title: "Projects", url: "/projects", icon: Hammer },
   { title: "Calendar", url: "/calendar", icon: CalendarDays },
   { title: "Employees", url: "/employees", icon: Users },
-  { title: "Goals", url: "/goals", icon: Target },
-  { title: "Consulting", url: "/consulting", icon: BrainCircuit },
   { title: "Formulas", url: "/formulas", icon: FunctionSquare },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
