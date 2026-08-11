@@ -103,43 +103,14 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {renderItem({ title: "Contacts", url: "/contacts", icon: Contact })}
+              {renderItem({ title: "The Oven - to complete", url: "/oven", icon: OvenIcon })}
 
-              {collapsed ?
-              renderItem({ title: "The Oven - to complete", url: "/crm", icon: OvenIcon }) :
-              <>
-                  <SidebarMenuItem>
-                    <div className="flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm text-muted-foreground">
-                      <Inbox className="mr-2 h-4 w-4" />
-                      <span>Leads</span>
-                    </div>
-                  </SidebarMenuItem>
-                  <SidebarMenuSub>
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton asChild>
-                        <NavLink
-                        to="/crm"
-                        className="hover:bg-sidebar-accent/50"
-                        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-
-                          <OvenIcon className="mr-2 h-4 w-4" />
-                          <span>The Oven - to complete</span>
-                        </NavLink>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                    <SidebarMenuSubItem>
-                      <SidebarMenuSubButton
-                      aria-disabled="true"
-                      tabIndex={-1}
-                      onClick={(e) => e.preventDefault()}
-                      className="opacity-50 cursor-not-allowed pointer-events-none">
-
-                        <Briefcase className="mr-2 h-4 w-4" />
-                        <span>Deals - to be built</span>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  </SidebarMenuSub>
-                </>
-              }
+              <SidebarMenuItem>
+                <SidebarMenuButton disabled aria-disabled="true" className="opacity-50 cursor-not-allowed">
+                  <Briefcase className="mr-2 h-4 w-4" />
+                  {!collapsed && <span>Deals - to be built</span>}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
 
               {operationsAfterLeads.map(renderItem)}
             </SidebarMenu>
