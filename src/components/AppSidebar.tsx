@@ -108,10 +108,10 @@ export function AppSidebar() {
               renderItem({ title: "The Oven - to complete", url: "/crm", icon: OvenIcon }) :
               <>
                   <SidebarMenuItem>
-                    <SidebarMenuButton className="hover:bg-sidebar-accent/50">
+                    <div className="flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm text-muted-foreground">
                       <Inbox className="mr-2 h-4 w-4" />
                       <span>Leads</span>
-                    </SidebarMenuButton>
+                    </div>
                   </SidebarMenuItem>
                   <SidebarMenuSub>
                     <SidebarMenuSubItem>
@@ -128,11 +128,10 @@ export function AppSidebar() {
                     </SidebarMenuSubItem>
                     <SidebarMenuSubItem>
                       <SidebarMenuSubButton
-                      {...({ disabled: true } as Record<string, unknown>)}
                       aria-disabled="true"
+                      tabIndex={-1}
                       onClick={(e) => e.preventDefault()}
                       className="opacity-50 cursor-not-allowed pointer-events-none">
-
 
                         <Briefcase className="mr-2 h-4 w-4" />
                         <span>Deals - to be built</span>
