@@ -40,6 +40,10 @@ interface Profile {
   response_rate_pct: number | null;
   claim_holder: string | null;
   claim_active: boolean | null;
+  date_precision: string | null;
+  period_label: string | null;
+  period_end: string | null;
+  days_overdue_max: number | null;
 }
 
 interface TimelineRow {
@@ -82,6 +86,12 @@ function sourceLine(src: string | null) {
   if (src === "search") return "from a search";
   if (src === "manual") return "entered by hand";
   return null;
+}
+
+function fmtPeriodEnd(raw: string) {
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return raw;
+  return d.toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 function fmtWhen(iso: string, tz: string | null) {
