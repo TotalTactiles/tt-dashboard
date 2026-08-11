@@ -6013,6 +6013,7 @@ export type Database = {
           direct_email: string | null
           due_date: string | null
           is_clone_lead: boolean | null
+          is_placeholder_project: boolean | null
           is_test_lead: boolean | null
           kind: string | null
           kind_label: string | null
