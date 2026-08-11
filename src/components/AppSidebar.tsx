@@ -128,9 +128,11 @@ export function AppSidebar() {
                     </SidebarMenuSubItem>
                     <SidebarMenuSubItem>
                       <SidebarMenuSubButton
-                      disabled
+                      {...({ disabled: true } as Record<string, unknown>)}
                       aria-disabled="true"
-                      className="opacity-50 cursor-not-allowed">
+                      onClick={(e) => e.preventDefault()}
+                      className="opacity-50 cursor-not-allowed pointer-events-none">
+
 
                         <Briefcase className="mr-2 h-4 w-4" />
                         <span>Deals - to be built</span>
