@@ -174,7 +174,14 @@ export default function LeadProfile() {
           </div>
         )}
 
-        {!loading && notFound && (
+        {!loading && loadError && (
+          <div className="rounded-md border border-border bg-card px-3 py-8 text-center text-sm text-muted-foreground">
+            <div>That lead could not be loaded.</div>
+            <div className="mt-1 text-xs text-muted-foreground/80">{loadError}</div>
+          </div>
+        )}
+
+        {!loading && !loadError && notFound && (
           <div className="rounded-md border border-border bg-card px-3 py-8 text-center text-sm text-muted-foreground">
             That lead could not be found.
           </div>
