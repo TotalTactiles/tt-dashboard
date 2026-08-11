@@ -302,7 +302,12 @@ export default function LeadProfile() {
               <div className="mb-3 font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">
                 Timeline
               </div>
-              {timeline.length === 0 ? (
+              {timelineError ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  <div>The timeline could not be loaded.</div>
+                  <div className="mt-1 text-xs text-muted-foreground/80">{timelineError}</div>
+                </div>
+              ) : timeline.length === 0 ? (
                 <div className="py-8 text-center text-sm text-muted-foreground">No activity recorded yet</div>
               ) : (
                 <div className="space-y-2">
