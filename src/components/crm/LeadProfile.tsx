@@ -147,15 +147,17 @@ function fmtWhen(iso: string, tz: string | null) {
 function StageControl({
   leadId,
   stage,
+  operator,
   onChanged,
 }: {
   leadId: string;
   stage: string | null;
+  operator: string | null;
   onChanged: () => void;
 }) {
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
-  const operator = getStoredOperator();
+
 
   const options = STAGES.filter((s) => s !== stage);
   const current = stage ? STAGE_LABEL[stage] ?? stage.replace(/_/g, " ") : "no stage";
