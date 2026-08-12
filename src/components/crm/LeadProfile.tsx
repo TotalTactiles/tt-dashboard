@@ -4,11 +4,37 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import SectionHeader from "@/components/dashboard/SectionHeader";
 import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { getStoredOperator } from "@/components/crm/WorkingAsGate";
 
 const db = supabase as any;
 
 const DASH = "-";
 const CALL_ACCENT = "#3D89DA";
+
+const STAGE_LABEL: Record<string, string> = {
+  new: "New",
+  enriching: "Enriching",
+  ready_to_call: "Ready to call",
+  actioned: "Actioned",
+  responded: "Responded",
+  needs_attention: "Needs attention",
+  converted: "Converted",
+  archived: "Archived",
+};
+
+const STAGES = [
+  "new",
+  "enriching",
+  "ready_to_call",
+  "actioned",
+  "responded",
+  "needs_attention",
+  "converted",
+  "archived",
+] as const;
+
 
 interface Profile {
   id: string;
