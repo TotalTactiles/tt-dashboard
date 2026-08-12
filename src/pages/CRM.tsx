@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import SectionHeader from "@/components/dashboard/SectionHeader";
-import WorkingAsGate, { getStoredOperator, setStoredOperator } from "@/components/crm/WorkingAsGate";
+import WorkingAsGate, { getStoredOperator, setStoredOperator, useOperators } from "@/components/crm/WorkingAsGate";
 import NewLeadsView from "@/components/crm/NewLeadsView";
 import TestLaneControls from "@/components/crm/TestLaneControls";
 import type { OvenTab } from "@/components/crm/OvenTabs";
@@ -12,6 +12,9 @@ export default function CRM() {
   const [resetNonce, setResetNonce] = useState(0);
 
   useEffect(() => { setOperator(getStoredOperator()); }, []);
+
+  const { operators } = useOperators();
+  const operatorLabel = operators.find((o) => o.handle === operator)?.display_name || operator;
 
   if (!operator) {
     return (
@@ -28,7 +31,7 @@ export default function CRM() {
       <div className="p-4 md:p-6 space-y-4 max-w-6xl mx-auto">
         <SectionHeader title="THE OVEN - LEAD MANAGEMENT">
           <div className="flex items-center gap-3 text-xs font-mono text-muted-foreground">
-            <span>Working as <span className="text-foreground font-semibold">{operator}</span></span>
+            <span>Working as <span className="text-foreground font-semibold">{operatorLabel}</span></span>
             <button
               className="text-primary hover:underline"
               onClick={() => { setStoredOperator(null); setOperator(null); }}
