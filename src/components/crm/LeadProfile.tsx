@@ -327,7 +327,12 @@ export default function LeadProfile() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {profile.state && <Chip>{profile.state}</Chip>}
-                  {profile.stage && <Chip>{profile.stage.replace(/_/g, " ")}</Chip>}
+                  <StageControl
+                    leadId={profile.id}
+                    stage={profile.stage}
+                    onChanged={() => setRefreshNonce((n) => n + 1)}
+                  />
+
                   {profile.timing_band && <Chip>{profile.timing_band}</Chip>}
                 </div>
               </div>
