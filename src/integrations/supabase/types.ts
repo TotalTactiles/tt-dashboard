@@ -1766,6 +1766,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lead_events_kind_fkey"
+            columns: ["kind"]
+            isOneToOne: false
+            referencedRelation: "lead_event_kinds"
+            referencedColumns: ["kind"]
+          },
+          {
             foreignKeyName: "lead_events_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
