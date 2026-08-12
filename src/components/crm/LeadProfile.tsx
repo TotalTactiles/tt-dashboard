@@ -44,6 +44,7 @@ interface Profile {
   period_label: string | null;
   period_end: string | null;
   days_overdue_max: number | null;
+  organisation_id: string | null;
 }
 
 interface TimelineRow {
@@ -258,17 +259,24 @@ export default function LeadProfile() {
                   )
                   : <Dim />}
               </Row>
-              <div className="grid grid-cols-2 gap-2 pt-2 sm:grid-cols-3 lg:grid-cols-7">
-                <Stat label="completed" value={profile.deals_completed ?? 0} />
-                <Stat label="live" value={profile.deals_live ?? 0} />
-                <Stat label="lost" value={profile.deals_lost ?? 0} />
-                <Stat label="leads" value={profile.org_leads ?? 0} />
-                <Stat label="emailed" value={profile.org_emailed ?? 0} />
-                <Stat label="replied" value={profile.org_replied ?? 0} />
-                {profile.response_rate_pct != null && (
-                  <Stat label="reply rate" value={`${Number(profile.response_rate_pct).toFixed(0)}%`} />
-                )}
-              </div>
+              {profile.organisation_id ? (
+                <div className="grid grid-cols-2 gap-2 pt-2 sm:grid-cols-3 lg:grid-cols-7">
+                  <Stat label="completed" value={profile.deals_completed ?? 0} />
+                  <Stat label="live" value={profile.deals_live ?? 0} />
+                  <Stat label="lost" value={profile.deals_lost ?? 0} />
+                  <Stat label="leads" value={profile.org_leads ?? 0} />
+                  <Stat label="emailed" value={profile.org_emailed ?? 0} />
+                  <Stat label="replied" value={profile.org_replied ?? 0} />
+                  {profile.response_rate_pct != null && (
+                    <Stat label="reply rate" value={`${Number(profile.response_rate_pct).toFixed(0)}%`} />
+                  )}
+                </div>
+              ) : (
+                <div className="rounded border border-border px-2 py-1.5 pt-2">
+                  <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">NO ORGANISATION LINKED</div>
+                  <div className="text-sm">This lead is not linked to an organisation, so its company history is unknown. It is not zero.</div>
+                </div>
+              )}
             </div>
 
             {/* 4. timing */}
