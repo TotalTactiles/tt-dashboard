@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, UserCog } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import SectionHeader from "@/components/dashboard/SectionHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { getStoredOperator } from "@/components/crm/WorkingAsGate";
+import { getStoredOperator, OperatorPicker, useOperators } from "@/components/crm/WorkingAsGate";
 
 const db = supabase as any;
+
 
 const DASH = "-";
 const CALL_ACCENT = "#3D89DA";
@@ -144,15 +147,17 @@ function fmtWhen(iso: string, tz: string | null) {
 function StageControl({
   leadId,
   stage,
+  operator,
   onChanged,
 }: {
   leadId: string;
   stage: string | null;
+  operator: string | null;
   onChanged: () => void;
 }) {
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
-  const operator = getStoredOperator();
+
 
   const options = STAGES.filter((s) => s !== stage);
   const current = stage ? STAGE_LABEL[stage] ?? stage.replace(/_/g, " ") : "no stage";
@@ -213,15 +218,16 @@ function StageControl({
     <Select value="" onValueChange={change} disabled={busy || !operator}>
       <SelectTrigger
         className="h-auto w-auto gap-1.5 rounded border-border px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground"
-        title={operator ? "Change the stage" : "Pick who is working in the Oven before changing the stage"}
+        title={operator ? "Change the stage" : "Pick who is working, using the button beside this, before changing the stage"}
       >
         {busy ? (
           <span className="flex items-center gap-1.5">
             <Loader2 className="h-3 w-3 animate-spin" /> saving
           </span>
         ) : (
-          <SelectValue placeholder={operator ? current : `${current} - no operator`} />
+          <SelectValue placeholder={operator ? current : `${current} - pick who is working`} />
         )}
+
       </SelectTrigger>
       <SelectContent>
         {options.map((s) => (
@@ -234,6 +240,61 @@ function StageControl({
   );
 }
 
+
+/**
+ * Reads the operator list from the one producer in WorkingAsGate so this page
+ * never keeps a second copy of it. Nothing here writes to the database.
+ */
+function OperatorControl({
+  operator,
+  onChoose,
+}: {
+  operator: string | null;
+  onChoose: (handle: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const { operators, loading, error } = useOperators();
+
+  const match = operator ? operators.find((o) => o.handle === operator) : undefined;
+  const unknown = !!operator && !loading && !error && !match;
+
+  const label = !operator
+    ? "pick who is working"
+    : match
+      ? `working as ${match.display_name}`
+      : unknown
+        ? `working as ${operator} (not an active user)`
+        : `working as ${operator}`;
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className={`h-auto gap-1.5 rounded px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-widest ${
+            operator ? "text-muted-foreground" : "border-primary/50 text-primary"
+          }`}
+        >
+          <UserCog className="h-3 w-3" /> {label}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="font-mono text-sm uppercase tracking-wider">Who's working?</DialogTitle>
+        </DialogHeader>
+        <p className="text-xs text-muted-foreground">
+          Activity on this lead is attributed to the name you pick.
+        </p>
+        <OperatorPicker
+          compact
+          onChoose={(handle) => { onChoose(handle); setOpen(false); }}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function LeadProfile() {
   const { id } = useParams<{ id: string }>();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -243,6 +304,8 @@ export default function LeadProfile() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [timelineError, setTimelineError] = useState<string | null>(null);
   const [refreshNonce, setRefreshNonce] = useState(0);
+  const [operator, setOperator] = useState<string | null>(() => getStoredOperator());
+
 
 
   useEffect(() => {
@@ -327,11 +390,14 @@ export default function LeadProfile() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {profile.state && <Chip>{profile.state}</Chip>}
+                  <OperatorControl operator={operator} onChoose={setOperator} />
                   <StageControl
                     leadId={profile.id}
                     stage={profile.stage}
+                    operator={operator}
                     onChanged={() => setRefreshNonce((n) => n + 1)}
                   />
+
 
                   {profile.timing_band && <Chip>{profile.timing_band}</Chip>}
                 </div>
