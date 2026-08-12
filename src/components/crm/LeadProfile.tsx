@@ -218,15 +218,16 @@ function StageControl({
     <Select value="" onValueChange={change} disabled={busy || !operator}>
       <SelectTrigger
         className="h-auto w-auto gap-1.5 rounded border-border px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground"
-        title={operator ? "Change the stage" : "Pick who is working in the Oven before changing the stage"}
+        title={operator ? "Change the stage" : "Pick who is working, using the button beside this, before changing the stage"}
       >
         {busy ? (
           <span className="flex items-center gap-1.5">
             <Loader2 className="h-3 w-3 animate-spin" /> saving
           </span>
         ) : (
-          <SelectValue placeholder={operator ? current : `${current} - no operator`} />
+          <SelectValue placeholder={operator ? current : `${current} - pick who is working`} />
         )}
+
       </SelectTrigger>
       <SelectContent>
         {options.map((s) => (
