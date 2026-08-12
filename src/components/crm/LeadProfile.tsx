@@ -282,7 +282,7 @@ export default function LeadProfile() {
       setLoading(false);
     })();
     return () => { cancel = true; };
-  }, [id]);
+  }, [id, refreshNonce]);
 
   const tz = profile?.lead_timezone ?? null;
 
