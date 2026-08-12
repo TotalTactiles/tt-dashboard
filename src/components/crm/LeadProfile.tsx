@@ -240,6 +240,61 @@ function StageControl({
   );
 }
 
+
+/**
+ * Reads the operator list from the one producer in WorkingAsGate so this page
+ * never keeps a second copy of it. Nothing here writes to the database.
+ */
+function OperatorControl({
+  operator,
+  onChoose,
+}: {
+  operator: string | null;
+  onChoose: (handle: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const { operators, loading, error } = useOperators();
+
+  const match = operator ? operators.find((o) => o.handle === operator) : undefined;
+  const unknown = !!operator && !loading && !error && !match;
+
+  const label = !operator
+    ? "pick who is working"
+    : match
+      ? `working as ${match.display_name}`
+      : unknown
+        ? `working as ${operator} (not an active user)`
+        : `working as ${operator}`;
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className={`h-auto gap-1.5 rounded px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-widest ${
+            operator ? "text-muted-foreground" : "border-primary/50 text-primary"
+          }`}
+        >
+          <UserCog className="h-3 w-3" /> {label}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="font-mono text-sm uppercase tracking-wider">Who's working?</DialogTitle>
+        </DialogHeader>
+        <p className="text-xs text-muted-foreground">
+          Activity on this lead is attributed to the name you pick.
+        </p>
+        <OperatorPicker
+          compact
+          onChoose={(handle) => { onChoose(handle); setOpen(false); }}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function LeadProfile() {
   const { id } = useParams<{ id: string }>();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -249,6 +304,8 @@ export default function LeadProfile() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [timelineError, setTimelineError] = useState<string | null>(null);
   const [refreshNonce, setRefreshNonce] = useState(0);
+  const [operator, setOperator] = useState<string | null>(() => getStoredOperator());
+
 
 
   useEffect(() => {
