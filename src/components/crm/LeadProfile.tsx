@@ -4,11 +4,37 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import SectionHeader from "@/components/dashboard/SectionHeader";
 import { supabase } from "@/integrations/supabase/client";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { getStoredOperator } from "@/components/crm/WorkingAsGate";
 
 const db = supabase as any;
 
 const DASH = "-";
 const CALL_ACCENT = "#3D89DA";
+
+const STAGE_LABEL: Record<string, string> = {
+  new: "New",
+  enriching: "Enriching",
+  ready_to_call: "Ready to call",
+  actioned: "Actioned",
+  responded: "Responded",
+  needs_attention: "Needs attention",
+  converted: "Converted",
+  archived: "Archived",
+};
+
+const STAGES = [
+  "new",
+  "enriching",
+  "ready_to_call",
+  "actioned",
+  "responded",
+  "needs_attention",
+  "converted",
+  "archived",
+] as const;
+
 
 interface Profile {
   id: string;
@@ -110,6 +136,104 @@ function fmtWhen(iso: string, tz: string | null) {
   }
 }
 
+/**
+ * The one write on this page. Stage changes go through the tt-lead-stage n8n
+ * workflow, never through a direct table update. Three outcomes always: ok,
+ * error (including a HTTP 200 carrying ok:false) and network.
+ */
+function StageControl({
+  leadId,
+  stage,
+  onChanged,
+}: {
+  leadId: string;
+  stage: string | null;
+  onChanged: () => void;
+}) {
+  const { toast } = useToast();
+  const [busy, setBusy] = useState(false);
+  const operator = getStoredOperator();
+
+  const options = STAGES.filter((s) => s !== stage);
+  const current = stage ? STAGE_LABEL[stage] ?? stage.replace(/_/g, " ") : "no stage";
+
+  async function change(to: string) {
+    if (busy || !operator) return;
+    setBusy(true);
+
+    let result:
+      | { kind: "ok"; to: string }
+      | { kind: "error"; message: string }
+      | { kind: "network"; message: string } = { kind: "network", message: "the stage workflow did not respond" };
+
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 30_000);
+      const res = await fetch("https://n8n.srv1437130.hstgr.cloud/webhook/tt-lead-stage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lead_id: leadId, operator, to_stage: to }),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      let json: any = null;
+      try { json = await res.json(); } catch { /* non-json */ }
+      if (!res.ok || json?.ok !== true) {
+        const reason = json?.reason ?? json?.error ?? json?.message;
+        const held = json?.held_by ? ` (held by ${json.held_by})` : "";
+        result = {
+          kind: "error",
+          message: `${String(reason ?? `HTTP ${res.status}`)}${held}`,
+        };
+      } else {
+        result = { kind: "ok", to: String(json.to_stage ?? to) };
+      }
+    } catch {
+      result = { kind: "network", message: "the stage workflow did not respond" };
+    }
+
+    setBusy(false);
+
+    if (result.kind === "ok") {
+      toast({
+        title: "Stage changed",
+        description: `Moved to ${STAGE_LABEL[result.to] ?? result.to.replace(/_/g, " ")}`,
+      });
+      onChanged();
+    } else {
+      toast({
+        title: "The stage was not changed",
+        description: result.message,
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+    }
+  }
+
+  return (
+    <Select value="" onValueChange={change} disabled={busy || !operator}>
+      <SelectTrigger
+        className="h-auto w-auto gap-1.5 rounded border-border px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground"
+        title={operator ? "Change the stage" : "Pick who is working in the Oven before changing the stage"}
+      >
+        {busy ? (
+          <span className="flex items-center gap-1.5">
+            <Loader2 className="h-3 w-3 animate-spin" /> saving
+          </span>
+        ) : (
+          <SelectValue placeholder={operator ? current : `${current} - no operator`} />
+        )}
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((s) => (
+          <SelectItem key={s} value={s} className="text-xs">
+            {STAGE_LABEL[s]}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 export default function LeadProfile() {
   const { id } = useParams<{ id: string }>();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -118,6 +242,8 @@ export default function LeadProfile() {
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [timelineError, setTimelineError] = useState<string | null>(null);
+  const [refreshNonce, setRefreshNonce] = useState(0);
+
 
   useEffect(() => {
     if (!id) return;
@@ -156,7 +282,7 @@ export default function LeadProfile() {
       setLoading(false);
     })();
     return () => { cancel = true; };
-  }, [id]);
+  }, [id, refreshNonce]);
 
   const tz = profile?.lead_timezone ?? null;
 
@@ -201,7 +327,12 @@ export default function LeadProfile() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {profile.state && <Chip>{profile.state}</Chip>}
-                  {profile.stage && <Chip>{profile.stage.replace(/_/g, " ")}</Chip>}
+                  <StageControl
+                    leadId={profile.id}
+                    stage={profile.stage}
+                    onChanged={() => setRefreshNonce((n) => n + 1)}
+                  />
+
                   {profile.timing_band && <Chip>{profile.timing_band}</Chip>}
                 </div>
               </div>
