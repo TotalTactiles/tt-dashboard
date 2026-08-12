@@ -390,11 +390,14 @@ export default function LeadProfile() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {profile.state && <Chip>{profile.state}</Chip>}
+                  <OperatorControl operator={operator} onChoose={setOperator} />
                   <StageControl
                     leadId={profile.id}
                     stage={profile.stage}
+                    operator={operator}
                     onChanged={() => setRefreshNonce((n) => n + 1)}
                   />
+
 
                   {profile.timing_band && <Chip>{profile.timing_band}</Chip>}
                 </div>
