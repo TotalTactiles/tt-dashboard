@@ -44,6 +44,7 @@ interface Profile {
   period_label: string | null;
   period_end: string | null;
   days_overdue_max: number | null;
+  organisation_id: string | null;
 }
 
 interface TimelineRow {
