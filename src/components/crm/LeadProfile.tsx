@@ -566,6 +566,7 @@ export default function LeadProfile() {
                       value={profile.state}
                       operator={operator}
                       placeholder="state"
+                      compact
                       className="w-16 font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground"
                       onSaved={() => setRefreshNonce((n) => n + 1)}
                     />
