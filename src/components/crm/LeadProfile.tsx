@@ -173,10 +173,12 @@ function FieldControl({
   const [saving, setSaving] = useState(false);
   const [focused, setFocused] = useState(false);
 
-  // Re-seed from the freshly read row, but never while the user is typing.
+  // Re-seed from the freshly read row, but never while the user is typing or
+  // while a save is in flight (so the field does not snap back to the stale
+  // prop while the request is still running).
   useEffect(() => {
-    if (!focused) setDraft(value ?? "");
-  }, [value, focused]);
+    if (!focused && !saving) setDraft(value ?? "");
+  }, [value, focused, saving]);
 
   const norm = (s: string) => {
     const t = s.trim();
