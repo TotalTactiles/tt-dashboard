@@ -531,25 +531,27 @@ export default function LeadProfile() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h1 className="text-xl md:text-2xl font-semibold leading-tight">
-                    <FieldControl
-                      leadId={profile.id}
-                      field="company_builder"
-                      label="builder"
-                      value={profile.company_builder}
-                      operator={operator}
-                      placeholder="no builder"
-                      className="text-xl md:text-2xl font-semibold leading-tight"
-                      onSaved={() => setRefreshNonce((n) => n + 1)}
-                    />
+                    <span className="flex w-full">
+                      <FieldControl
+                        leadId={profile.id}
+                        field="project_name"
+                        label="project name"
+                        value={profile.project_name}
+                        operator={operator}
+                        placeholder="add a project name"
+                        className="text-xl md:text-2xl font-semibold leading-tight"
+                        onSaved={() => setRefreshNonce((n) => n + 1)}
+                      />
+                    </span>
                   </h1>
                   <div className="text-sm text-muted-foreground">
                     <FieldControl
                       leadId={profile.id}
-                      field="project_name"
-                      label="project name"
-                      value={profile.project_name}
+                      field="company_builder"
+                      label="company name"
+                      value={profile.company_builder}
                       operator={operator}
-                      placeholder="add a project name"
+                      placeholder="add a company name"
                       className="text-sm text-muted-foreground"
                       onSaved={() => setRefreshNonce((n) => n + 1)}
                     />
