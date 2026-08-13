@@ -286,7 +286,28 @@ function FieldControl({
           rows={4}
           className={`${shared} w-full min-h-[88px] resize-y whitespace-pre-line break-words py-1`}
         />
+      ) : wrap ? (
+        <textarea
+          ref={wrapRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onInput={(e) => grow(e.currentTarget)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => { setFocused(false); void save(); }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              e.currentTarget.blur();
+            }
+          }}
+          disabled={disabled}
+          title={title}
+          placeholder={placeholder}
+          rows={1}
+          className={`${shared} w-full resize-none overflow-hidden break-words`}
+        />
       ) : (
+
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
