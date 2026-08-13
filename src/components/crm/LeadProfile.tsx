@@ -142,6 +142,140 @@ function fmtWhen(iso: string, tz: string | null) {
 }
 
 /**
+ * Inline editable field. Saves on blur through the tt-lead-field n8n workflow,
+ * never through a direct table update. Three outcomes always: ok, error and
+ * network. Failures revert the input so the screen never shows a value the
+ * database does not hold.
+ */
+function FieldControl({
+  leadId,
+  field,
+  value,
+  operator,
+  label,
+  placeholder,
+  multiline,
+  className,
+  onSaved,
+}: {
+  leadId: string;
+  field: string;
+  value: string | null;
+  operator: string | null;
+  label: string;
+  placeholder?: string;
+  multiline?: boolean;
+  className?: string;
+  onSaved: () => void;
+}) {
+  const { toast } = useToast();
+  const [draft, setDraft] = useState(value ?? "");
+  const [saving, setSaving] = useState(false);
+  const [focused, setFocused] = useState(false);
+
+  // Re-seed from the freshly read row, but never while the user is typing.
+  useEffect(() => {
+    if (!focused) setDraft(value ?? "");
+  }, [value, focused]);
+
+  const norm = (s: string) => {
+    const t = s.trim();
+    return t === "" ? null : t;
+  };
+
+  async function save() {
+    const next = norm(draft);
+    const original = norm(value ?? "");
+    if (next === original) {
+      setDraft(next ?? "");
+      return;
+    }
+
+    setSaving(true);
+
+    let result:
+      | { kind: "ok" }
+      | { kind: "error"; message: string }
+      | { kind: "network"; message: string } = { kind: "network", message: "the field workflow did not respond" };
+
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 30_000);
+      const res = await fetch("https://n8n.srv1437130.hstgr.cloud/webhook/tt-lead-field", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lead_id: leadId, operator, field, value: next }),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      let json: any = null;
+      try { json = await res.json(); } catch { /* non-json */ }
+      if (!res.ok || json?.ok !== true) {
+        const reason = json?.reason ?? json?.error ?? json?.message ?? `HTTP ${res.status}`;
+        const held = json?.held_by ? ` (held by ${json.held_by})` : "";
+        result = { kind: "error", message: `${String(reason)}${held}` };
+      } else {
+        result = { kind: "ok" };
+      }
+    } catch {
+      result = { kind: "network", message: "the field workflow did not respond" };
+    }
+
+    setSaving(false);
+
+    if (result.kind === "ok") {
+      toast({ title: "Saved", description: `The ${label} was saved` });
+      onSaved();
+    } else {
+      setDraft(value ?? "");
+      toast({
+        title: "Not saved",
+        description: result.message,
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+    }
+  }
+
+  const disabled = saving || !operator;
+  const title = !operator
+    ? "Pick who is working, using the button in the header, before editing this"
+    : undefined;
+
+  const shared = `w-full rounded border border-transparent bg-transparent px-1 outline-none transition-colors hover:border-border focus:border-border focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-70 placeholder:text-muted-foreground/50 ${className ?? ""}`;
+
+  return (
+    <span className="inline-flex min-w-0 flex-1 items-center gap-1">
+      {multiline ? (
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => { setFocused(false); void save(); }}
+          disabled={disabled}
+          title={title}
+          placeholder={placeholder}
+          rows={4}
+          className={`${shared} min-h-[88px] resize-y whitespace-pre-line break-words py-1`}
+        />
+      ) : (
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => { setFocused(false); void save(); }}
+          disabled={disabled}
+          title={title}
+          placeholder={placeholder}
+          className={`${shared} min-h-[44px] py-1`}
+        />
+      )}
+      {saving && <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" />}
+    </span>
+  );
+}
+
+
+/**
  * The one write on this page. Stage changes go through the tt-lead-stage n8n
  * workflow, never through a direct table update. Three outcomes always: ok,
  * error (including a HTTP 200 carrying ok:false) and network.
