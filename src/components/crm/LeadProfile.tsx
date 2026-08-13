@@ -177,6 +177,21 @@ function FieldControl({
   const [draft, setDraft] = useState(value ?? "");
   const [saving, setSaving] = useState(false);
   const [focused, setFocused] = useState(false);
+  const wrapRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // A wrap field is a textarea dressed as a heading, so its height has to be
+  // recomputed from the content each time the draft changes.
+  const grow = (el: HTMLTextAreaElement | null) => {
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  };
+
+  useEffect(() => {
+    if (wrap) grow(wrapRef.current);
+  }, [draft, wrap]);
+
+
 
   // Re-seed from the freshly read row, but never while the user is typing or
   // while a save is in flight (so the field does not snap back to the stale
