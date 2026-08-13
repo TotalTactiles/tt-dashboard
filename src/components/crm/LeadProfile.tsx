@@ -384,12 +384,44 @@ export default function LeadProfile() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h1 className="text-xl md:text-2xl font-semibold leading-tight">
-                    {profile.company_builder || "no builder"}
+                    <FieldControl
+                      leadId={profile.id}
+                      field="company_builder"
+                      label="builder"
+                      value={profile.company_builder}
+                      operator={operator}
+                      placeholder="no builder"
+                      className="text-xl md:text-2xl font-semibold leading-tight"
+                      onSaved={() => setRefreshNonce((n) => n + 1)}
+                    />
                   </h1>
-                  <div className="text-sm text-muted-foreground">{profile.project_name || DASH}</div>
+                  <div className="text-sm text-muted-foreground">
+                    <FieldControl
+                      leadId={profile.id}
+                      field="project_name"
+                      label="project name"
+                      value={profile.project_name}
+                      operator={operator}
+                      placeholder="add a project name"
+                      className="text-sm text-muted-foreground"
+                      onSaved={() => setRefreshNonce((n) => n + 1)}
+                    />
+                  </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  {profile.state && <Chip>{profile.state}</Chip>}
+                  <span className="rounded border border-border px-2 py-0.5">
+                    <FieldControl
+                      leadId={profile.id}
+                      field="state"
+                      label="state"
+                      value={profile.state}
+                      operator={operator}
+                      placeholder="state"
+                      className="w-16 font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground"
+                      onSaved={() => setRefreshNonce((n) => n + 1)}
+                    />
+                  </span>
+
                   <OperatorControl operator={operator} onChoose={setOperator} />
                   <StageControl
                     leadId={profile.id}
