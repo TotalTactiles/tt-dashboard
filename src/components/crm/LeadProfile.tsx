@@ -102,9 +102,10 @@ const Row = ({ label, children }: { label: string; children: React.ReactNode }) 
     <span className="w-28 shrink-0 font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">
       {label}
     </span>
-    <span>{children}</span>
+    <span className="min-w-0 flex-1">{children}</span>
   </div>
 );
+
 
 const Stat = ({ label, value }: { label: string; value: React.ReactNode }) => (
   <div className="rounded border border-border px-2 py-1.5">
@@ -245,7 +246,7 @@ function FieldControl({
     ? "Pick who is working, using the button in the header, before editing this"
     : undefined;
 
-  const shared = `w-full rounded border border-transparent bg-transparent px-1 outline-none transition-colors hover:border-border focus:border-border focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-70 placeholder:text-muted-foreground/50 ${className ?? ""}`;
+  const shared = `rounded border border-transparent bg-transparent px-1 outline-none transition-colors hover:border-border focus:border-border focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-70 placeholder:text-muted-foreground/50 ${className ?? ""}`;
 
   const wrapperClass = compact
     ? "inline-flex items-center gap-1"
@@ -277,8 +278,9 @@ function FieldControl({
           disabled={disabled}
           title={title}
           placeholder={placeholder}
-          className={`${shared} ${sizeClass}`}
+          className={`${shared} ${sizeClass} ${compact ? "" : "w-full"}`}
         />
+
       )}
       {saving && <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" />}
     </span>
