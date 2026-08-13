@@ -568,10 +568,11 @@ export default function LeadProfile() {
           <>
             {/* 1. header */}
             <div className="rounded-md border border-border bg-card px-4 py-3">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
+              <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-start md:justify-between">
+                <div className="w-full min-w-0 md:flex-1">
                   <h1 className="text-xl md:text-2xl font-semibold leading-tight">
-                    <span className="flex w-full">
+                    <span className="flex w-full min-w-0">
+
                       <FieldControl
                         leadId={profile.id}
                         field="project_name"
