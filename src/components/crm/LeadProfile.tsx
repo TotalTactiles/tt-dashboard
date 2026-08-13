@@ -600,7 +600,7 @@ export default function LeadProfile() {
                     </span>
                   </div>
                 </div>
-                <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
+                <div className="flex w-full min-w-0 flex-wrap items-center gap-2 md:w-auto md:flex-shrink-0">
                   <span className="rounded border border-border px-2 py-0.5">
                     <FieldControl
                       leadId={profile.id}
