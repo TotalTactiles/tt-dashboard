@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2, Mail, Phone, UserCog } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -156,6 +156,7 @@ function FieldControl({
   label,
   placeholder,
   multiline,
+  wrap,
   compact,
   className,
   onSaved,
@@ -167,6 +168,7 @@ function FieldControl({
   label: string;
   placeholder?: string;
   multiline?: boolean;
+  wrap?: boolean;
   compact?: boolean;
   className?: string;
   onSaved: () => void;
@@ -175,6 +177,21 @@ function FieldControl({
   const [draft, setDraft] = useState(value ?? "");
   const [saving, setSaving] = useState(false);
   const [focused, setFocused] = useState(false);
+  const wrapRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // A wrap field is a textarea dressed as a heading, so its height has to be
+  // recomputed from the content each time the draft changes.
+  const grow = (el: HTMLTextAreaElement | null) => {
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  };
+
+  useEffect(() => {
+    if (wrap) grow(wrapRef.current);
+  }, [draft, wrap]);
+
+
 
   // Re-seed from the freshly read row, but never while the user is typing or
   // while a save is in flight (so the field does not snap back to the stale
@@ -269,7 +286,28 @@ function FieldControl({
           rows={4}
           className={`${shared} w-full min-h-[88px] resize-y whitespace-pre-line break-words py-1`}
         />
+      ) : wrap ? (
+        <textarea
+          ref={wrapRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onInput={(e) => grow(e.currentTarget)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => { setFocused(false); void save(); }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              e.currentTarget.blur();
+            }
+          }}
+          disabled={disabled}
+          title={title}
+          placeholder={placeholder}
+          rows={1}
+          className={`${shared} w-full resize-none overflow-hidden break-words`}
+        />
       ) : (
+
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -530,10 +568,11 @@ export default function LeadProfile() {
           <>
             {/* 1. header */}
             <div className="rounded-md border border-border bg-card px-4 py-3">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
+              <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-start md:justify-between">
+                <div className="w-full min-w-0 md:flex-1">
                   <h1 className="text-xl md:text-2xl font-semibold leading-tight">
-                    <span className="flex w-full">
+                    <span className="flex w-full min-w-0">
+
                       <FieldControl
                         leadId={profile.id}
                         field="project_name"
@@ -541,7 +580,9 @@ export default function LeadProfile() {
                         value={profile.project_name}
                         operator={operator}
                         placeholder="add a project name"
+                        wrap
                         className="text-xl md:text-2xl font-semibold leading-tight"
+
                         onSaved={() => setRefreshNonce((n) => n + 1)}
                       />
                     </span>
@@ -561,7 +602,7 @@ export default function LeadProfile() {
                     </span>
                   </div>
                 </div>
-                <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
+                <div className="flex w-full min-w-0 flex-wrap items-center gap-2 md:w-auto md:flex-shrink-0">
                   <span className="rounded border border-border px-2 py-0.5">
                     <FieldControl
                       leadId={profile.id}
