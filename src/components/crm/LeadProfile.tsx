@@ -580,7 +580,9 @@ export default function LeadProfile() {
                         value={profile.project_name}
                         operator={operator}
                         placeholder="add a project name"
+                        wrap
                         className="text-xl md:text-2xl font-semibold leading-tight"
+
                         onSaved={() => setRefreshNonce((n) => n + 1)}
                       />
                     </span>
