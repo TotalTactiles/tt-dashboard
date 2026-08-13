@@ -247,8 +247,15 @@ function FieldControl({
 
   const shared = `w-full rounded border border-transparent bg-transparent px-1 outline-none transition-colors hover:border-border focus:border-border focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-70 placeholder:text-muted-foreground/50 ${className ?? ""}`;
 
+  const wrapperClass = compact
+    ? "inline-flex items-center gap-1"
+    : "inline-flex flex-1 items-center gap-1";
+  const sizeClass = compact
+    ? "min-h-0 py-0"
+    : "min-h-[44px] py-1";
+
   return (
-    <span className="inline-flex min-w-0 flex-1 items-center gap-1">
+    <span className={wrapperClass}>
       {multiline ? (
         <textarea
           value={draft}
@@ -270,7 +277,7 @@ function FieldControl({
           disabled={disabled}
           title={title}
           placeholder={placeholder}
-          className={`${shared} min-h-[44px] py-1`}
+          className={`${shared} ${sizeClass}`}
         />
       )}
       {saving && <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" />}
