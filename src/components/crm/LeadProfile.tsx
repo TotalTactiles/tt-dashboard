@@ -547,16 +547,18 @@ export default function LeadProfile() {
                     </span>
                   </h1>
                   <div className="text-sm text-muted-foreground">
-                    <FieldControl
-                      leadId={profile.id}
-                      field="company_builder"
-                      label="company name"
-                      value={profile.company_builder}
-                      operator={operator}
-                      placeholder="add a company name"
-                      className="text-sm text-muted-foreground"
-                      onSaved={() => setRefreshNonce((n) => n + 1)}
-                    />
+                    <span className="flex w-full">
+                      <FieldControl
+                        leadId={profile.id}
+                        field="company_builder"
+                        label="company name"
+                        value={profile.company_builder}
+                        operator={operator}
+                        placeholder="add a company name"
+                        className="text-sm text-muted-foreground"
+                        onSaved={() => setRefreshNonce((n) => n + 1)}
+                      />
+                    </span>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
