@@ -155,6 +155,7 @@ function FieldControl({
   label,
   placeholder,
   multiline,
+  compact,
   className,
   onSaved,
 }: {
@@ -165,6 +166,7 @@ function FieldControl({
   label: string;
   placeholder?: string;
   multiline?: boolean;
+  compact?: boolean;
   className?: string;
   onSaved: () => void;
 }) {
