@@ -267,7 +267,7 @@ function FieldControl({
           title={title}
           placeholder={placeholder}
           rows={4}
-          className={`${shared} min-h-[88px] resize-y whitespace-pre-line break-words py-1`}
+          className={`${shared} w-full min-h-[88px] resize-y whitespace-pre-line break-words py-1`}
         />
       ) : (
         <input
