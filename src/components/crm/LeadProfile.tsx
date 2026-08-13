@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2, Mail, Phone, UserCog } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
