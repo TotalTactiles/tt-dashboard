@@ -413,25 +413,104 @@ export default function LeadProfile() {
             <div className="rounded-md border border-border bg-card px-4 py-3 space-y-1.5">
               <div className="font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">Contact</div>
               <Row label="name">
-                {profile.project_contact_name
-                  ? <>
-                      {profile.project_contact_name}
-                      {profile.role && <span className="text-muted-foreground"> - {profile.role}</span>}
-                    </>
-                  : <Dim />}
+                <span className="flex flex-wrap items-center gap-1">
+                  <FieldControl
+                    leadId={profile.id}
+                    field="project_contact_name"
+                    label="contact name"
+                    value={profile.project_contact_name}
+                    operator={operator}
+                    placeholder="add a name"
+                    onSaved={() => setRefreshNonce((n) => n + 1)}
+                  />
+                  <span className="text-muted-foreground"> - </span>
+                  <FieldControl
+                    leadId={profile.id}
+                    field="role"
+                    label="role"
+                    value={profile.role}
+                    operator={operator}
+                    placeholder="add a role"
+                    className="text-muted-foreground"
+                    onSaved={() => setRefreshNonce((n) => n + 1)}
+                  />
+                </span>
               </Row>
               <Row label="email">
-                {profile.direct_email
-                  ? <a className="text-primary hover:underline" href={`mailto:${profile.direct_email}`}>{profile.direct_email}</a>
-                  : <Dim />}
+                <span className="flex items-center gap-1">
+                  <FieldControl
+                    leadId={profile.id}
+                    field="direct_email"
+                    label="direct email"
+                    value={profile.direct_email}
+                    operator={operator}
+                    placeholder="add an email"
+                    onSaved={() => setRefreshNonce((n) => n + 1)}
+                  />
+                  {profile.direct_email && (
+                    <a
+                      className="text-primary hover:underline"
+                      href={`mailto:${profile.direct_email}`}
+                      title="Open in your mail client"
+                    >
+                      <Mail className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+                </span>
               </Row>
               <Row label="phone">
-                {profile.phone
-                  ? <a className="text-primary hover:underline" href={`tel:${profile.phone}`}>{profile.phone}</a>
-                  : <Dim />}
+                <span className="flex items-center gap-1">
+                  <FieldControl
+                    leadId={profile.id}
+                    field="phone"
+                    label="phone"
+                    value={profile.phone}
+                    operator={operator}
+                    placeholder="add a phone number"
+                    onSaved={() => setRefreshNonce((n) => n + 1)}
+                  />
+                  {profile.phone && (
+                    <a className="text-primary hover:underline" href={`tel:${profile.phone}`} title="Call this number">
+                      <Phone className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+                </span>
               </Row>
-              <Row label="reception">{profile.reception_name || <Dim />}</Row>
+              <Row label="reception">
+                <FieldControl
+                  leadId={profile.id}
+                  field="reception_name"
+                  label="reception name"
+                  value={profile.reception_name}
+                  operator={operator}
+                  placeholder="add a name"
+                  onSaved={() => setRefreshNonce((n) => n + 1)}
+                />
+              </Row>
+              <Row label="reception email">
+                <FieldControl
+                  leadId={profile.id}
+                  field="reception_email"
+                  label="reception email"
+                  value={profile.reception_email}
+                  operator={operator}
+                  placeholder="add an email"
+                  onSaved={() => setRefreshNonce((n) => n + 1)}
+                />
+              </Row>
+              <Row label="site">
+                <FieldControl
+                  leadId={profile.id}
+                  field="site_address"
+                  label="site address"
+                  value={profile.site_address}
+                  operator={operator}
+                  placeholder="add an address"
+                  onSaved={() => setRefreshNonce((n) => n + 1)}
+                />
+              </Row>
             </div>
+
 
             {/* 3. company */}
             <div className="rounded-md border border-border bg-card px-4 py-3 space-y-1.5">
