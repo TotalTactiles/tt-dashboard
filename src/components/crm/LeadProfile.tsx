@@ -812,17 +812,10 @@ export default function LeadProfile() {
             {/* 6. notes */}
             <div className="rounded-md border border-border bg-card px-4 py-3">
               <div className="mb-2 font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">Notes</div>
-              <FieldControl
-                leadId={profile.id}
-                field="notes"
-                label="notes"
-                value={profile.notes}
-                operator={operator}
-                placeholder="No notes recorded."
-                multiline
-                className="text-sm"
-                onSaved={() => setRefreshNonce((n) => n + 1)}
-              />
+              {/* notes is read only until the note route exists, because leads.notes carries structured data that a single blur would overwrite. */}
+              {profile.notes
+                ? <div className="whitespace-pre-line break-words text-sm">{profile.notes}</div>
+                : <div className="text-sm text-muted-foreground">No notes recorded.</div>}
             </div>
 
           </>
