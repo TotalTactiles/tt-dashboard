@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, UserCog } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, Phone, UserCog } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import SectionHeader from "@/components/dashboard/SectionHeader";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,6 +74,8 @@ interface Profile {
   period_end: string | null;
   days_overdue_max: number | null;
   organisation_id: string | null;
+  reception_email: string | null;
+  site_address: string | null;
 }
 
 interface TimelineRow {
@@ -138,6 +140,140 @@ function fmtWhen(iso: string, tz: string | null) {
     return new Date(iso).toLocaleString("en-AU");
   }
 }
+
+/**
+ * Inline editable field. Saves on blur through the tt-lead-field n8n workflow,
+ * never through a direct table update. Three outcomes always: ok, error and
+ * network. Failures revert the input so the screen never shows a value the
+ * database does not hold.
+ */
+function FieldControl({
+  leadId,
+  field,
+  value,
+  operator,
+  label,
+  placeholder,
+  multiline,
+  className,
+  onSaved,
+}: {
+  leadId: string;
+  field: string;
+  value: string | null;
+  operator: string | null;
+  label: string;
+  placeholder?: string;
+  multiline?: boolean;
+  className?: string;
+  onSaved: () => void;
+}) {
+  const { toast } = useToast();
+  const [draft, setDraft] = useState(value ?? "");
+  const [saving, setSaving] = useState(false);
+  const [focused, setFocused] = useState(false);
+
+  // Re-seed from the freshly read row, but never while the user is typing.
+  useEffect(() => {
+    if (!focused) setDraft(value ?? "");
+  }, [value, focused]);
+
+  const norm = (s: string) => {
+    const t = s.trim();
+    return t === "" ? null : t;
+  };
+
+  async function save() {
+    const next = norm(draft);
+    const original = norm(value ?? "");
+    if (next === original) {
+      setDraft(next ?? "");
+      return;
+    }
+
+    setSaving(true);
+
+    let result:
+      | { kind: "ok" }
+      | { kind: "error"; message: string }
+      | { kind: "network"; message: string } = { kind: "network", message: "the field workflow did not respond" };
+
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 30_000);
+      const res = await fetch("https://n8n.srv1437130.hstgr.cloud/webhook/tt-lead-field", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lead_id: leadId, operator, field, value: next }),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      let json: any = null;
+      try { json = await res.json(); } catch { /* non-json */ }
+      if (!res.ok || json?.ok !== true) {
+        const reason = json?.reason ?? json?.error ?? json?.message ?? `HTTP ${res.status}`;
+        const held = json?.held_by ? ` (held by ${json.held_by})` : "";
+        result = { kind: "error", message: `${String(reason)}${held}` };
+      } else {
+        result = { kind: "ok" };
+      }
+    } catch {
+      result = { kind: "network", message: "the field workflow did not respond" };
+    }
+
+    setSaving(false);
+
+    if (result.kind === "ok") {
+      toast({ title: "Saved", description: `The ${label} was saved` });
+      onSaved();
+    } else {
+      setDraft(value ?? "");
+      toast({
+        title: "Not saved",
+        description: result.message,
+        className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+      });
+    }
+  }
+
+  const disabled = saving || !operator;
+  const title = !operator
+    ? "Pick who is working, using the button in the header, before editing this"
+    : undefined;
+
+  const shared = `w-full rounded border border-transparent bg-transparent px-1 outline-none transition-colors hover:border-border focus:border-border focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-70 placeholder:text-muted-foreground/50 ${className ?? ""}`;
+
+  return (
+    <span className="inline-flex min-w-0 flex-1 items-center gap-1">
+      {multiline ? (
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => { setFocused(false); void save(); }}
+          disabled={disabled}
+          title={title}
+          placeholder={placeholder}
+          rows={4}
+          className={`${shared} min-h-[88px] resize-y whitespace-pre-line break-words py-1`}
+        />
+      ) : (
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => { setFocused(false); void save(); }}
+          disabled={disabled}
+          title={title}
+          placeholder={placeholder}
+          className={`${shared} min-h-[44px] py-1`}
+        />
+      )}
+      {saving && <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" />}
+    </span>
+  );
+}
+
 
 /**
  * The one write on this page. Stage changes go through the tt-lead-stage n8n
@@ -384,12 +520,44 @@ export default function LeadProfile() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h1 className="text-xl md:text-2xl font-semibold leading-tight">
-                    {profile.company_builder || "no builder"}
+                    <FieldControl
+                      leadId={profile.id}
+                      field="company_builder"
+                      label="builder"
+                      value={profile.company_builder}
+                      operator={operator}
+                      placeholder="no builder"
+                      className="text-xl md:text-2xl font-semibold leading-tight"
+                      onSaved={() => setRefreshNonce((n) => n + 1)}
+                    />
                   </h1>
-                  <div className="text-sm text-muted-foreground">{profile.project_name || DASH}</div>
+                  <div className="text-sm text-muted-foreground">
+                    <FieldControl
+                      leadId={profile.id}
+                      field="project_name"
+                      label="project name"
+                      value={profile.project_name}
+                      operator={operator}
+                      placeholder="add a project name"
+                      className="text-sm text-muted-foreground"
+                      onSaved={() => setRefreshNonce((n) => n + 1)}
+                    />
+                  </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  {profile.state && <Chip>{profile.state}</Chip>}
+                  <span className="rounded border border-border px-2 py-0.5">
+                    <FieldControl
+                      leadId={profile.id}
+                      field="state"
+                      label="state"
+                      value={profile.state}
+                      operator={operator}
+                      placeholder="state"
+                      className="w-16 font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground"
+                      onSaved={() => setRefreshNonce((n) => n + 1)}
+                    />
+                  </span>
+
                   <OperatorControl operator={operator} onChoose={setOperator} />
                   <StageControl
                     leadId={profile.id}
@@ -413,25 +581,104 @@ export default function LeadProfile() {
             <div className="rounded-md border border-border bg-card px-4 py-3 space-y-1.5">
               <div className="font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">Contact</div>
               <Row label="name">
-                {profile.project_contact_name
-                  ? <>
-                      {profile.project_contact_name}
-                      {profile.role && <span className="text-muted-foreground"> - {profile.role}</span>}
-                    </>
-                  : <Dim />}
+                <span className="flex flex-wrap items-center gap-1">
+                  <FieldControl
+                    leadId={profile.id}
+                    field="project_contact_name"
+                    label="contact name"
+                    value={profile.project_contact_name}
+                    operator={operator}
+                    placeholder="add a name"
+                    onSaved={() => setRefreshNonce((n) => n + 1)}
+                  />
+                  <span className="text-muted-foreground"> - </span>
+                  <FieldControl
+                    leadId={profile.id}
+                    field="role"
+                    label="role"
+                    value={profile.role}
+                    operator={operator}
+                    placeholder="add a role"
+                    className="text-muted-foreground"
+                    onSaved={() => setRefreshNonce((n) => n + 1)}
+                  />
+                </span>
               </Row>
               <Row label="email">
-                {profile.direct_email
-                  ? <a className="text-primary hover:underline" href={`mailto:${profile.direct_email}`}>{profile.direct_email}</a>
-                  : <Dim />}
+                <span className="flex items-center gap-1">
+                  <FieldControl
+                    leadId={profile.id}
+                    field="direct_email"
+                    label="direct email"
+                    value={profile.direct_email}
+                    operator={operator}
+                    placeholder="add an email"
+                    onSaved={() => setRefreshNonce((n) => n + 1)}
+                  />
+                  {profile.direct_email && (
+                    <a
+                      className="text-primary hover:underline"
+                      href={`mailto:${profile.direct_email}`}
+                      title="Open in your mail client"
+                    >
+                      <Mail className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+                </span>
               </Row>
               <Row label="phone">
-                {profile.phone
-                  ? <a className="text-primary hover:underline" href={`tel:${profile.phone}`}>{profile.phone}</a>
-                  : <Dim />}
+                <span className="flex items-center gap-1">
+                  <FieldControl
+                    leadId={profile.id}
+                    field="phone"
+                    label="phone"
+                    value={profile.phone}
+                    operator={operator}
+                    placeholder="add a phone number"
+                    onSaved={() => setRefreshNonce((n) => n + 1)}
+                  />
+                  {profile.phone && (
+                    <a className="text-primary hover:underline" href={`tel:${profile.phone}`} title="Call this number">
+                      <Phone className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+                </span>
               </Row>
-              <Row label="reception">{profile.reception_name || <Dim />}</Row>
+              <Row label="reception">
+                <FieldControl
+                  leadId={profile.id}
+                  field="reception_name"
+                  label="reception name"
+                  value={profile.reception_name}
+                  operator={operator}
+                  placeholder="add a name"
+                  onSaved={() => setRefreshNonce((n) => n + 1)}
+                />
+              </Row>
+              <Row label="reception email">
+                <FieldControl
+                  leadId={profile.id}
+                  field="reception_email"
+                  label="reception email"
+                  value={profile.reception_email}
+                  operator={operator}
+                  placeholder="add an email"
+                  onSaved={() => setRefreshNonce((n) => n + 1)}
+                />
+              </Row>
+              <Row label="site">
+                <FieldControl
+                  leadId={profile.id}
+                  field="site_address"
+                  label="site address"
+                  value={profile.site_address}
+                  operator={operator}
+                  placeholder="add an address"
+                  onSaved={() => setRefreshNonce((n) => n + 1)}
+                />
+              </Row>
             </div>
+
 
             {/* 3. company */}
             <div className="rounded-md border border-border bg-card px-4 py-3 space-y-1.5">
@@ -547,10 +794,19 @@ export default function LeadProfile() {
             {/* 6. notes */}
             <div className="rounded-md border border-border bg-card px-4 py-3">
               <div className="mb-2 font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">Notes</div>
-              {profile.notes
-                ? <div className="whitespace-pre-line break-words text-sm">{profile.notes}</div>
-                : <div className="text-sm text-muted-foreground">No notes recorded.</div>}
+              <FieldControl
+                leadId={profile.id}
+                field="notes"
+                label="notes"
+                value={profile.notes}
+                operator={operator}
+                placeholder="No notes recorded."
+                multiline
+                className="text-sm"
+                onSaved={() => setRefreshNonce((n) => n + 1)}
+              />
             </div>
+
           </>
         )}
       </div>
