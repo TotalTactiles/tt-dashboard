@@ -155,6 +155,7 @@ function FieldControl({
   label,
   placeholder,
   multiline,
+  compact,
   className,
   onSaved,
 }: {
@@ -165,6 +166,7 @@ function FieldControl({
   label: string;
   placeholder?: string;
   multiline?: boolean;
+  compact?: boolean;
   className?: string;
   onSaved: () => void;
 }) {
@@ -245,8 +247,15 @@ function FieldControl({
 
   const shared = `w-full rounded border border-transparent bg-transparent px-1 outline-none transition-colors hover:border-border focus:border-border focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-70 placeholder:text-muted-foreground/50 ${className ?? ""}`;
 
+  const wrapperClass = compact
+    ? "inline-flex items-center gap-1"
+    : "inline-flex flex-1 items-center gap-1";
+  const sizeClass = compact
+    ? "min-h-0 py-0"
+    : "min-h-[44px] py-1";
+
   return (
-    <span className="inline-flex min-w-0 flex-1 items-center gap-1">
+    <span className={wrapperClass}>
       {multiline ? (
         <textarea
           value={draft}
@@ -268,7 +277,7 @@ function FieldControl({
           disabled={disabled}
           title={title}
           placeholder={placeholder}
-          className={`${shared} min-h-[44px] py-1`}
+          className={`${shared} ${sizeClass}`}
         />
       )}
       {saving && <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" />}
@@ -522,25 +531,27 @@ export default function LeadProfile() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h1 className="text-xl md:text-2xl font-semibold leading-tight">
-                    <FieldControl
-                      leadId={profile.id}
-                      field="company_builder"
-                      label="builder"
-                      value={profile.company_builder}
-                      operator={operator}
-                      placeholder="no builder"
-                      className="text-xl md:text-2xl font-semibold leading-tight"
-                      onSaved={() => setRefreshNonce((n) => n + 1)}
-                    />
+                    <span className="flex w-full">
+                      <FieldControl
+                        leadId={profile.id}
+                        field="project_name"
+                        label="project name"
+                        value={profile.project_name}
+                        operator={operator}
+                        placeholder="add a project name"
+                        className="text-xl md:text-2xl font-semibold leading-tight"
+                        onSaved={() => setRefreshNonce((n) => n + 1)}
+                      />
+                    </span>
                   </h1>
                   <div className="text-sm text-muted-foreground">
                     <FieldControl
                       leadId={profile.id}
-                      field="project_name"
-                      label="project name"
-                      value={profile.project_name}
+                      field="company_builder"
+                      label="company name"
+                      value={profile.company_builder}
                       operator={operator}
-                      placeholder="add a project name"
+                      placeholder="add a company name"
                       className="text-sm text-muted-foreground"
                       onSaved={() => setRefreshNonce((n) => n + 1)}
                     />
@@ -555,6 +566,7 @@ export default function LeadProfile() {
                       value={profile.state}
                       operator={operator}
                       placeholder="state"
+                      compact
                       className="w-16 font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground"
                       onSaved={() => setRefreshNonce((n) => n + 1)}
                     />
