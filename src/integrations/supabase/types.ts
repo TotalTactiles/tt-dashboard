@@ -5754,12 +5754,16 @@ export type Database = {
           phone: string | null
           project_contact_name: string | null
           project_name: string | null
+          reception_email: string | null
           reception_name: string | null
           responded_at: string | null
           response_rate_pct: number | null
           role: string | null
+          site_address: string | null
+          source_code: string | null
           stage: string | null
           state: string | null
+          status_code: string | null
           timing_band: string | null
           updated_at: string | null
         }
@@ -5798,6 +5802,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_lead_card_context"
             referencedColumns: ["organisation_id"]
+          },
+          {
+            foreignKeyName: "leads_source_code_fkey"
+            columns: ["source_code"]
+            isOneToOne: false
+            referencedRelation: "lead_sources"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leads_status_code_fkey"
+            columns: ["status_code"]
+            isOneToOne: false
+            referencedRelation: "lead_statuses"
+            referencedColumns: ["code"]
           },
         ]
       }
