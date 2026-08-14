@@ -252,8 +252,8 @@ export default function LeadBrowse({ operator }: { operator: string }) {
                       {claimed && <span className="text-[10px] font-mono text-muted-foreground">Claimed by {l.claimed_by}</span>}
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{l.project_name || "—"}</TableCell>
-                  <TableCell><span className="text-xs font-mono">{l.state || "—"}</span></TableCell>
+                  <TableCell className="text-muted-foreground">{l.project_name || DASH}</TableCell>
+                  <TableCell><span className="text-xs font-mono">{l.state || DASH}</span></TableCell>
                   <TableCell>
                     {band ? (
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded uppercase"
@@ -265,9 +265,9 @@ export default function LeadBrowse({ operator }: { operator: string }) {
                   <TableCell>
                     <span className={`text-[10px] px-2 py-0.5 rounded font-mono ${STATUS_PILL[l.stage] ?? "bg-muted"}`}>{l.stage}</span>
                   </TableCell>
-                  <TableCell className="text-xs">{status?.label ?? "—"}</TableCell>
+                  <TableCell className="text-xs">{status?.label ?? DASH}</TableCell>
                   <TableCell className={`text-xs font-mono ${isStale ? "text-chart-orange" : "text-muted-foreground"}`}>
-                    {days != null ? `${days}d ago` : "—"}
+                    {days != null ? `${days}d ago` : DASH}
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
