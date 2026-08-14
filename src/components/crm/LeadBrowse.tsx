@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,7 @@ import LeadDrawer from "./LeadDrawer";
 import AddLeadDialog from "./AddLeadDialog";
 
 const db = supabase as any;
+const DASH = "-";
 
 const STAGES = ["new","enriching","ready_to_call","actioned","responded","needs_attention","converted","archived"];
 const STATUS_PILL: Record<string, string> = {
@@ -130,13 +132,13 @@ export default function LeadBrowse({ operator }: { operator: string }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-        <KpiTile label="Total Leads" value={funnel?.total_leads ?? "—"} />
-        <KpiTile label="Awaiting Call" value={funnel?.awaiting_call ?? "—"} />
-        <KpiTile label="Actioned" value={funnel?.actioned ?? "—"} />
-        <KpiTile label="Responded" value={funnel?.responded ?? "—"} />
-        <KpiTile label="Hot" value={funnel?.hot ?? "—"} />
-        <KpiTile label="Open Rate" value={funnel?.open_rate_pct != null ? `${Math.round(funnel.open_rate_pct)}%` : "—"} />
-        <KpiTile label="Reply Rate" value={funnel?.reply_rate_pct != null ? `${Math.round(funnel.reply_rate_pct)}%` : "—"} />
+        <KpiTile label="Total Leads" value={funnel?.total_leads ?? DASH} />
+        <KpiTile label="Awaiting Call" value={funnel?.awaiting_call ?? DASH} />
+        <KpiTile label="Actioned" value={funnel?.actioned ?? DASH} />
+        <KpiTile label="Responded" value={funnel?.responded ?? DASH} />
+        <KpiTile label="Hot" value={funnel?.hot ?? DASH} />
+        <KpiTile label="Open Rate" value={funnel?.open_rate_pct != null ? `${Math.round(funnel.open_rate_pct)}%` : DASH} />
+        <KpiTile label="Reply Rate" value={funnel?.reply_rate_pct != null ? `${Math.round(funnel.reply_rate_pct)}%` : DASH} />
       </div>
 
       <Card className="p-3">
@@ -237,7 +239,7 @@ export default function LeadBrowse({ operator }: { operator: string }) {
                   </TableCell>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span>{l.company_builder}</span>
+                      <Link to={`/crm/lead/${l.id}`} className="hover:underline text-primary" onClick={(e) => e.stopPropagation()}>{l.company_builder}</Link>
                       {missing && missing.length > 0 && (
                         <span
                           title={`Missing: ${missing.join(", ")}`}
@@ -250,8 +252,8 @@ export default function LeadBrowse({ operator }: { operator: string }) {
                       {claimed && <span className="text-[10px] font-mono text-muted-foreground">Claimed by {l.claimed_by}</span>}
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{l.project_name || "—"}</TableCell>
-                  <TableCell><span className="text-xs font-mono">{l.state || "—"}</span></TableCell>
+                  <TableCell className="text-muted-foreground">{l.project_name || DASH}</TableCell>
+                  <TableCell><span className="text-xs font-mono">{l.state || DASH}</span></TableCell>
                   <TableCell>
                     {band ? (
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded uppercase"
@@ -263,9 +265,9 @@ export default function LeadBrowse({ operator }: { operator: string }) {
                   <TableCell>
                     <span className={`text-[10px] px-2 py-0.5 rounded font-mono ${STATUS_PILL[l.stage] ?? "bg-muted"}`}>{l.stage}</span>
                   </TableCell>
-                  <TableCell className="text-xs">{status?.label ?? "—"}</TableCell>
+                  <TableCell className="text-xs">{status?.label ?? DASH}</TableCell>
                   <TableCell className={`text-xs font-mono ${isStale ? "text-chart-orange" : "text-muted-foreground"}`}>
-                    {days != null ? `${days}d ago` : "—"}
+                    {days != null ? `${days}d ago` : DASH}
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
@@ -275,23 +277,23 @@ export default function LeadBrowse({ operator }: { operator: string }) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={async () => {
-                            const r = await enrichLead(l.id, operator, "enrich");
-                            if (r.ok && r.matched) {
-                              const name = r.contact?.name?.trim() || "contact";
-                              const email = r.contact?.email?.trim();
-                              toast({ title: email ? `Found ${name} — ${email}` : `Found ${name}` });
-                              setReloadTick((t) => t + 1);
-                            } else {
-                              toast({
-                                title: r.matched === false ? "No match" : "Enrichment failed",
-                                description: r.detail || "Apollo did not respond — the lead is unchanged",
-                                className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
-                              });
-                            }
-                          }}
-                        >
+                          <DropdownMenuItem
+                            onClick={async () => {
+                              const r = await enrichLead(l.id, operator, "enrich");
+                              if (r.ok && r.matched) {
+                                const name = r.contact?.name?.trim() || "contact";
+                                const email = r.contact?.email?.trim();
+                                toast({ title: email ? `Found ${name} ${DASH} ${email}` : `Found ${name}` });
+                                setReloadTick((t) => t + 1);
+                              } else {
+                                toast({
+                                  title: r.matched === false ? "No match" : "Enrichment failed",
+                                  description: r.detail || `Apollo did not respond ${DASH} the lead is unchanged`,
+                                  className: "border-chart-orange/40 bg-chart-orange/10 text-chart-orange",
+                                });
+                              }
+                            }}
+                          >
                           <Sparkles className="w-3.5 h-3.5 mr-2" /> Enrich with Apollo
                         </DropdownMenuItem>
                       </DropdownMenuContent>

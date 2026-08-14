@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,9 +11,10 @@ import LogCallDialog from "./LogCallDialog";
 import SetNextStepDialog from "./SetNextStepDialog";
 
 const db = supabase as any;
+const DASH = "-";
 
 function formatDate(iso?: string | null) {
-  if (!iso) return "—";
+  if (!iso) return DASH;
   const d = new Date(iso);
   return d.toLocaleDateString("en-AU", { month: "short", year: "numeric" });
 }
@@ -138,11 +140,14 @@ export default function LeadQueue({ operator }: { operator: string }) {
 
       <Card className="p-6 space-y-6">
         {/* Company / project */}
-        <div>
+          <div>
           <div className="flex items-start gap-3 flex-wrap">
             <div className="min-w-0 flex-1">
               <h1 className="text-2xl font-mono font-semibold tracking-tight truncate">{lead.company_builder}</h1>
               <div className="text-base text-muted-foreground truncate">{lead.project_name || <span className="italic">No project name</span>}</div>
+              <div className="mt-1">
+                <Link to={`/crm/lead/${lead.id}`} className="text-xs text-primary hover:underline font-mono">Open full profile</Link>
+              </div>
             </div>
             {lead.state && (
               <span className="text-[10px] font-mono uppercase tracking-widest px-2 py-1 rounded border border-border bg-muted/40">
@@ -204,7 +209,7 @@ export default function LeadQueue({ operator }: { operator: string }) {
           )}
         </div>
 
-        {/* Company history — the flagship line */}
+        {/* Company history - the flagship line */}
         <div className="rounded-md border border-border bg-muted/20 px-3 py-2 text-sm">
           {history && history.total_leads > 0 ? (
             <div className="font-mono text-sm">
@@ -223,7 +228,7 @@ export default function LeadQueue({ operator }: { operator: string }) {
           <div className="rounded-md border border-chart-orange/40 bg-chart-orange/10 px-3 py-2 flex items-start gap-2 text-sm text-chart-orange">
             <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
             <div>
-              <div className="font-semibold">{silence.days_silent}d silent — {silence.silence_rule_label}</div>
+              <div className="font-semibold">{silence.days_silent}d silent {DASH} {silence.silence_rule_label}</div>
               <div className="text-xs opacity-90">{silence.action_prompt}</div>
             </div>
           </div>
@@ -244,7 +249,7 @@ export default function LeadQueue({ operator }: { operator: string }) {
               <div key={c.id} className="text-xs border-l-2 border-primary/40 pl-2">
                 <span className="text-muted-foreground font-mono">{new Date(c.called_at).toLocaleDateString("en-AU")}</span>
                 <span className="ml-2 font-semibold">{outcomeLabel(c.outcome_code)}</span>
-                {c.notes && <span className="ml-2 text-muted-foreground">— {c.notes}</span>}
+                {c.notes && <span className="ml-2 text-muted-foreground">{DASH} {c.notes}</span>}
               </div>
             ))}
             {!events.length && !calls.length && !lead.notes && (
