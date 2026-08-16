@@ -257,7 +257,7 @@ export default function LeadDrawer({
                     <div className="text-xs text-muted-foreground">
                       Permanently delete this lead. The exact impact is computed before you confirm.
                     </div>
-                    <Button variant="destructive" size="sm" onClick={openDeleteDialog}>
+                    <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)}>
                       <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete lead
                     </Button>
                   </div>
