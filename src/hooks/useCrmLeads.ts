@@ -434,3 +434,123 @@ export async function deleteLeadViaRoute(
     clearTimeout(timer);
   }
 }
+
+// -------- note and task routes --------
+const NOTE_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-lead-note";
+const TASK_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-lead-task";
+
+export interface RouteRefusal { ok: false; blocked?: boolean; detail: string; gate_reason?: string | null; held_by?: string | null; }
+export interface AddNoteResult { ok: boolean; blocked?: boolean; detail?: string; lead_id?: string; event_id?: number; occurred_at?: string; actor_id?: string | null; gate_reason?: string | null; held_by?: string | null; }
+export interface AddTaskResult { ok: boolean; blocked?: boolean; detail?: string; task_id?: string; event_id?: number; status?: string; due_date?: string; occurred_at?: string; actor_id?: string | null; gate_reason?: string | null; held_by?: string | null; }
+
+// The three lead action routes do not agree on the refusal key. The delete route
+// returns gate_reason, the note route returns reason. Normalised here in one place
+// rather than guessed at each call site. Punch 288 fixes the producers.
+function refusalMessage(body: any): string | null {
+  return body?.reason ?? body?.gate_reason ?? null;
+}
+
+export async function addNoteViaRoute(leadId: string, operator: string, note: string): Promise<AddNoteResult> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60_000);
+  try {
+    const res = await fetch(NOTE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lead_id: leadId, operator, note }),
+      signal: controller.signal,
+    });
+    let body: any = null;
+    try { body = await res.json(); } catch { body = null; }
+
+    // HTTP 200 IS NOT SUCCESS. The route returns 200 with ok:false when a gate refuses.
+    if (body && body.blocked === true) {
+      const gate = refusalMessage(body);
+      return { ok: false, blocked: true, gate_reason: gate, held_by: body.held_by ?? null,
+               detail: gate || "The lead is held by another operator or the gate refused." };
+    }
+    if (!res.ok) {
+      return { ok: false, detail: body?.message || body?.detail || ("The note route returned HTTP " + res.status + ". The note may not have been saved. Re-open the lead to check.") };
+    }
+    if (!body || body.ok !== true) {
+      return { ok: false, gate_reason: refusalMessage(body), detail: refusalMessage(body) || body?.detail || body?.message || "The note route did not confirm success." };
+    }
+    return body as AddNoteResult;
+  } catch (err: any) {
+    if (err?.name === "AbortError") {
+      return { ok: false, detail: "The note route did not respond within 60 seconds. Re-open the lead to check whether the note was saved." };
+    }
+    return { ok: false, detail: err?.message ?? "The note route could not be reached." };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function addTaskViaRoute(leadId: string, operator: string, title: string, kind: string, dueDate: string): Promise<AddTaskResult> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60_000);
+  try {
+    const res = await fetch(TASK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lead_id: leadId, operator, title, kind, due_date: dueDate }),
+      signal: controller.signal,
+    });
+    let body: any = null;
+    try { body = await res.json(); } catch { body = null; }
+
+    // HTTP 200 IS NOT SUCCESS. The route returns 200 with ok:false when a gate refuses.
+    if (body && body.blocked === true) {
+      const gate = refusalMessage(body);
+      return { ok: false, blocked: true, gate_reason: gate, held_by: body.held_by ?? null,
+               detail: gate || "The lead is held by another operator or the gate refused." };
+    }
+    if (!res.ok) {
+      return { ok: false, detail: body?.message || body?.detail || ("The task route returned HTTP " + res.status + ". The task may not have been created. Re-open the lead to check.") };
+    }
+    if (!body || body.ok !== true) {
+      return { ok: false, gate_reason: refusalMessage(body), detail: refusalMessage(body) || body?.detail || body?.message || "The task route did not confirm success." };
+    }
+    return body as AddTaskResult;
+  } catch (err: any) {
+    if (err?.name === "AbortError") {
+      return { ok: false, detail: "The task route did not respond within 60 seconds. Re-open the lead to check whether the task was created." };
+    }
+    return { ok: false, detail: err?.message ?? "The task route could not be reached." };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// -------- task kinds, the single producer of the task vocabulary --------
+export interface LeadTaskKind { kind: string; label: string; sort_order: number }
+
+export function useLeadTaskKinds() {
+  const [kinds, setKinds] = useState<LeadTaskKind[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      const { data, error: err } = await db
+        .from("lead_task_kinds")
+        .select("kind,label,sort_order")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      if (cancel) return;
+      if (err) {
+        setError(err.message ?? "The task kinds could not be loaded.");
+        setKinds([]);
+      } else {
+        setKinds((data ?? []) as LeadTaskKind[]);
+      }
+      setLoading(false);
+    })();
+    return () => { cancel = true; };
+  }, []);
+
+  return { kinds, loading, error };
+}
