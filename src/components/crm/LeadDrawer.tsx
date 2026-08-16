@@ -139,37 +139,8 @@ export default function LeadDrawer({
     load();
   };
 
-  const openDeleteDialog = async () => {
-    setDeleteReason("");
-    setImpact(null);
-    setImpactError(null);
-    setDeleteOpen(true);
-    setImpactLoading(true);
-    try {
-      const rows = await fetchDeleteImpact(lead.id);
-      setImpact(rows);
-    } catch (err: any) {
-      setImpactError(err?.message ?? "The impact could not be computed.");
-    } finally {
-      setImpactLoading(false);
-    }
-  };
 
-  const blocking = (impact ?? []).filter((r) => r.behaviour === IMPACT_BLOCKS && Number(r.rows_affected) > 0);
-  const destroyed = (impact ?? []).filter((r) => r.behaviour === IMPACT_DESTROYED && Number(r.rows_affected) > 0);
-  const cleared   = (impact ?? []).filter((r) => r.behaviour === IMPACT_REFERENCE_CLEARED && Number(r.rows_affected) > 0);
-  const untouched = (impact ?? []).filter((r) => Number(r.rows_affected) === 0);
-  const unknown   = (impact ?? []).filter((r) =>
-    r.behaviour !== IMPACT_BLOCKS && r.behaviour !== IMPACT_DESTROYED && r.behaviour !== IMPACT_REFERENCE_CLEARED);
 
-  const trimmedReason = deleteReason.trim();
-  const reasonTooLong = deleteReason.length > 500;
-  const EM_DASH = String.fromCharCode(8212);
-  const reasonHasEmDash = deleteReason.includes(EM_DASH);
-  const confirmDisabled =
-    deleting || !trimmedReason || reasonTooLong || reasonHasEmDash ||
-    impactLoading || impactError !== null || impact === null || impact.length === 0 ||
-    unknown.length > 0 || blocking.length > 0;
 
   const commsMerged = [
     ...calls.map((c) => ({ t: c.called_at, kind: "call", label: refs?.outcomes.find((o) => o.code === c.outcome_code)?.label ?? c.outcome_code, detail: c.notes })),
