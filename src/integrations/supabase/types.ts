@@ -2353,7 +2353,9 @@ export type Database = {
       }
       lead_purge_tombstones: {
         Row: {
+          actor_id: string | null
           company_builder: string | null
+          lead_id: string | null
           project_name: string | null
           purged_at: string
           purged_by: string | null
@@ -2361,7 +2363,9 @@ export type Database = {
           source_row_key: string
         }
         Insert: {
+          actor_id?: string | null
           company_builder?: string | null
+          lead_id?: string | null
           project_name?: string | null
           purged_at?: string
           purged_by?: string | null
@@ -2369,7 +2373,9 @@ export type Database = {
           source_row_key: string
         }
         Update: {
+          actor_id?: string | null
           company_builder?: string | null
+          lead_id?: string | null
           project_name?: string | null
           purged_at?: string
           purged_by?: string | null
@@ -7530,6 +7536,14 @@ export type Database = {
           channel: string
           message_ref: string
           occurred_at: string
+        }[]
+      }
+      tt_lead_delete_impact: {
+        Args: { p_lead: string }
+        Returns: {
+          behaviour: string
+          child_table: string
+          rows_affected: number
         }[]
       }
       tt_lead_gate: {
