@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getStoredOperator, OperatorPicker, useOperators } from "@/components/crm/WorkingAsGate";
+import DeleteLeadDialog from "./DeleteLeadDialog";
 
 const db = supabase as any;
 
