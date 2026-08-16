@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, Loader2, Mail, Phone, Trash2, UserCog } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ListPlus, Loader2, Mail, Phone, StickyNote, Trash2, UserCog } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import SectionHeader from "@/components/dashboard/SectionHeader";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from "@/hooks/use-toast";
 import { getStoredOperator, OperatorPicker, useOperators } from "@/components/crm/WorkingAsGate";
 import DeleteLeadDialog from "./DeleteLeadDialog";
+import AddNoteDialog from "./AddNoteDialog";
+import AddTaskDialog from "./AddTaskDialog";
 
 const db = supabase as any;
 
@@ -495,6 +497,8 @@ export default function LeadProfile() {
   const [operator, setOperator] = useState<string | null>(() => getStoredOperator());
   const navigate = useNavigate();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [taskOpen, setTaskOpen] = useState(false);
 
 
 
@@ -813,8 +817,30 @@ export default function LeadProfile() {
 
             {/* 5. timeline */}
             <div className="rounded-md border border-border bg-card px-4 py-3">
-              <div className="mb-3 font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">
-                Timeline
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div className="font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">
+                  Timeline
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!operator}
+                    title={operator ? undefined : "Pick who is working, using the button in the header, before adding a note"}
+                    onClick={() => setNoteOpen(true)}
+                  >
+                    <StickyNote className="mr-1.5 h-3.5 w-3.5" /> Add note
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!operator}
+                    title={operator ? undefined : "Pick who is working, using the button in the header, before adding a task"}
+                    onClick={() => setTaskOpen(true)}
+                  >
+                    <ListPlus className="mr-1.5 h-3.5 w-3.5" /> Add task
+                  </Button>
+                </div>
               </div>
               {timelineError ? (
                 <div className="py-8 text-center text-sm text-muted-foreground">
@@ -896,6 +922,26 @@ export default function LeadProfile() {
             projectName={profile.project_name}
             operator={operator}
             onDeleted={() => navigate("/oven")}
+          />
+        )}
+
+        {profile && (
+          <AddNoteDialog
+            open={noteOpen}
+            onOpenChange={setNoteOpen}
+            leadId={profile.id}
+            operator={operator}
+            onAdded={() => setRefreshNonce((n) => n + 1)}
+          />
+        )}
+
+        {profile && (
+          <AddTaskDialog
+            open={taskOpen}
+            onOpenChange={setTaskOpen}
+            leadId={profile.id}
+            operator={operator}
+            onAdded={() => setRefreshNonce((n) => n + 1)}
           />
         )}
       </div>
