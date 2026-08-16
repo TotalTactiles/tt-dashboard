@@ -377,135 +377,16 @@ export default function LeadDrawer({
         </div>
       </SheetContent>
 
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="w-4 h-4" /> Delete this lead permanently?
-            </DialogTitle>
-            <DialogDescription asChild>
-              <div>
-                <div className="font-semibold text-foreground">{lead.company_builder}</div>
-                {lead.project_name ? <div>{lead.project_name}</div> : null}
-              </div>
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive font-semibold">
-            {LIVE_ACTION_WARNING}
-          </div>
-
-          {impactLoading && (
-            <div className="text-xs text-muted-foreground font-mono">Checking what this will remove...</div>
-          )}
-
-          {!impactLoading && impactError && (
-            <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-              {impactError}
-            </div>
-          )}
-
-          {!impactLoading && !impactError && impact !== null && impact.length === 0 && (
-            <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-              The impact could not be computed, so this delete is refused.
-            </div>
-          )}
-
-          {!impactLoading && !impactError && unknown.length > 0 && (
-            <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive space-y-1">
-              <div className="font-semibold">The database returned a behaviour this screen does not understand, so this delete is refused.</div>
-              {unknown.map((r) => (
-                <div key={r.child_table} className="font-mono">{r.child_table}: {r.behaviour}</div>
-              ))}
-            </div>
-          )}
-
-          {!impactLoading && !impactError && impact !== null && impact.length > 0 && unknown.length === 0 && (
-            <div className="space-y-3">
-              {blocking.length > 0 && (
-                <div className="rounded-md border-2 border-destructive bg-destructive/15 px-3 py-2 text-xs text-destructive space-y-1">
-                  <div className="font-semibold uppercase tracking-widest font-mono">This lead cannot be deleted</div>
-                  {blocking.map((r) => (
-                    <div key={r.child_table} className="font-mono">{r.child_table}: {r.rows_affected}</div>
-                  ))}
-                </div>
-              )}
-
-              {destroyed.length > 0 && (
-                <div>
-                  <div className="text-[10px] uppercase tracking-widest text-destructive font-mono mb-1">Permanently destroyed</div>
-                  <div className="space-y-0.5">
-                    {destroyed.map((r) => (
-                      <div key={r.child_table} className="text-xs font-mono">{r.rows_affected} {r.child_table}</div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {cleared.length > 0 && (
-                <div>
-                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-1">Kept, reference cleared</div>
-                  <div className="space-y-0.5">
-                    {cleared.map((r) => (
-                      <div key={r.child_table} className="text-xs font-mono">{r.rows_affected} {r.child_table}</div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="text-[10px] text-muted-foreground font-mono">
-                {untouched.length} other linked tables have nothing to remove.
-              </div>
-            </div>
-          )}
-
-          <div>
-            <Label className="text-xs">Reason (required)</Label>
-            <Input
-              className="mt-1"
-              value={deleteReason}
-              onChange={(e) => setDeleteReason(e.target.value)}
-              placeholder="e.g. duplicate, out of scope, test data"
-            />
-            <div className="flex items-center justify-between mt-1">
-              <div className="text-[10px] text-destructive">
-                {reasonHasEmDash ? "Remove the long dash character from the reason." : reasonTooLong ? "The reason must be 500 characters or fewer." : ""}
-              </div>
-              <div className="text-[10px] font-mono text-muted-foreground">{deleteReason.length}/500</div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>Cancel</Button>
-            <Button
-              variant="destructive"
-              disabled={confirmDisabled}
-              onClick={async () => {
-                setDeleting(true);
-                try {
-                  const result = await deleteLeadViaRoute(lead.id, operator, deleteReason.trim(), (impact ?? []).length);
-                  if (result.ok === true) {
-                    toast({ title: "Lead deleted", description: `Tombstone key: ${result.tombstone_key ?? DASH}` });
-                    setDeleteOpen(false);
-                    onOpenChange(false);
-                    onDeleted?.();
-                  } else {
-                    toast({
-                      title: "Delete refused",
-                      description: result.detail ?? "The delete did not complete.",
-                      className: "border-destructive/40 bg-destructive/10 text-destructive",
-                    });
-                  }
-                } finally {
-                  setDeleting(false);
-                }
-              }}
-            >
-              {deleting ? "Deleting..." : "Delete permanently"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteLeadDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        leadId={lead.id}
+        companyBuilder={lead.company_builder}
+        projectName={lead.project_name}
+        operator={operator}
+        onDeleted={() => { onOpenChange(false); onDeleted?.(); }}
+      />
     </Sheet>
   );
 }
+
