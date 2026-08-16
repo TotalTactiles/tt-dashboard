@@ -492,6 +492,8 @@ export default function LeadProfile() {
   const [timelineError, setTimelineError] = useState<string | null>(null);
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [operator, setOperator] = useState<string | null>(() => getStoredOperator());
+  const navigate = useNavigate();
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
 
 
