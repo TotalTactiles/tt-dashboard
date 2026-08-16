@@ -72,11 +72,6 @@ export default function LeadDrawer({
   const [noteDraft, setNoteDraft] = useState("");
   const [newTask, setNewTask] = useState({ title: "", kind: "follow_up", due_date: "" });
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteReason, setDeleteReason] = useState("");
-  const [deleting, setDeleting] = useState(false);
-  const [impact, setImpact] = useState<DeleteImpactRow[] | null>(null);
-  const [impactLoading, setImpactLoading] = useState(false);
-  const [impactError, setImpactError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const load = useCallback(async () => {
