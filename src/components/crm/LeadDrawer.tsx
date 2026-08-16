@@ -7,17 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  bandFor, Lead, useCrmRefs,
-  fetchDeleteImpact, deleteLeadViaRoute, LIVE_ACTION_WARNING,
-  IMPACT_BLOCKS, IMPACT_DESTROYED, IMPACT_REFERENCE_CLEARED,
-  type DeleteImpactRow,
-} from "@/hooks/useCrmLeads";
+import { bandFor, Lead, useCrmRefs } from "@/hooks/useCrmLeads";
 import { useToast } from "@/hooks/use-toast";
 import { Check, AlertTriangle, Trash2 } from "lucide-react";
 import EnrichButton from "./EnrichButton";
+import DeleteLeadDialog from "./DeleteLeadDialog";
 
 const db = supabase as any;
 const DASH = "-";
