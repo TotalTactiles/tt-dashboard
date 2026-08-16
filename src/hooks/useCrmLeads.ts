@@ -345,3 +345,92 @@ export async function enrichLead(
   }
 }
 
+
+// -------- live-action warning --------
+// The one shared live-action warning. Every irreversible control renders THIS constant.
+// It is deliberately in one place so that removing every such warning later is one edit.
+export const LIVE_ACTION_WARNING =
+  "You are working on LIVE business data. This action is permanent and cannot be undone.";
+
+// -------- delete impact --------
+export const IMPACT_DESTROYED = "destroyed";
+export const IMPACT_BLOCKS = "BLOCKS THE DELETE";
+export const IMPACT_REFERENCE_CLEARED = "reference cleared, row kept";
+
+export interface DeleteImpactRow {
+  child_table: string;
+  rows_affected: number;
+  behaviour: string;
+}
+
+export async function fetchDeleteImpact(leadId: string): Promise<DeleteImpactRow[]> {
+  const { data, error } = await db.rpc("tt_lead_delete_impact", { p_lead: leadId });
+  if (error) throw error;
+  return (data ?? []) as DeleteImpactRow[];
+}
+
+// -------- routed delete --------
+const DELETE_URL = "https://n8n.srv1437130.hstgr.cloud/webhook/tt-lead-delete";
+
+export interface DeleteRouteResult {
+  ok: boolean;
+  blocked?: boolean;
+  gate_reason?: string | null;
+  held_by?: string | null;
+  lead_id?: string;
+  company_builder?: string | null;
+  project_name?: string | null;
+  tombstone_key?: string | null;
+  actor_id?: string | null;
+  reason?: string | null;
+  purged_at?: string | null;
+  impact?: DeleteImpactRow[];
+  detail?: string;
+  [k: string]: any;
+}
+
+export async function deleteLeadViaRoute(
+  leadId: string,
+  operator: string,
+  reason: string,
+  impactRowCount: number,
+): Promise<DeleteRouteResult> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60_000);
+  try {
+    const res = await fetch(DELETE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        lead_id: leadId,
+        operator,
+        reason,
+        confirm: true,
+        impact_rows: impactRowCount,
+      }),
+      signal: controller.signal,
+    });
+    let body: any = null;
+    try { body = await res.json(); } catch { body = null; }
+
+    // HTTP 200 IS NOT SUCCESS. The route returns 200 with ok:false when a gate refuses.
+    if (body && body.blocked === true) {
+      return { ok: false, blocked: true, gate_reason: body.gate_reason ?? null, held_by: body.held_by ?? null,
+               detail: body.gate_reason || "The lead is held by another operator or the gate refused." };
+    }
+    if (!res.ok) {
+      return { ok: false, detail: body?.message || body?.detail || ("The delete route returned HTTP " + res.status + ". The lead may be unchanged. Re-open the lead to check.") };
+    }
+    if (!body || body.ok !== true) {
+      return { ok: false, detail: body?.detail || body?.message || "The delete route did not confirm success." };
+    }
+    return body as DeleteRouteResult;
+  } catch (err: any) {
+    if (err?.name === "AbortError") {
+      return { ok: false, detail: "The delete route did not respond within 60 seconds. Re-open the lead to check whether it was deleted." };
+    }
+    return { ok: false, detail: err?.message ?? "The delete route could not be reached." };
+  } finally {
+    clearTimeout(timer);
+  }
+}
