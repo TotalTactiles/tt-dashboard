@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Mail, Phone, UserCog } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { AlertTriangle, ArrowLeft, Loader2, Mail, Phone, Trash2, UserCog } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import SectionHeader from "@/components/dashboard/SectionHeader";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getStoredOperator, OperatorPicker, useOperators } from "@/components/crm/WorkingAsGate";
+import DeleteLeadDialog from "./DeleteLeadDialog";
 
 const db = supabase as any;
 
@@ -492,6 +493,8 @@ export default function LeadProfile() {
   const [timelineError, setTimelineError] = useState<string | null>(null);
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [operator, setOperator] = useState<string | null>(() => getStoredOperator());
+  const navigate = useNavigate();
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
 
 
@@ -859,7 +862,41 @@ export default function LeadProfile() {
                 : <div className="text-sm text-muted-foreground">No notes recorded.</div>}
             </div>
 
+            {/* 7. danger zone */}
+            <div className="rounded-md border border-destructive/40 bg-card px-4 py-3">
+              <div className="mb-2 flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-widest text-destructive">
+                <AlertTriangle className="h-3.5 w-3.5" /> Danger zone
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Permanently delete this lead. The exact impact is computed and shown before you confirm.
+                </div>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="shrink-0"
+                  disabled={!operator}
+                  title={operator ? undefined : "Pick who is working, using the button in the header, before deleting this lead"}
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete lead
+                </Button>
+              </div>
+            </div>
+
           </>
+        )}
+
+        {profile && (
+          <DeleteLeadDialog
+            open={deleteOpen}
+            onOpenChange={setDeleteOpen}
+            leadId={profile.id}
+            companyBuilder={profile.company_builder}
+            projectName={profile.project_name}
+            operator={operator}
+            onDeleted={() => navigate("/oven")}
+          />
         )}
       </div>
     </DashboardLayout>
