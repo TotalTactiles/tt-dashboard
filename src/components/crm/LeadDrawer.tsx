@@ -169,7 +169,8 @@ export default function LeadDrawer({
 
   const trimmedReason = deleteReason.trim();
   const reasonTooLong = deleteReason.length > 500;
-  const reasonHasEmDash = deleteReason.includes("\u2014");
+  const EM_DASH = String.fromCharCode(8212);
+  const reasonHasEmDash = deleteReason.includes(EM_DASH);
   const confirmDisabled =
     deleting || !trimmedReason || reasonTooLong || reasonHasEmDash ||
     impactLoading || impactError !== null || impact === null || impact.length === 0 ||
