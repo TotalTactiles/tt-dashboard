@@ -20,7 +20,11 @@ import {
 } from "@/hooks/useProjects";
 import { useProfiles } from "@/hooks/useProfiles";
 import { Ring } from "@/components/projects/Ring";
-import { DeleteProjectControl } from "@/components/projects/DeleteProjectControl";
+import {
+  DeleteProjectControl,
+  DISABLED_HELP,
+} from "@/components/projects/DeleteProjectControl";
+import { PROJECT_DELETE_ENABLED } from "@/lib/deleteProject";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, List, LayoutGrid, Calendar as CalendarIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
 
@@ -551,6 +555,14 @@ function LifecycleActionBar({
           onDeleted={onDeleted}
         />
       </div>
+      {!PROJECT_DELETE_ENABLED && (
+        <div
+          className="mt-1 text-right text-[10px] font-mono"
+          style={{ opacity: 0.45 }}
+        >
+          {DISABLED_HELP}
+        </div>
+      )}
       {completeNote && (
         <div
           className="mt-1 text-right text-[10px] font-mono"
@@ -562,6 +574,7 @@ function LifecycleActionBar({
           {completeNote}
         </div>
       )}
+
     </div>
   );
 }
