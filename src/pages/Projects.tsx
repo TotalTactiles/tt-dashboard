@@ -20,6 +20,7 @@ import {
 } from "@/hooks/useProjects";
 import { useProfiles } from "@/hooks/useProfiles";
 import { Ring } from "@/components/projects/Ring";
+import { DeleteProjectControl } from "@/components/projects/DeleteProjectControl";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, List, LayoutGrid, Calendar as CalendarIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
 
@@ -312,6 +313,11 @@ function ProjectsInner() {
 
             {projectId && project && canManageLifecycle && (
               <LifecycleActionBar
+                projectId={project.id}
+                onDeleted={() => {
+                  setProjectId(null);
+                  bumpRail();
+                }}
                 projectName={project.name}
                 completedAt={project.completed_at}
                 openTasks={open}
@@ -365,6 +371,8 @@ function ProjectsInner() {
 }
 
 function LifecycleActionBar({
+  projectId,
+  onDeleted,
   projectName,
   completedAt,
   openTasks,
@@ -374,6 +382,8 @@ function LifecycleActionBar({
   onComplete,
   onVariation,
 }: {
+  projectId: string;
+  onDeleted: () => void;
   projectName: string;
   completedAt: string | null;
   openTasks: number;
@@ -469,6 +479,12 @@ function LifecycleActionBar({
             <span />
           )}
         </div>
+        <DeleteProjectControl
+          isMobile
+          projectId={projectId}
+          projectName={projectName}
+          onDeleted={onDeleted}
+        />
         {completeNote && (
           <div
             className="text-[10px] font-mono leading-snug"
@@ -529,6 +545,11 @@ function LifecycleActionBar({
             Complete Project
           </button>
         )}
+        <DeleteProjectControl
+          projectId={projectId}
+          projectName={projectName}
+          onDeleted={onDeleted}
+        />
       </div>
       {completeNote && (
         <div
