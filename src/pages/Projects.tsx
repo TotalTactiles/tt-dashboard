@@ -554,6 +554,14 @@ function LifecycleActionBar({
           onDeleted={onDeleted}
         />
       </div>
+      {!PROJECT_DELETE_ENABLED && (
+        <div
+          className="mt-1 text-right text-[10px] font-mono"
+          style={{ opacity: 0.45 }}
+        >
+          {DISABLED_HELP}
+        </div>
+      )}
       {completeNote && (
         <div
           className="mt-1 text-right text-[10px] font-mono"
@@ -565,6 +573,7 @@ function LifecycleActionBar({
           {completeNote}
         </div>
       )}
+
     </div>
   );
 }
