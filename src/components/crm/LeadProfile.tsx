@@ -860,14 +860,29 @@ export default function LeadProfile() {
                       }}
                     >
                       <div className="min-w-0">
-                        <div className="font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">
-                          {fmtWhen(e.at, tz)}
-                        </div>
-                        <div className="text-sm">{e.label || e.kind || DASH}</div>
-                        {e.detail && (
-                          <div className="whitespace-pre-line break-words text-xs text-muted-foreground">
-                            {e.detail}
-                          </div>
+                        {e.kind === "note" ? (
+                          <>
+                            <div className="font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">
+                              {fmtWhen(e.at, tz)} <span className="mx-1">•</span> {e.label || e.kind || DASH}
+                            </div>
+                            {e.detail && (
+                              <div className="whitespace-pre-line break-words text-[15px] leading-relaxed text-foreground">
+                                {e.detail}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <div className="font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">
+                              {fmtWhen(e.at, tz)}
+                            </div>
+                            <div className="text-sm">{e.label || e.kind || DASH}</div>
+                            {e.detail && (
+                              <div className="whitespace-pre-line break-words text-xs text-muted-foreground">
+                                {e.detail}
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                       <div className="shrink-0 font-mono text-xs text-muted-foreground">
