@@ -122,28 +122,40 @@ export function DeleteProjectControl({ projectId, projectName, onDeleted, isMobi
   return (
     <>
       <div className={isMobile ? "space-y-1" : "flex items-center gap-2"}>
-        <Button
+        <button
           type="button"
-          variant="destructive"
-          size="sm"
           disabled={!PROJECT_DELETE_ENABLED || checking}
           title={PROJECT_DELETE_ENABLED ? undefined : DISABLED_HELP}
           onClick={startDelete}
-          className={isMobile ? "w-full min-h-[44px]" : undefined}
+          className={
+            isMobile
+              ? "min-h-[44px] rounded-md text-[11px] font-mono uppercase tracking-widest text-white disabled:cursor-not-allowed px-2"
+              : "h-8 px-3 rounded-md text-[11px] font-mono uppercase tracking-widest text-white disabled:cursor-not-allowed"
+          }
+          style={
+            PROJECT_DELETE_ENABLED && !checking
+              ? {
+                  border: "1px solid #EF4444",
+                  color: "#EF4444",
+                  background: "transparent",
+                }
+              : { background: "#1D1D22", opacity: 0.55 }
+          }
         >
-          {checking ? (
-            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-          )}
-          Delete project
-        </Button>
-        {!PROJECT_DELETE_ENABLED && (
-          <span className="text-[10.5px] font-mono text-muted-foreground">{DISABLED_HELP}</span>
-        )}
+          Delete Project
+        </button>
       </div>
+      {isMobile && !PROJECT_DELETE_ENABLED && (
+        <div
+          className="text-[10px] font-mono leading-snug"
+          style={{ opacity: 0.55 }}
+        >
+          {DISABLED_HELP}
+        </div>
+      )}
 
       <Dialog open={!!preview} onOpenChange={(v) => (v ? null : close())}>
+
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           {preview && blocked && (
             <>
