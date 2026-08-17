@@ -24,6 +24,7 @@ import {
   DeleteProjectControl,
   DISABLED_HELP,
 } from "@/components/projects/DeleteProjectControl";
+import { PROJECT_DELETE_ENABLED } from "@/lib/deleteProject";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, List, LayoutGrid, Calendar as CalendarIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
 
