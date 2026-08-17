@@ -3982,6 +3982,60 @@ export type Database = {
           },
         ]
       }
+      project_purge_tombstones: {
+        Row: {
+          client_name: string | null
+          deleted_at: string
+          deleted_by: string | null
+          id: string
+          impact: Json
+          onedrive_folder_id: string | null
+          project_created_at: string | null
+          project_id: string
+          project_name: string
+          project_status: string | null
+          quote_number: string | null
+          reason: string | null
+          site_address: string | null
+          stock_movements_orphaned: number
+          zoho_deal_id: string | null
+        }
+        Insert: {
+          client_name?: string | null
+          deleted_at?: string
+          deleted_by?: string | null
+          id?: string
+          impact: Json
+          onedrive_folder_id?: string | null
+          project_created_at?: string | null
+          project_id: string
+          project_name: string
+          project_status?: string | null
+          quote_number?: string | null
+          reason?: string | null
+          site_address?: string | null
+          stock_movements_orphaned?: number
+          zoho_deal_id?: string | null
+        }
+        Update: {
+          client_name?: string | null
+          deleted_at?: string
+          deleted_by?: string | null
+          id?: string
+          impact?: Json
+          onedrive_folder_id?: string | null
+          project_created_at?: string | null
+          project_id?: string
+          project_name?: string
+          project_status?: string | null
+          quote_number?: string | null
+          reason?: string | null
+          site_address?: string | null
+          stock_movements_orphaned?: number
+          zoho_deal_id?: string | null
+        }
+        Relationships: []
+      }
       project_templates: {
         Row: {
           active: boolean
@@ -7388,6 +7442,15 @@ export type Database = {
       delete_leads: {
         Args: { p_by?: string; p_leads: string[]; p_reason?: string }
         Returns: number
+      }
+      delete_project: {
+        Args: {
+          p_by?: string
+          p_dry_run?: boolean
+          p_project_id: string
+          p_reason?: string
+        }
+        Returns: Json
       }
       find_similar_leads: {
         Args: { p_company?: string; p_project: string; p_threshold?: number }
