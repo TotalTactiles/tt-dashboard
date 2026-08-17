@@ -407,7 +407,7 @@ function LifecycleActionBar({
       ? "Stage may be completed with tasks outstanding."
       : allDone
         ? "All tasks complete."
-        : `${openTasks} of ${totalTasks} tasks remaining — complete all tasks to close this project`;
+        : `${openTasks} of ${totalTasks} tasks remaining - complete all tasks to close this project`;
 
   const completedLabel = (() => {
     if (!completedAt) return null;
