@@ -860,7 +860,7 @@ export default function LeadProfile() {
                       }}
                     >
                       <div className="min-w-0">
-                        {e.kind === "note" ? (
+                        {e.kind === "note" || e.kind === "task_created" ? (
                           <>
                             <div className="font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">
                               {fmtWhen(e.at, tz)} <span className="mx-1">•</span> {e.label || e.kind || DASH}
