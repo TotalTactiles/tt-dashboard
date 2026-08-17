@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -20,8 +20,9 @@ import {
   type DeleteProjectResult,
 } from "@/lib/deleteProject";
 
-const DISABLED_HELP =
+export const DISABLED_HELP =
   "Not enabled yet. This will be switched on once the delete has been signed off.";
+
 
 interface Props {
   projectId: string;

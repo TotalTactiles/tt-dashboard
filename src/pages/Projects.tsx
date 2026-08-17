@@ -20,7 +20,10 @@ import {
 } from "@/hooks/useProjects";
 import { useProfiles } from "@/hooks/useProfiles";
 import { Ring } from "@/components/projects/Ring";
-import { DeleteProjectControl } from "@/components/projects/DeleteProjectControl";
+import {
+  DeleteProjectControl,
+  DISABLED_HELP,
+} from "@/components/projects/DeleteProjectControl";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, List, LayoutGrid, Calendar as CalendarIcon, Filter, ArrowUpDown, Group, Search } from "lucide-react";
 
