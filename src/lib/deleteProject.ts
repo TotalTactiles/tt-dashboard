@@ -1,8 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * The single switch for the project delete feature. Ships false: the control is
- * visible but inert. Flipping this to true is the entire job of enabling it.
+ * The single switch for the project delete feature. Set true in P014: the
+ * control is live and the delete runs against production data. Set it back to
+ * false to disable the feature without removing any code.
  */
 export const PROJECT_DELETE_ENABLED = true;
 
