@@ -531,7 +531,7 @@ const MANUAL_INPUT_CLS =
   "w-full bg-transparent border rounded px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary";
 
 
-// ---------------- shell: the two Oven sub-tabs ----------------
+// ---------------- shell: the Lead Generation sub-tabs ----------------
 
 export default function NewLeadsView({
   operator, tab: tabProp, onTabChange, resetNonce = 0,
@@ -548,7 +548,9 @@ export default function NewLeadsView({
   const test = useNewLeads("v_oven_test_leads");
   const cold = useColdCallLeads();
   const coldTest = useColdCallLeads("v_oven_test_call_queue");
-  const [testSub, setTestSub] = useState<"new" | "cold">("new");
+  const responded = useNewLeads("v_oven_responded");
+  const respondedTest = useNewLeads("v_oven_test_responded");
+  const [testSub, setTestSub] = useState<"new" | "cold" | "responded">("new");
 
   useEffect(() => {
     if (!resetNonce) return;
@@ -556,6 +558,7 @@ export default function NewLeadsView({
     test.reload();
     cold.reload();
     coldTest.reload();
+    respondedTest.reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetNonce]);
 
@@ -566,10 +569,13 @@ export default function NewLeadsView({
         onChange={setTab}
         newCount={newLeads.rows.length}
         coldCount={cold.rows.length}
+        respondedCount={responded.rows.length}
         testCount={test.rows.length + coldTest.rows.length}
       />
       {tab === "new" ? (
         <NewLeadsQueue operator={operator} {...newLeads} />
+      ) : tab === "responded" ? (
+        <RespondedQueue operator={operator} {...responded} />
       ) : tab === "test" ? (
         <div className="space-y-4">
           <div className="inline-flex rounded-md border border-border bg-muted/30 p-1">
@@ -591,9 +597,20 @@ export default function NewLeadsView({
               Cold Call
               <span className="ml-2 text-[10px] opacity-70 tabular-nums">{coldTest.rows.length}</span>
             </Button>
+            <Button
+              variant={testSub === "responded" ? "default" : "ghost"}
+              size="sm"
+              className="font-mono"
+              onClick={() => setTestSub("responded")}
+            >
+              Replied
+              <span className="ml-2 text-[10px] opacity-70 tabular-nums">{respondedTest.rows.length}</span>
+            </Button>
           </div>
           {testSub === "new" ? (
             <NewLeadsQueue key={resetNonce} operator={operator} {...test} />
+          ) : testSub === "responded" ? (
+            <RespondedQueue key={resetNonce} operator={operator} {...respondedTest} />
           ) : (
             <ColdCallView
               key={resetNonce}
@@ -617,6 +634,7 @@ export default function NewLeadsView({
     </div>
   );
 }
+
 
 // ---------------- New Leads queue: one lead at a time ----------------
 

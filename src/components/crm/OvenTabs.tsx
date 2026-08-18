@@ -1,14 +1,15 @@
 import { Button } from "@/components/ui/button";
 
-export type OvenTab = "new" | "cold" | "test";
+export type OvenTab = "new" | "cold" | "responded" | "test";
 
 export default function OvenTabs({
-  value, onChange, newCount, coldCount, testCount,
+  value, onChange, newCount, coldCount, respondedCount, testCount,
 }: {
   value: OvenTab;
   onChange: (t: OvenTab) => void;
   newCount: number;
   coldCount: number;
+  respondedCount: number;
   testCount: number;
 }) {
   return (
@@ -30,6 +31,15 @@ export default function OvenTabs({
       >
         Cold Call
         <span className="ml-2 text-[10px] opacity-70 tabular-nums">{coldCount}</span>
+      </Button>
+      <Button
+        variant={value === "responded" ? "default" : "ghost"}
+        size="sm"
+        className="font-mono"
+        onClick={() => onChange("responded")}
+      >
+        Replied
+        <span className="ml-2 text-[10px] opacity-70 tabular-nums">{respondedCount}</span>
       </Button>
       <Button
         variant={value === "test" ? "default" : "ghost"}
