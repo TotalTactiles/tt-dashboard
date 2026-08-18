@@ -184,14 +184,42 @@ export function useLeadsIncomplete() {
 }
 
 // -------- deletion --------
-export async function deleteLead(id: string, reason: string, operator: string) {
-  const { error } = await db.rpc("delete_lead", { p_lead: id, p_reason: reason, p_by: operator });
-  if (error) throw error;
-}
+
+// The delete_leads RPC loops over delete_lead inside ONE statement, so a trigger
+// throwing on one lead rolls back every lead already deleted in that call.
+// Routing per lead makes each delete atomic on its own and gives each one a
+// tombstone and a run record. Punch 284.
 export async function deleteLeads(ids: string[], reason: string, operator: string) {
-  const { error } = await db.rpc("delete_leads", { p_leads: ids, p_reason: reason, p_by: operator });
-  if (error) throw error;
+  const failures: { id: string; reason: string }[] = [];
+  let deleted = 0;
+
+  for (const id of ids) {
+    let impact: DeleteImpactRow[] = [];
+    try {
+      impact = await fetchDeleteImpact(id);
+    } catch (err: any) {
+      failures.push({ id, reason: err?.message ?? "Could not read delete impact" });
+      continue;
+    }
+
+    const result = await deleteLeadViaRoute(id, operator, reason, impact.length);
+    if (result.ok === true) {
+      deleted++;
+    } else {
+      failures.push({
+        id,
+        reason: result.detail ?? result.gate_reason ?? "the delete route did not confirm success",
+      });
+    }
+  }
+
+  if (failures.length === 0) return;
+  throw new Error(
+    `${deleted} of ${ids.length} deleted. ${failures.length} refused or failed. ` +
+      failures.map((f) => `${f.id}: ${f.reason}`).join(" | ")
+  );
 }
+
 
 // -------- add lead --------
 export interface SimilarLeadRow {
