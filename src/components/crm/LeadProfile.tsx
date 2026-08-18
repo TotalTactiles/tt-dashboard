@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, ListPlus, Loader2, Mail, Phone, StickyNote, Trash2, UserCog } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ListPlus, Loader2, Mail, Phone, Sparkles, StickyNote, Trash2, UserCog } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import SectionHeader from "@/components/dashboard/SectionHeader";
 import { supabase } from "@/integrations/supabase/client";
