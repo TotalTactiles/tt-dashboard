@@ -213,31 +213,26 @@ export function DeleteProjectControl({ projectId, projectName, onDeleted, isMobi
 
                 <div className="rounded-md border p-3 space-y-2">
                   <div className="font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">
-                    This project will come back on its own. Here is what to do.
+                    You will need to bring this project back after delete. Here is what to do.
                   </div>
                   <ol className="list-decimal space-y-1 pl-5 text-[12.5px] text-muted-foreground">
                     <li>Open the deal in Zoho CRM.</li>
-                    <li>
-                      Check the Total Tactiles quote PDF is attached, and that its file name contains
-                      "Total Tactiles" or "TT Quote". Remove any other PDF, because if none matches
-                      the first attachment is used instead and the wrong document gets read.
-                    </li>
+                    <li>Check the Total Tactiles quote PDF is attached. Make sure it is the most up to date quote, as we use that quote for invoicing. Remove any other PDF not required.</li>
                     <li>Check Closing Date is filled.</li>
                     <li>Check Contract Value is filled.</li>
                     <li>Change Stage to "Awarded/Won".</li>
                   </ol>
                   <p className="text-[12.5px] text-muted-foreground">
-                    The project rebuilds itself in about a minute. Do not change the Stage again
-                    afterwards, it moves itself to PO Received (GRN).
+                    The project rebuilds itself in a few minutes. Do not change the Stage again afterwards, it moves itself to PO Received (GRN).
                   </p>
                   <p className="text-[12.5px] text-muted-foreground">
-                    The original cost baseline does not come back. The rebuild reads the REVENUE tab
-                    as it stands on the day it runs.
+                    The original cost baseline does not come back. The rebuild reads the REVENUE tab as it stands on the day it runs.
                   </p>
                   <p className="text-[12.5px] text-muted-foreground">
-                    The site photo folder is not deleted and is not reconnected. The rebuild makes a new empty folder, so save anything you still need out of the old one before you delete this project.
+                    Any folders made for this current project are not deleted and are not reconnected. The rebuild makes a new empty folder. So once the rebuild is complete, reupload any files you need from this project's folders onto the relevant tasks in the rebuilt project, so they are in the correct required locations.
                   </p>
                 </div>
+
 
                 <div className="space-y-1.5">
                   <label className="font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">
