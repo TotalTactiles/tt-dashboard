@@ -645,7 +645,25 @@ export default function LeadProfile() {
 
             {/* 2. contact */}
             <div className="rounded-md border border-border bg-card px-4 py-3 space-y-1.5">
-              <div className="font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">Contact</div>
+              <div className="flex items-center justify-between gap-3">
+                <div className="font-mono text-[10.5px] uppercase tracking-widest text-muted-foreground">Contact</div>
+                {operator ? (
+                  <EnrichButton
+                    leadId={profile.id}
+                    operator={operator}
+                    onDone={() => setRefreshNonce((n) => n + 1)}
+                  />
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled
+                    title="Pick who is working, using the button in the header, before finding contact details"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Find contact details
+                  </Button>
+                )}
+              </div>
               <Row label="name">
                 <span className="flex flex-wrap items-center gap-1">
                   <FieldControl
