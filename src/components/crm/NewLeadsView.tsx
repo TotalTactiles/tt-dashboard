@@ -258,6 +258,8 @@ function shortCompany(name: string): string {
 const WORK_STATUS_STYLE: Record<string, string> = {
   "contact ready": "bg-emerald-500/25 text-emerald-300",
   "duplicate": "bg-red-500/25 text-red-300",
+  "reply not actioned": "bg-blue-500/25 text-blue-300",
+  "archived, check": "bg-red-500/25 text-red-300",
   "needs a contact": "bg-yellow-400/25 text-yellow-200",
   "no builder": "bg-yellow-400/25 text-yellow-200",
   "check timing": "bg-yellow-400/25 text-yellow-200",
@@ -706,10 +708,11 @@ function NewLeadsQueue({
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="text-lg font-semibold leading-tight">
-                <Link to={`/crm/lead/${current.id}`} className="hover:underline">
+                <Link to={`/crm/lead/${current.id}`} className="inline-flex items-center gap-1 text-primary hover:underline">
                   {placeholder
                     ? <span style={{ color: "#e5934b" }}>{current.company_builder || "no builder"}</span>
                     : current.company_builder}
+                  <ChevronRight className="w-3.5 h-3.5 opacity-60" />
                 </Link>
               </div>
               <div className="text-sm text-muted-foreground">{current.project_name || DASH}</div>

@@ -602,10 +602,11 @@ function ColdCallCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-xl font-semibold leading-tight">
-            <Link to={`/crm/lead/${lead.id}`} className="hover:underline">
+            <Link to={`/crm/lead/${lead.id}`} className="inline-flex items-center gap-1 text-primary hover:underline">
               {isPlaceholderBuilder(lead.company_builder)
                 ? <span style={{ color: "#e5934b" }}>{lead.company_builder || "no builder"}</span>
                 : (lead.company_builder || DASH)}
+              <ChevronRight className="w-3.5 h-3.5 opacity-60" />
             </Link>
           </div>
           <div className="text-sm text-muted-foreground">{lead.project_name || DASH}</div>

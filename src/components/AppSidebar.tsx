@@ -99,7 +99,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {renderItem({ title: "Contacts", url: "/contacts", icon: Contact })}
-              {renderItem({ title: "The Oven - to complete", url: "/oven", icon: OvenIcon })}
+              {renderItem({ title: "Lead Generation", url: "/oven", icon: OvenIcon })}
 
               <SidebarMenuItem>
                 <SidebarMenuButton disabled aria-disabled="true" className="opacity-50 cursor-not-allowed">
