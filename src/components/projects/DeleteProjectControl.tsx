@@ -234,6 +234,9 @@ export function DeleteProjectControl({ projectId, projectName, onDeleted, isMobi
                     The original cost baseline does not come back. The rebuild reads the REVENUE tab
                     as it stands on the day it runs.
                   </p>
+                  <p className="text-[12.5px] text-muted-foreground">
+                    The site photo folder is not deleted and is not reconnected. The rebuild makes a new empty folder, so save anything you still need out of the old one before you delete this project.
+                  </p>
                 </div>
 
                 <div className="space-y-1.5">
