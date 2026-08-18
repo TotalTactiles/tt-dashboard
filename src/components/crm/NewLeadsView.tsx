@@ -794,6 +794,100 @@ function NewLeadsQueue({
   );
 }
 
+// ---------------- Replied queue: read only, hands off to the full profile ----------------
+
+/**
+ * These leads have already replied, so the builder / timing / contact / send
+ * ladder does not apply. The operator opens the lead and acts on the reply,
+ * so this surface is a plain list with a link into the profile page.
+ */
+function RespondedQueue({
+  operator, rows, timing, loading, reload,
+}: {
+  operator: string;
+  rows: OvenNewLead[];
+  timing: Record<string, TimingRow>;
+  loading: boolean;
+  reload: () => Promise<void> | void;
+}) {
+  const sorted = useMemo(() => {
+    return rows.slice().sort((a, b) => {
+      const ba = a.band_rank ?? 99;
+      const bb = b.band_rank ?? 99;
+      if (ba !== bb) return ba - bb;
+      const ra = (a as any).responded_at ? new Date((a as any).responded_at).getTime() : 0;
+      const rb = (b as any).responded_at ? new Date((b as any).responded_at).getTime() : 0;
+      return rb - ra;
+    });
+  }, [rows]);
+
+  return (
+    <div className="space-y-3">
+      <div className="text-xs font-mono text-muted-foreground tabular-nums">
+        Working as <span className="text-foreground font-semibold">{operator}</span> - {sorted.length} replied waiting
+      </div>
+
+      {loading && !sorted.length && (
+        <div className="rounded-md border border-border bg-card px-3 py-8 text-center text-sm text-muted-foreground">
+          Loading replied leads...
+        </div>
+      )}
+
+      {!loading && sorted.length === 0 && (
+        <div className="rounded-md border border-border bg-card px-3 py-8 text-center text-sm text-muted-foreground">
+          No leads have replied.
+        </div>
+      )}
+
+      {sorted.length > 0 && (
+        <div className="rounded-md border border-border bg-card overflow-hidden">
+          <div className="px-3 py-2 border-b border-border font-mono uppercase text-[10.5px] tracking-[0.13em] text-muted-foreground">
+            Replied
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="text-left px-3 py-2">Builder</th>
+                  <th className="text-left px-2 py-2">Project</th>
+                  <th className="text-left px-2 py-2">Replied</th>
+                  <th className="text-left px-2 py-2">Contact</th>
+                  <th className="text-left px-3 py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((l) => (
+                  <tr key={l.id} className="border-t border-border">
+                    <td className="px-3 py-2">
+                      <Link
+                        to={`/crm/lead/${l.id}`}
+                        className="inline-flex items-center gap-1 text-primary hover:underline"
+                      >
+                        {l.company_builder || DASH}
+                        <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                      </Link>
+                    </td>
+                    <td className="px-2 py-2 text-muted-foreground">{l.project_name || DASH}</td>
+                    <td className="px-2 py-2 font-mono text-xs tabular-nums">{fmtDay((l as any).responded_at)}</td>
+                    <td className="px-2 py-2">
+                      <div>{l.project_contact_name || DASH}</div>
+                      {l.direct_email && (
+                        <div className="font-mono text-[10.5px] text-muted-foreground">{l.direct_email}</div>
+                      )}
+                    </td>
+                    <td className="px-3 py-2"><WorkStatusChip status={l.work_status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 
 // ---------------- expansion: one step on screen at a time ----------------
 
