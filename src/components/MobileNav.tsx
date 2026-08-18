@@ -10,7 +10,7 @@ const navItems = [
   { title: "Goals", url: "/goals", icon: Target },
   { title: "Consulting", url: "/consulting", icon: BrainCircuit },
   { title: "Contacts", url: "/contacts", icon: Contact },
-  { title: "Lead Gen", url: "/oven", icon: OvenIcon },
+  { title: "Lead Generation", url: "/oven", icon: OvenIcon },
   { title: "Projects", url: "/projects", icon: Hammer },
   { title: "Calendar", url: "/calendar", icon: CalendarDays },
   { title: "Employees", url: "/employees", icon: Users },
