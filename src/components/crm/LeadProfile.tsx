@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from "@/hooks/use-toast";
 import { getStoredOperator, OperatorPicker, useOperators } from "@/components/crm/WorkingAsGate";
 import DeleteLeadDialog from "./DeleteLeadDialog";
+import EnrichButton from "./EnrichButton";
 import AddNoteDialog from "./AddNoteDialog";
 import AddTaskDialog from "./AddTaskDialog";
 
