@@ -4213,6 +4213,51 @@ export type Database = {
           },
         ]
       }
+      project_onedrive_purge_log: {
+        Row: {
+          attempted_at: string
+          attempted_by: string | null
+          error: string | null
+          folder_id: string | null
+          id: string
+          status: string
+          tombstone_id: string
+        }
+        Insert: {
+          attempted_at?: string
+          attempted_by?: string | null
+          error?: string | null
+          folder_id?: string | null
+          id?: string
+          status: string
+          tombstone_id: string
+        }
+        Update: {
+          attempted_at?: string
+          attempted_by?: string | null
+          error?: string | null
+          folder_id?: string | null
+          id?: string
+          status?: string
+          tombstone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_onedrive_purge_log_tombstone_id_fkey"
+            columns: ["tombstone_id"]
+            isOneToOne: false
+            referencedRelation: "project_purge_tombstones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_onedrive_purge_log_tombstone_id_fkey"
+            columns: ["tombstone_id"]
+            isOneToOne: false
+            referencedRelation: "v_onedrive_orphans"
+            referencedColumns: ["tombstone_id"]
+          },
+        ]
+      }
       project_purge_tombstones: {
         Row: {
           client_name: string | null
@@ -6881,6 +6926,20 @@ export type Database = {
           },
         ]
       }
+      v_onedrive_orphans: {
+        Row: {
+          attempts: number | null
+          deleted_at: string | null
+          deleted_by: string | null
+          last_attempt_at: string | null
+          last_error: string | null
+          onedrive_folder_id: string | null
+          project_name: string | null
+          purge_status: string | null
+          tombstone_id: string | null
+        }
+        Relationships: []
+      }
       v_organisation_merge_candidates: {
         Row: {
           candidates: Json | null
@@ -8064,6 +8123,10 @@ export type Database = {
         }[]
       }
       project_phase_marker: { Args: { p_name: string }; Returns: string }
+      record_onedrive_purge: {
+        Args: { p_error?: string; p_ok: boolean; p_tombstone_id: string }
+        Returns: Json
+      }
       resolve_deal_stage: { Args: { p_zoho_value: string }; Returns: string }
       resolve_lead_template: {
         Args: {
