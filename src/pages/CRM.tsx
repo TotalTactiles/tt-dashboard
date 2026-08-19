@@ -4,11 +4,11 @@ import SectionHeader from "@/components/dashboard/SectionHeader";
 import WorkingAsGate, { getStoredOperator, setStoredOperator, useOperators } from "@/components/crm/WorkingAsGate";
 import NewLeadsView from "@/components/crm/NewLeadsView";
 import TestLaneControls from "@/components/crm/TestLaneControls";
-import type { OvenTab } from "@/components/crm/OvenTabs";
+import type { LeadGenTab } from "@/components/crm/LeadGenTabs";
 
 export default function CRM() {
   const [operator, setOperator] = useState<string | null>(null);
-  const [tab, setTab] = useState<OvenTab>("new");
+  const [tab, setTab] = useState<LeadGenTab>("new");
   const [resetNonce, setResetNonce] = useState(0);
 
   useEffect(() => { setOperator(getStoredOperator()); }, []);

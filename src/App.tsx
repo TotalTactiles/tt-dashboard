@@ -86,9 +86,9 @@ const App = () => (
                   <Route path="/financial-health" element={<Protected><FinancialHealth /></Protected>} />
                   <Route path="/management-report" element={<Protected><ManagementReport /></Protected>} />
                   <Route path="/projects" element={<Protected><Projects /></Protected>} />
-                  <Route path="/oven" element={<Protected><CRM /></Protected>} />
+                  <Route path="/lead-generation" element={<Protected><CRM /></Protected>} />
                   <Route path="/crm/lead/:id" element={<Protected><LeadProfile /></Protected>} />
-                  <Route path="/crm" element={<Navigate to="/oven" replace />} />
+                  <Route path="/crm" element={<Navigate to="/lead-generation" replace />} />
                   <Route path="/contacts" element={<Protected><Contacts /></Protected>} />
                   {/* ── TV / Wallboard mode ── */}
                   <Route path="/tv" element={<Protected><TvLayout><Index /></TvLayout></Protected>} />

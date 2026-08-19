@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { enrichLead, Lead, useCrmRefs } from "@/hooks/useCrmLeads";
 import { useToast } from "@/hooks/use-toast";
 import SetNextStepDialog from "./SetNextStepDialog";
-import OvenTabs, { type OvenTab } from "./OvenTabs";
+import LeadGenTabs, { type LeadGenTab } from "./LeadGenTabs";
 import ColdCallView, { useColdCallLeads } from "./ColdCallView";
 
 const db = supabase as any;
@@ -20,7 +20,7 @@ const SKIP_TIMING_STATUSES = ["no_email", "no_org", "all_known", "duplicate"] as
 
 const WEBHOOK_BASE = "https://n8n.srv1437130.hstgr.cloud/webhook/";
 
-export interface OvenWebhookResult {
+export interface LeadGenWebhookResult {
   ok: boolean;
   blocked: boolean;
   reason: string;
@@ -29,12 +29,12 @@ export interface OvenWebhookResult {
 
 const OK_ENFORCED_PATHS = new Set(["tt-lead-send", "tt-lead-builder", "tt-lead-timing", "tt-company-phone"]);
 
-/** POST { lead_id, operator } to an n8n oven webhook and normalise the reply. */
-export async function postOvenWebhook(
+/** POST { lead_id, operator } to an n8n leadgen webhook and normalise the reply. */
+export async function postLeadGenWebhook(
   path: string,
   body: { lead_id: string; operator: string; [k: string]: any },
   timeoutMs = 45_000,
-): Promise<OvenWebhookResult> {
+): Promise<LeadGenWebhookResult> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -155,8 +155,8 @@ export interface TimingRow {
   source_text?: string | null;
 }
 
-/** A row from v_oven_new_leads: lead columns plus timing, prior work and status. */
-export interface OvenNewLead extends Lead {
+/** A row from v_leadgen_new_leads: lead columns plus timing, prior work and status. */
+export interface LeadGenNewLead extends Lead {
   timing_band: string | null;
   days_overdue: number | null;
   days_overdue_max: number | null;
@@ -274,7 +274,7 @@ function WorkStatusChip({ status }: { status: string | null }) {
   );
 }
 
-function WorkCell({ row }: { row: OvenNewLead }) {
+function WorkCell({ row }: { row: LeadGenNewLead }) {
   const done = row.deals_completed ?? 0;
   const live = row.deals_live ?? 0;
   const priors = row.prior_leads ?? 0;
@@ -295,15 +295,15 @@ function WorkCell({ row }: { row: OvenNewLead }) {
   return <span className="font-mono text-xs text-muted-foreground/50">-</span>;
 }
 
-export function useNewLeads(viewName: string = "v_oven_new_leads") {
-  const [rows, setRows] = useState<OvenNewLead[]>([]);
+export function useNewLeads(viewName: string = "v_leadgen_new_leads") {
+  const [rows, setRows] = useState<LeadGenNewLead[]>([]);
   const [timing, setTiming] = useState<Record<string, TimingRow>>({});
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     const { data } = await db.from(viewName).select("*").range(0, 4999);
-    const list = (data as OvenNewLead[]) ?? [];
+    const list = (data as LeadGenNewLead[]) ?? [];
     setRows(list);
 
     const map: Record<string, TimingRow> = {};
@@ -539,19 +539,19 @@ export default function NewLeadsView({
   operator, tab: tabProp, onTabChange, resetNonce = 0,
 }: {
   operator: string;
-  tab?: OvenTab;
-  onTabChange?: (t: OvenTab) => void;
+  tab?: LeadGenTab;
+  onTabChange?: (t: LeadGenTab) => void;
   resetNonce?: number;
 }) {
-  const [tabState, setTabState] = useState<OvenTab>("new");
+  const [tabState, setTabState] = useState<LeadGenTab>("new");
   const tab = tabProp ?? tabState;
   const setTab = onTabChange ?? setTabState;
   const newLeads = useNewLeads();
-  const test = useNewLeads("v_oven_test_leads");
+  const test = useNewLeads("v_leadgen_test_leads");
   const cold = useColdCallLeads();
-  const coldTest = useColdCallLeads("v_oven_test_call_queue");
-  const responded = useNewLeads("v_oven_responded");
-  const respondedTest = useNewLeads("v_oven_test_responded");
+  const coldTest = useColdCallLeads("v_leadgen_test_call_queue");
+  const responded = useNewLeads("v_leadgen_responded");
+  const respondedTest = useNewLeads("v_leadgen_test_responded");
   const [testSub, setTestSub] = useState<"new" | "cold" | "responded">("new");
 
   useEffect(() => {
@@ -566,7 +566,7 @@ export default function NewLeadsView({
 
   return (
     <div className="space-y-4">
-      <OvenTabs
+      <LeadGenTabs
         value={tab}
         onChange={setTab}
         newCount={newLeads.rows.length}
@@ -644,7 +644,7 @@ function NewLeadsQueue({
   operator, rows, timing, loading, reload,
 }: {
   operator: string;
-  rows: OvenNewLead[];
+  rows: LeadGenNewLead[];
   timing: Record<string, TimingRow>;
   loading: boolean;
   reload: () => Promise<void> | void;
@@ -805,7 +805,7 @@ function RespondedQueue({
   operator, rows, timing, loading, reload,
 }: {
   operator: string;
-  rows: OvenNewLead[];
+  rows: LeadGenNewLead[];
   timing: Record<string, TimingRow>;
   loading: boolean;
   reload: () => Promise<void> | void;
@@ -1173,7 +1173,7 @@ function PanelHeader({ title, hint }: { title: string; hint?: string }) {
 function LeadPanel({
   lead, timing, operator, reload, refresh,
 }: {
-  lead: Lead & Partial<OvenNewLead>;
+  lead: Lead & Partial<LeadGenNewLead>;
   timing: TimingRow | undefined;
   operator: string;
   /** The lead left New Leads. Advance the queue. */
@@ -1397,7 +1397,7 @@ function LeadPanel({
   }
 
 
-  function reportBlocked(r: OvenWebhookResult) {
+  function reportBlocked(r: LeadGenWebhookResult) {
     toast({
       title: r.blocked ? "Blocked" : "That did not complete",
       description: r.reason,
@@ -1408,7 +1408,7 @@ function LeadPanel({
   async function searchBuilder() {
     if (busy) return;
     setBusy("builder");
-    const r = await postOvenWebhook("tt-lead-builder", { lead_id: lead.id, operator });
+    const r = await postLeadGenWebhook("tt-lead-builder", { lead_id: lead.id, operator });
     setBusy(null);
     if (!r.ok) { reportBlocked(r); return; }
     toast({ title: "Builder search finished", description: r.body?.detail ?? "The lead has been updated if a builder was found." });
@@ -1433,7 +1433,7 @@ function LeadPanel({
   async function searchTiming() {
     if (busy) return;
     setBusy("timing");
-    const r = await postOvenWebhook("tt-lead-timing", { lead_id: lead.id, operator });
+    const r = await postLeadGenWebhook("tt-lead-timing", { lead_id: lead.id, operator });
     setBusy(null);
     if (!r.ok) { reportBlocked(r); return; }
     toast({ title: "Completion date search finished", description: r.body?.detail ?? "The timing has been updated if a date was found." });
@@ -1495,7 +1495,7 @@ function LeadPanel({
       });
       return;
     }
-    toast({ title: "Lead removed from the oven" });
+    toast({ title: "Lead removed from Lead Generation" });
     await reload();
   }
 

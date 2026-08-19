@@ -1,5 +1,5 @@
 import { LayoutDashboard, Activity, HeartPulse, CalendarDays, Users, Target, BrainCircuit, FunctionSquare, Hammer, Contact, Settings } from "lucide-react";
-import { OvenIcon } from "@/components/icons/OvenIcon";
+import { LeadGenIcon } from "@/components/icons/LeadGenIcon";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -10,7 +10,7 @@ const navItems = [
   { title: "Goals", url: "/goals", icon: Target },
   { title: "Consulting", url: "/consulting", icon: BrainCircuit },
   { title: "Contacts", url: "/contacts", icon: Contact },
-  { title: "Lead Generation", url: "/oven", icon: OvenIcon },
+  { title: "Lead Generation", url: "/lead-generation", icon: LeadGenIcon },
   { title: "Projects", url: "/projects", icon: Hammer },
   { title: "Calendar", url: "/calendar", icon: CalendarDays },
   { title: "Employees", url: "/employees", icon: Users },

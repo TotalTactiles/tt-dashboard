@@ -13,7 +13,7 @@ import {
   Briefcase,
   Code2 } from
 "lucide-react";
-import { OvenIcon } from "@/components/icons/OvenIcon";
+import { LeadGenIcon } from "@/components/icons/LeadGenIcon";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 
@@ -99,7 +99,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {renderItem({ title: "Contacts", url: "/contacts", icon: Contact })}
-              {renderItem({ title: "Lead Generation", url: "/oven", icon: OvenIcon })}
+              {renderItem({ title: "Lead Generation", url: "/lead-generation", icon: LeadGenIcon })}
 
               <SidebarMenuItem>
                 <SidebarMenuButton disabled aria-disabled="true" className="opacity-50 cursor-not-allowed">

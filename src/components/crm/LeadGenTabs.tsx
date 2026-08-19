@@ -1,12 +1,12 @@
 import { Button } from "@/components/ui/button";
 
-export type OvenTab = "new" | "cold" | "responded" | "test";
+export type LeadGenTab = "new" | "cold" | "responded" | "test";
 
-export default function OvenTabs({
+export default function LeadGenTabs({
   value, onChange, newCount, coldCount, respondedCount, testCount,
 }: {
-  value: OvenTab;
-  onChange: (t: OvenTab) => void;
+  value: LeadGenTab;
+  onChange: (t: LeadGenTab) => void;
   newCount: number;
   coldCount: number;
   respondedCount: number;

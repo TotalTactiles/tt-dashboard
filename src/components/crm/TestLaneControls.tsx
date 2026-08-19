@@ -51,8 +51,8 @@ export default function TestLaneControls({
 
   const loadCounts = useCallback(async () => {
     const [cases, restore] = await Promise.all([
-      db.from("oven_test_cases").select("lead_id", { count: "exact", head: true }),
-      db.from("oven_test_restore").select("lead_id", { count: "exact", head: true }),
+      db.from("leadgen_test_cases").select("lead_id", { count: "exact", head: true }),
+      db.from("leadgen_test_restore").select("lead_id", { count: "exact", head: true }),
     ]);
     setLeadsInLane(cases.count ?? 0);
     setSnapshotsHeld(restore.count ?? 0);
@@ -62,7 +62,7 @@ export default function TestLaneControls({
 
   async function runReset() {
     setBusy(true);
-    const { data, error } = await db.rpc("tt_oven_test_reset");
+    const { data, error } = await db.rpc("tt_leadgen_test_reset");
     setBusy(false);
     if (error) {
       toast.error(error.message);
@@ -82,7 +82,7 @@ export default function TestLaneControls({
   }
 
   async function forgetDraft(entry: CleanupEntry) {
-    const { error } = await db.rpc("tt_oven_test_forget_draft", { p_external_id: entry.external_id });
+    const { error } = await db.rpc("tt_leadgen_test_forget_draft", { p_external_id: entry.external_id });
     if (error) {
       toast.error(error.message);
       return;
