@@ -112,7 +112,7 @@ export default function Stocklist() {
       const { data, error } = await supabase
         .from("stock_products")
         .select(
-          "id, product_code, description, category, unit, quantity_per_unit, cost_per_item, current_inventory, current_inventory_raw, low_stock_amount",
+          "id, product_code, description, category, unit, quantity_per_unit, cost_per_item, cost_per_unit, current_inventory, current_inventory_raw, low_stock_amount",
         )
         .order("product_code", { ascending: true });
 
@@ -280,7 +280,11 @@ export default function Stocklist() {
                         {money(r.cost_per_item)}
                       </td>
                       <td className="whitespace-nowrap px-2 text-right font-mono tabular-nums">
-                        {money(r.quantity_per_unit * r.cost_per_item)}
+                        {r.cost_per_unit === null ? (
+                          <span className="text-muted-foreground">-</span>
+                        ) : (
+                          money(r.cost_per_unit)
+                        )}
                       </td>
                       <td className="whitespace-nowrap px-2 text-right font-mono tabular-nums">
                         <span className="inline-flex items-center gap-1.5">
