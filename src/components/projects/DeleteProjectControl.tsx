@@ -36,7 +36,7 @@ interface Props {
 export function DeleteProjectControl({ projectId, projectName, onDeleted, isMobile }: Props) {
   const { user } = useAuth();
   const [checking, setChecking] = useState(false);
-  const [preview, setPreview] = useState<DeleteProjectResult | null>(null);
+  const [preview, setPreview] = useState<DeleteProjectDryRun | null>(null);
   const [blocked, setBlocked] = useState(false);
   const [typed, setTyped] = useState("");
   const [reason, setReason] = useState("");
