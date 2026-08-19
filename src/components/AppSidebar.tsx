@@ -8,6 +8,7 @@ import {
   BrainCircuit,
   FunctionSquare,
   Hammer,
+  Boxes,
   Contact,
   Settings,
   Briefcase,
@@ -39,6 +40,7 @@ const overviewItems = [
 
 const operationsAfterLeads = [
   { title: "Projects", url: "/projects", icon: Hammer },
+  { title: "Stock and Inventory", url: "/stock/stocklist", icon: Boxes },
   { title: "Calendar", url: "/calendar", icon: CalendarDays },
   { title: "Employee Centre - connect", url: "/employees", icon: Users },
 ];
