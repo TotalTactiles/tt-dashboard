@@ -80,13 +80,29 @@ export function DeleteProjectControl({ projectId, projectName, onDeleted, isMobi
       reason: reason.trim(),
       by: actor,
     });
-    setDeleting(false);
     if (outcome.kind === "ok") {
-      toast.success(`Deleted ${preview.project.name}. ${outcome.data.rows_to_delete} rows removed.`);
+      const rowsRemoved = outcome.data.rows_deleted;
+      const name = outcome.data.project_name;
+      const tombstoneId = outcome.data.tombstone_id;
+      let folderError: string | null = null;
+      if (tombstoneId) {
+        const purge = await purgeOnedriveFolder(tombstoneId);
+        folderError = purge.ok ? null : purge.error ?? "Folder delete failed";
+        await recordOnedrivePurge(tombstoneId, purge.ok, folderError);
+      }
+      setDeleting(false);
+      if (folderError) {
+        toast.warning(
+          `${name} was deleted and ${rowsRemoved} rows removed, but the OneDrive folder could not be deleted: ${folderError}`,
+        );
+      } else {
+        toast.success(`Deleted ${name}. ${rowsRemoved} rows removed. Project folder deleted.`);
+      }
       close();
       onDeleted?.();
       return;
     }
+    setDeleting(false);
     if (outcome.kind === "blocked") {
       setBlocked(true);
       setPreview(outcome.data);
