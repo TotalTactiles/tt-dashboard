@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCrmRefs, type NextStepRow } from "@/hooks/useCrmLeads";
 import { useToast } from "@/hooks/use-toast";
 import {
-  postOvenWebhook,
+  postLeadGenWebhook,
   isPlaceholderBuilder,
   DASH,
   fmtDay,
@@ -91,7 +91,7 @@ const QUEUE_COLS =
   "last_outcome,next_callback_at,deals_completed,deals_live,prior_leads,claim_actor_id,claim_holder," +
   "claim_active,pass_no,bucket,lead_timezone";
 
-export function useColdCallLeads(viewName: string = "v_oven_call_queue") {
+export function useColdCallLeads(viewName: string = "v_leadgen_call_queue") {
   const [rows, setRows] = useState<ColdLead[]>([]);
   const [loading, setLoading] = useState(false);
   const [tick, setTick] = useState(0);
@@ -427,7 +427,7 @@ function ColdCallCard({
   async function findCompanyLine() {
     if (busy) return;
     setBusy("company_phone");
-    const r = await postOvenWebhook("tt-company-phone", { lead_id: lead.id, operator });
+    const r = await postLeadGenWebhook("tt-company-phone", { lead_id: lead.id, operator });
     setBusy(null);
     const body: any = r.body ?? {};
     if (r.blocked || (!r.ok && !body.reason)) {
@@ -576,7 +576,7 @@ function ColdCallCard({
       return;
     }
 
-    const r = await postOvenWebhook("tt-lead-send", { lead_id: lead.id, operator });
+    const r = await postLeadGenWebhook("tt-lead-send", { lead_id: lead.id, operator });
     setBusy(null);
     if (r.blocked) {
       toast({

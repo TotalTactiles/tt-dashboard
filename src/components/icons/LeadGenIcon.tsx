@@ -1,6 +1,6 @@
 import React from "react";
 
-export const OvenIcon = React.forwardRef<
+export const LeadGenIcon = React.forwardRef<
   SVGSVGElement,
   React.SVGProps<SVGSVGElement>
 >(({ className, ...props }, ref) => {
@@ -27,4 +27,4 @@ export const OvenIcon = React.forwardRef<
   );
 });
 
-OvenIcon.displayName = "OvenIcon";
+LeadGenIcon.displayName = "LeadGenIcon";
