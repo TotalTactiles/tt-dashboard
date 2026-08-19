@@ -15,9 +15,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   PROJECT_DELETE_ENABLED,
   callDeleteProject,
+  purgeOnedriveFolder,
+  recordOnedrivePurge,
   COUNT_LABELS,
   n,
-  type DeleteProjectResult,
+  type DeleteProjectDryRun,
 } from "@/lib/deleteProject";
 
 export const DISABLED_HELP =
