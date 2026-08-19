@@ -247,7 +247,7 @@ export function DeleteProjectControl({ projectId, projectName, onDeleted, isMobi
                     The original cost baseline does not come back. The rebuild reads the REVENUE tab as it stands on the day it runs.
                   </p>
                   <p className="text-[12.5px] text-muted-foreground">
-                    Any folders made for this current project are not deleted and are not reconnected. The rebuild makes a new empty folder. So once the rebuild is complete, reupload any files you need from this project's folders onto the relevant tasks in the rebuilt project, so they are in the correct required locations.
+                    This project's OneDrive folder is deleted with everything in it. On a split job only that stage's folder is removed, because the other stages of that job share the same parent folder. Save anything you need before you delete, not after. The rebuild makes a new empty folder.
                   </p>
                 </div>
 
