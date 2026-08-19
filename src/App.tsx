@@ -93,6 +93,10 @@ const App = () => (
                   <Route path="/crm/lead/:id" element={<Protected><LeadProfile /></Protected>} />
                   <Route path="/crm" element={<Navigate to="/lead-generation" replace />} />
                   <Route path="/contacts" element={<Protected><Contacts /></Protected>} />
+                  <Route path="/stock" element={<Navigate to="/stock/stocklist" replace />} />
+                  <Route path="/stock/dashboard" element={<Protected><StockDashboard /></Protected>} />
+                  <Route path="/stock/stocklist" element={<Protected><Stocklist /></Protected>} />
+                  <Route path="/stock/attribution" element={<Protected><StockAttribution /></Protected>} />
                   {/* ── TV / Wallboard mode ── */}
                   <Route path="/tv" element={<Protected><TvLayout><Index /></TvLayout></Protected>} />
                   <Route path="/tv/deals" element={<Protected><TvLayout><DealFlow /></TvLayout></Protected>} />
