@@ -27,6 +27,7 @@ interface StockProduct {
   unit: string;
   quantity_per_unit: number;
   cost_per_item: number;
+  cost_per_unit: number | null;
   current_inventory: number | null;
   current_inventory_raw: string;
   low_stock_amount: number | null;
