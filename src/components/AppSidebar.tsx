@@ -8,6 +8,7 @@ import {
   BrainCircuit,
   FunctionSquare,
   Hammer,
+  Boxes,
   Contact,
   Settings,
   Briefcase,
