@@ -220,7 +220,7 @@ export default function Stocklist() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border stock-scroll">
+          <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full min-w-[1100px] border-collapse text-xs">
               <thead>
                 <tr className="border-b border-border bg-muted/30 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
