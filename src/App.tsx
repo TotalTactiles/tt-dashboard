@@ -50,6 +50,9 @@ const Projects = lazyWithReload(() => import("./pages/Projects"));
 const CRM = lazyWithReload(() => import("./pages/CRM"));
 const LeadProfile = lazyWithReload(() => import("./components/crm/LeadProfile"));
 const Contacts = lazyWithReload(() => import("./pages/Contacts"));
+const StockDashboard = lazyWithReload(() => import("./pages/StockDashboard"));
+const Stocklist = lazyWithReload(() => import("./pages/Stocklist"));
+const StockAttribution = lazyWithReload(() => import("./pages/StockAttribution"));
 
 const queryClient = new QueryClient();
 
