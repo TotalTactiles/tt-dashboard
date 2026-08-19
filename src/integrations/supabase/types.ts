@@ -4755,6 +4755,7 @@ export type Database = {
         Row: {
           category: string
           cost_per_item: number
+          cost_per_unit: number | null
           current_inventory: number | null
           current_inventory_raw: string
           description: string
@@ -4769,6 +4770,7 @@ export type Database = {
         Insert: {
           category: string
           cost_per_item: number
+          cost_per_unit?: number | null
           current_inventory?: number | null
           current_inventory_raw: string
           description: string
@@ -4783,6 +4785,7 @@ export type Database = {
         Update: {
           category?: string
           cost_per_item?: number
+          cost_per_unit?: number | null
           current_inventory?: number | null
           current_inventory_raw?: string
           description?: string
